@@ -40,7 +40,7 @@ by deploying each box on multiple servers.
 └────────────┘
 ```
 
-It expect to work behind a web server set up as reverse proxy. It is recommended to use lighttpd.
+peony is meant to work behind a web server set up as reverse proxy. It is recommended to use lighttpd.
 
 peony uses a cloud architecture. It can run on several backend servers sharing a connection to the KeyDB 
 server and Percona Server. Static files uploaded from the Admin frontend (such as images and documents) 
