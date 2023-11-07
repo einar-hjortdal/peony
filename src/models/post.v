@@ -34,7 +34,7 @@ pub mut:
 	content      string
 	handle       string
 	excerpt      string
-	metadata     string
+	metadata     string [raw]
 	authors      []User
 	// tags         []Tag
 	// revisions    []Revision
@@ -54,7 +54,7 @@ pub mut:
 	content    string
 	handle     string
 	excerpt    string
-	metadata   string
+	metadata   string [raw]
 }
 
 pub const allowed_status = ['published', 'draft', 'scheduled']
@@ -207,6 +207,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			"post"."subtitle",
 			"post"."content",
 			"post"."handle",
+			"post"."excerpt",
 			"post"."metadata",
 			BIN_TO_UUID("post_authors"."author_id"),
 			BIN_TO_UUID("post_tags"."tag_id")
@@ -260,7 +261,8 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			subtitle: vals[14]
 			content: vals[15]
 			handle: vals[16]
-			metadata: vals[17]
+			excerpt: vals[17]
+			metadata: vals[18]
 			authors: authors
 		}
 		posts = arrays.concat(posts, post)
@@ -338,12 +340,6 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 
 	if pw.visibility !in models.allowed_visibility {
 		return error('PostWriteable.update: post visibility invalid')
-	}
-
-	// Empty JSON objects are parsed as empty strings, MySQL does not accept invalid JSON.
-	// TODO isolate for possible bug report
-	if pw.metadata == '' {
-		pw.metadata = '{}'
 	}
 
 	mut query_records := '
