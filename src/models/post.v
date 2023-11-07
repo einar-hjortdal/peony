@@ -16,7 +16,6 @@ import utils
 // peony does not perform any sanitization of post content: only allow trusted and informed users to
 // publish posts.
 pub struct Post {
-pub mut:
 	id           string
 	created_at   string [json: 'createdAt']
 	created_by   User   [json: 'createdBy']
@@ -55,8 +54,8 @@ pub mut:
 	content    string
 	handle     string // TODO generate handle using title if not provided
 	excerpt    string
-	metadata   string [raw]
-	// authors []string
+	metadata   string   [raw]
+	authors    []string
 }
 
 pub const allowed_status = ['published', 'draft', 'scheduled']
@@ -64,31 +63,31 @@ pub const allowed_status = ['published', 'draft', 'scheduled']
 pub const allowed_visibility = ['public', 'paid']
 
 // TODO add created_by to post_authors if authors is empty
-pub fn (post Post) create(mut mysql_conn v_mysql.DB, created_by_id string) ! {
+pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
 	mut query_columns := ['id', 'title', 'created_by', 'updated_by']
 	mut qm := ['UUID_TO_BIN(?)', '?', 'UUID_TO_BIN(?)', 'UUID_TO_BIN(?)']
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, mysql.Param(post.id), mysql.Param(post.title), mysql.Param(created_by_id),
+	vars = arrays.concat(vars, mysql.Param(id), mysql.Param(pw.title), mysql.Param(created_by_id),
 		mysql.Param(created_by_id))
 
-	if post.status != '' {
-		match post.status {
+	if pw.status != '' {
+		match pw.status {
 			'published', 'draft', 'scheduled' {
 				query_columns = arrays.concat(query_columns, 'status')
-				vars = arrays.concat(vars, mysql.Param(post.status))
+				vars = arrays.concat(vars, mysql.Param(pw.status))
 				qm = arrays.concat(qm, '?')
 			}
 			else {
-				return error('status not allowed')
+				return utils.new_peony_error(400, 'status not allowed')
 			}
 		}
 	}
 
-	if post.post_type != '' {
-		match post.post_type {
+	if post_type != '' {
+		match post_type {
 			'post', 'page' {
 				query_columns = arrays.concat(query_columns, 'type')
-				vars = arrays.concat(vars, mysql.Param(post.post_type))
+				vars = arrays.concat(vars, mysql.Param(post_type))
 				qm = arrays.concat(qm, '?')
 			}
 			else {
@@ -97,23 +96,23 @@ pub fn (post Post) create(mut mysql_conn v_mysql.DB, created_by_id string) ! {
 		}
 	}
 
-	if post.featured {
+	if pw.featured {
 		query_columns = arrays.concat(query_columns, 'featured')
-		vars = arrays.concat(vars, mysql.Param(post.featured))
+		vars = arrays.concat(vars, mysql.Param(pw.featured))
 		qm = arrays.concat(qm, '?')
 	}
 
-	if post.status == 'published' {
+	if pw.status == 'published' {
 		query_columns = arrays.concat(query_columns, 'published_at', 'published_by')
 		vars = arrays.concat(vars, mysql.Param('NOW()'), mysql.Param(created_by_id))
 		qm = arrays.concat(qm, 'UUID_TO_BIN(?)', 'UUID_TO_BIN(?)')
 	}
 
-	if post.visibility != '' {
-		match post.visibility {
+	if pw.visibility != '' {
+		match pw.visibility {
 			'public', 'paid' {
 				query_columns = arrays.concat(query_columns, 'visibility')
-				vars = arrays.concat(vars, mysql.Param(post.visibility))
+				vars = arrays.concat(vars, mysql.Param(pw.visibility))
 				qm = arrays.concat(qm, '?')
 			}
 			else {
@@ -122,33 +121,34 @@ pub fn (post Post) create(mut mysql_conn v_mysql.DB, created_by_id string) ! {
 		}
 	}
 
-	if post.subtitle != '' {
+	if pw.subtitle != '' {
 		query_columns = arrays.concat(query_columns, 'subtitle')
-		vars = arrays.concat(vars, mysql.Param(post.subtitle))
+		vars = arrays.concat(vars, mysql.Param(pw.subtitle))
 		qm = arrays.concat(qm, '?')
 	}
 
-	if post.content != '' {
+	if pw.content != '' {
 		query_columns = arrays.concat(query_columns, 'content')
-		vars = arrays.concat(vars, mysql.Param(post.content))
+		vars = arrays.concat(vars, mysql.Param(pw.content))
 		qm = arrays.concat(qm, '?')
 	}
 
-	if post.handle != '' {
+	if pw.handle != '' {
 		query_columns = arrays.concat(query_columns, 'handle')
-		vars = arrays.concat(vars, mysql.Param(post.handle))
+		vars = arrays.concat(vars, mysql.Param(pw.handle))
 		qm = arrays.concat(qm, '?')
 	}
 
-	if post.excerpt != '' {
+	if pw.excerpt != '' {
 		query_columns = arrays.concat(query_columns, 'excerpt')
-		vars = arrays.concat(vars, mysql.Param(post.excerpt))
+		vars = arrays.concat(vars, mysql.Param(pw.excerpt))
 		qm = arrays.concat(qm, '?')
 	}
 
-	if post.metadata != '' {
+	// TODO always insert metadata?
+	if pw.metadata != '' {
 		query_columns = arrays.concat(query_columns, 'metadata')
-		vars = arrays.concat(vars, mysql.Param(post.metadata))
+		vars = arrays.concat(vars, mysql.Param(pw.metadata))
 		qm = arrays.concat(qm, '?')
 	}
 
@@ -160,20 +160,20 @@ pub fn (post Post) create(mut mysql_conn v_mysql.DB, created_by_id string) ! {
 		INSERT INTO "post_authors" ("post_id", "author_id")
 		VALUES	(UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
-	vars = [mysql.Param(post.id)]
+	vars = [mysql.Param(id)]
 
-	if post.authors.len < 2 {
-		if post.authors.len == 0 {
+	if pw.authors.len < 2 {
+		if pw.authors.len == 0 {
 			vars = arrays.concat(vars, mysql.Param(created_by_id))
 		}
-		if post.authors.len == 1 {
-			vars = arrays.concat(vars, mysql.Param(post.authors[0].id))
+		if pw.authors.len == 1 {
+			vars = arrays.concat(vars, mysql.Param(pw.authors[0]))
 		}
 		mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 	} else {
-		for author in post.authors {
-			author_id := author.id
-			vars = [mysql.Param(post.id), mysql.Param(author_id)]
+		for author in pw.authors {
+			author_id := author
+			vars = [mysql.Param(id), mysql.Param(author_id)]
 			mysql.prep(mut mysql_conn, 'stmt', query)!
 			mysql.exec(mut mysql_conn, 'stmt', ...vars)!
 		}

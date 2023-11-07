@@ -29,7 +29,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 }
 
 struct AdminPostsPostRequest {
-	post_type  string [json: postType] // must be either 'post' or 'page'
+	post_type  string   [json: postType] // must be either 'post' or 'page'
 	status     string
 	featured   bool
 	visibility string
@@ -38,7 +38,8 @@ struct AdminPostsPostRequest {
 	content    string
 	handle     string
 	excerpt    string
-	metadata   string
+	metadata   string   [raw]
+	authors    []string
 }
 
 // admin_posts_post allows an author to create a post.
@@ -85,9 +86,7 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 		return app.json(e)
 	}
 
-	mut post := models.Post{
-		id: new_post_id
-		post_type: body.post_type
+	mut post := models.PostWriteable{
 		status: body.status
 		featured: body.featured
 		visibility: body.visibility
@@ -96,9 +95,10 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 		content: body.content
 		handle: body.handle
 		metadata: body.metadata
+		authors: body.authors
 	}
 
-	post.create(mut app.db, v.user.id) or {
+	post.create(mut app.db, v.user.id, new_post_id, body.post_type) or {
 		app.logger.debug('admin_posts_post: ${err.msg()}')
 		app.set_status(500, 'Internal server error')
 		e = utils.new_peony_error(5, err.msg())
