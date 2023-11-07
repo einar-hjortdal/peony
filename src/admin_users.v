@@ -26,8 +26,10 @@ pub fn (mut app App) admin_users_get() vweb.Result {
 }
 
 struct AdminUsersPostRequest {
+mut:
 	email      string // required
 	password   string // required
+	handle     string
 	first_name string
 	last_name  string
 	role       string // must be either 'admin', 'member', 'developer' or 'author'
@@ -43,16 +45,24 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 		return app.json(e)
 	}
 
-	body := json.decode(AdminUsersPostRequest, app.req.data) or {
+	mut body := json.decode(AdminUsersPostRequest, app.req.data) or {
 		app.set_status(422, 'Invalid request')
 		e = new_peony_error(5, 'Could not decode AdminUsersPostRequest')
 		return app.json(e)
 	}
 
+	if body.handle == '' {
+		body.handle = app.luuid_generator.v2() or {
+			app.set_status(500, 'Internal server error')
+			peony_error := new_peony_error(500, err.msg())
+			return app.json(peony_error)
+		}
+	}
+
 	email := body.email.trim_space()
 	validate_email(email) or {
-		app.set_status(422, 'Invalid request')
-		e = new_peony_error(5, err.msg())
+		app.set_status(400, 'Invalid request')
+		e = new_peony_error(400, err.msg())
 		return app.json(e)
 	}
 
@@ -64,13 +74,19 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 
 	password_hash := utils.new_password_hash(body.password) or {
 		app.set_status(500, 'Internal server error')
-		peony_error := new_peony_error(5, err.msg())
+		peony_error := new_peony_error(500, err.msg())
 		return app.json(peony_error)
 	}
 
-	mut new_user := models.User{
+	mut new_user := models.UserWriteable{
 		email: email
 		password_hash: password_hash
+	}
+
+	id := app.luuid_generator.v2() or {
+		app.set_status(500, 'Internal server error')
+		peony_error := new_peony_error(500, err.msg())
+		return app.json(peony_error)
 	}
 
 	first_name := body.first_name.trim_space()
@@ -97,7 +113,7 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 		}
 	}
 
-	new_user.create(mut app.db) or {
+	new_user.create(mut app.db, id) or {
 		app.set_status(500, 'Internal server error')
 		e = new_peony_error(5, err.msg())
 		return app.json(e)
