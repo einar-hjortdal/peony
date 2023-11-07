@@ -20,7 +20,7 @@ pub mut:
 	deleted_at    string [json: 'deletedAt']
 	first_name    string [json: 'firstName']
 	last_name     string [json: 'lastName']
-	metadata      string // location, website, social media links...
+	metadata      string [raw]
 }
 
 // TODO make User immutable
@@ -32,41 +32,38 @@ pub mut:
 	role          string
 	first_name    string [json: 'firstName']
 	last_name     string [json: 'lastName']
-	metadata      string
+	metadata      string [raw]
 }
 
 // create_user creates a peony user in the database.
-// id, email and password_hash are required.
-pub fn (user User) create(mut mysql_conn v_mysql.DB) ! {
-	mut query_columns := ['id', 'email', 'password_hash']
+// id, email, password_hash and handle are required.
+pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
+	mut query_columns := ['id', 'email', 'password_hash', 'handle']
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, mysql.Param(user.id), mysql.Param(user.email), mysql.Param(user.password_hash))
+	vars = arrays.concat(vars, mysql.Param(id), mysql.Param(uw.email), mysql.Param(uw.password_hash),
+		mysql.Param(uw.handle))
 
-	// TODO error if id, email and password are missing
+	// TODO error if id, email, password or handle are missing
 
-	if user.handle != '' {
-		query_columns = arrays.concat(query_columns, 'handle')
-		vars = arrays.concat(vars, mysql.Param(user.handle))
-	}
-	if user.role != '' {
-		if user.role != 'admin' && user.role != 'member' && user.role != 'developer'
-			&& user.role != 'author' && user.role != 'contributor' {
+	if uw.role != '' {
+		if uw.role != 'admin' && uw.role != 'member' && uw.role != 'developer'
+			&& uw.role != 'author' && uw.role != 'contributor' {
 			return error('user.role must be either "admin", "member", "developer", "author" or "contributor"')
 		}
 		query_columns = arrays.concat(query_columns, 'role')
-		vars = arrays.concat(vars, mysql.Param(user.role))
+		vars = arrays.concat(vars, mysql.Param(uw.role))
 	}
-	if user.first_name != '' {
+	if uw.first_name != '' {
 		query_columns = arrays.concat(query_columns, 'first_name')
-		vars = arrays.concat(vars, mysql.Param(user.first_name))
+		vars = arrays.concat(vars, mysql.Param(uw.first_name))
 	}
-	if user.last_name != '' {
+	if uw.last_name != '' {
 		query_columns = arrays.concat(query_columns, 'last_name')
-		vars = arrays.concat(vars, mysql.Param(user.last_name))
+		vars = arrays.concat(vars, mysql.Param(uw.last_name))
 	}
-	if user.metadata != '' {
+	if uw.metadata != '' {
 		query_columns = arrays.concat(query_columns, 'metadata')
-		vars = arrays.concat(vars, mysql.Param(user.metadata))
+		vars = arrays.concat(vars, mysql.Param(uw.metadata))
 	}
 
 	query := 'INSERT INTO "user" (${mysql.columns(query_columns)}) VALUES (UUID_TO_BIN(?, 0), ${mysql.question_marks(query_columns[1..])})'

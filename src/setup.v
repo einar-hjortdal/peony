@@ -108,14 +108,15 @@ fn add_default_admin(mut logger log.Log, mut mysql_conn v_mysql.DB, mut luuid_ge
 	logger.debug('Adding default admin to the database')
 
 	new_admin_id := luuid_gen.v2() or { panic(err) }
+	new_admin_handle := 'default_admin'
 	new_password_hash := utils.new_password_hash(default_password) or { panic(err) }
-	user := models.User{
-		id: new_admin_id
+	user := models.UserWriteable{
 		email: default_email
 		password_hash: new_password_hash
+		handle: new_admin_handle
 		role: 'admin'
 	}
-	user.create(mut mysql_conn) or { panic(err) }
+	user.create(mut mysql_conn, new_admin_id) or { panic(err) }
 
 	logger.info('The default admin email is ${default_email}')
 	logger.info('The default admin password is ${default_password}')
