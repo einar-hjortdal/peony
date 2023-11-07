@@ -22,14 +22,15 @@ fn add_default_settings(prefix string) {
 		'DEBUG':                  'false'
 		'APP_NAME':               'Peony'
 		'INSTANCE_NUMBER':        '0'
+		'ADDRESS':                'localhost'
 		'PORT':                   '29000'
+		'ADMIN_URL':              'localhost:29100'
+		'STOREFRONT_URL':         'localhost:29200'
+		'CACHE_DURATION':         '1800' // 30 minutes
 		'SESSION_MAX_AGE':        '86400' // One day
 		'SESSION_NAME':           'Session'
 		'SESSION_REFRESH_EXPIRE': 'false'
 		'SESSION_ADMIN_PREFIX':   'Admin'
-		'CACHE_DURATION':         '1800' // 30 minutes
-		'ADMIN_URL':              'localhost:29100'
-		'STOREFRONT_URL':         'localhost:29200'
 		'MYSQL_URL':              '127.0.0.1:29300'
 		'REDIS_URL':              'localhost:29400'
 		// 'S3_URL': 'localhost:29500'
@@ -43,6 +44,15 @@ fn add_default_settings(prefix string) {
 // These keys are expected to be provided with a prefix, this prefix is removed by remove_prefix.
 // This list contains all the environment variables used by peony.
 fn prepare_settings(prefix string) {
+	required := [
+		'SESSION_SECRET',
+		'MYSQL_DATABASE',
+		'MYSQL_USER',
+		'MYSQL_PASSWORD',
+		'REDIS_PASSWORD',
+	]
+	verify_settings(prefix, required)
+
 	expected := [
 		'DEBUG',
 		'APP_NAME',
@@ -70,7 +80,6 @@ fn prepare_settings(prefix string) {
 		'S3_ACCESS_KEY',
 		'S3_SECRET_KEY',
 	]
-	// verify_settings(prefix, expected)
 	remove_prefix(prefix, expected)
 }
 
