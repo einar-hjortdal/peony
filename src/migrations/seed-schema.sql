@@ -44,7 +44,7 @@ CREATE TABLE
     "updated_at" datetime NOT NULL DEFAULT NOW(),
     "deleted_at" datetime,
     "title" varchar(63) NOT NULL,
-    "handle" varchar(63),
+    "handle" varchar(63) NOT NULL,
     "metadata" json
   );
 
@@ -191,7 +191,7 @@ CREATE UNIQUE INDEX "IX_e9bffba4-afe5-45c7-b611-5830a9e0312c" ON "analytics_conf
 CREATE TABLE
   "user" (
     "id" binary(16) PRIMARY KEY,
-    "handle" varchar(63),
+    "handle" varchar(63) NOT NULL,
     "email" varchar(254), -- IETF RFC 3696 Errata 1690
     "password_hash" varchar(60) NOT NULL, -- bcrypt
     "role" varchar(11) NOT NULL DEFAULT 'member',
@@ -1388,7 +1388,7 @@ CREATE TABLE
     "title" varchar(63) NOT NULL,
     "subtitle" varchar(191),
     "description" text,
-    "handle" varchar(63),
+    "handle" varchar(63) NOT NULL,
     "is_giftcard" bit(1) NOT NULL DEFAULT b'0',
     "status" varchar(9) NOT NULL DEFAULT 'draft',
     "thumbnail" text,
@@ -2133,7 +2133,7 @@ CREATE TABLE
     "subtitle" varchar(191),
     "content" text,
     "excerpt" text,
-    "handle" varchar(63),
+    "handle" varchar(63) NOT NULL,
     "metadata" json,
     CONSTRAINT "CK_2ebc6a93-2710-4db4-b8ac-ed50879cb93f" CHECK ("visibility" IN ('public', 'paid')),
     CONSTRAINT "CK_7933d5cc-50af-4393-9fcb-05c0f928d3d1" CHECK ("type" IN ('post', 'page')),
@@ -2207,7 +2207,7 @@ CREATE TABLE
     "title" varchar(63),
     "subtitle" varchar(191),
     "content" text,
-    "handle" varchar(63),
+    "handle" varchar(63) NOT NULL,
     "excerpt" text,
     CONSTRAINT "CK_db3214a3-4747-43ae-92dd-f7c4dfbcbe02" CHECK ("visibility" in ('public', 'paid')),
     CONSTRAINT "FK_cce9e5fa-98b7-42a2-a07f-099b21d30125" FOREIGN KEY ("parent_id") REFERENCES "tag" ("id"),
@@ -2215,6 +2215,16 @@ CREATE TABLE
     CONSTRAINT "FK_046712e2-098e-447f-ad59-1293e2da23d8" FOREIGN KEY ("updated_by") REFERENCES "user" ("id"),
     CONSTRAINT "FK_52e2391e-53db-4018-b5b1-7d78884d8574" FOREIGN KEY ("deleted_by") REFERENCES "user" ("id")
   );
+
+CREATE UNIQUE INDEX "IX_a8712950-695a-4b27-b57d-86eb4f30d475" ON "tag" (
+  "handle",
+  (
+    CASE
+      WHEN "deleted_at" IS NULL THEN b'1'
+      ELSE NULL
+    END
+  )
+);
 
 CREATE TABLE
   "tag_images" (
