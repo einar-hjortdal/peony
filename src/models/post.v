@@ -325,6 +325,80 @@ pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
 	return posts[0]
 }
 
+pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
+	query := '
+	SELECT
+	BIN_TO_UUID("id"),
+	"created_at",
+	BIN_TO_UUID("created_by"),
+	"updated_at",
+	BIN_TO_UUID("updated_by"),
+	"deleted_at",
+	BIN_TO_UUID("deleted_by"),
+	"status",
+	"type",
+	"featured",
+	"published_at",
+	BIN_TO_UUID("published_by"),
+	"visibility",
+	"title",
+	"subtitle",
+	"content",
+	"handle",
+	"excerpt",
+	"metadata"
+	FROM "post"
+	WHERE "handle" = ?'
+
+	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, handle)!
+
+	rows := res.rows()
+
+	row := rows[0] // TODO what happens if no records?
+	vals := row.vals
+
+	mut created_by := User{}
+	if vals[2] != '' {
+		created_by = user_retrieve_by_id(mut mysql_conn, vals[2])!
+	}
+	mut updated_by := User{}
+	if vals[2] != '' {
+		updated_by = user_retrieve_by_id(mut mysql_conn, vals[4])!
+	}
+	mut deleted_by := User{}
+	if vals[6] != '' {
+		deleted_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
+	}
+	mut published_by := User{}
+	if vals[6] != '' {
+		published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
+	}
+
+	mut post := Post{
+		id: vals[0]
+		created_at: vals[1]
+		created_by: created_by
+		updated_at: vals[3]
+		updated_by: updated_by
+		deleted_at: vals[5]
+		deleted_by: deleted_by
+		status: vals[7]
+		post_type: vals[8]
+		featured: mysql.bit_to_bool(vals[9])
+		published_at: vals[10]
+		published_by: published_by
+		visibility: vals[12]
+		title: vals[13]
+		subtitle: vals[14]
+		content: vals[15]
+		handle: vals[16]
+		metadata: vals[17]
+		// TODO authors
+	}
+
+	return post
+}
+
 pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, user_id string) ! {
 	if user_id == '' {
 		return error('PostWriteable.update: parameter user_id invalid')
@@ -375,8 +449,4 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	println(query)
 	println(vars)
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars) or { println(err) }
-}
-
-pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
-	return Post{}
 }
