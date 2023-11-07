@@ -2,9 +2,10 @@ module main
 
 // vlib
 import vweb
+import json
 // local
 import models
-import json
+import utils
 
 // admin_posts_get is the same as storefront_posts_get with with authentication required.
 // Requires authorization.
@@ -12,7 +13,7 @@ import json
 ['/admin/posts'; get]
 pub fn (mut app App) admin_posts_get() vweb.Result {
 	_, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
@@ -21,7 +22,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 		println(err)
 		app.logger.debug(err.msg())
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(0, err.msg())
+		e = utils.new_peony_error(0, err.msg())
 		return app.json(e)
 	}
 	return app.json(posts)
@@ -45,7 +46,7 @@ struct AdminPostsPostRequest {
 ['/admin/posts'; post]
 pub fn (mut app App) admin_posts_post() vweb.Result {
 	v, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
@@ -53,34 +54,34 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 	body := json.decode(AdminPostsPostRequest, app.req.data) or {
 		app.logger.debug('Failed to decode JSON body into AdminPostsPostRequest struct')
 		app.set_status(422, 'Invalid request')
-		e = new_peony_error(5, 'Could not decode AdminPostsPostRequest')
+		e = utils.new_peony_error(5, 'Could not decode AdminPostsPostRequest')
 		return app.json(e)
 	}
 
 	if body.post_type == '' {
 		app.logger.debug('AdminPostsPostRequest.post_type missing')
 		app.set_status(422, 'Invalid request')
-		e = new_peony_error(5, 'Post type is required')
+		e = utils.new_peony_error(5, 'Post type is required')
 		return app.json(e)
 	}
 
 	if body.post_type != 'post' && body.post_type != 'page' {
 		app.logger.debug('AdminPostsPostRequest.post_type is neither post nor page')
 		app.set_status(400, 'Bad Request')
-		e = new_peony_error(400, 'postType must be either post or page')
+		e = utils.new_peony_error(400, 'postType must be either post or page')
 		return app.json(e)
 	}
 
 	if body.title == '' {
 		app.logger.debug('AdminPostsPostRequest.title missing')
 		app.set_status(422, 'Invalid request')
-		e = new_peony_error(5, 'Post title is required')
+		e = utils.new_peony_error(5, 'Post title is required')
 		return app.json(e)
 	}
 
 	new_post_id := app.luuid_generator.v2() or {
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(500, err.msg())
+		e = utils.new_peony_error(500, err.msg())
 		return app.json(e)
 	}
 
@@ -100,14 +101,14 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 	post.create(mut app.db, v.user.id) or {
 		app.logger.debug('admin_posts_post: ${err.msg()}')
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(5, err.msg())
+		e = utils.new_peony_error(5, err.msg())
 		return app.json(e)
 	}
 
 	retrieved_post := models.post_retrieve_by_id(mut app.db, new_post_id) or {
 		app.logger.debug('admin_posts_post: ${err.msg()}')
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(5, err.msg())
+		e = utils.new_peony_error(5, err.msg())
 		return app.json(e)
 	}
 
@@ -117,7 +118,7 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 ['/admin/posts/:id'; get]
 pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 	_, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
@@ -125,7 +126,7 @@ pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 	retrieved_post := models.post_retrieve_by_id(mut app.db, id) or {
 		app.logger.debug('admin_post: ${err.msg()}')
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(5, err.msg())
+		e = utils.new_peony_error(5, err.msg())
 		return app.json(e)
 	}
 
@@ -137,7 +138,7 @@ pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 ['/admin/posts/:id'; post]
 pub fn (mut app App) admin_post_update(id string) vweb.Result {
 	v, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
@@ -145,7 +146,7 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 	mut body := json.decode(models.PostWriteable, app.req.data) or {
 		app.logger.debug('Failed to decode JSON body into models.PostWriteable struct')
 		app.set_status(400, 'Invalid request body')
-		e = new_peony_error(422, 'Could not decode request body to models.PostWriteable')
+		e = utils.new_peony_error(422, 'Could not decode request body to models.PostWriteable')
 		return app.json(e)
 	}
 
@@ -156,21 +157,21 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 	if body.title == '' {
 		app.logger.debug('admin_post_update: models.PostWriteable.title missing')
 		app.set_status(422, 'Invalid request')
-		e = new_peony_error(5, 'Post title is required')
+		e = utils.new_peony_error(5, 'Post title is required')
 		return app.json(e)
 	}
 
 	body.update(mut app.db, id, v.user.id) or {
 		app.logger.debug('admin_post_update: ${err.msg()}')
 		app.set_status(500, 'Database error')
-		e = new_peony_error(500, 'Database error: ${err.msg()}')
+		e = utils.new_peony_error(500, 'Database error: ${err.msg()}')
 		return app.json(e)
 	}
 
 	retrieved_post := models.post_retrieve_by_id(mut app.db, id) or {
 		app.logger.debug('admin_post_update: ${err.msg()}')
 		app.set_status(500, 'Database error')
-		e = new_peony_error(5, 'Database error: ${err.msg()}')
+		e = utils.new_peony_error(5, 'Database error: ${err.msg()}')
 		return app.json(e)
 	}
 
@@ -188,7 +189,7 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 ['/admin/pages'; get]
 pub fn (mut app App) admin_pages_get() vweb.Result {
 	_, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
@@ -196,7 +197,7 @@ pub fn (mut app App) admin_pages_get() vweb.Result {
 	pages := models.post_list(mut app.db, 'page') or {
 		app.logger.debug(err.msg())
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(0, err.msg())
+		e = utils.new_peony_error(0, err.msg())
 		return app.json(e)
 	}
 	return app.json(pages)

@@ -38,48 +38,48 @@ fn (mut app App) new_admin_session() AdminValues {
 }
 
 // save_admin_session wraps `c_sessions.Store.save`.
-fn (mut app App) save_admin_session(values AdminValues) PeonyError {
+fn (mut app App) save_admin_session(values AdminValues) utils.PeonyError {
 	app.session.values = values.encode()
 	app.sessions.store.save(mut app.header, mut app.session) or {
-		return new_peony_error(1, 'Could not save session')
+		return utils.new_peony_error(1, 'Could not save session')
 	}
-	return new_peony_error(0, '')
+	return utils.new_peony_error(0, '')
 }
 
 // delete_admin_session sets `c_sessions.Session.to_prune` to `true` and invokes `c_sessions.Store.save`.
-fn (mut app App) delete_admin_session() PeonyError {
+fn (mut app App) delete_admin_session() utils.PeonyError {
 	app.session.to_prune = true
 	app.sessions.store.save(mut app.header, mut app.session) or {
-		return new_peony_error(1, 'Could not save session')
+		return utils.new_peony_error(1, 'Could not save session')
 	}
-	return new_peony_error(0, '')
+	return utils.new_peony_error(0, '')
 }
 
 // TODO wrap c_sessions.Session.flashes
 
-fn (mut app App) auth_user(mut values AdminValues, email string, password string) PeonyError {
+fn (mut app App) auth_user(mut values AdminValues, email string, password string) utils.PeonyError {
 	password_hash := models.user_password_hash_by_email(mut app.db, email) or {
-		return new_peony_error(2, err.msg())
+		return utils.new_peony_error(2, err.msg())
 	}
 	utils.verify_password(password, password_hash) or {
-		return new_peony_error(3, 'User does not exist or invalid credentials')
+		return utils.new_peony_error(3, 'User does not exist or invalid credentials')
 	}
 	retrieved_user := models.user_retrieve_by_email(mut app.db, email) or {
-		return new_peony_error(2, err.msg())
+		return utils.new_peony_error(2, err.msg())
 	}
 	values.user = retrieved_user
-	return new_peony_error(0, '')
+	return utils.new_peony_error(0, '')
 }
 
 // check_user_auth verifies that an admin session is authenticated.
 // If the session is authenticated, AdminValues are returned together with a nil PeonyError.
 // Otherwise, an empty AdminValues is returned together with a PeonyError.
-fn (mut app App) check_user_auth() (AdminValues, PeonyError) {
+fn (mut app App) check_user_auth() (AdminValues, utils.PeonyError) {
 	v := app.new_admin_session()
 	if v.user.id == '' {
-		return v, new_peony_error(401, 'User data is missing')
+		return v, utils.new_peony_error(401, 'User data is missing')
 	}
-	return v, new_peony_error(0, '')
+	return v, utils.new_peony_error(0, '')
 }
 
 /*

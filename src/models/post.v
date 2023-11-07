@@ -5,6 +5,7 @@ import arrays
 import db.mysql as v_mysql
 // local
 import data.mysql
+import utils
 
 // A post is a resource of content. A subset of posts is pages. pages are resources that are not meant
 // to be listed together with posts.
@@ -52,9 +53,10 @@ pub mut:
 	title      string
 	subtitle   string
 	content    string
-	handle     string
+	handle     string // TODO generate handle using title if not provided
 	excerpt    string
 	metadata   string [raw]
+	// authors []string
 }
 
 pub const allowed_status = ['published', 'draft', 'scheduled']
@@ -328,25 +330,25 @@ pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
 pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
 	query := '
 	SELECT
-	BIN_TO_UUID("id"),
-	"created_at",
-	BIN_TO_UUID("created_by"),
-	"updated_at",
-	BIN_TO_UUID("updated_by"),
-	"deleted_at",
-	BIN_TO_UUID("deleted_by"),
-	"status",
-	"type",
-	"featured",
-	"published_at",
-	BIN_TO_UUID("published_by"),
-	"visibility",
-	"title",
-	"subtitle",
-	"content",
-	"handle",
-	"excerpt",
-	"metadata"
+		BIN_TO_UUID("id"),
+		"created_at",
+		BIN_TO_UUID("created_by"),
+		"updated_at",
+		BIN_TO_UUID("updated_by"),
+		"deleted_at",
+		BIN_TO_UUID("deleted_by"),
+		"status",
+		"type",
+		"featured",
+		"published_at",
+		BIN_TO_UUID("published_by"),
+		"visibility",
+		"title",
+		"subtitle",
+		"content",
+		"handle",
+		"excerpt",
+		"metadata"
 	FROM "post"
 	WHERE "handle" = ?'
 
@@ -354,7 +356,11 @@ pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
 
 	rows := res.rows()
 
-	row := rows[0] // TODO what happens if no records?
+	if rows.len == 0 {
+		return utils.new_peony_error(404, 'No post exists with the given handle')
+	}
+
+	row := rows[0]
 	vals := row.vals
 
 	mut created_by := User{}
@@ -393,7 +399,7 @@ pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
 		content: vals[15]
 		handle: vals[16]
 		metadata: vals[17]
-		// TODO authors
+		// TODO authors: join tables, combine rows that are equal except for authors column
 	}
 
 	return post

@@ -4,20 +4,21 @@ module main
 import vweb
 // local
 import models
+import utils
 
 // admin_store_get retrieves store details
 // Requires authorization.
 ['/admin/store'; get]
 pub fn (mut app App) admin_store_get() vweb.Result {
 	_, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
 
 	store := models.store_retrieve(mut app.db) or {
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(5, err.msg())
+		e = utils.new_peony_error(5, err.msg())
 		return app.json(e)
 	}
 	return app.json(store)
@@ -39,14 +40,14 @@ struct AdminStorePostRequest {
 ['/admin/store'; post]
 pub fn (mut app App) admin_store_post() vweb.Result {
 	_, mut e := app.check_user_auth()
-	if e.code != 0 {
+	if e.code() != 0 {
 		app.set_status(401, 'Unauthorized')
 		return app.json(e)
 	}
 
 	store := models.store_retrieve(mut app.db) or {
 		app.set_status(500, 'Internal server error')
-		e = new_peony_error(5, err.msg())
+		e = utils.new_peony_error(5, err.msg())
 		return app.json(e)
 	}
 	// TODO validate input and invoke store method

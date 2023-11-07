@@ -35,7 +35,7 @@ pub mut:
 	// sales_channels // references ? table
 	// payment_providers // references ? table
 	// fulfillment_providers // references ? table
-	metadata string // this is a jsonb in db
+	metadata string [raw]
 }
 
 // TODO use StoreWriteable
