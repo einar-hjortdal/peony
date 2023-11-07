@@ -2144,6 +2144,16 @@ CREATE TABLE
     CONSTRAINT "FK_bd32e96e-a974-4754-8cfa-e3a719618b54" FOREIGN KEY ("deleted_by") REFERENCES "user" ("id")
   );
 
+CREATE UNIQUE INDEX "IX_8c63458a-4198-42d3-9128-0bb089c10baf" ON "post" (
+  "handle",
+  (
+    CASE
+      WHEN "deleted_at" IS NULL THEN b'1'
+      ELSE NULL
+    END
+  )
+);
+
 CREATE TABLE
   "post_authors" (
     "post_id" binary(16) NOT NULL,
