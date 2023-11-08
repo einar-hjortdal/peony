@@ -5,26 +5,26 @@ CREATE TABLE
   "currency" (
     "id" binary(16) PRIMARY KEY,
     "code" char(3), -- ISO 4217
-    "includes_tax" bit(1) NOT NULL DEFAULT b'0',
+    "includes_tax" bit(1) NOT NULL DEFAULT 0x00,
     CONSTRAINT "UQ_1f8d3cd0-8a21-4d04-ab2c-cd9ccf11e34d" UNIQUE ("code")
   );
 
 CREATE TABLE
   "fulfillment_provider" (
     "id" binary(16) PRIMARY KEY,
-    "is_installed" bit(1) NOT NULL DEFAULT b'1'
+    "is_installed" bit(1) NOT NULL DEFAULT 0x01
   );
 
 CREATE TABLE
   "payment_provider" (
     "id" binary(16) PRIMARY KEY,
-    "is_installed" bit(1) NOT NULL DEFAULT b'1'
+    "is_installed" bit(1) NOT NULL DEFAULT 0x01
   );
 
 CREATE TABLE
   "tax_provider" (
     "id" binary(16) PRIMARY KEY,
-    "is_installed" bit(1) NOT NULL DEFAULT b'1'
+    "is_installed" bit(1) NOT NULL DEFAULT 0x01
   );
 
 CREATE TABLE
@@ -52,7 +52,7 @@ CREATE UNIQUE INDEX "IX_fefcdc88-22e7-46f8-a2a8-b6cae400a19c" ON "product_collec
   "handle",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -127,7 +127,7 @@ CREATE TABLE
     "deleted_at" datetime,
     "name" varchar(63) NOT NULL,
     "description" varchar(191),
-    "is_disabled" bit(1) NOT NULL DEFAULT b'0'
+    "is_disabled" bit(1) NOT NULL DEFAULT 0x00
   );
 
 CREATE TABLE
@@ -144,7 +144,7 @@ CREATE UNIQUE INDEX "IX_3ba0c313-3f2c-4baf-9be6-fc40cdf03728" ON "customer_group
   "name",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -160,7 +160,7 @@ CREATE TABLE
     "description" varchar(191) NOT NULL,
     "type" varchar(8) NOT NULL DEFAULT 'sale',
     "status" varchar(6) NOT NULL DEFAULT 'draft',
-    "includes_tax" bit(1) NOT NULL DEFAULT b'0',
+    "includes_tax" bit(1) NOT NULL DEFAULT 0x00,
     "starts_at" datetime,
     "ends_at" datetime,
     CONSTRAINT "CK_b8b55e80-6efb-443c-8912-54c6b75b10d6" CHECK ("type" IN ('sale', 'override')),
@@ -174,15 +174,15 @@ CREATE TABLE
     "updated_at" datetime NOT NULL DEFAULT NOW(),
     "deleted_at" datetime,
     "user_id" binary(16) NOT NULL,
-    "opt_out" bit(1) NOT NULL DEFAULT b'0',
-    "anonymize" bit(1) NOT NULL DEFAULT b'0'
+    "opt_out" bit(1) NOT NULL DEFAULT 0x00,
+    "anonymize" bit(1) NOT NULL DEFAULT 0x00
   );
 
 CREATE UNIQUE INDEX "IX_e9bffba4-afe5-45c7-b611-5830a9e0312c" ON "analytics_config" (
   "user_id",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -216,7 +216,7 @@ CREATE UNIQUE INDEX "IX_0cc79f5d-6612-4e15-a994-6dcb798dd413" ON "user" (
   "email",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -226,7 +226,7 @@ CREATE UNIQUE INDEX "IX_4118174d-b6bc-49b5-8097-c16ca1742c8f" ON "user" (
   "handle",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -255,7 +255,7 @@ CREATE TABLE
     "deleted_at" datetime,
     "user_email" varchar(254) NOT NULL,
     "role" varchar(9) DEFAULT('member'),
-    "accepted" bit(1) NOT NULL DEFAULT b'0',
+    "accepted" bit(1) NOT NULL DEFAULT 0x00,
     "token" text NOT NULL,
     "expires_at" datetime NOT NULL DEFAULT NOW(),
     "metadata" json,
@@ -274,7 +274,7 @@ CREATE UNIQUE INDEX "IX_150935c7-5717-4d69-aeb7-a638a0dd79d5" ON "invite" (
   "user_email",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -283,7 +283,7 @@ CREATE UNIQUE INDEX "IX_150935c7-5717-4d69-aeb7-a638a0dd79d5" ON "invite" (
 CREATE TABLE
   "notification_provider" (
     "id" binary(16) PRIMARY KEY,
-    "is_installed" bit(1) NOT NULL DEFAULT b'1'
+    "is_installed" bit(1) NOT NULL DEFAULT 0x01
   );
 
 CREATE TABLE
@@ -357,7 +357,7 @@ CREATE UNIQUE INDEX "IX_69098fec-7650-4e24-a23f-72f8dd09a418" ON "discount" (
   "code",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -376,7 +376,7 @@ CREATE TABLE
     "balance" integer NOT NULL,
     "region_id" binary(16) NOT NULL,
     "order_id" binary(16),
-    "is_disabled" bit(1) NOT NULL DEFAULT b'0',
+    "is_disabled" bit(1) NOT NULL DEFAULT 0x00,
     "ends_at" datetime,
     "tax_rate" real,
     "metadata" json,
@@ -483,7 +483,7 @@ CREATE UNIQUE INDEX "IX_c1863e4b-848a-4d04-a9e0-08bb12b5ab33" ON "payment" (
   "cart_id",
   (
     CASE
-      WHEN "canceled_at" IS NULL THEN b'1'
+      WHEN "canceled_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -493,7 +493,7 @@ CREATE INDEX "IX_b749eff0-384b-4a5c-94bd-c3a7a7cdbb8e" ON "payment" (
   "cart_id",
   (
     CASE
-      WHEN "canceled_at" IS NOT NULL THEN b'1'
+      WHEN "canceled_at" IS NOT NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -519,7 +519,7 @@ CREATE TABLE
     "return_id" binary(16) NOT NULL,
     "item_id" binary(16) NOT NULL,
     "quantity" integer NOT NULL,
-    "is_requested" bit(1) NOT NULL DEFAULT b'1',
+    "is_requested" bit(1) NOT NULL DEFAULT 0x01,
     "requested_quantity" integer,
     "received_quantity" integer,
     "reason_id" binary(16),
@@ -572,9 +572,9 @@ CREATE TABLE
     "provider_id" binary(16) NOT NULL,
     "price_type" varchar(10) NOT NULL,
     "amount" integer,
-    "includes_tax" bit(1) NOT NULL DEFAULT b'0',
-    "is_return" bit(1) NOT NULL DEFAULT b'0',
-    "admin_only" bit(1) NOT NULL DEFAULT b'0',
+    "includes_tax" bit(1) NOT NULL DEFAULT 0x00,
+    "is_return" bit(1) NOT NULL DEFAULT 0x00,
+    "admin_only" bit(1) NOT NULL DEFAULT 0x00,
     "data" json NOT NULL,
     "metadata" json,
     CONSTRAINT "CK_c1fee6b4-5628-4229-8e7d-cd6fefbeaed9" CHECK ("price_type" IN ('flat_rate', 'calculated')),
@@ -600,7 +600,7 @@ CREATE TABLE
     "swap_id" binary(16),
     "return_id" binary(16),
     "price" integer NOT NULL,
-    "includes_tax" bit(1) NOT NULL DEFAULT b'0',
+    "includes_tax" bit(1) NOT NULL DEFAULT 0x00,
     "data" json NOT NULL,
     CONSTRAINT "UQ_9fa5c3db-1608-4568-90ea-0e1a3bd74fd8" UNIQUE ("return_id"),
     CONSTRAINT "CK_bb210f88-eb85-4028-8916-74f2aa569aed" CHECK ("price" >= 0),
@@ -685,7 +685,7 @@ CREATE TABLE
     "confirmed_at" datetime,
     "canceled_at" datetime,
     "no_notification" bit(1),
-    "allow_backorder" bit(1) NOT NULL DEFAULT b'0',
+    "allow_backorder" bit(1) NOT NULL DEFAULT 0x00,
     "idempotency_key" varchar(63), -- TODO check
     "metadata" json,
     CONSTRAINT "CK_fa7bd1f3-84ac-4c8b-a970-8924d60c0cd4" CHECK (
@@ -826,7 +826,7 @@ CREATE UNIQUE INDEX "IX_89fab08f-587d-4677-8321-ba7206a988e5" ON "line_item_adju
   "item_id",
   (
     CASE
-      WHEN "discount_id" IS NOT NULL THEN b'1'
+      WHEN "discount_id" IS NOT NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -889,11 +889,11 @@ CREATE TABLE
     "title" varchar(63) NOT NULL,
     "description" varchar(191),
     "thumbnail" text,
-    "is_return" bit(1) NOT NULL DEFAULT b'0',
-    "is_giftcard" bit(1) NOT NULL DEFAULT b'0',
-    "should_merge" bit(1) NOT NULL DEFAULT b'1',
-    "allow_discounts" bit(1) NOT NULL DEFAULT b'1',
-    "includes_tax" bit(1) NOT NULL DEFAULT b'0',
+    "is_return" bit(1) NOT NULL DEFAULT 0x00,
+    "is_giftcard" bit(1) NOT NULL DEFAULT 0x00,
+    "should_merge" bit(1) NOT NULL DEFAULT 0x01,
+    "allow_discounts" bit(1) NOT NULL DEFAULT 0x01,
+    "includes_tax" bit(1) NOT NULL DEFAULT 0x00,
     "has_shipping" bit(1),
     "unit_price" integer NOT NULL,
     "variant_id" binary(16),
@@ -930,7 +930,7 @@ CREATE UNIQUE INDEX "IX_60e608dc-43d8-4da5-81a2-d51a367d0c00" ON "line_item" (
   (
     CASE
       WHEN "original_item_id" IS NOT NULL
-      AND "order_edit_id" IS NOT NULL THEN b'1'
+      AND "order_edit_id" IS NOT NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -944,7 +944,7 @@ CREATE TABLE
     "cart_id" binary(16),
     "provider_id" binary(16) NOT NULL,
     "is_selected" bit(1),
-    "is_initiated" bit(1) NOT NULL DEFAULT b'0',
+    "is_initiated" bit(1) NOT NULL DEFAULT 0x00,
     "status" varchar(13) NOT NULL,
     "data" json NOT NULL,
     "idempotency_key" varchar(63), -- TODO check
@@ -972,7 +972,7 @@ CREATE UNIQUE INDEX "IX_ebedd9fa-487a-45a8-bf5f-0eb27234cfdc" ON "payment_sessio
   "provider_id",
   (
     CASE
-      WHEN "cart_id" IS NOT NULL THEN b'1'
+      WHEN "cart_id" IS NOT NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1202,7 +1202,7 @@ CREATE TABLE
     "billing_address_id" binary(16),
     "password_hash" varchar(60),
     "phone" varchar(63),
-    "has_account" bit(1) NOT NULL DEFAULT b'0',
+    "has_account" bit(1) NOT NULL DEFAULT 0x00,
     "metadata" json,
     CONSTRAINT "UQ_1e94e4c0-5144-4b1c-965f-7e09e3aa2671" UNIQUE ("email", "has_account"),
     CONSTRAINT "UQ_193db8f6-e71d-4c85-aa58-3bf9a91145c5" UNIQUE ("billing_address_id"),
@@ -1268,8 +1268,8 @@ CREATE TABLE
     "upc" varchar(12),
     "variant_rank" integer DEFAULT 0,
     "inventory_quantity" integer NOT NULL,
-    "allow_backorder" bit(1) NOT NULL DEFAULT b'0',
-    "manage_inventory" bit(1) NOT NULL DEFAULT b'1',
+    "allow_backorder" bit(1) NOT NULL DEFAULT 0x00,
+    "manage_inventory" bit(1) NOT NULL DEFAULT 0x01,
     "hs_code" varchar(63),
     "origin_country" char(2),
     "mid_code" varchar(63),
@@ -1289,7 +1289,7 @@ CREATE UNIQUE INDEX "IX_68d80bed-be2e-44b8-9a7c-a0dc13e2ca7d" ON "product_varian
   "sku",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1299,7 +1299,7 @@ CREATE UNIQUE INDEX "IX_db2783e9-89e4-448d-8eef-4d7a2f178f97" ON "product_varian
   "barcode",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1309,7 +1309,7 @@ CREATE UNIQUE INDEX "IX_dba4f7ec-1061-4e82-82fd-479d851d75ac" ON "product_varian
   "ean",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1319,7 +1319,7 @@ CREATE UNIQUE INDEX "IX_be0701ee-6fe1-4baa-8621-29c8c493ca65" ON "product_varian
   "upc",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1373,7 +1373,7 @@ CREATE UNIQUE INDEX "IX_82637fe3-5fb4-4259-8f11-b02725aafd5b" ON "product_catego
   "handle",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1389,7 +1389,7 @@ CREATE TABLE
     "subtitle" varchar(191),
     "description" text,
     "handle" varchar(63) NOT NULL,
-    "is_giftcard" bit(1) NOT NULL DEFAULT b'0',
+    "is_giftcard" bit(1) NOT NULL DEFAULT 0x00,
     "status" varchar(9) NOT NULL DEFAULT 'draft',
     "thumbnail" text,
     "profile_id" binary(16) NOT NULL,
@@ -1403,7 +1403,7 @@ CREATE TABLE
     "material" text,
     "collection_id" binary(16),
     "type_id" binary(16),
-    "discountable" bit(1) NOT NULL DEFAULT b'1',
+    "discountable" bit(1) NOT NULL DEFAULT 0x01,
     "external_id" text,
     "metadata" json,
     CONSTRAINT "CK_9779636b-f2da-4b9b-82db-fb986720f166" CHECK (
@@ -1419,7 +1419,7 @@ CREATE UNIQUE INDEX "IX_3ea72bd9-fa5e-43fe-b106-3d32d4b3f982" ON "product" (
   "handle",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -1450,9 +1450,9 @@ CREATE TABLE
     "currency_code" char(3) NOT NULL,
     "tax_rate" real NOT NULL,
     "tax_code" varchar(63),
-    "includes_tax" bit(1) NOT NULL DEFAULT b'0',
-    "gift_cards_taxable" bit(1) NOT NULL DEFAULT b'1',
-    "automatic_taxes" bit(1) NOT NULL DEFAULT b'1',
+    "includes_tax" bit(1) NOT NULL DEFAULT 0x00,
+    "gift_cards_taxable" bit(1) NOT NULL DEFAULT 0x01,
+    "automatic_taxes" bit(1) NOT NULL DEFAULT 0x01,
     "tax_provider_id" binary(16),
     "metadata" json,
     CONSTRAINT "FK_f6a1cddc-f0ca-40a6-8f82-eff7cda3ccd4" FOREIGN KEY ("currency_code") REFERENCES "currency" ("code"),
@@ -1996,7 +1996,7 @@ CREATE TABLE
     "length" integer,
     "height" integer,
     "width" integer,
-    "requires_shipping" bit(1) NOT NULL DEFAULT b'1',
+    "requires_shipping" bit(1) NOT NULL DEFAULT 0x01,
     "metadata" json
   );
 
@@ -2004,7 +2004,7 @@ CREATE UNIQUE INDEX "IX_39c0ddc9-e8d8-45e6-85f0-e965f89c1515" ON "inventory_item
   "sku",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2027,7 +2027,7 @@ CREATE INDEX "IX_0eba5be7-e771-4d7a-ae2e-f6bf84e853b3" ON "reservation_item" (
   "line_item_id",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2037,7 +2037,7 @@ CREATE INDEX "IX_b46e96b2-1381-44ed-9ce2-bddcde151786" ON "reservation_item" (
   "inventory_item_id",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2047,7 +2047,7 @@ CREATE INDEX "IX_6ffbf1d9-4d74-4d1d-ae62-2e9cc3abd2c7" ON "reservation_item" (
   "location_id",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2107,7 +2107,7 @@ CREATE INDEX "IX_d6777fb7-5635-4292-9905-ee9899a1c8eb" ON "stock_location" (
   "address_id",
   (
     CASE
-      WHEN "deleted_at" IS NOT NULL THEN b'1'
+      WHEN "deleted_at" IS NOT NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2125,7 +2125,7 @@ CREATE TABLE
     "deleted_by" binary(16),
     "status" varchar(9) NOT NULL DEFAULT 'draft',
     "type" varchar(4) NOT NULL DEFAULT 'post',
-    "featured" bit(1) NOT NULL DEFAULT b'0',
+    "featured" bit(1) NOT NULL DEFAULT 0x00,
     "published_at" datetime,
     "published_by" binary(16),
     "visibility" varchar(63) DEFAULT 'public',
@@ -2148,7 +2148,7 @@ CREATE UNIQUE INDEX "IX_8c63458a-4198-42d3-9128-0bb089c10baf" ON "post" (
   "handle",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2220,7 +2220,7 @@ CREATE UNIQUE INDEX "IX_a8712950-695a-4b27-b57d-86eb4f30d475" ON "tag" (
   "handle",
   (
     CASE
-      WHEN "deleted_at" IS NULL THEN b'1'
+      WHEN "deleted_at" IS NULL THEN 0x01
       ELSE NULL
     END
   )
@@ -2251,7 +2251,7 @@ CREATE TABLE
     "customer_id" binary(16),
     "user_id" binary(16),
     "parent_id" binary(16),
-    "is_hidden" bit(1) DEFAULT b'0',
+    "is_hidden" bit(1) DEFAULT 0x00,
     "content" text,
     "created_at" datetime NOT NULL DEFAULT NOW(),
     "updated_at" datetime NOT NULL DEFAULT NOW(),
