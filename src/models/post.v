@@ -209,7 +209,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			BIN_TO_UUID("post"."deleted_by"),
 			"post"."status",
 			"post"."type",
-			"post"."featured",
+			CASE WHEN "post"."featured" = 0x01 THEN 1 ELSE 0 END,
 			"post"."published_at",
 			BIN_TO_UUID("post"."published_by"),
 			"post"."visibility",
@@ -283,27 +283,27 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 
 pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
 	query := '
-	SELECT 
-		BIN_TO_UUID("id"), 
-		"created_at", 
-		BIN_TO_UUID("created_by"), 
-		"updated_at", 
-		BIN_TO_UUID("updated_by"), 
-		"deleted_at", 
-		BIN_TO_UUID("deleted_by"), 
-		"status", 
-		"type", 
-		"featured", 
-		"published_at", 
-		BIN_TO_UUID("published_by"), 
-		"visibility", 
-		"title", 
-		"subtitle", 
-		"content", 
-		"handle", 
+	SELECT
+		BIN_TO_UUID("id"),
+		"created_at",
+		BIN_TO_UUID("created_by"),
+		"updated_at",
+		BIN_TO_UUID("updated_by"),
+		"deleted_at",
+		BIN_TO_UUID("deleted_by"),
+		"status",
+		"type",
+		CASE WHEN "featured" = 0x01 THEN 1 ELSE 0 END,
+		"published_at",
+		BIN_TO_UUID("published_by"),
+		"visibility",
+		"title",
+		"subtitle",
+		"content",
+		"handle",
 		"excerpt",
-		"metadata" 
-	FROM "post" 
+		"metadata"
+	FROM "post"
 	WHERE "id" = UUID_TO_BIN(?)'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 
@@ -370,7 +370,7 @@ pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
 		BIN_TO_UUID("deleted_by"),
 		"status",
 		"type",
-		"featured",
+		CASE WHEN "featured" = 0x01 THEN 1 ELSE 0 END,
 		"published_at",
 		BIN_TO_UUID("published_by"),
 		"visibility",
