@@ -65,7 +65,7 @@ Note: in vweb, routes and controllers are defined together. The key takeaway is 
 - Use `varchar` for strings with expected maximum lengths, for strings with default values, and for 
   strings that are in an `INDEX` or `UNIQUE` constraint.
 - Use `text`, `mediumtext` and `longtext` for unknown-length strings. 
-- Use `bit(1)` to store boolean values
+- Use `bit(1)` to store boolean values, insert as `0x00` and `0x01`.
 <!--
 Note that the character set *utf8mb4* requires 4 bytes per character, therefore the maximum number of 
 characters that can be stored in a single `varchar` column is 16_383. Also note that there exists a 
