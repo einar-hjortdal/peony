@@ -5,6 +5,7 @@ import arrays
 import db.mysql as v_mysql
 // local
 import data.mysql
+import utils
 
 // Users are either `admin`, `member`, `developer`, `author`, `contributor`
 // They are part of the team that runs a peony website.
@@ -202,6 +203,8 @@ pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
 /*
 *
 * author
+* An author is a user that has authored posts.
+* For a useer to be an author, his id must exist in the post_authors table.
 *
 */
 
@@ -237,34 +240,82 @@ pub fn user_list_authors(mut mysql_conn v_mysql.DB) ![]User {
 	return users
 }
 
-// TODO rewrite and rename
-pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id int) ![]User {
-	query_columns := ['handle', 'email', 'role', 'created_at', 'updated_at', 'deleted_at',
-		'first_name', 'last_name', 'metadata']
-	qua_cols := mysql.qualified_columns(query_columns, 'user')
-	query := 'SELECT DISTINCT BIN_TO_UUID("user"."id"), ${qua_cols} FROM "user" INNER JOIN "post" ON "user"."id" = "post"."published_by" WHERE "user"."id" = ?'
+pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id int) !User {
+	query := '
+	SELECT
+		BIN_TO_UUID("id")
+		"user"."handle",
+		"user"."email",
+		"user"."role",
+		"user"."created_at",
+		"user"."updated_at",
+		"user"."deleted_at",
+		"user"."first_name",
+		"user"."last_name",
+		"user"."metadata"
+	FROM "user"
+	INNER JOIN "post_authors" on "user"."id" = "post_authors"."author_id"
+	WHERE "user"."id" = ?'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 
 	rows := res.rows()
-	mut users := []User{}
 
-	for row in rows {
-		vals := row.vals
-		mut user := User{
-			id: vals[0]
-			handle: vals[1]
-			email: vals[2]
-			role: vals[3]
-			created_at: vals[4]
-			updated_at: vals[5]
-			deleted_at: vals[6]
-			first_name: vals[7]
-			last_name: vals[8]
-			metadata: vals[9]
-		}
-		users = arrays.concat(users, user)
+	if rows.len == 0 {
+		return utils.new_peony_error(404, 'No author exists with the given id')
 	}
-	return users
+
+	vals := rows[0].vals
+	return User{
+		id: vals[0]
+		handle: vals[1]
+		email: vals[2]
+		role: vals[3]
+		created_at: vals[4]
+		updated_at: vals[5]
+		deleted_at: vals[6]
+		first_name: vals[7]
+		last_name: vals[8]
+		metadata: vals[9]
+	}
+}
+
+pub fn user_retrieve_author_by_handle(mut mysql_conn v_mysql.DB, handle string) !User {
+	query := '
+	SELECT
+		BIN_TO_UUID("id")
+		"user"."handle",
+		"user"."email",
+		"user"."role",
+		"user"."created_at",
+		"user"."updated_at",
+		"user"."deleted_at",
+		"user"."first_name",
+		"user"."last_name",
+		"user"."metadata"
+	FROM "user"
+	INNER JOIN "post_authors" on "user"."id" = "post_authors"."author_id"
+	WHERE "user"."handle" = ?'
+	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, handle)!
+
+	rows := res.rows()
+
+	if rows.len == 0 {
+		return utils.new_peony_error(404, 'No author exists with the given id')
+	}
+
+	vals := rows[0].vals
+	return User{
+		id: vals[0]
+		handle: vals[1]
+		email: vals[2]
+		role: vals[3]
+		created_at: vals[4]
+		updated_at: vals[5]
+		deleted_at: vals[6]
+		first_name: vals[7]
+		last_name: vals[8]
+		metadata: vals[9]
+	}
 }
 
 pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]User {
