@@ -2204,7 +2204,7 @@ CREATE TABLE
     "updated_by" binary(16) NOT NULL,
     "deleted_at" datetime,
     "deleted_by" binary(16),
-    "title" varchar(63),
+    "title" varchar(63) NOT NULL,
     "subtitle" varchar(191),
     "content" text,
     "handle" varchar(63) NOT NULL,
