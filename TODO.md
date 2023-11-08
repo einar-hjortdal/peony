@@ -7,7 +7,7 @@
 This release allows the admin to login, create posts and store them in Percona Server.
 
 - ~~Read settings from .env~~
-  - Validate settings <!-- Always panic right away on startup, never on runtime -->
+  - ~~Validate settings~~ <!-- Always panic right away on startup, never on runtime -->
 - MySQL
   - ~~Prepared statements~~
   <!-- 
