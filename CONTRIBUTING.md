@@ -26,13 +26,12 @@ Please follow these standards
 
 ## Code standards
 
-- Comment code when needed. Is it obvious why it is written this way?
+- Comment code when needed, use self-explanatory symbol names.
 
 ### V
 
 - Prefer factory functions over static methods.
-- Models should validate input: allow a model to quickly return a useful error message to prevent database
-  access when it is obviously going to fail.
+- Both controllers and models should validate input. Default values can be created by the controller.
 - Do not use the `[required]` attribute in struct definitions, always manually check values to return 
   adequate error messages.
 
