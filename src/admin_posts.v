@@ -94,6 +94,7 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 		subtitle: body.subtitle
 		content: body.content
 		handle: body.handle
+		excerpt: body.excerpt
 		metadata: body.metadata
 		authors: body.authors
 	}

@@ -70,6 +70,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	vars = arrays.concat(vars, mysql.Param(id), mysql.Param(pw.title), mysql.Param(created_by_id),
 		mysql.Param(created_by_id))
 
+	// TODO always enter, database defaults to draft
 	if pw.status != '' {
 		match pw.status {
 			'published', 'draft', 'scheduled' {
@@ -83,6 +84,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		}
 	}
 
+	// Always enter, defaults to post
 	if post_type != '' {
 		match post_type {
 			'post', 'page' {
@@ -96,7 +98,8 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		}
 	}
 
-	if pw.featured {
+	// TODO always insert, defaults to false
+	if pw.featured || !pw.featured {
 		query_columns = arrays.concat(query_columns, 'featured')
 		vars = arrays.concat(vars, mysql.Param(pw.featured))
 		qm = arrays.concat(qm, '?')
@@ -108,6 +111,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		qm = arrays.concat(qm, 'UUID_TO_BIN(?)', 'UUID_TO_BIN(?)')
 	}
 
+	// TODO always insert: database defaults to public
 	if pw.visibility != '' {
 		match pw.visibility {
 			'public', 'paid' {
@@ -121,31 +125,35 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		}
 	}
 
+	// TODO always insert, could be empty on purpose
 	if pw.subtitle != '' {
 		query_columns = arrays.concat(query_columns, 'subtitle')
 		vars = arrays.concat(vars, mysql.Param(pw.subtitle))
 		qm = arrays.concat(qm, '?')
 	}
 
+	// TODO always insert, could be empty on purpose
 	if pw.content != '' {
 		query_columns = arrays.concat(query_columns, 'content')
 		vars = arrays.concat(vars, mysql.Param(pw.content))
 		qm = arrays.concat(qm, '?')
 	}
 
+	// TODO when empty, generate one
 	if pw.handle != '' {
 		query_columns = arrays.concat(query_columns, 'handle')
 		vars = arrays.concat(vars, mysql.Param(pw.handle))
 		qm = arrays.concat(qm, '?')
 	}
 
+	// TODO always insert excerpt: could be empty on purpose
 	if pw.excerpt != '' {
 		query_columns = arrays.concat(query_columns, 'excerpt')
 		vars = arrays.concat(vars, mysql.Param(pw.excerpt))
 		qm = arrays.concat(qm, '?')
 	}
 
-	// TODO always insert metadata?
+	// TODO always insert metadata: could be empty on purpose
 	if pw.metadata != '' {
 		query_columns = arrays.concat(query_columns, 'metadata')
 		vars = arrays.concat(vars, mysql.Param(pw.metadata))
@@ -274,7 +282,29 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 }
 
 pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
-	query := 'SELECT BIN_TO_UUID("id"), "created_at", BIN_TO_UUID("created_by"), "updated_at", BIN_TO_UUID("updated_by"), "deleted_at", BIN_TO_UUID("deleted_by"), "status", "type", "featured", "published_at", BIN_TO_UUID("published_by"), "visibility", "title", "subtitle", "content", "handle", "metadata" FROM "post" WHERE "id" = UUID_TO_BIN(?)'
+	query := '
+	SELECT 
+		BIN_TO_UUID("id"), 
+		"created_at", 
+		BIN_TO_UUID("created_by"), 
+		"updated_at", 
+		BIN_TO_UUID("updated_by"), 
+		"deleted_at", 
+		BIN_TO_UUID("deleted_by"), 
+		"status", 
+		"type", 
+		"featured", 
+		"published_at", 
+		BIN_TO_UUID("published_by"), 
+		"visibility", 
+		"title", 
+		"subtitle", 
+		"content", 
+		"handle", 
+		"excerpt",
+		"metadata" 
+	FROM "post" 
+	WHERE "id" = UUID_TO_BIN(?)'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 
 	rows := res.rows()
@@ -318,7 +348,8 @@ pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
 			subtitle: vals[14]
 			content: vals[15]
 			handle: vals[16]
-			metadata: vals[17]
+			excerpt: vals[17]
+			metadata: vals[18]
 			// TODO authors
 		}
 		posts = arrays.concat(posts, post)
@@ -398,7 +429,8 @@ pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
 		subtitle: vals[14]
 		content: vals[15]
 		handle: vals[16]
-		metadata: vals[17]
+		excerpt: vals[17]
+		metadata: vals[18]
 		// TODO authors: join tables, combine rows that are equal except for authors column
 	}
 

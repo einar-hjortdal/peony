@@ -27,7 +27,6 @@ pub fn (mut app App) storefront_post_get_by_id(id string) vweb.Result {
 	return app.json(pages)
 }
 
-// TODO maybe handle does not exist
 ['/storefront/posts/handle/:handle'; get]
 fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
 	page := models.post_retrieve_by_handle(mut app.db, handle) or {
