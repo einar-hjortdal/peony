@@ -39,6 +39,11 @@ mut:
 	db              v_mysql.DB
 }
 
+// TODO middleware:
+// middlwares per-route: check auth where needed, attach user data to context.
+// https://github.com/vlang/v/tree/master/vlib/vweb#middleware
+// https://github.com/vlang/v/tree/master/vlib/vweb#context-values
+
 pub fn (mut app App) before_request() {
 	handle_cors(mut app)
 	// Send response automatically to all OPTIONS (preflight) requests.

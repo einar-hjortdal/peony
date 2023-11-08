@@ -6,7 +6,7 @@
 
 This release allows the admin to login, create posts and store them in Percona Server.
 
-- ~~Read settings from .env~~
+- Read settings from .env
   - ~~Validate settings~~ <!-- Always panic right away on startup, never on runtime -->
 - MySQL
   - ~~Prepared statements~~
@@ -24,8 +24,8 @@ This release allows the admin to login, create posts and store them in Percona S
   - ~~Server-side sessions~~ <!-- https://github.com/Coachonko/sessions -->
 - Users
   - ~~Sessions~~
-- Admin frontend <!-- https://github.com/Coachonko/peony_admin -->
-- Storefront frontend <!-- Open source coachonko.com frontend -->
+- ~~Admin frontend~~ <!-- https://github.com/Coachonko/peony_admin -->
+- ~~Storefront frontend~~ <!-- https://github.com/Coachonko/coachonko_storefront -->
 
 ### v3.2.0
 
