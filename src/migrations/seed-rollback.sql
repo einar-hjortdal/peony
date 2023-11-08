@@ -887,7 +887,7 @@ DROP TABLE "store_locales";
 
 DROP TABLE "swap";
 
-DROP TABLE "tag";
+DROP TABLE "post_tag";
 
 DROP TABLE "tag_images";
 

@@ -2194,7 +2194,7 @@ CREATE TABLE
   );
 
 CREATE TABLE
-  "tag" (
+  "post_tag" (
     "id" binary(16) PRIMARY KEY,
     "parent_id" binary(16),
     "visibility" varchar(63) NOT NULL default 'public',
@@ -2209,14 +2209,15 @@ CREATE TABLE
     "content" text,
     "handle" varchar(63) NOT NULL,
     "excerpt" text,
+    "metadata" json,
     CONSTRAINT "CK_db3214a3-4747-43ae-92dd-f7c4dfbcbe02" CHECK ("visibility" in ('public', 'paid')),
-    CONSTRAINT "FK_cce9e5fa-98b7-42a2-a07f-099b21d30125" FOREIGN KEY ("parent_id") REFERENCES "tag" ("id"),
+    CONSTRAINT "FK_cce9e5fa-98b7-42a2-a07f-099b21d30125" FOREIGN KEY ("parent_id") REFERENCES "post_tag" ("id"),
     CONSTRAINT "FK_61bb3b8e-4025-44df-a596-3a4bfae72cc3" FOREIGN KEY ("created_by") REFERENCES "user" ("id"),
     CONSTRAINT "FK_046712e2-098e-447f-ad59-1293e2da23d8" FOREIGN KEY ("updated_by") REFERENCES "user" ("id"),
     CONSTRAINT "FK_52e2391e-53db-4018-b5b1-7d78884d8574" FOREIGN KEY ("deleted_by") REFERENCES "user" ("id")
   );
 
-CREATE UNIQUE INDEX "IX_a8712950-695a-4b27-b57d-86eb4f30d475" ON "tag" (
+CREATE UNIQUE INDEX "IX_a8712950-695a-4b27-b57d-86eb4f30d475" ON "post_tag" (
   "handle",
   (
     CASE
@@ -2230,7 +2231,7 @@ CREATE TABLE
   "tag_images" (
     "tag_id" binary(16) NOT NULL,
     "image_id" binary(16) NOT NULL,
-    CONSTRAINT "FK_79915a8e-f10e-41d2-8da3-4ce6bccca0dc" FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "FK_79915a8e-f10e-41d2-8da3-4ce6bccca0dc" FOREIGN KEY ("tag_id") REFERENCES "post_tag" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "FK_3074f0b2-8f21-4512-a0af-14c659eb7826" FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     PRIMARY KEY ("tag_id", "image_id")
   );
@@ -2241,7 +2242,7 @@ CREATE TABLE
     "post_id" binary(16) NOT NULL,
     "tag_id" binary(16) NOT NULL,
     CONSTRAINT "FK_0287e4c3-f9f2-4438-b272-912f5898ed37" FOREIGN KEY ("post_id") REFERENCES "post" ("id"),
-    CONSTRAINT "FK_1ee032e9-c628-481b-a972-05393c6943df" FOREIGN KEY ("tag_id") REFERENCES "tag" ("id")
+    CONSTRAINT "FK_1ee032e9-c628-481b-a972-05393c6943df" FOREIGN KEY ("tag_id") REFERENCES "post_tag" ("id")
   );
 
 CREATE TABLE
@@ -2342,8 +2343,8 @@ CREATE TABLE
   );
 
 CREATE TABLE
-  "tag_translations" (
-    "tag_id" binary(16) NOT NULL,
+  "post_tag_translations" (
+    "post_tag_id" binary(16) NOT NULL,
     "locale_code" varchar(63) NOT NULL,
     "created_at" datetime NOT NULL DEFAULT NOW(),
     "updated_at" datetime NOT NULL DEFAULT NOW(),
@@ -2353,8 +2354,8 @@ CREATE TABLE
     "content" text,
     "excerpt" text,
     CONSTRAINT "FK_beb56cfe-9000-43dc-8974-72e6fde9888b" FOREIGN KEY ("locale_code") REFERENCES "locale" ("code"),
-    CONSTRAINT "FK_8240b92b-f88c-4e9a-9415-322a3c2f1d83" FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE,
-    PRIMARY KEY ("tag_id", "locale_code")
+    CONSTRAINT "FK_8240b92b-f88c-4e9a-9415-322a3c2f1d83" FOREIGN KEY ("post_tag_id") REFERENCES "post_tag" ("id") ON DELETE CASCADE,
+    PRIMARY KEY ("post_tag_id", "locale_code")
   );
 
 CREATE TABLE
