@@ -27,6 +27,7 @@ pub struct PostTag {
 }
 
 pub struct PostTagWriteable {
+pub mut:
 	parent     string
 	visibility string
 	title      string
@@ -175,7 +176,6 @@ fn (ptw PostTagWriteable) validate() ! {
 		return utils.new_peony_error(400, 'subtitle is longer than 191 characters')
 	}
 
-	// TODO generate handle in route if missing (generate in controller)
 	if ptw.handle == '' {
 		return utils.new_peony_error(400, 'handle is required')
 	}
@@ -183,7 +183,8 @@ fn (ptw PostTagWriteable) validate() ! {
 	if ptw.handle.len > 63 {
 		return utils.new_peony_error(400, 'handle is longer than 63 characters')
 	}
-	// TODO validate UUID
+
+	// TODO UUID must be validated or risk mysql fail operations
 }
 
 pub fn post_tag_retrieve_by_id(mut mysql_conn mysql.DB, id string) !PostTag {
@@ -266,7 +267,7 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 	return post_tag
 }
 
-pub fn (mut ptw PostTagWriteable) post_tag_update(mut mysql_conn mysql.DB, post_tag_id string, user_id string) ! {
+pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id string, user_id string) ! {
 	ptw.validate()!
 	mut query_records := '
 	"parent" = UUID_TO_BIN(?),

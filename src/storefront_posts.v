@@ -18,18 +18,18 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 // TODO maybe ID does not exist
 ['/storefront/posts/:id'; get]
 pub fn (mut app App) storefront_post_get_by_id(id string) vweb.Result {
-	pages := models.post_retrieve_by_id(mut app.db, id) or {
+	posts := models.post_retrieve_by_id(mut app.db, id) or {
 		app.logger.debug(err.msg())
 		app.set_status(500, 'Internal server error')
 		peony_error := utils.new_peony_error(500, err.msg())
 		return app.json(peony_error)
 	}
-	return app.json(pages)
+	return app.json(posts)
 }
 
 ['/storefront/posts/handle/:handle'; get]
 fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
-	page := models.post_retrieve_by_handle(mut app.db, handle) or {
+	post := models.post_retrieve_by_handle(mut app.db, handle) or {
 		if err is utils.PeonyError {
 			app.logger.debug(err.to_string())
 			app.set_status(404, err.data())
@@ -40,7 +40,7 @@ fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
 		peony_error := utils.new_peony_error(500, err.msg())
 		return app.json(peony_error)
 	}
-	return app.json(page)
+	return app.json(post)
 }
 
 /*
