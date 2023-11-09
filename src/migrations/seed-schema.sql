@@ -2228,21 +2228,21 @@ CREATE UNIQUE INDEX "IX_a8712950-695a-4b27-b57d-86eb4f30d475" ON "post_tag" (
 );
 
 CREATE TABLE
-  "tag_images" (
-    "tag_id" binary(16) NOT NULL,
+  "post_tag_images" (
+    "post_tag_id" binary(16) NOT NULL,
     "image_id" binary(16) NOT NULL,
-    CONSTRAINT "FK_79915a8e-f10e-41d2-8da3-4ce6bccca0dc" FOREIGN KEY ("tag_id") REFERENCES "post_tag" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "FK_79915a8e-f10e-41d2-8da3-4ce6bccca0dc" FOREIGN KEY ("post_tag_id") REFERENCES "post_tag" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT "FK_3074f0b2-8f21-4512-a0af-14c659eb7826" FOREIGN KEY ("image_id") REFERENCES "image" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    PRIMARY KEY ("tag_id", "image_id")
+    PRIMARY KEY ("post_tag_id", "image_id")
   );
 
 CREATE TABLE
   "post_tags" (
-    "id" binary(16) PRIMARY KEY,
     "post_id" binary(16) NOT NULL,
-    "tag_id" binary(16) NOT NULL,
+    "post_tag_id" binary(16) NOT NULL,
     CONSTRAINT "FK_0287e4c3-f9f2-4438-b272-912f5898ed37" FOREIGN KEY ("post_id") REFERENCES "post" ("id"),
-    CONSTRAINT "FK_1ee032e9-c628-481b-a972-05393c6943df" FOREIGN KEY ("tag_id") REFERENCES "post_tag" ("id")
+    CONSTRAINT "FK_1ee032e9-c628-481b-a972-05393c6943df" FOREIGN KEY ("post_tag_id") REFERENCES "post_tag" ("id"),
+    PRIMARY KEY ("post_id", "post_tag_id")
   );
 
 CREATE TABLE

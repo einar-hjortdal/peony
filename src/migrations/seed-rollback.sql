@@ -526,22 +526,22 @@ DROP FOREIGN KEY "FK_83a68f23-9fae-41be-b789-5425dc741ae8";
 ALTER TABLE "post_images"
 DROP FOREIGN KEY "FK_9a53963d-694d-4375-b90f-bb3d3a84582d";
 
-ALTER TABLE "tag"
+ALTER TABLE "post_tag"
 DROP FOREIGN KEY "FK_046712e2-098e-447f-ad59-1293e2da23d8";
 
-ALTER TABLE "tag"
+ALTER TABLE "post_tag"
 DROP FOREIGN KEY "FK_52e2391e-53db-4018-b5b1-7d78884d8574";
 
-ALTER TABLE "tag"
+ALTER TABLE "post_tag"
 DROP FOREIGN KEY "FK_61bb3b8e-4025-44df-a596-3a4bfae72cc3";
 
-ALTER TABLE "tag"
+ALTER TABLE "post_tag"
 DROP FOREIGN KEY "FK_cce9e5fa-98b7-42a2-a07f-099b21d30125";
 
-ALTER TABLE "tag_images"
+ALTER TABLE "post_tag_images"
 DROP FOREIGN KEY "FK_3074f0b2-8f21-4512-a0af-14c659eb7826";
 
-ALTER TABLE "tag_images"
+ALTER TABLE "post_tag_images"
 DROP FOREIGN KEY "FK_79915a8e-f10e-41d2-8da3-4ce6bccca0dc";
 
 ALTER TABLE "post_tags"
@@ -595,10 +595,10 @@ DROP FOREIGN KEY "FK_4567c4cf-481d-45b1-a362-7a77ec8be7b6";
 ALTER TABLE "post_translations"
 DROP FOREIGN KEY "FK_b955a51d-202b-409b-b6b0-dc0a7fe7709c";
 
-ALTER TABLE "tag_translations"
+ALTER TABLE "post_tag_translations"
 DROP FOREIGN KEY "FK_8240b92b-f88c-4e9a-9415-322a3c2f1d83";
 
-ALTER TABLE "tag_translations"
+ALTER TABLE "post_tag_translations"
 DROP FOREIGN KEY "FK_beb56cfe-9000-43dc-8974-72e6fde9888b";
 
 ALTER TABLE "product_tag_translations"
@@ -889,9 +889,9 @@ DROP TABLE "swap";
 
 DROP TABLE "post_tag";
 
-DROP TABLE "tag_images";
+DROP TABLE "post_tag_images";
 
-DROP TABLE "tag_translations";
+DROP TABLE "post_tag_translations";
 
 DROP TABLE "tax_provider";
 

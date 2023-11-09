@@ -59,10 +59,6 @@ pub mut:
 	tags       []string
 }
 
-pub const allowed_status = ['published', 'draft', 'scheduled']
-
-pub const allowed_visibility = ['public', 'paid']
-
 // TODO add created_by to post_authors if authors is empty
 pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
 	mut query_columns := ['id', 'title', 'created_by', 'updated_by']
@@ -447,11 +443,11 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 		return error('PostWriteable.update: post title is required')
 	}
 
-	if pw.status !in models.allowed_status {
+	if pw.status !in allowed_post_status {
 		return error('PostWriteable.update: post status invalid')
 	}
 
-	if pw.visibility !in models.allowed_visibility {
+	if pw.visibility !in allowed_visibility {
 		return error('PostWriteable.update: post visibility invalid')
 	}
 
@@ -485,7 +481,5 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	UPDATE "post" 
 	SET ${query_records}
 	WHERE "id" = UUID_TO_BIN(?)'
-	println(query)
-	println(vars)
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars) or { println(err) }
 }
