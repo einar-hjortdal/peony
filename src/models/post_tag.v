@@ -7,7 +7,7 @@ import db.mysql
 import utils
 import data.mysql as p_mysql
 
-struct PostTag {
+pub struct PostTag {
 	id string
 	// parent     ?&PostTag
 	visibility string
@@ -26,7 +26,7 @@ struct PostTag {
 	posts      []Post
 }
 
-struct PostTagWriteable {
+pub struct PostTagWriteable {
 	parent     string
 	visibility string
 	title      string
