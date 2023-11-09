@@ -31,7 +31,8 @@ Please follow these standards
 ### V
 
 - Prefer factory functions over static methods.
-- Both controllers and models should validate input. Default values can be created by the controller.
+- The model should validate data before acting on the database.
+- The controller can prepare the data before giving it to the model by adding values.
 - Do not use the `[required]` attribute in struct definitions, always manually check values to return 
   adequate error messages.
 
