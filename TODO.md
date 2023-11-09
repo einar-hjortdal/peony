@@ -31,6 +31,7 @@ This release allows the admin to login, create posts and store them in Percona S
 
 Needed enhancements on basic functionality.
 
+- Code optimizations <!-- multiple prepared statements within one transaction -->
 - Query parameters
 - User permissions:
   - admin: all
