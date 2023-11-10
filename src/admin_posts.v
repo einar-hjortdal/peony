@@ -22,20 +22,6 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 	return app.json(posts)
 }
 
-struct AdminPostsPostRequest {
-	post_type  string   [json: postType] // must be either 'post' or 'page'
-	status     string
-	featured   bool
-	visibility string
-	title      string // required
-	subtitle   string
-	content    string
-	handle     string
-	excerpt    string
-	metadata   string   [raw]
-	authors    []string
-}
-
 // admin_posts_post allows an author to create a post.
 // Requires authorization.
 ['/admin/posts'; post]
@@ -47,26 +33,19 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	body := json.decode(AdminPostsPostRequest, app.req.data) or {
+	body := json.decode(models.PostWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
 	}
 
 	new_post_id := app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
 
-	mut post := models.PostWriteable{
-		status: body.status
-		featured: body.featured
-		visibility: body.visibility
-		title: body.title
-		subtitle: body.subtitle
-		content: body.content
-		handle: body.handle
-		excerpt: body.excerpt
-		metadata: body.metadata
-		authors: body.authors
+	// query post_type=page
+	mut post_type := 'post'
+	if app.query['post_type'] == 'page' {
+		post_type = 'page'
 	}
 
-	post.create(mut app.db, v.user.id, new_post_id, body.post_type) or {
+	body.create(mut app.db, v.user.id, new_post_id, post_type) or {
 		return app.send_error(err, fn_name)
 	}
 
