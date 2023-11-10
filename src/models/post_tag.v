@@ -337,7 +337,7 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]
 		"post_tag"."content",
 		"post_tag"."handle",
 		"post_tag"."excerpt",
-		"post_tag"."metadata",
+		"post_tag"."metadata"
 	FROM "post_tag"
 	INNER JOIN "post_tags" ON "post_tag"."id" = "post_tags"."post_tag_id"
 	WHERE "post_id" = ?
