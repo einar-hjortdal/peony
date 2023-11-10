@@ -236,7 +236,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			"post"."excerpt",
 			"post"."metadata",
 			BIN_TO_UUID("post_authors"."author_id"),
-			BIN_TO_UUID("post_tags"."tag_id")
+			BIN_TO_UUID("post_tags"."post_tag_id")
 		FROM "post"
 		LEFT JOIN "post_authors" ON "post"."id" = "post_authors"."post_id"
 		LEFT JOIN "post_tags" ON "post"."id" = "post_tags"."post_id"
