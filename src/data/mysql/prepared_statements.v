@@ -67,8 +67,8 @@ pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Re
 				}
 			}
 			bool {
-				// In MySQL boolean values are stored as bit(1): 1 is true and 0 is false.
-				if param {
+				// In MySQL boolean values are stored as bit(1): 0x01 is true and 0x00 is false.
+				if param == true {
 					_ := mysql_conn.real_query('SET @v${i} = 0x01') or {
 						null_vars(mut mysql_conn, i)
 						return err
