@@ -10,7 +10,7 @@ import utils
 // Users are either `admin`, `member`, `developer`, `author`, `contributor`
 // They are part of the team that runs a peony website.
 pub struct User {
-pub mut:
+pub:
 	id            string
 	handle        string
 	email         string
@@ -71,26 +71,44 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }
 
-pub fn (user User) update(mut mysql_conn v_mysql.DB) ! {
+pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
+	if user.handle == '' {
+		return utils.new_peony_error(400, 'handle is required')
+	}
+
+	if user.email == '' {
+		return utils.new_peony_error(400, 'email is required')
+	}
+
+	if user.role != '' && user.role !in allowed_role {
+		return utils.new_peony_error(400, 'role invalid')
+	}
+
 	mut query_columns := []string{}
 	mut vars := []mysql.Param{}
 
+	// TODO always insert
 	if user.handle != '' {
 		query_columns = arrays.concat(query_columns, 'handle')
 		vars = arrays.concat(vars, mysql.Param(user.handle))
 	}
+
 	if user.role != '' {
 		query_columns = arrays.concat(query_columns, 'role')
 		vars = arrays.concat(vars, mysql.Param(user.role))
 	}
+
+	// TODO always insert
 	if user.first_name != '' {
 		query_columns = arrays.concat(query_columns, 'first_name')
 		vars = arrays.concat(vars, mysql.Param(user.first_name))
 	}
+	// TODO always insert
 	if user.last_name != '' {
 		query_columns = arrays.concat(query_columns, 'last_name')
 		vars = arrays.concat(vars, mysql.Param(user.last_name))
 	}
+	// TODO always insert
 	if user.metadata != '' {
 		query_columns = arrays.concat(query_columns, 'metadata')
 		vars = arrays.concat(vars, mysql.Param(user.metadata))
@@ -98,7 +116,7 @@ pub fn (user User) update(mut mysql_conn v_mysql.DB) ! {
 
 	columns_with_question_marks := mysql.columns_with_question_marks(query_columns)
 
-	query := 'UPDATE "user" SET ${columns_with_question_marks}, "updated_at" = NOW() WHERE "id" = ${user.id}' // TODO pass user.id also
+	query := 'UPDATE "user" SET ${columns_with_question_marks}, "updated_at" = NOW() WHERE "id" = ${id}' // TODO pass user.id also
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }
 

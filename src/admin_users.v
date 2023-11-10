@@ -23,12 +23,9 @@ pub fn (mut app App) admin_users_get() vweb.Result {
 
 struct AdminUsersPostRequest {
 mut:
-	email      string // required
-	password   string // required
-	handle     string
-	first_name string
-	last_name  string
-	role       string // must be either 'admin', 'member', 'developer' or 'author'
+	email    string
+	password string
+	role     string
 }
 
 // admin_users_post creates a user
@@ -46,10 +43,6 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	if body.handle == '' {
-		body.handle = app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
-	}
-
 	email := body.email.trim_space()
 	validate_email(email) or { return app.send_error(err, fn_name) }
 
@@ -59,40 +52,29 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	mut new_user := models.UserWriteable{
-		email: email
-		password_hash: password_hash
-	}
-
 	id := app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
-
-	first_name := body.first_name.trim_space()
-	if first_name != '' {
-		new_user.first_name = first_name
-	}
-
-	last_name := body.last_name.trim_space()
-	if last_name != '' {
-		new_user.last_name = last_name
-	}
+	handle := app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
 
 	role := body.role.trim_space()
-	if role != '' {
-		match role {
-			'admin', 'member', 'developer', 'author' {
-				new_user.role = role
-			}
-			else {
-				app.set_status(401, 'Invalid request')
-				err = utils.new_peony_error(401, "role must be either 'admin', 'member', 'developer' or 'author'")
-				return app.send_error(err, fn_name)
-			}
-		}
+	if role == '' {
+		err = utils.new_peony_error(400, 'role is required')
+		return app.send_error(err, fn_name)
+	}
+	if role !in models.allowed_role {
+		err = utils.new_peony_error(400, 'role invalid')
+		return app.send_error(err, fn_name)
+	}
+
+	mut new_user := models.UserWriteable{
+		handle: handle
+		email: email
+		password_hash: password_hash
+		role: role
 	}
 
 	new_user.create(mut app.db, id) or { return app.send_error(err, fn_name) }
 
-	created_user := models.user_retrieve_by_email(mut app.db, email) or {
+	created_user := models.user_retrieve_by_id(mut app.db, id) or {
 		return app.send_error(err, fn_name)
 	}
 	return app.json(created_user)
@@ -111,15 +93,7 @@ pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
 	return app.json(user)
 }
 
-struct AdminUsersIdPostRequest {
-	first_name string
-	last_name  string
-	role       string // must be either 'admin', 'member', 'developer' or 'author'
-	metadata   string
-}
-
 // Requires authorization.
-// Note: do not accept changes to id, deleted_at
 ['/admin/users/:id'; post]
 pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 	fn_name := 'admin_users_id_post'
@@ -129,44 +103,22 @@ pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	body := json.decode(AdminUsersIdPostRequest, app.req.data) or {
+	mut body := json.decode(models.UserWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
 	}
 
-	mut user := models.user_retrieve_by_id(mut app.db, id) or {
-		return app.send_error(err, fn_name)
+	// Generate random handle instead of failing if needed
+	if body.handle == '' {
+		body.handle = app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
 	}
 
-	first_name := body.first_name.trim_space()
-	if first_name != '' {
-		user.first_name = first_name
-	}
-
-	last_name := body.last_name.trim_space()
-	if last_name != '' {
-		user.last_name = last_name
-	}
-
-	role := body.role.trim_space()
-	if role != '' {
-		match role {
-			'admin', 'member', 'developer', 'author' {
-				user.role = role
-			}
-			else {
-				app.set_status(422, 'Invalid request')
-				err = utils.new_peony_error(5, "role must be either 'admin', 'member', 'developer' or 'author'")
-				return app.send_error(err, fn_name)
-			}
-		}
-	}
-
-	user.update(mut app.db) or { return app.send_error(err, fn_name) }
+	body.update(mut app.db, id) or { return app.send_error(err, fn_name) }
 
 	if v.user.id == id {
-		v.user = user
 		app.save_admin_session(v) or { return app.send_error(err, fn_name) }
 	}
+
+	user := models.user_retrieve_by_id(mut app.db, id) or { return app.send_error(err, fn_name) }
 
 	return app.json(user)
 }
