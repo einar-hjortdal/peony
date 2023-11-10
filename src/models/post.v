@@ -61,7 +61,7 @@ pub mut:
 
 // TODO add created_by to post_authors if authors is empty
 pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
-	if post_type != 'post' || post_type != 'page' {
+	if post_type !in allowed_post_type {
 		return utils.new_peony_error(500, 'post_type invalid')
 	}
 
@@ -111,7 +111,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		"handle",
 		"metadata"'
 	mut values := '
-	UUID_TO_BIN(?)
+	UUID_TO_BIN(?),
 	NOW(),
 	UUID_TO_BIN(?),
 	NOW(),
@@ -125,10 +125,9 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	?'
 
 	mut vars := []mysql.Param{}
-	{
-		id, created_by_id, created_by_id, pw.featured, pw.title, pw.subtitle, pw.content, pw.excerpt, pw.handle, pw.metadata
-	}
-	mut query := 'INSERT INTO "post" (${query_columns}) VALUES (${values})'
+	vars = arrays.concat(vars, mysql.Param(id), mysql.Param(created_by_id), mysql.Param(created_by_id),
+		mysql.Param(pw.featured), mysql.Param(pw.title), mysql.Param(pw.subtitle), mysql.Param(pw.content),
+		mysql.Param(pw.excerpt), mysql.Param(pw.handle), mysql.Param(pw.metadata))
 
 	if post_type in allowed_post_type {
 		query_columns += ', "type"'
@@ -154,12 +153,10 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		vars = arrays.concat(vars, mysql.Param(pw.visibility))
 	}
 
+	mut query := 'INSERT INTO "post" (${query_columns}) VALUES (${values})'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
-	// post_authors
-	query = '
-		INSERT INTO "post_authors" ("post_id", "author_id")
-		VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+	query = 'INSERT INTO "post_authors" ("post_id", "author_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 	vars = [mysql.Param(id)]
 
@@ -183,23 +180,18 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 
 	// tags
 	if pw.tags.len != 0 {
-		query = '
-	INSERT INTO "post_tags" ("post_id", "post_tag_id")
-	VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+		query = 'INSERT INTO "post_tags" ("post_id", "post_tag_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 		if pw.tags.len == 1 {
 			vars = []mysql.Param{}
-			{
-				id, pw.tags[0]
-			}
+			vars = arrays.concat(vars, mysql.Param(id), mysql.Param(pw.tags[0]))
 			mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 		} else {
 			mysql.prep(mut mysql_conn, 'stmt', query)!
 			for tag_id in pw.tags {
+				tag := tag_id
 				vars = []mysql.Param{}
-				{
-					id, tag_id
-				}
+				vars = arrays.concat(vars, mysql.Param(id), mysql.Param(tag))
 				mysql.exec(mut mysql_conn, 'stmt', ...vars)!
 			}
 			mysql.deallocate(mut mysql_conn, 'stmt')
@@ -422,7 +414,7 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	"status" = ?,
 	"featured" = ?,
 	"updated_at" = NOW(),
-	"updated_by" = UUID_TO_BIN(?), 
+	"updated_by" = UUID_TO_BIN(?),
 	"visibility" = ?,
 	"title" = ?,
 	"subtitle" = ?,
@@ -438,13 +430,13 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 
 	// Only update published_at and published_by if post is being published for the first time
 	if pw.status == 'published' {
-		query_records += ', 
-		"published_at" = CASE 
+		query_records += ',
+		"published_at" = CASE
 			WHEN "published_at" IS NOT NULL AND status IS NOT \'published\'
 			THEN NOW()
 			ELSE "published_at"
 		END,
-		"published_by" = CASE 
+		"published_by" = CASE
 			WHEN "published_by" IS NOT NULL
 			THEN UUID_TO_BIN(?)
 			ELSE "published_by"
@@ -455,8 +447,10 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	vars = arrays.concat(vars, mysql.Param(post_id))
 
 	mut query := '
-	UPDATE "post" 
+	UPDATE "post"
 	SET ${query_records}
 	WHERE "id" = UUID_TO_BIN(?)'
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars) or { println(err) }
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars) or { // TODO
+		println(err)
+	}
 }
