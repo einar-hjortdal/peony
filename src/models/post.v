@@ -132,10 +132,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	{
 		id, created_by_id, created_by_id, post_type, pw.featured, pw.title, pw.subtitle, pw.content, pw.excerpt, pw.handle, pw.metadata
 	}
-	mut query := '
-	INSERT INTO "post" (${query_columns})
-	VALUES (${values})
-	'
+	mut query := 'INSERT INTO "post" (${query_columns}) VALUES (${values})'
 
 	if pw.status != '' {
 		query_columns += ', status'
@@ -181,6 +178,31 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		}
 		mysql.deallocate(mut mysql_conn, 'stmt')
 	}
+
+	// tags
+	if pw.tags.len != 0 {
+		query = '
+	INSERT INTO "post_tags" ("post_id", "post_tag_id")
+	VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+
+		if pw.tags.len == 1 {
+			vars = []mysql.Param{}
+			{
+				id, pw.tags[0]
+			}
+			mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+		} else {
+			mysql.prep(mut mysql_conn, 'stmt', query)!
+			for tag_id in pw.tags {
+				vars = []mysql.Param{}
+				{
+					id, tag_id
+				}
+				mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+			}
+			mysql.deallocate(mut mysql_conn, 'stmt')
+		}
+	}
 }
 
 pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
@@ -190,8 +212,6 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 		}
 	}
 
-	// TODO fetch , products, images, translations and tiers
-	// (from tables post_products, post_images, post_translations, tiers)
 	query_string := '
 		SELECT DISTINCT
 			BIN_TO_UUID("post"."id"),
@@ -218,7 +238,8 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 		FROM "post"
 		LEFT JOIN "post_authors" ON "post"."id" = "post_authors"."post_id"
 		LEFT JOIN "post_tags" ON "post"."id" = "post_tags"."post_id"
-		WHERE "post"."type" = ?'
+		WHERE "post"."type" = ?
+		ORDER BY "created_at" DESC'
 
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query_string, post_type)!
 
@@ -246,6 +267,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 		}
 
 		authors := authors_retrieve_by_post_id(mut mysql_conn, vals[0])!
+		tags := post_tag_retrieve_by_post_id(mut mysql_conn, vals[0])!
 
 		mut post := Post{
 			id: vals[0]
@@ -268,6 +290,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			excerpt: vals[17]
 			metadata: vals[18]
 			authors: authors
+			tags: tags
 		}
 		posts = arrays.concat(posts, post)
 	}
@@ -328,6 +351,9 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
 		}
 
+		authors := authors_retrieve_by_post_id(mut mysql_conn, vals[0])!
+		tags := post_tag_retrieve_by_post_id(mut mysql_conn, vals[0])!
+
 		mut post := Post{
 			id: vals[0]
 			created_at: vals[1]
@@ -348,7 +374,8 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			handle: vals[16]
 			excerpt: vals[17]
 			metadata: vals[18]
-			// TODO authors
+			authors: authors
+			tags: tags
 		}
 		posts = arrays.concat(posts, post)
 	}

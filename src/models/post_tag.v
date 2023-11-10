@@ -9,7 +9,7 @@ import data.mysql as p_mysql
 
 pub struct PostTag {
 	id string
-	// parent     ?&PostTag
+	// parent     ?&PostTag https://github.com/vlang/v/issues/19812
 	visibility string
 	created_at string [json: 'createdAt']
 	created_by User   [json: 'createdBy']
@@ -233,35 +233,35 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 	// parent id = vals[1]
 
 	mut created_by := User{}
-	if vals[5] != '' {
-		created_by = user_retrieve_by_id(mut mysql_conn, vals[5])!
+	if vals[4] != '' {
+		created_by = user_retrieve_by_id(mut mysql_conn, vals[4])!
 	}
 
 	mut updated_by := User{}
-	if vals[7] != '' {
-		created_by = user_retrieve_by_id(mut mysql_conn, vals[7])!
+	if vals[6] != '' {
+		created_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 	}
 
 	mut deleted_by := User{}
-	if vals[9] != '' {
-		created_by = user_retrieve_by_id(mut mysql_conn, vals[9])!
+	if vals[8] != '' {
+		created_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 	}
 
 	post_tag := PostTag{
 		id: vals[0]
 		visibility: vals[2]
-		created_at: vals[4]
+		created_at: vals[3]
 		created_by: created_by
-		updated_at: vals[6]
+		updated_at: vals[5]
 		updated_by: updated_by
-		deleted_at: vals[8]
+		deleted_at: vals[7]
 		deleted_by: deleted_by
-		title: vals[10]
-		subtitle: vals[11]
-		content: vals[12]
-		handle: vals[13]
-		excerpt: vals[14]
-		metadata: vals[15]
+		title: vals[9]
+		subtitle: vals[10]
+		content: vals[11]
+		handle: vals[12]
+		excerpt: vals[13]
+		metadata: vals[14]
 	}
 
 	return post_tag
@@ -318,4 +318,77 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 			p_mysql.deallocate(mut mysql_conn, 'stmt')
 		}
 	}
+}
+
+pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]PostTag {
+	query := '
+	SELECT 
+		BIN_TO_UUID("post_tag"."id"),
+		BIN_TO_UUID("post_tag"."parent_id"),
+		"post_tag"."visibility",
+		"post_tag"."created_at",
+		BIN_TO_UUID("post_tag"."created_by"),
+		"post_tag"."updated_at",
+		BIN_TO_UUID("post_tag"."updated_by"),
+		"post_tag"."deleted_at",
+		BIN_TO_UUID("post_tag"."deleted_by"),
+		"post_tag"."title",
+		"post_tag"."subtitle",
+		"post_tag"."content",
+		"post_tag"."handle",
+		"post_tag"."excerpt",
+		"post_tag"."metadata",
+	FROM "post_tag"
+	INNER JOIN "post_tags" ON "post_tag"."id" = "post_tags"."post_tag_id"
+	WHERE "post_id" = ?
+	ORDER BY "post_tags"."sort_order"'
+
+	res := p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
+
+	rows := res.rows()
+	if rows.len == 0 {
+		return []PostTag{}
+	}
+
+	mut post_tags := []PostTag{}
+	for row in rows {
+		vals := row.vals
+
+		// TODO parent vals[1]
+		mut created_by := User{}
+		if vals[4] != '' {
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[5])!
+		}
+
+		mut updated_by := User{}
+		if vals[6] != '' {
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[7])!
+		}
+
+		mut deleted_by := User{}
+		if vals[9] != '' {
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[9])!
+		}
+
+		post_tag := PostTag{
+			id: vals[0]
+			// parent: parent
+			visibility: vals[2]
+			created_at: vals[3]
+			created_by: created_by
+			updated_at: vals[5]
+			updated_by: updated_by
+			deleted_at: vals[7]
+			deleted_by: deleted_by
+			title: vals[9]
+			subtitle: vals[10]
+			content: vals[11]
+			handle: vals[12]
+			excerpt: vals[13]
+			metadata: vals[14]
+		}
+
+		post_tags = arrays.concat(post_tags, post_tag)
+	}
+	return post_tags
 }
