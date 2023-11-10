@@ -23,6 +23,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 }
 
 // admin_posts_post allows an author to create a post.
+// To create a page supply the query post_type=page.
 // Requires authorization.
 ['/admin/posts'; post]
 pub fn (mut app App) admin_posts_post() vweb.Result {
@@ -39,7 +40,6 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 
 	new_post_id := app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
 
-	// query post_type=page
 	mut post_type := 'post'
 	if app.query['post_type'] == 'page' {
 		post_type = 'page'
