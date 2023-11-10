@@ -11,17 +11,13 @@ import utils
 // Requires authorization.
 ['/admin/users'; get]
 pub fn (mut app App) admin_users_get() vweb.Result {
-	_, mut e := app.check_user_auth()
-	if e.code() != 0 {
-		app.set_status(401, 'Unauthorized')
-		return app.json(e)
+	fn_name := 'admin_users_get'
+	_, mut err := app.check_user_auth()
+	if err.code() != 0 {
+		return app.send_error(err, fn_name)
 	}
 
-	users := models.user_list(mut app.db) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	users := models.user_list(mut app.db) or { return app.send_error(err, fn_name) }
 	return app.json(users)
 }
 
@@ -39,43 +35,28 @@ mut:
 // Requires authorization.
 ['/admin/users'; post]
 pub fn (mut app App) admin_users_post() vweb.Result {
-	_, mut e := app.check_user_auth()
-	if e.code() != 0 {
-		app.set_status(401, 'Unauthorized')
-		return app.json(e)
+	fn_name := 'admin_users_post'
+
+	_, mut err := app.check_user_auth()
+	if err.code() != 0 {
+		return app.send_error(err, fn_name)
 	}
 
 	mut body := json.decode(AdminUsersPostRequest, app.req.data) or {
-		app.set_status(422, 'Invalid request')
-		e = utils.new_peony_error(5, 'Could not decode AdminUsersPostRequest')
-		return app.json(e)
+		return app.send_error(err, fn_name)
 	}
 
 	if body.handle == '' {
-		body.handle = app.luuid_generator.v2() or {
-			app.set_status(500, 'Internal server error')
-			peony_error := utils.new_peony_error(500, err.msg())
-			return app.json(peony_error)
-		}
+		body.handle = app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
 	}
 
 	email := body.email.trim_space()
-	validate_email(email) or {
-		app.set_status(400, 'Invalid request')
-		e = utils.new_peony_error(400, err.msg())
-		return app.json(e)
-	}
+	validate_email(email) or { return app.send_error(err, fn_name) }
 
-	utils.validate_password(body.password) or {
-		app.set_status(422, 'Invalid request')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	utils.validate_password(body.password) or { return app.send_error(err, fn_name) }
 
 	password_hash := utils.new_password_hash(body.password) or {
-		app.set_status(500, 'Internal server error')
-		peony_error := utils.new_peony_error(500, err.msg())
-		return app.json(peony_error)
+		return app.send_error(err, fn_name)
 	}
 
 	mut new_user := models.UserWriteable{
@@ -83,11 +64,7 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 		password_hash: password_hash
 	}
 
-	id := app.luuid_generator.v2() or {
-		app.set_status(500, 'Internal server error')
-		peony_error := utils.new_peony_error(500, err.msg())
-		return app.json(peony_error)
-	}
+	id := app.luuid_generator.v2() or { return app.send_error(err, fn_name) }
 
 	first_name := body.first_name.trim_space()
 	if first_name != '' {
@@ -107,22 +84,16 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 			}
 			else {
 				app.set_status(401, 'Invalid request')
-				e = utils.new_peony_error(401, "role must be either 'admin', 'member', 'developer' or 'author'")
-				return app.json(e)
+				err = utils.new_peony_error(401, "role must be either 'admin', 'member', 'developer' or 'author'")
+				return app.send_error(err, fn_name)
 			}
 		}
 	}
 
-	new_user.create(mut app.db, id) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	new_user.create(mut app.db, id) or { return app.send_error(err, fn_name) }
 
 	created_user := models.user_retrieve_by_email(mut app.db, email) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
+		return app.send_error(err, fn_name)
 	}
 	return app.json(created_user)
 }
@@ -130,17 +101,13 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 // Requires authorization.
 ['/admin/users/:id'; get]
 pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
-	_, mut e := app.check_user_auth()
-	if e.code() != 0 {
-		app.set_status(401, 'Unauthorized')
-		return app.json(e)
+	fn_name := 'admin_users_id_get'
+	_, mut err := app.check_user_auth()
+	if err.code() != 0 {
+		return app.send_error(err, fn_name)
 	}
 
-	user := models.user_retrieve_by_id(mut app.db, id) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	user := models.user_retrieve_by_id(mut app.db, id) or { return app.send_error(err, fn_name) }
 	return app.json(user)
 }
 
@@ -155,22 +122,19 @@ struct AdminUsersIdPostRequest {
 // Note: do not accept changes to id, deleted_at
 ['/admin/users/:id'; post]
 pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
-	mut v, mut e := app.check_user_auth()
-	if e.code() != 0 {
-		app.set_status(401, 'Unauthorized')
-		return app.json(e)
+	fn_name := 'admin_users_id_post'
+
+	mut v, mut err := app.check_user_auth()
+	if err.code() != 0 {
+		return app.send_error(err, fn_name)
 	}
 
 	body := json.decode(AdminUsersIdPostRequest, app.req.data) or {
-		app.set_status(422, 'Invalid request')
-		e = utils.new_peony_error(5, 'Could not decode AdminUsersIdPostRequest')
-		return app.json(e)
+		return app.send_error(err, fn_name)
 	}
 
 	mut user := models.user_retrieve_by_id(mut app.db, id) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
+		return app.send_error(err, fn_name)
 	}
 
 	first_name := body.first_name.trim_space()
@@ -191,26 +155,17 @@ pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 			}
 			else {
 				app.set_status(422, 'Invalid request')
-				e = utils.new_peony_error(5, "role must be either 'admin', 'member', 'developer' or 'author'")
-				return app.json(e)
+				err = utils.new_peony_error(5, "role must be either 'admin', 'member', 'developer' or 'author'")
+				return app.send_error(err, fn_name)
 			}
 		}
 	}
 
-	user.update(mut app.db) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	user.update(mut app.db) or { return app.send_error(err, fn_name) }
 
 	if v.user.id == id {
 		v.user = user
-		e = app.save_admin_session(v)
-		if e.code() != 0 {
-			app.logger.debug(e.data())
-			app.set_status(500, 'Internal server error')
-			return app.json(e)
-		}
+		app.save_admin_session(v) or { return app.send_error(err, fn_name) }
 	}
 
 	return app.json(user)
@@ -225,33 +180,21 @@ struct AdminUsersIdGetDelResponse {
 // Requires authorization.
 ['/admin/users/:id'; delete]
 pub fn (mut app App) admin_users_id_del(id string) vweb.Result {
-	v, mut e := app.check_user_auth()
-	if e.code() != 0 {
-		app.set_status(401, 'Unauthorized')
-		return app.json(e)
+	fn_name := 'admin_users_id_del'
+
+	v, mut err := app.check_user_auth()
+	if err.code() != 0 {
+		return app.send_error(err, fn_name)
 	}
 
 	// TODO do not delete last user. Check if number of non-delete users is >1
 
-	models.user_delete_by_id(mut app.db, id) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	models.user_delete_by_id(mut app.db, id) or { return app.send_error(err, fn_name) }
 
-	user := models.user_retrieve_by_id(mut app.db, id) or {
-		app.set_status(500, 'Internal server error')
-		e = utils.new_peony_error(5, err.msg())
-		return app.json(e)
-	}
+	user := models.user_retrieve_by_id(mut app.db, id) or { return app.send_error(err, fn_name) }
 
 	if v.user.id == id {
-		e = app.delete_admin_session()
-		if e.code() != 0 {
-			app.logger.debug(e.to_string())
-			app.set_status(500, 'Internal server error')
-			return app.json(e)
-		}
+		app.delete_admin_session() or { return app.send_error(err, fn_name) }
 	}
 
 	return app.json(user)
