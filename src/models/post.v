@@ -61,10 +61,8 @@ pub mut:
 
 // TODO add created_by to post_authors if authors is empty
 pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
-	if post_type != '' {
-		if post_type != 'post' || post_type != 'page' {
-			return utils.new_peony_error(500, 'post_type invalid')
-		}
+	if post_type != 'post' || post_type != 'page' {
+		return utils.new_peony_error(500, 'post_type invalid')
 	}
 
 	if pw.status != '' {
@@ -105,7 +103,6 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		"created_by",
 		"updated_at",
 		"updated_by",
-		"type",
 		"featured",
 		"title",
 		"subtitle",
@@ -125,29 +122,34 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	?,
 	?,
 	?,
-	?,
 	?'
 
 	mut vars := []mysql.Param{}
 	{
-		id, created_by_id, created_by_id, post_type, pw.featured, pw.title, pw.subtitle, pw.content, pw.excerpt, pw.handle, pw.metadata
+		id, created_by_id, created_by_id, pw.featured, pw.title, pw.subtitle, pw.content, pw.excerpt, pw.handle, pw.metadata
 	}
 	mut query := 'INSERT INTO "post" (${query_columns}) VALUES (${values})'
 
+	if post_type in allowed_post_type {
+		query_columns += ', "type"'
+		values += ', ?'
+		vars = arrays.concat(vars, mysql.Param(post_type))
+	}
+
 	if pw.status != '' {
-		query_columns += ', status'
+		query_columns += ', "status"'
 		values += ', ?'
 		vars = arrays.concat(vars, mysql.Param(pw.status))
 	}
 
 	if pw.status == 'published' {
-		query_columns += ', published_at, published_by'
+		query_columns += ', "published_at", "published_by"'
 		values += ', UUID_TO_BIN(?), UUID_TO_BIN(?)'
 		vars = arrays.concat(vars, mysql.Param('NOW()'), mysql.Param(created_by_id))
 	}
 
 	if pw.visibility != '' {
-		query_columns += ', visibility'
+		query_columns += ', "visibility"'
 		values += ', ?'
 		vars = arrays.concat(vars, mysql.Param(pw.visibility))
 	}
