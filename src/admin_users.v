@@ -153,7 +153,7 @@ struct AdminUsersIdPostRequest {
 
 // Requires authorization.
 // Note: do not accept changes to id, deleted_at
-['/admin/user/:id'; post]
+['/admin/users/:id'; post]
 pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 	mut v, mut e := app.check_user_auth()
 	if e.code() != 0 {
