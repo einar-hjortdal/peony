@@ -2158,8 +2158,10 @@ CREATE TABLE
   "post_authors" (
     "post_id" binary(16) NOT NULL,
     "author_id" binary(16) NOT NULL,
+    "sort_order" integer NOT NULL DEFAULT 0,
     CONSTRAINT "FK_2de075c9-b223-4f52-a6aa-b83ee7dba0c5" FOREIGN KEY ("post_id") REFERENCES "post" ("id"),
     CONSTRAINT "FK_e8c24891-3138-4bd7-baaa-b4d4463193fb" FOREIGN KEY ("author_id") REFERENCES "user" ("id"),
+    CONSTRAINT "UQ_4d30b373-38c3-4fef-ae07-e54a99dfec8f" UNIQUE ("post_id", "sort_order"),
     PRIMARY KEY ("post_id", "author_id")
   );
 
@@ -2240,8 +2242,10 @@ CREATE TABLE
   "post_tags" (
     "post_id" binary(16) NOT NULL,
     "post_tag_id" binary(16) NOT NULL,
+    "sort_order" integer NOT NULL DEFAULT 0,
     CONSTRAINT "FK_0287e4c3-f9f2-4438-b272-912f5898ed37" FOREIGN KEY ("post_id") REFERENCES "post" ("id"),
     CONSTRAINT "FK_1ee032e9-c628-481b-a972-05393c6943df" FOREIGN KEY ("post_tag_id") REFERENCES "post_tag" ("id"),
+    CONSTRAINT "UQ_8e4d2a13-b839-4bb3-884f-8629227eae61" UNIQUE ("post_id", "sort_order"),
     PRIMARY KEY ("post_id", "post_tag_id")
   );
 
