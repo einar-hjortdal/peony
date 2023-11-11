@@ -120,40 +120,35 @@ pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }
 
-// user_retrieve_by_id returns the data of a peony user identified by the provided id.
-pub fn user_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !User {
-	// TODO check cache first
-	query_columns := ['handle', 'email', 'role', 'created_at', 'updated_at', 'deleted_at',
-		'first_name', 'last_name', 'metadata']
-	query := 'SELECT ${mysql.columns(query_columns)} FROM "user" WHERE "id" = UUID_TO_BIN(?, 0)'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
-	row := res.rows()[0].vals
-
-	user := User{
-		id: id
-		handle: row[0]
-		email: row[1]
-		role: row[2]
-		created_at: row[3]
-		updated_at: row[4]
-		deleted_at: row[5]
-		first_name: row[6]
-		last_name: row[7]
-		metadata: row[8]
+fn user_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !User {
+	mut qm := '?'
+	if column == 'id' {
+		qm = 'UUID_TO_BIN(?)'
 	}
-	// TODO add to cache
-	return user
-}
 
-pub fn user_retrieve_by_email(mut mysql_conn v_mysql.DB, email string) !User {
-	query_columns := ['handle', 'email', 'role', 'created_at', 'updated_at', 'deleted_at',
-		'first_name', 'last_name', 'metadata']
-	query := 'SELECT BIN_TO_UUID("id", 0), ${mysql.columns(query_columns)} FROM "user" WHERE "email" = ?'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, email)!
+	query := '
+	SELECT
+		BIN_TO_UUID("id"),
+		"handle",
+		"email",
+		"role",
+		"created_at",
+		"updated_at",
+		"deleted_at",
+		"first_name",
+		"last_name",
+		"metadata"
+		BIN_TO_UUID("created_by")
+	FROM "user"
+	WHERE "${column}" = ${qm}'
+
+	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
+
 	rows := res.rows()
 	if rows.len == 0 {
-		return error('No matching user with email ${email}')
+		return error('No user exists with the given ${column}')
 	}
+
 	vals := rows[0].vals
 
 	user := User{
@@ -168,7 +163,18 @@ pub fn user_retrieve_by_email(mut mysql_conn v_mysql.DB, email string) !User {
 		last_name: vals[8]
 		metadata: vals[9]
 	}
+
+	// TODO add to cache
 	return user
+}
+
+// user_retrieve_by_id returns the data of a peony user identified by the provided id.
+pub fn user_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !User {
+	return user_retrieve(mut mysql_conn, 'id', id)
+}
+
+pub fn user_retrieve_by_email(mut mysql_conn v_mysql.DB, email string) !User {
+	return user_retrieve(mut mysql_conn, 'email', email)
 }
 
 pub fn user_password_hash_by_email(mut mysql_conn v_mysql.DB, email string) !string {
@@ -191,9 +197,20 @@ pub fn user_delete_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 
 // user_list returns an array of all peony users.
 pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
-	query_columns := ['handle', 'email', 'role', 'created_at', 'updated_at', 'deleted_at',
-		'first_name', 'last_name', 'metadata']
-	query := 'SELECT BIN_TO_UUID("id"), ${mysql.columns(query_columns)} FROM "user"'
+	query := '
+	SELECT
+		BIN_TO_UUID("id"),
+		"handle",
+		"email",
+		"role",
+		"created_at",
+		"updated_at",
+		"deleted_at",
+		"first_name",
+		"last_name",
+		"metadata"
+		BIN_TO_UUID("created_by")
+	FROM "user"'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
 
 	rows := res.rows()
@@ -258,7 +275,12 @@ pub fn user_list_authors(mut mysql_conn v_mysql.DB) ![]User {
 	return users
 }
 
-pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id int) !User {
+fn user_retrieve_author(mut mysql_conn v_mysql.DB, column string, var string) !User {
+	mut qm := '?'
+	if column == 'id' {
+		qm = 'UUID_TO_BIN(?)'
+	}
+
 	query := '
 	SELECT
 		BIN_TO_UUID("id")
@@ -273,13 +295,13 @@ pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id int) !User {
 		"user"."metadata"
 	FROM "user"
 	INNER JOIN "post_authors" on "user"."id" = "post_authors"."author_id"
-	WHERE "user"."id" = ?'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
+	WHERE "user"."${column}" = ${qm}'
+	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
 	rows := res.rows()
 
 	if rows.len == 0 {
-		return utils.new_peony_error(404, 'No author exists with the given id')
+		return utils.new_peony_error(404, 'No author exists with the given ${column}')
 	}
 
 	vals := rows[0].vals
@@ -297,43 +319,12 @@ pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id int) !User {
 	}
 }
 
+pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id string) !User {
+	return user_retrieve_author(mut mysql_conn, 'id', id)
+}
+
 pub fn user_retrieve_author_by_handle(mut mysql_conn v_mysql.DB, handle string) !User {
-	query := '
-	SELECT
-		BIN_TO_UUID("id")
-		"user"."handle",
-		"user"."email",
-		"user"."role",
-		"user"."created_at",
-		"user"."updated_at",
-		"user"."deleted_at",
-		"user"."first_name",
-		"user"."last_name",
-		"user"."metadata"
-	FROM "user"
-	INNER JOIN "post_authors" on "user"."id" = "post_authors"."author_id"
-	WHERE "user"."handle" = ?'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, handle)!
-
-	rows := res.rows()
-
-	if rows.len == 0 {
-		return utils.new_peony_error(404, 'No author exists with the given id')
-	}
-
-	vals := rows[0].vals
-	return User{
-		id: vals[0]
-		handle: vals[1]
-		email: vals[2]
-		role: vals[3]
-		created_at: vals[4]
-		updated_at: vals[5]
-		deleted_at: vals[6]
-		first_name: vals[7]
-		last_name: vals[8]
-		metadata: vals[9]
-	}
+	return user_retrieve_author(mut mysql_conn, 'handle', handle)
 }
 
 pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]User {
@@ -362,5 +353,3 @@ pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![
 	// TODO add to cache
 	return users
 }
-
-// TODO functions to add and remove authors
