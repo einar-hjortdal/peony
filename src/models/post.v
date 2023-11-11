@@ -293,6 +293,11 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 }
 
 fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
+	mut qm := '?'
+	if column == 'id' {
+		qm = 'UUID_TO_BIN(?)'
+	}
+
 	query := '
 	SELECT
 		BIN_TO_UUID("id"),
@@ -315,12 +320,12 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 		"excerpt",
 		"metadata"
 	FROM "post"
-	WHERE "${column}" = UUID_TO_BIN(?)'
+	WHERE "${column}" = ${qm}'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
-		return utils.new_peony_error(404, 'No post exists with the given id/handle')
+		return utils.new_peony_error(404, 'No post exists with the given ${column}')
 	}
 
 	mut posts := []Post{}
@@ -446,11 +451,11 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 
 	vars = arrays.concat(vars, mysql.Param(post_id))
 
-	mut query := '
-	UPDATE "post"
-	SET ${query_records}
-	WHERE "id" = UUID_TO_BIN(?)'
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars) or { // TODO
-		println(err)
-	}
+	mut query := 'UPDATE "post" SET ${query_records} WHERE "id" = UUID_TO_BIN(?)'
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+
+	// TODO cleanup post_authors and post_tags
+	// DELETE FROM "post_authors" WHERE "post_id" = ?
+	// DELETE FROM "post_tags" WHERE "post_id" = ?
+	// Then re-insert records at every update
 }
