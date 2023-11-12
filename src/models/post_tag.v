@@ -9,7 +9,7 @@ import data.mysql as p_mysql
 
 pub struct PostTag {
 	id string
-	// parent     ?&PostTag https://github.com/vlang/v/issues/19812
+	// parent     ?&PostTag // https://github.com/vlang/v/issues/19812
 	visibility string
 	created_at string [json: 'createdAt']
 	created_by User   [json: 'createdBy']
@@ -196,6 +196,11 @@ pub fn post_tag_retrieve_by_handle(mut mysql_conn mysql.DB, handle string) !Post
 }
 
 fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTag {
+	mut qm := '?'
+	if column == 'id' {
+		qm = 'UUID_TO_BIN(?)'
+	}
+
 	query := '
 	SELECT 
 		BIN_TO_UUID("post_tag"."id"),
@@ -216,14 +221,14 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 		BIN_TO_UUID("post"."id")
 	FROM "post_tag"
 	LEFT JOIN "post_tags" ON "post_tag"."id" = "post_tags"."post_tag_id"
-	WHERE "${column}" = ?
+	WHERE "${column}" = ${qm}
 	ORDER BY "created_at" DESC'
 
 	res := p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
-		return utils.new_peony_error(404, 'No post_tag exists with the given id/handle')
+		return utils.new_peony_error(404, 'No post_tag exists with the given ${column}')
 	}
 	// TODO it will return more than one row if a tag is linked to more than one post.
 	// TODO fetch posts by id
