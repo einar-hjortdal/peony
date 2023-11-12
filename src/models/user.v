@@ -84,39 +84,28 @@ pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 		return utils.new_peony_error(400, 'role invalid')
 	}
 
-	mut query_columns := []string{}
-	mut vars := []mysql.Param{}
+	mut columns := '
+	"updated_at" = NOW(),
+	handle = ?,
+	first_name = ?,
+	last_name = ?,
+	metadata = ?'
 
-	// TODO always insert
-	if user.handle != '' {
-		query_columns = arrays.concat(query_columns, 'handle')
-		vars = arrays.concat(vars, mysql.Param(user.handle))
-	}
+	mut vars := []mysql.Param{}
+	vars = arrays.concat(vars, mysql.Param(user.handle), mysql.Param(user.first_name),
+		mysql.Param(user.last_name), mysql.Param(user.metadata))
 
 	if user.role != '' {
-		query_columns = arrays.concat(query_columns, 'role')
+		columns += ', role = ?'
 		vars = arrays.concat(vars, mysql.Param(user.role))
 	}
 
-	// TODO always insert
-	if user.first_name != '' {
-		query_columns = arrays.concat(query_columns, 'first_name')
-		vars = arrays.concat(vars, mysql.Param(user.first_name))
-	}
-	// TODO always insert
-	if user.last_name != '' {
-		query_columns = arrays.concat(query_columns, 'last_name')
-		vars = arrays.concat(vars, mysql.Param(user.last_name))
-	}
-	// TODO always insert
-	if user.metadata != '' {
-		query_columns = arrays.concat(query_columns, 'metadata')
-		vars = arrays.concat(vars, mysql.Param(user.metadata))
-	}
-
-	columns_with_question_marks := mysql.columns_with_question_marks(query_columns)
-
-	query := 'UPDATE "user" SET ${columns_with_question_marks}, "updated_at" = NOW() WHERE "id" = ${id}' // TODO pass user.id also
+	query := '
+	UPDATE "user"
+	SET ${columns}
+	WHERE "id" = UUID_TO_BIN(?)
+	'
+	vars = arrays.concat(vars, mysql.Param(id))
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }
 
@@ -138,7 +127,6 @@ fn user_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !User {
 		"first_name",
 		"last_name",
 		"metadata"
-		BIN_TO_UUID("created_by")
 	FROM "user"
 	WHERE "${column}" = ${qm}'
 
@@ -189,8 +177,20 @@ pub fn user_password_hash_by_email(mut mysql_conn v_mysql.DB, email string) !str
 
 pub fn user_delete_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 	query := '
-	UPDATE "user" 
-	SET "deleted_at" = NOW() 
+	UPDATE "user"
+	SET 
+		"updated_at" = NOW(),
+		"deleted_at" = NOW()
+	WHERE "id" = UUID_TO_BIN(?)'
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
+}
+
+pub fn user_restore_by_id(mut mysql_conn v_mysql.DB, id string) ! {
+	query := '
+	UPDATE "user"
+	SET 
+	"updated_at" = NOW(),
+	"deleted_at" = NULL
 	WHERE "id" = UUID_TO_BIN(?)'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 }
@@ -209,7 +209,6 @@ pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
 		"first_name",
 		"last_name",
 		"metadata"
-		BIN_TO_UUID("created_by")
 	FROM "user"'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
 
@@ -329,10 +328,7 @@ pub fn user_retrieve_author_by_handle(mut mysql_conn v_mysql.DB, handle string) 
 
 pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]User {
 	// TODO check cache
-	query := '
-		SELECT BIN_TO_UUID("author_id")
-		FROM "post_authors" 
-		WHERE "post_id" = UUID_TO_BIN(?)'
+	query := 'SELECT BIN_TO_UUID("author_id") FROM "post_authors" WHERE "post_id" = UUID_TO_BIN(?)'
 
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
 

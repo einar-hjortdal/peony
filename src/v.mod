@@ -1,7 +1,7 @@
 Module {
 	name: 'peony'
 	description: 'CMS and commerce API'
-	version: '3.1.26'
+	version: '3.1.27'
 	license: 'NCSA'
 	repo_url: 'https://github.com/Coachonko/peony'
 	dependencies: [
