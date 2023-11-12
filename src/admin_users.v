@@ -93,6 +93,7 @@ pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
 	return app.json(user)
 }
 
+// admin_users_id_post allows a user to edit a user data
 // Requires authorization.
 ['/admin/users/:id'; post]
 pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
@@ -114,13 +115,17 @@ pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 
 	body.update(mut app.db, id) or { return app.send_error(err, fn_name) }
 
+	updated_user := models.user_retrieve_by_id(mut app.db, id) or {
+		return app.send_error(err, fn_name)
+	}
+
+	// Update session data if user updates his own data
 	if v.user.id == id {
+		v.user = updated_user
 		app.save_admin_session(v) or { return app.send_error(err, fn_name) }
 	}
 
-	user := models.user_retrieve_by_id(mut app.db, id) or { return app.send_error(err, fn_name) }
-
-	return app.json(user)
+	return app.json(updated_user)
 }
 
 struct AdminUsersIdGetDelResponse {
