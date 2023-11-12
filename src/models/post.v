@@ -248,7 +248,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			created_by = user_retrieve_by_id(mut mysql_conn, vals[2])!
 		}
 		mut updated_by := User{}
-		if vals[2] != '' {
+		if vals[4] != '' {
 			updated_by = user_retrieve_by_id(mut mysql_conn, vals[4])!
 		}
 		mut deleted_by := User{}
@@ -256,7 +256,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
 			deleted_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 		mut published_by := User{}
-		if vals[6] != '' {
+		if vals[11] != '' {
 			published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
 		}
 
