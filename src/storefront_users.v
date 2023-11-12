@@ -25,7 +25,7 @@ pub fn (mut app App) storefront_authors_get() vweb.Result {
 }
 
 ['/storefront/authors/:id'; get]
-pub fn (mut app App) storefront_authors_id_get(id int) vweb.Result {
+pub fn (mut app App) storefront_authors_id_get(id string) vweb.Result {
 	users := models.user_retrieve_author_by_id(mut app.db, id) or {
 		if err is utils.PeonyError {
 			app.logger.debug(err.to_string())
