@@ -4,6 +4,7 @@ module main
 import vweb
 // local
 import models
+import json
 
 // admin_store_get retrieves store details
 // Requires authorization.
@@ -20,21 +21,10 @@ pub fn (mut app App) admin_store_get() vweb.Result {
 	return app.json(store)
 }
 
-struct AdminStorePostRequest {
-	name                  string
-	default_locale_code   string
-	default_currency_code string
-	swap_link_template    string
-	payment_link_template string
-	invite_link_template  string
-	// currencies []string
-	metadata string
-}
-
 // admin_store_post updates store details
 // Requires authorization.
-['/admin/store'; post]
-pub fn (mut app App) admin_store_post() vweb.Result {
+['/admin/store/:id'; post]
+pub fn (mut app App) admin_store_post(id string) vweb.Result {
 	fn_name := 'admin_store_post'
 
 	_, mut err := app.check_user_auth()
@@ -42,7 +32,13 @@ pub fn (mut app App) admin_store_post() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	store := models.store_retrieve(mut app.db) or { return app.send_error(err, fn_name) }
-	// TODO invoke store method
-	return app.json(store)
+	body := json.decode(models.StoreWriteable, app.req.data) or {
+		return app.send_error(err, fn_name)
+	}
+
+	body.update(mut app.db, id) or { return app.send_error(err, fn_name) }
+
+	updated_store := models.store_retrieve(mut app.db) or { return app.send_error(err, fn_name) }
+
+	return app.json(updated_store)
 }
