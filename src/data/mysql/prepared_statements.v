@@ -2,8 +2,16 @@ module mysql
 
 import arrays
 import db.mysql as v_mysql
+import strings
 
 interface Param {}
+
+struct Stmt {
+	conn        &v_mysql.DB
+	name        string // luuid v2
+	param_count int
+	allocated   bool
+}
 
 // prep_n_exec prepares and executes a statement with the given parameters. After the execution, the
 // statement is deallocated.
@@ -26,7 +34,7 @@ pub fn prep_n_exec(mut mysql_conn v_mysql.DB, name string, statement string, par
 // prep prepares a statement on the MySQL server.
 // TODO return a struct
 pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
-	escaped_query := escape_single_quotes(statement)
+	escaped_query := escape_string(statement)
 	prepared := "PREPARE ${name} FROM '${escaped_query}'"
 	_ := mysql_conn.real_query(prepared)!
 }
@@ -150,4 +158,46 @@ pub fn question_marks(parameters []string) string {
 		question_marks += '?, '
 	}
 	return question_marks.trim_string_right(', ')
+}
+
+// escape_string escapes special characters in a string for use in an SQL statement.
+// This function is not compatible with NO_BACKSLASH_ESCAPES mode.
+pub fn escape_string(s string) string {
+	mut res := strings.new_builder(s.len * 2)
+	for ch in s {
+		match ch {
+			0 { // NUL
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			10 { // LF (\n)
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			13 { // CR (\r)
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			26 { // SUB (Z)
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			39 { // '
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			34 { // "
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			92 { // \
+				res.write_u8(r'\'[0])
+				res.write_u8(ch)
+			}
+			else {
+				res.write_u8(ch)
+			}
+		}
+	}
+	return res.bytestr()
 }
