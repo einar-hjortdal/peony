@@ -5,8 +5,6 @@ import db.mysql as v_mysql
 
 interface Param {}
 
-const mysql_functions = ['NOW()']
-
 // prep_n_exec prepares and executes a statement with the given parameters. After the execution, the
 // statement is deallocated.
 // It returns the `v_mysql.Result` of the prepared statement execution, or any error that occurs instead.
@@ -26,6 +24,7 @@ pub fn prep_n_exec(mut mysql_conn v_mysql.DB, name string, statement string, par
 }
 
 // prep prepares a statement on the MySQL server.
+// TODO return a struct
 pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
 	escaped_query := escape_single_quotes(statement)
 	prepared := "PREPARE ${name} FROM '${escaped_query}'"
@@ -35,6 +34,7 @@ pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
 // exec executes a prepared statement with the given parameters.
 // After the execution, the statement is not deallocated and can be executed again.
 // The statement is also not deallocated in case of error.
+// TODO method of the struct returned by prep
 pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Result {
 	if params.len == 0 {
 		res := mysql_conn.real_query('EXECUTE "${name}"') or { return err }
@@ -47,17 +47,11 @@ pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Re
 		param := params[i]
 		match param {
 			string {
-				if param in mysql.mysql_functions {
-					_ := mysql_conn.real_query('SET @v${i} = ${param}') or {
-						null_vars(mut mysql_conn, i)
-						return err
-					}
-				} else {
-					// string literals must be wrapped in single quotes
-					_ := mysql_conn.real_query("SET @v${i} = '${param}'") or {
-						null_vars(mut mysql_conn, i)
-						return err
-					}
+				// string literals must be wrapped in single quotes
+				escaped_string := mysql_conn.escape_string(param)
+				_ := mysql_conn.real_query("SET @v${i} = '${escaped_string}'") or {
+					null_vars(mut mysql_conn, i)
+					return err
 				}
 			}
 			int {
@@ -66,7 +60,7 @@ pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Re
 					return err
 				}
 			}
-			bool {
+			bool { // https://github.com/vlang/v/issues/19834
 				// In MySQL boolean values are stored as bit(1): 0x01 is true and 0x00 is false.
 				if param == true {
 					_ := mysql_conn.real_query('SET @v${i} = 0x01') or {
@@ -117,6 +111,7 @@ fn escape_single_quotes(query string) string {
 }
 
 // columns returns a string of columns, double-quoted and separated by commas.
+// DEPRECATED
 pub fn columns(columns []string) string {
 	if columns.len == 0 {
 		return ''
@@ -130,6 +125,7 @@ pub fn columns(columns []string) string {
 
 // qualified_columns returns a string of columns, double-quoted and separated by commas, that also include
 // explicit column qualification.
+// DEPRECATED
 pub fn qualified_columns(columns []string, table string) string {
 	if columns.len == 0 {
 		return ''
@@ -141,18 +137,9 @@ pub fn qualified_columns(columns []string, table string) string {
 	return column_string.trim_string_right(', ')
 }
 
-// single_quoted returns the string wrapped in single quotes
-pub fn single_quoted(s string) string {
-	return "'${s}'"
-}
-
-// double_quoted returns the string wrapped in double quotes
-pub fn double_quoted(s string) string {
-	return '"${s}"'
-}
-
 // question_marks returns a string of question marks, separated by commas, for each parameter.
 // `parameters` is usually equal to `columns` in insert statements.
+// DEPRECATED
 pub fn question_marks(parameters []string) string {
 	if parameters.len == 0 {
 		return ''
@@ -163,18 +150,4 @@ pub fn question_marks(parameters []string) string {
 		question_marks += '?, '
 	}
 	return question_marks.trim_string_right(', ')
-}
-
-// columns_with_question_marks returns a string containing one or more double-quoted columns, each followed
-// by an equal sign and a question mark, separated by a comma.
-// The output of this function is useful in UPDATE statements.
-pub fn columns_with_question_marks(columns []string) string {
-	if columns.len == 0 {
-		return ''
-	}
-	mut columns_with_question_marks_string := ''
-	for column in columns {
-		columns_with_question_marks_string += '"${column}" = ?, '
-	}
-	return columns_with_question_marks_string.trim_string_right(', ')
 }
