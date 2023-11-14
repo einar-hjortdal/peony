@@ -59,13 +59,13 @@ Note: in vweb, routes and controllers are defined together. The key takeaway is 
   such case is when database connections are needed before starting vweb with `vweb.run_at`.
 
 - Use uppercase for keywords and lowercase for identifiers, including data types.
-- Always use double quoted (`ANSI_QUOTES`) identifiers.
+- Always use double quotes (`ANSI_QUOTES`) for identifiers, never backticks.
 - Use `real` and `double precision` for floating point types.
 - Use `char` for strings with expected exact lengths.
 - Use `varchar` for strings with expected maximum lengths, for strings with default values, and for 
   strings that are in an `INDEX` or `UNIQUE` constraint.
 - Use `text`, `mediumtext` and `longtext` for unknown-length strings. 
-- Use `bit(1)` to store boolean values, insert as `0x00` and `0x01`.
+- Use `bit(1)` to store boolean values.
 <!--
 Note that the character set *utf8mb4* requires 4 bytes per character, therefore the maximum number of 
 characters that can be stored in a single `varchar` column is 16_383. Also note that there exists a 
