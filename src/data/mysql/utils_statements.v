@@ -3,20 +3,25 @@ module mysql
 import arrays
 import db.mysql as v_mysql
 import strings
+import rand
+// first party
+// import coachonko.luuid
 
 interface Param {}
 
-// struct Stmt {
-// 	conn        &v_mysql.DB
-// 	name        string // luuid v2
-// 	param_count int
-// 	allocated   bool
-// }
+struct Stmt {
+	name        string // luuid v2
+	param_count int
+mut:
+	conn        v_mysql.DB
+	allocated   bool
+}
 
 // prep_n_exec prepares and executes a statement with the given parameters. After the execution, the
 // statement is deallocated.
 // It returns the `v_mysql.Result` of the prepared statement execution, or any error that occurs instead.
 // This function is convenient to execute prepared statements that are meant to be executed once only.
+// TODO refactor to use prepare()
 pub fn prep_n_exec(mut mysql_conn v_mysql.DB, name string, statement string, params ...Param) !v_mysql.Result {
 	prep(mut mysql_conn, name, statement)!
 	res := exec(mut mysql_conn, name, ...params) or {
@@ -32,17 +37,31 @@ pub fn prep_n_exec(mut mysql_conn v_mysql.DB, name string, statement string, par
 }
 
 // prep prepares a statement on the MySQL server.
-// TODO return a Stmt struct
+// TODO deprecate
 pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
 	escaped_query := escape_string(statement)
 	prepared := "PREPARE ${name} FROM '${escaped_query}'"
 	_ := mysql_conn.real_query(prepared)!
 }
 
+// TODO replace prop with this function
+pub fn prepare(mut mysql_conn v_mysql.DB, statement string) !Stmt {
+	stmt_name := rand.uuid_v4() // TODO replace with luuid without generator
+	escaped_query := escape_string(statement)
+	prepared := "PREPARE ${stmt_name} FROM '${escaped_query}'"
+	mysql_conn.real_query(prepared)!
+	return Stmt {
+		name: stmt_name
+	// param_count: TODO
+		conn: mysql_conn
+		allocated: true
+	}
+}
+
 // exec executes a prepared statement with the given parameters.
 // After the execution, the statement is not deallocated and can be executed again.
 // The statement is also not deallocated in case of error.
-// TODO method of the Stmt struct
+// TODO refactor as method of the Stmt struct
 pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Result {
 	if params.len == 0 {
 		res := mysql_conn.real_query('EXECUTE "${name}"') or { return err }
