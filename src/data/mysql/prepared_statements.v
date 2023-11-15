@@ -6,12 +6,12 @@ import strings
 
 interface Param {}
 
-struct Stmt {
-	conn        &v_mysql.DB
-	name        string // luuid v2
-	param_count int
-	allocated   bool
-}
+// struct Stmt {
+// 	conn        &v_mysql.DB
+// 	name        string // luuid v2
+// 	param_count int
+// 	allocated   bool
+// }
 
 // prep_n_exec prepares and executes a statement with the given parameters. After the execution, the
 // statement is deallocated.
@@ -32,7 +32,7 @@ pub fn prep_n_exec(mut mysql_conn v_mysql.DB, name string, statement string, par
 }
 
 // prep prepares a statement on the MySQL server.
-// TODO return a struct
+// TODO return a Stmt struct
 pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
 	escaped_query := escape_string(statement)
 	prepared := "PREPARE ${name} FROM '${escaped_query}'"
@@ -42,7 +42,7 @@ pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
 // exec executes a prepared statement with the given parameters.
 // After the execution, the statement is not deallocated and can be executed again.
 // The statement is also not deallocated in case of error.
-// TODO method of the struct returned by prep
+// TODO method of the Stmt struct
 pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Result {
 	if params.len == 0 {
 		res := mysql_conn.real_query('EXECUTE "${name}"') or { return err }
@@ -163,37 +163,31 @@ pub fn question_marks(parameters []string) string {
 // escape_string escapes special characters in a string for use in an SQL statement.
 // This function is not compatible with NO_BACKSLASH_ESCAPES mode.
 pub fn escape_string(s string) string {
-	mut res := strings.new_builder(s.len * 2)
+	mut res := strings.new_builder(s.len*2)
 	for ch in s {
 		match ch {
-			0 { // NUL
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
+			0 {	// NUL (null)
+				res.write_u8(92)	// \
+				res.write_u8(48)	// 0
 			}
-			10 { // LF (\n)
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
+			10 {	// LF (line feed)
+				res.write_u8(92)	// \
+				res.write_u8(110)	// n
 			}
-			13 { // CR (\r)
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
+			13 {	// CR (carriage return)
+				res.write_u8(92)	// \
+				res.write_u8(114)	// r
 			}
-			26 { // SUB (Z)
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
+			26 {	// SUB (substitute)
+				res.write_u8(92)	// \
+				res.write_u8(90)	// Z
 			}
-			39 { // '
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
-			}
-			34 { // "
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
-			}
-			92 { // \
-				res.write_u8(r'\'[0])
-				res.write_u8(ch)
-			}
+			34,	// "
+			39,	// '
+			92	{	// \
+				res.write_u8(92)	// \
+				res.write_u8(ch) 
+			} 
 			else {
 				res.write_u8(ch)
 			}
