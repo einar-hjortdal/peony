@@ -8,21 +8,21 @@ import utils
 import data.mysql as p_mysql
 
 pub struct PostTag {
-	id string
-	// parent     ?&PostTag // https://github.com/vlang/v/issues/19812
+	id         string
+	parent     ?&PostTag
 	visibility string
-	created_at string @[json: 'createdAt']
-	created_by User   @[json: 'createdBy']
-	updated_at string @[json: 'updatedAt']
-	updated_by User   @[json: 'updatedBy']
-	deleted_at string @[json: 'deletedAt']
-	deleted_by User   @[json: 'deletedBy']
+	created_at string    @[json: 'createdAt']
+	created_by User      @[json: 'createdBy']
+	updated_at string    @[json: 'updatedAt']
+	updated_by User      @[json: 'updatedBy']
+	deleted_at string    @[json: 'deletedAt']
+	deleted_by User      @[json: 'deletedBy']
 	title      string
 	subtitle   string
 	content    string
 	handle     string
 	excerpt    string
-	metadata   string @[raw]
+	metadata   string    @[raw]
 	posts      []Post
 }
 
@@ -49,9 +49,13 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id 
 	title,
 	handle'
 	mut qm := 'UUID_TO_BIN(?), UUID_TO_BIN(?), UUID_TO_BIN(?), ?, ?'
+
 	mut vars := []p_mysql.Param{}
-	vars = arrays.concat(vars, p_mysql.Param(id), p_mysql.Param(created_by_id), p_mysql.Param(created_by_id),
-		p_mysql.Param(ptw.title), p_mysql.Param(ptw.handle))
+	vars << id
+	vars << created_by_id
+	vars << created_by_id
+	vars << ptw.title
+	vars << ptw.handle
 
 	if ptw.parent != '' {
 		columns += ', parent'
@@ -89,33 +93,34 @@ pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
 	// TODO get parent tag if not empty
 	query := '
 	SELECT 
-		BIN_TO_UUID("post_tag"."id"),
-		BIN_TO_UUID("post_tag"."parent_id"),
-		"post_tag"."visibility",
-		"post_tag"."created_at",
-		BIN_TO_UUID("post_tag"."created_by"),
-		"post_tag"."updated_at",
-		BIN_TO_UUID("post_tag"."updated_by"),
-		"post_tag"."deleted_at",
-		BIN_TO_UUID("post_tag"."deleted_by"),
-		"post_tag"."title",
-		"post_tag"."subtitle",
-		"post_tag"."content",
-		"post_tag"."handle",
-		"post_tag"."excerpt",
-		"post_tag"."metadata",
-		BIN_TO_UUID("post"."id")
-	FROM "post_tag"
-	LEFT JOIN "post_tags" ON "post_tag"."id" = "post_tags"."post_tag_id"
-	ORDER BY "created_at" DESC'
+		BIN_TO_UUID(post_tag.id),
+		BIN_TO_UUID(post_tag.parent_id),
+		post_tag.visibility,
+		post_tag.created_at,
+		BIN_TO_UUID(post_tag.created_by),
+		post_tag.updated_at,
+		BIN_TO_UUID(post_tag.updated_by),
+		post_tag.deleted_at,
+		BIN_TO_UUID(post_tag.deleted_by),
+		post_tag.title,
+		post_tag.subtitle,
+		post_tag.content,
+		post_tag.handle,
+		post_tag.excerpt,
+		post_tag.metadata,
+		BIN_TO_UUID(post_id)
+	FROM post_tag
+	LEFT JOIN post_tags ON post_tag.id = post_tags.post_tag_id
+	ORDER BY created_at DESC'
 
 	res := p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
 
 	rows := res.rows()
 	if rows.len == 0 {
-		return utils.new_peony_error(404, 'No post_tag exists with the given id/handle')
+		return []PostTag{}
 	}
-	// TODO it will return more than one row if a tag is linked to more than one post.
+
+	// TODO a single tag may be listed more than once if it is linked to more than one post.
 
 	mut post_tags := []PostTag{}
 
