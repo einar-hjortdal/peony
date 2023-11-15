@@ -8,7 +8,7 @@ import utils
 
 // admin_auth_get gets the currently logged in User.
 // Requires authorization.
-['/admin/auth'; get]
+@['/admin/auth'; get]
 pub fn (mut app App) admin_auth_get() vweb.Result {
 	fn_name := 'admin_auth_get'
 	v, err := app.check_user_auth()
@@ -25,7 +25,7 @@ struct AdminAuthPostRequest {
 }
 
 // admin_auth_post logs a User in and authorizes them to manage store settings.
-['/admin/auth'; post]
+@['/admin/auth'; post]
 pub fn (mut app App) admin_auth_post() vweb.Result {
 	fn_name := 'admin_auth_post'
 
@@ -58,7 +58,7 @@ pub fn (mut app App) admin_auth_post() vweb.Result {
 
 // admin_auth_del deletes the current session for the logged in user.
 // Requires authorization.
-['/admin/auth'; delete]
+@['/admin/auth'; delete]
 pub fn (mut app App) admin_auth_delete() vweb.Result {
 	fn_name := 'admin_auth_delete'
 

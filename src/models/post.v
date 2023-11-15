@@ -17,24 +17,24 @@ import utils
 // publish posts.
 pub struct Post {
 	id           string
-	created_at   string    [json: 'createdAt']
-	created_by   User      [json: 'createdBy']
-	updated_at   string    [json: 'updatedAt']
-	updated_by   User      [json: 'updatedBy']
-	deleted_at   string    [json: 'deletedAt']
-	deleted_by   User      [json: 'deletedBy']
+	created_at   string    @[json: 'createdAt']
+	created_by   User      @[json: 'createdBy']
+	updated_at   string    @[json: 'updatedAt']
+	updated_by   User      @[json: 'updatedBy']
+	deleted_at   string    @[json: 'deletedAt']
+	deleted_by   User      @[json: 'deletedBy']
 	status       string
-	post_type    string    [json: 'postType'] // `type` is a reserved keyword in V
+	post_type    string    @[json: 'postType'] // `type` is a reserved keyword in V
 	featured     bool
-	published_at string    [json: 'publishedAt']
-	published_by User      [json: 'publishedBy']
+	published_at string    @[json: 'publishedAt']
+	published_by User      @[json: 'publishedBy']
 	visibility   string
 	title        string
 	subtitle     string
 	content      string
 	handle       string
 	excerpt      string
-	metadata     string    [raw]
+	metadata     string    @[raw]
 	authors      []User
 	tags         []PostTag
 	// revisions    []Revision
@@ -54,7 +54,7 @@ pub mut:
 	content    string
 	handle     string // TODO generate handle using title if not provided
 	excerpt    string
-	metadata   string   [raw]
+	metadata   string   @[raw]
 	authors    []string
 	tags       []string
 }

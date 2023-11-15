@@ -8,7 +8,7 @@ import json
 
 // admin_store_get retrieves store details
 // Requires authorization.
-['/admin/store'; get]
+@['/admin/store'; get]
 pub fn (mut app App) admin_store_get() vweb.Result {
 	fn_name := 'admin_store_get'
 
@@ -23,7 +23,7 @@ pub fn (mut app App) admin_store_get() vweb.Result {
 
 // admin_store_post updates store details
 // Requires authorization.
-['/admin/store/:id'; post]
+@['/admin/store/:id'; post]
 pub fn (mut app App) admin_store_post(id string) vweb.Result {
 	fn_name := 'admin_store_post'
 

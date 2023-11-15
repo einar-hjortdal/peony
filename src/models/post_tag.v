@@ -11,18 +11,18 @@ pub struct PostTag {
 	id string
 	// parent     ?&PostTag // https://github.com/vlang/v/issues/19812
 	visibility string
-	created_at string [json: 'createdAt']
-	created_by User   [json: 'createdBy']
-	updated_at string [json: 'updatedAt']
-	updated_by User   [json: 'updatedBy']
-	deleted_at string [json: 'deletedAt']
-	deleted_by User   [json: 'deletedBy']
+	created_at string @[json: 'createdAt']
+	created_by User   @[json: 'createdBy']
+	updated_at string @[json: 'updatedAt']
+	updated_by User   @[json: 'updatedBy']
+	deleted_at string @[json: 'deletedAt']
+	deleted_by User   @[json: 'deletedBy']
 	title      string
 	subtitle   string
 	content    string
 	handle     string
 	excerpt    string
-	metadata   string [raw]
+	metadata   string @[raw]
 	posts      []Post
 }
 
@@ -35,46 +35,51 @@ pub mut:
 	content    string
 	handle     string
 	excerpt    string
-	metadata   string   [raw]
+	metadata   string   @[raw]
 	posts      []string
 }
 
 pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id string, id string) ! {
 	ptw.validate()!
 
-	mut query_columns := ['id', 'created_by', 'updated_by', 'title', 'handle']
-	mut qm := ['UUID_TO_BIN(?)', 'UUID_TO_BIN(?)', 'UUID_TO_BIN(?)', '?', '?']
+	mut columns := '
+	id,
+	created_by,
+	updated_by,
+	title,
+	handle'
+	mut qm := 'UUID_TO_BIN(?), UUID_TO_BIN(?), UUID_TO_BIN(?), ?, ?'
 	mut vars := []p_mysql.Param{}
 	vars = arrays.concat(vars, p_mysql.Param(id), p_mysql.Param(created_by_id), p_mysql.Param(created_by_id),
 		p_mysql.Param(ptw.title), p_mysql.Param(ptw.handle))
 
 	if ptw.parent != '' {
-		query_columns = arrays.concat(query_columns, 'parent')
-		vars = arrays.concat(vars, p_mysql.Param(ptw.parent))
-		qm = arrays.concat(qm, '?')
+		columns += ', parent'
+		vars << ptw.parent
+		qm += ', ?'
 	}
 
 	if ptw.visibility != '' {
-		query_columns = arrays.concat(query_columns, 'visibility')
-		vars = arrays.concat(vars, p_mysql.Param(ptw.visibility))
-		qm = arrays.concat(qm, '?')
+		columns += ', visibility'
+		vars << ptw.visibility
+		qm += ', ?'
 	}
 
 	if ptw.subtitle != '' {
-		query_columns = arrays.concat(query_columns, 'subtitle')
-		vars = arrays.concat(vars, p_mysql.Param(ptw.subtitle))
-		qm = arrays.concat(qm, '?')
+		columns += ', subtitle'
+		vars << ptw.subtitle
+		qm += ', ?'
 	}
 
 	if ptw.content != '' {
-		query_columns = arrays.concat(query_columns, 'content')
-		vars = arrays.concat(vars, p_mysql.Param(ptw.content))
-		qm = arrays.concat(qm, '?')
+		columns += ', content'
+		vars << ptw.content
+		qm += ', ?'
 	}
 
 	query := '
-	INSERT INTO "post_tag" (${p_mysql.columns(query_columns)}) 
-	VALUES (${qm.join(', ')})'
+	INSERT INTO "post_tag" (${columns})
+	VALUES (${qm})'
 
 	p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }

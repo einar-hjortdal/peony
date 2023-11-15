@@ -6,7 +6,7 @@ import json
 // local
 import models
 
-['/admin/tags'; get]
+@['/admin/tags'; get]
 pub fn (mut app App) admin_post_tags_get() vweb.Result {
 	fn_name := 'admin_post_tags_get'
 
@@ -20,7 +20,7 @@ pub fn (mut app App) admin_post_tags_get() vweb.Result {
 	return app.json(post_tags)
 }
 
-['/admin/tags'; post]
+@['/admin/tags'; post]
 pub fn (mut app App) admin_post_tags_post() vweb.Result {
 	fn_name := 'admin_post_tags_post'
 
@@ -49,7 +49,7 @@ pub fn (mut app App) admin_post_tags_post() vweb.Result {
 	return app.json(retrieved_post_tag)
 }
 
-['/admin/tags/:id'; get]
+@['/admin/tags/:id'; get]
 pub fn (mut app App) admin_tags_get_by_id(id string) vweb.Result {
 	fn_name := 'admin_tags_get_by_id'
 
@@ -65,7 +65,7 @@ pub fn (mut app App) admin_tags_get_by_id(id string) vweb.Result {
 	return app.json(post_tag)
 }
 
-['/admin/tags/:id'; post]
+@['/admin/tags/:id'; post]
 pub fn (mut app App) admin_post_tags_update(id string) vweb.Result {
 	fn_name := 'admin_post_tags_update'
 

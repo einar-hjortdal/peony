@@ -4,7 +4,7 @@ import vweb
 import db.mysql
 import models
 
-['/storefront/tags'; get]
+@['/storefront/tags'; get]
 pub fn (mut app App) storefront_post_tags_get() vweb.Result {
 	fn_name := 'storefront_post_tags_get'
 
@@ -18,12 +18,12 @@ pub fn (mut app App) storefront_post_tags_get() vweb.Result {
 	return app.json(post_tags)
 }
 
-['/storefront/tags/:id'; get]
+@['/storefront/tags/:id'; get]
 pub fn (mut app App) storefront_post_tags_get_by_id(id string) vweb.Result {
 	return app.storefront_post_tag_retrieve(id, models.post_tag_retrieve_by_id)
 }
 
-['/storefront/tags/handle/:handle'; get]
+@['/storefront/tags/handle/:handle'; get]
 pub fn (mut app App) storefront_post_tags_get_by_handle(handle string) vweb.Result {
 	return app.storefront_post_tag_retrieve(handle, models.post_tag_retrieve_by_handle)
 }

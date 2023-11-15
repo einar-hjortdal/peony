@@ -13,7 +13,7 @@ import utils
 */
 
 // storefront_authors_get lists the subset of users that have posts associated with them.
-['/storefront/authors'; get]
+@['/storefront/authors'; get]
 pub fn (mut app App) storefront_authors_get() vweb.Result {
 	users := models.user_list_authors(mut app.db) or {
 		app.logger.debug(err.msg())
@@ -24,7 +24,7 @@ pub fn (mut app App) storefront_authors_get() vweb.Result {
 	return app.json(users)
 }
 
-['/storefront/authors/:id'; get]
+@['/storefront/authors/:id'; get]
 pub fn (mut app App) storefront_authors_id_get(id string) vweb.Result {
 	users := models.user_retrieve_author_by_id(mut app.db, id) or {
 		if err is utils.PeonyError {
@@ -40,7 +40,7 @@ pub fn (mut app App) storefront_authors_id_get(id string) vweb.Result {
 	return app.json(users)
 }
 
-['/storefront/authors/handle/:handle'; get]
+@['/storefront/authors/handle/:handle'; get]
 pub fn (mut app App) storefront_authors_handle_get(handle string) vweb.Result {
 	users := models.user_retrieve_author_by_handle(mut app.db, handle) or {
 		if err is utils.PeonyError {

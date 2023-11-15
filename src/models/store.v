@@ -1,7 +1,6 @@
 module models
 
 // vlib
-import arrays
 import db.mysql
 // local
 import data.mysql as c_mysql
@@ -18,35 +17,35 @@ import utils
 pub struct Store {
 pub:
 	id                  string
-	created_at          string [json: 'createdAt']
-	updated_at          string [json: 'updatedAt']
+	created_at          string @[json: 'createdAt']
+	updated_at          string @[json: 'updatedAt']
 	name                string
-	default_locale_code string [json: 'defaultLocaleCode']
+	default_locale_code string @[json: 'defaultLocaleCode']
 	// default_location Location [json: 'defaultLocation']
-	default_currency_code string [json: 'defaultCurrencyCode']
+	default_currency_code string @[json: 'defaultCurrencyCode']
 	// default_currency Currency [json: 'defaultCurrency']
 	// currencies []Currency
 	// swap_link_template string [json: 'swapLinkTemplate']
 	// payment_link_template string [json: 'paymentLinkTemplate']
-	invite_link_template string [json: 'inviteLinkTemplate']
+	invite_link_template string @[json: 'inviteLinkTemplate']
 	// default_stock_location StockLocation [json: 'defaultStockLocation']
 	// stock_locations []StockLocations [json: 'stockLocations']
 	// default_sales_channel SalesChannel [json: 'defaultSalesChannelId']
 	// sales_channels []SalesChannel
 	// payment_providers
 	// fulfillment_providers
-	metadata string [raw]
+	metadata string @[raw]
 }
 
 pub struct StoreWriteable {
 pub mut:
 	name                      string
-	default_locale_code       string [json: 'defaultLocaleCode']
-	default_currency_code     string [json: 'defaultCurrencyCode']
-	invite_link_template      string [json: 'inviteLinkTemplate']
-	default_stock_location_id string [json: 'defaultStockLocationId']
-	default_sales_channel_id  string [json: 'defaultSalesChannelId']
-	metadata                  string [raw]
+	default_locale_code       string @[json: 'defaultLocaleCode']
+	default_currency_code     string @[json: 'defaultCurrencyCode']
+	invite_link_template      string @[json: 'inviteLinkTemplate']
+	default_stock_location_id string @[json: 'defaultStockLocationId']
+	default_sales_channel_id  string @[json: 'defaultSalesChannelId']
+	metadata                  string @[raw]
 }
 
 pub fn (store Store) create(mut mysql_conn mysql.DB) ! {
@@ -65,39 +64,40 @@ pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
 	"metadata" = ?'
 
 	mut vars := []c_mysql.Param{}
-	vars = arrays.concat(vars, c_mysql.Param(sw.name), c_mysql.Param(sw.metadata))
+	vars << sw.name
+	vars << sw.metadata
 
 	if sw.default_locale_code != '' {
 		query_columns += ', "default_locale_code" = ?'
-		vars = arrays.concat(vars, c_mysql.Param(sw.default_locale_code))
+		vars << sw.default_locale_code
 	}
 
 	if sw.default_currency_code != '' {
 		query_columns += ', "default_currency_code" = ?'
-		vars = arrays.concat(vars, c_mysql.Param(sw.default_currency_code))
+		vars << sw.default_currency_code
 	}
 
 	if sw.invite_link_template != '' {
 		query_columns += ', "invite_link_template" = ?'
-		vars = arrays.concat(vars, c_mysql.Param(sw.invite_link_template))
+		vars << sw.invite_link_template
 	}
 
 	if sw.default_stock_location_id != '' {
 		query_columns += ', "default_stock_location_id" = ?'
-		vars = arrays.concat(vars, c_mysql.Param(sw.default_stock_location_id))
+		vars << sw.default_stock_location_id
 	}
 
 	if sw.default_sales_channel_id != '' {
 		query_columns += ', "default_sales_channel_id" = ?'
-		vars = arrays.concat(vars, c_mysql.Param(sw.default_sales_channel_id))
+		vars << sw.default_sales_channel_id
 	}
 
 	query := '
 	UPDATE "store"
 	SET ${query_columns}
 	WHERE "id" = UUID_TO_BIN(?)'
-	println(query)
-	vars = arrays.concat(vars, c_mysql.Param(id))
+
+	vars << id
 
 	c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }

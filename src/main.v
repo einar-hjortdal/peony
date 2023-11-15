@@ -32,9 +32,9 @@ struct App {
 	db_handle vweb.DatabasePool[v_mysql.DB] = unsafe { nil }
 mut:
 	logger          log.Log
-	luuid_generator &luuid.Generator   [vweb_global]
-	cache_store     &c_cache.Store     [vweb_global]
-	sessions        &redis.Sessions    [vweb_global]
+	luuid_generator &luuid.Generator   @[vweb_global]
+	cache_store     &c_cache.Store     @[vweb_global]
+	sessions        &redis.Sessions    @[vweb_global]
 	session         c_sessions.Session
 	db              v_mysql.DB
 }

@@ -9,7 +9,7 @@ import utils
 
 // admin_users_get retrieves all users
 // Requires authorization.
-['/admin/users'; get]
+@['/admin/users'; get]
 pub fn (mut app App) admin_users_get() vweb.Result {
 	fn_name := 'admin_users_get'
 	_, mut err := app.check_user_auth()
@@ -30,7 +30,7 @@ mut:
 
 // admin_users_post creates a user
 // Requires authorization.
-['/admin/users'; post]
+@['/admin/users'; post]
 pub fn (mut app App) admin_users_post() vweb.Result {
 	fn_name := 'admin_users_post'
 
@@ -81,7 +81,7 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 }
 
 // Requires authorization.
-['/admin/users/:id'; get]
+@['/admin/users/:id'; get]
 pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
 	fn_name := 'admin_users_id_get'
 	_, mut err := app.check_user_auth()
@@ -95,7 +95,7 @@ pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
 
 // admin_users_id_post allows a user to edit a user data
 // Requires authorization.
-['/admin/users/:id'; post]
+@['/admin/users/:id'; post]
 pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 	fn_name := 'admin_users_id_post'
 
@@ -135,7 +135,7 @@ struct AdminUsersIdGetDelResponse {
 
 // admin_users_id_get deletes a user
 // Requires authorization.
-['/admin/users/:id'; delete]
+@['/admin/users/:id'; delete]
 pub fn (mut app App) admin_users_id_del(id string) vweb.Result {
 	fn_name := 'admin_users_id_del'
 

@@ -6,10 +6,10 @@ import json
 // local
 import models
 
-// admin_posts_get is the same as storefront_posts_get with with authentication required.
+// admin_posts_get retrieves a list of posts
 // Requires authorization.
 // TODO query parameters for sorting and filtering
-['/admin/posts'; get]
+@['/admin/posts'; get]
 pub fn (mut app App) admin_posts_get() vweb.Result {
 	fn_name := 'admin_posts_get'
 
@@ -25,7 +25,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 // admin_posts_post allows an author to create a post.
 // To create a page supply the query post_type=page.
 // Requires authorization.
-['/admin/posts'; post]
+@['/admin/posts'; post]
 pub fn (mut app App) admin_posts_post() vweb.Result {
 	fn_name := 'admin_posts_post'
 
@@ -56,7 +56,7 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 	return app.json(retrieved_post)
 }
 
-['/admin/posts/:id'; get]
+@['/admin/posts/:id'; get]
 pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 	fn_name := 'admin_post_get_by_id'
 
@@ -74,7 +74,7 @@ pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 
 // admin_post_update allows an author to update a post
 // Requires authorization.
-['/admin/posts/:id'; post]
+@['/admin/posts/:id'; post]
 pub fn (mut app App) admin_post_update(id string) vweb.Result {
 	fn_name := 'admin_post_update'
 
@@ -104,7 +104,7 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 
 // admin_pages_get is the same as storefront_pages_get with with authentication required.
 // Requires authorization.
-['/admin/pages'; get]
+@['/admin/pages'; get]
 pub fn (mut app App) admin_pages_get() vweb.Result {
 	fn_name := 'admin_pages_get'
 

@@ -3,7 +3,7 @@ module main
 import vweb
 import models
 
-['/storefront/posts'; get]
+@['/storefront/posts'; get]
 pub fn (mut app App) storefront_posts_get() vweb.Result {
 	fn_name := 'storefront_posts_get'
 
@@ -12,7 +12,7 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 }
 
 // TODO maybe ID does not exist
-['/storefront/posts/:id'; get]
+@['/storefront/posts/:id'; get]
 pub fn (mut app App) storefront_post_get_by_id(id string) vweb.Result {
 	fn_name := 'storefront_post_get_by_id'
 
@@ -20,7 +20,7 @@ pub fn (mut app App) storefront_post_get_by_id(id string) vweb.Result {
 	return app.json(posts)
 }
 
-['/storefront/posts/handle/:handle'; get]
+@['/storefront/posts/handle/:handle'; get]
 fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
 	fn_name := 'storefront_post_get_by_handle'
 
@@ -36,7 +36,7 @@ fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
 *
 */
 
-['/storefront/pages'; get]
+@['/storefront/pages'; get]
 pub fn (mut app App) storefront_pages_get() vweb.Result {
 	fn_name := 'storefront_pages_get'
 

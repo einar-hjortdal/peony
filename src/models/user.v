@@ -14,14 +14,14 @@ pub:
 	id            string
 	handle        string
 	email         string
-	password_hash string [json: '-']
+	password_hash string @[json: '-']
 	role          string
-	created_at    string [json: 'createdAt']
-	updated_at    string [json: 'updatedAt']
-	deleted_at    string [json: 'deletedAt']
-	first_name    string [json: 'firstName']
-	last_name     string [json: 'lastName']
-	metadata      string [raw]
+	created_at    string @[json: 'createdAt']
+	updated_at    string @[json: 'updatedAt']
+	deleted_at    string @[json: 'deletedAt']
+	first_name    string @[json: 'firstName']
+	last_name     string @[json: 'lastName']
+	metadata      string @[raw]
 }
 
 // TODO make User immutable
@@ -29,20 +29,29 @@ pub struct UserWriteable {
 pub mut:
 	handle        string
 	email         string
-	password_hash string [json: '-']
+	password_hash string @[json: '-']
 	role          string
-	first_name    string [json: 'firstName']
-	last_name     string [json: 'lastName']
-	metadata      string [raw]
+	first_name    string @[json: 'firstName']
+	last_name     string @[json: 'lastName']
+	metadata      string @[raw]
 }
 
 // create_user creates a peony user in the database.
 // id, email, password_hash and handle are required.
 pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
-	mut query_columns := ['id', 'email', 'password_hash', 'handle']
+	mut columns := '
+	id,
+	email,
+	password_hash,
+	handle'
+
+	mut qm := 'UUID_TO_BIN(?), ?, ?, ?'
+
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, mysql.Param(id), mysql.Param(uw.email), mysql.Param(uw.password_hash),
-		mysql.Param(uw.handle))
+	vars << id
+	vars << uw.email
+	vars << uw.password_hash
+	vars << uw.handle
 
 	// TODO error if id, email, password or handle are missing
 
@@ -51,23 +60,27 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 			&& uw.role != 'author' && uw.role != 'contributor' {
 			return error('user.role must be either "admin", "member", "developer", "author" or "contributor"')
 		}
-		query_columns = arrays.concat(query_columns, 'role')
-		vars = arrays.concat(vars, mysql.Param(uw.role))
+		columns += ', role'
+		vars << uw.role
+		qm += ', ?'
 	}
 	if uw.first_name != '' {
-		query_columns = arrays.concat(query_columns, 'first_name')
-		vars = arrays.concat(vars, mysql.Param(uw.first_name))
+		columns += ', first_name'
+		vars << uw.first_name
+		qm += ', ?'
 	}
 	if uw.last_name != '' {
-		query_columns = arrays.concat(query_columns, 'last_name')
-		vars = arrays.concat(vars, mysql.Param(uw.last_name))
+		columns += ', last_name'
+		vars << uw.last_name
+		qm += ', ?'
 	}
 	if uw.metadata != '' {
-		query_columns = arrays.concat(query_columns, 'metadata')
-		vars = arrays.concat(vars, mysql.Param(uw.metadata))
+		columns += ', metadata'
+		vars << uw.metadata
+		qm += ', ?'
 	}
 
-	query := 'INSERT INTO "user" (${mysql.columns(query_columns)}) VALUES (UUID_TO_BIN(?, 0), ${mysql.question_marks(query_columns[1..])})'
+	query := 'INSERT INTO "user" (${columns}) VALUES (${qm})'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }
 
