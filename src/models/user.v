@@ -258,11 +258,20 @@ pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
 // user_list_authors returns an array of peony users that have posts associated with them.
 // TODO rewrite and rename
 pub fn user_list_authors(mut mysql_conn v_mysql.DB) ![]User {
-	query_columns := ['handle', 'email', 'role', 'created_at', 'updated_at', 'deleted_at',
-		'first_name', 'last_name', 'metadata']
-	// TODO test ambiguous id
-	qua_cols := mysql.qualified_columns(query_columns, 'user')
-	query := 'SELECT DISTINCT BIN_TO_UUID("user"."id", 0), ${qua_cols} FROM "user" INNER JOIN "post" ON "user"."id" = "post"."published_by"'
+	query := '
+	SELECT DISTINCT
+		BIN_TO_UUID(user.id),
+		user.handle,
+		user.email,
+		user.role,
+		user.created_at,
+		user.updated_at,
+		user.deleted_at,
+		user.first_name,
+		user.last_name,
+		user.metadata
+	FROM user
+	INNER JOIN post ON user.id = post.published_by'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
 
 	rows := res.rows()

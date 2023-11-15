@@ -113,53 +113,6 @@ pub fn deallocate(mut mysql_conn v_mysql.DB, name string) {
 	mysql_conn.real_query('DEALLOCATE PREPARE "${name}"') or {}
 }
 
-// escape_single_quotes returns a string that escapes `'` with `''` according to the ANSI SQL standard.
-fn escape_single_quotes(query string) string {
-	return query.replace("'", "''")
-}
-
-// columns returns a string of columns, double-quoted and separated by commas.
-// DEPRECATED
-pub fn columns(columns []string) string {
-	if columns.len == 0 {
-		return ''
-	}
-	mut column_string := ''
-	for column in columns {
-		column_string += '"${column}", '
-	}
-	return column_string.trim_string_right(', ')
-}
-
-// qualified_columns returns a string of columns, double-quoted and separated by commas, that also include
-// explicit column qualification.
-// DEPRECATED
-pub fn qualified_columns(columns []string, table string) string {
-	if columns.len == 0 {
-		return ''
-	}
-	mut column_string := ''
-	for column in columns {
-		column_string += '"${table}"."${column}", '
-	}
-	return column_string.trim_string_right(', ')
-}
-
-// question_marks returns a string of question marks, separated by commas, for each parameter.
-// `parameters` is usually equal to `columns` in insert statements.
-// DEPRECATED
-pub fn question_marks(parameters []string) string {
-	if parameters.len == 0 {
-		return ''
-	}
-
-	mut question_marks := ''
-	for _ in parameters {
-		question_marks += '?, '
-	}
-	return question_marks.trim_string_right(', ')
-}
-
 // escape_string escapes special characters in a string for use in an SQL statement.
 // This function is not compatible with NO_BACKSLASH_ESCAPES mode.
 pub fn escape_string(s string) string {
