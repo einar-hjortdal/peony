@@ -252,11 +252,11 @@ pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
 * author
 * An author is a user that has authored posts.
 * For a useer to be an author, his id must exist in the post_authors table.
+* Note: an author is not a user with role equal to author.
 *
 */
 
 // user_list_authors returns an array of peony users that have posts associated with them.
-// TODO rewrite and rename
 pub fn user_list_authors(mut mysql_conn v_mysql.DB) ![]User {
 	query := '
 	SELECT DISTINCT
