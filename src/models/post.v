@@ -198,43 +198,53 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 }
 
-pub fn post_list(mut mysql_conn v_mysql.DB, post_type string) ![]Post {
-	if post_type != '' {
-		if post_type != 'page' && post_type != 'post' {
+pub struct PostListParams {
+	post_type       string
+	exclude_deleted bool
+}
+
+pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
+	if params.post_type != '' {
+		if params.post_type != 'page' && params.post_type != 'post' {
 			return error("post_type must be either 'post' or 'page'")
 		}
 	}
 
+	mut where_clauses := ''
+	if params.exclude_deleted {
+		where_clauses += 'AND post.deleted_at IS NOT NULL'
+	}
+
 	query_string := '
 		SELECT DISTINCT
-			BIN_TO_UUID("post"."id"),
-			"post"."created_at",
-			BIN_TO_UUID("post"."created_by"),
-			"post"."updated_at",
-			BIN_TO_UUID("post"."updated_by"),
-			"post"."deleted_at",
-			BIN_TO_UUID("post"."deleted_by"),
-			"post"."status",
-			"post"."type",
-			CASE WHEN "post"."featured" = 0x01 THEN 1 ELSE 0 END,
-			"post"."published_at",
-			BIN_TO_UUID("post"."published_by"),
-			"post"."visibility",
-			"post"."title",
-			"post"."subtitle",
-			"post"."content",
-			"post"."handle",
-			"post"."excerpt",
-			"post"."metadata",
-			BIN_TO_UUID("post_authors"."author_id"),
-			BIN_TO_UUID("post_tags"."post_tag_id")
-		FROM "post"
-		LEFT JOIN "post_authors" ON "post"."id" = "post_authors"."post_id"
-		LEFT JOIN "post_tags" ON "post"."id" = "post_tags"."post_id"
-		WHERE "post"."type" = ?
-		ORDER BY "created_at" DESC'
+			BIN_TO_UUID(post.id),
+			post.created_at,
+			BIN_TO_UUID(post.created_by),
+			post.updated_at,
+			BIN_TO_UUID(post.updated_by),
+			post.deleted_at,
+			BIN_TO_UUID(post.deleted_by),
+			post.status,
+			post."type",
+			CASE WHEN post.featured = 0x01 THEN 1 ELSE 0 END,
+			post.published_at,
+			BIN_TO_UUID(post.published_by),
+			post.visibility,
+			post.title,
+			post.subtitle,
+			post.content,
+			post.handle,
+			post.excerpt,
+			post.metadata,
+			BIN_TO_UUID(post_authors.author_id),
+			BIN_TO_UUID(post_tags.post_tag_id)
+		FROM post
+		LEFT JOIN post_authors ON post.id = post_authors.post_id
+		LEFT JOIN post_tags ON post.id = post_tags.post_id
+		WHERE post."type" = ? ${where_clauses}
+		ORDER BY created_at DESC'
 
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query_string, post_type)!
+	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query_string, params.post_type)!
 
 	rows := res.rows()
 	mut posts := []Post{}

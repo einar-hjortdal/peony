@@ -3,11 +3,18 @@ module main
 import vweb
 import models
 
+// TODO
+// all of these methods: only get public and delete_at = null
 @['/storefront/posts'; get]
 pub fn (mut app App) storefront_posts_get() vweb.Result {
 	fn_name := 'storefront_posts_get'
 
-	posts := models.post_list(mut app.db, 'post') or { return app.send_error(err, fn_name) }
+	params := models.PostListParams{
+		post_type: 'post'
+		exclude_deleted: true
+	}
+
+	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
 	return app.json(posts)
 }
 
@@ -40,6 +47,11 @@ fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
 pub fn (mut app App) storefront_pages_get() vweb.Result {
 	fn_name := 'storefront_pages_get'
 
-	pages := models.post_list(mut app.db, 'page') or { return app.send_error(err, fn_name) }
+	params := models.PostListParams{
+		post_type: 'page'
+		exclude_deleted: true
+	}
+
+	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
 	return app.json(pages)
 }

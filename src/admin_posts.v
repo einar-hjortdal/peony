@@ -18,7 +18,12 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	posts := models.post_list(mut app.db, 'post') or { return app.send_error(err, fn_name) }
+	params := models.PostListParams{
+		post_type: 'post'
+		exclude_deleted: false
+	}
+
+	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
 	return app.json(posts)
 }
 
@@ -129,7 +134,12 @@ pub fn (mut app App) admin_pages_get() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	pages := models.post_list(mut app.db, 'page') or { return app.send_error(err, fn_name) }
+	params := models.PostListParams{
+		post_type: 'page'
+		exclude_deleted: false
+	}
+
+	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
 
 	return app.json(pages)
 }
