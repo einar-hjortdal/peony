@@ -97,8 +97,8 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 }
 
 @['/admin/posts/:id'; delete]
-pub fn (mut app App) admin_post_tags_delete(id string) vweb.Result {
-	fn_name := 'admin_post_tags_delete'
+pub fn (mut app App) admin_post_delete(id string) vweb.Result {
+	fn_name := 'admin_post_delete'
 
 	v, mut err := app.check_user_auth()
 	if err.code() != 0 {
