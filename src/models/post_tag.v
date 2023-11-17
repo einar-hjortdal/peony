@@ -142,12 +142,12 @@ pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
 
 		mut updated_by := User{}
 		if vals[6] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
+			updated_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 
 		mut deleted_by := User{}
 		if vals[8] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
+			deleted_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 		}
 
 		mut post_tag := PostTag{
@@ -260,12 +260,12 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 
 	mut updated_by := User{}
 	if vals[6] != '' {
-		created_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
+		updated_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 	}
 
 	mut deleted_by := User{}
 	if vals[8] != '' {
-		created_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
+		deleted_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 	}
 
 	post_tag := PostTag{
@@ -387,17 +387,17 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]
 		// TODO parent vals[1]
 		mut created_by := User{}
 		if vals[4] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[5])!
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[4])!
 		}
 
 		mut updated_by := User{}
 		if vals[6] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[7])!
+			updated_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 
 		mut deleted_by := User{}
-		if vals[9] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[9])!
+		if vals[8] != '' {
+			deleted_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 		}
 
 		post_tag := PostTag{
@@ -427,7 +427,7 @@ pub fn post_tag_delete_by_id(mut mysql_conn mysql.DB, user_id string, id string)
 	query := '
 	UPDATE post_tag SET 
 		deleted_at = NOW(),
-		deleted_by = ?
+		deleted_by = UUID_TO_BIN(?)
 	WHERE id = UUID_TO_BIN(?)'
 
 	mut vars := []p_mysql.Param{}
