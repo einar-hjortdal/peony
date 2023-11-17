@@ -9,7 +9,7 @@ import data.mysql as p_mysql
 
 pub struct PostTag {
 	id         string
-	parent     ?&PostTag
+	parent     ?&PostTag // TODO ensure no circular
 	visibility string
 	created_at string    @[json: 'createdAt']
 	created_by User      @[json: 'createdBy']
@@ -81,15 +81,21 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id 
 		qm += ', ?'
 	}
 
+	if ptw.excerpt != '' {
+		columns += ', excerpt'
+		vars << ptw.excerpt
+		qm += ', ?'
+	}
+
 	query := '
 	INSERT INTO "post_tag" (${columns})
 	VALUES (${qm})'
 
 	p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+	// TODO insert post_tags values
 }
 
 pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
-	// TODO left join with post
 	// TODO get parent tag if not empty
 	query := '
 	SELECT 
@@ -108,7 +114,7 @@ pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
 		post_tag.handle,
 		post_tag.excerpt,
 		post_tag.metadata,
-		BIN_TO_UUID(post_id)
+		BIN_TO_UUID(post_tags.post_id)
 	FROM post_tag
 	LEFT JOIN post_tags ON post_tag.id = post_tags.post_tag_id
 	ORDER BY created_at DESC'
@@ -130,35 +136,35 @@ pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
 		// TODO parent id = vals[1]
 
 		mut created_by := User{}
-		if vals[5] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[5])!
+		if vals[4] != '' {
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[4])!
 		}
 
 		mut updated_by := User{}
-		if vals[7] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[7])!
+		if vals[6] != '' {
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 
 		mut deleted_by := User{}
-		if vals[9] != '' {
-			created_by = user_retrieve_by_id(mut mysql_conn, vals[9])!
+		if vals[8] != '' {
+			created_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 		}
 
 		mut post_tag := PostTag{
 			id: vals[0]
 			visibility: vals[2]
-			created_at: vals[4]
+			created_at: vals[3]
 			created_by: created_by
-			updated_at: vals[6]
+			updated_at: vals[5]
 			updated_by: updated_by
-			deleted_at: vals[8]
+			deleted_at: vals[7]
 			deleted_by: deleted_by
-			title: vals[10]
-			subtitle: vals[11]
-			content: vals[12]
-			handle: vals[13]
-			excerpt: vals[14]
-			metadata: vals[15]
+			title: vals[9]
+			subtitle: vals[10]
+			content: vals[11]
+			handle: vals[12]
+			excerpt: vals[13]
+			metadata: vals[14]
 		}
 
 		// TODO fetch posts by id
@@ -213,26 +219,26 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 
 	query := '
 	SELECT 
-		BIN_TO_UUID("post_tag"."id"),
-		BIN_TO_UUID("post_tag"."parent_id"),
-		"post_tag"."visibility",
-		"post_tag"."created_at",
-		BIN_TO_UUID("post_tag"."created_by"),
-		"post_tag"."updated_at",
-		BIN_TO_UUID("post_tag"."updated_by"),
-		"post_tag"."deleted_at",
-		BIN_TO_UUID("post_tag"."deleted_by"),
-		"post_tag"."title",
-		"post_tag"."subtitle",
-		"post_tag"."content",
-		"post_tag"."handle",
-		"post_tag"."excerpt",
-		"post_tag"."metadata",
-		BIN_TO_UUID("post"."id")
-	FROM "post_tag"
-	LEFT JOIN "post_tags" ON "post_tag"."id" = "post_tags"."post_tag_id"
-	WHERE "${column}" = ${qm}
-	ORDER BY "created_at" DESC'
+		BIN_TO_UUID(post_tag.id),
+		BIN_TO_UUID(post_tag.parent_id),
+		post_tag.visibility,
+		post_tag.created_at,
+		BIN_TO_UUID(post_tag.created_by),
+		post_tag.updated_at,
+		BIN_TO_UUID(post_tag.updated_by),
+		post_tag.deleted_at,
+		BIN_TO_UUID(post_tag.deleted_by),
+		post_tag.title,
+		post_tag.subtitle,
+		post_tag.content,
+		post_tag.handle,
+		post_tag.excerpt,
+		post_tag.metadata,
+		BIN_TO_UUID(post_tags.post_id)
+	FROM post_tag
+	LEFT JOIN post_tags ON post_tag.id = post_tags.post_tag_id
+	WHERE ${column} = ${qm}
+	ORDER BY created_at DESC'
 
 	res := p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
@@ -285,7 +291,6 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id string, user_id string) ! {
 	ptw.validate()!
 	mut query_records := '
-	"parent" = UUID_TO_BIN(?),
 	"visibility" = ?,
 	"updated_at" = NOW(),
 	"updated_by" = UUID_TO_BIN(?),
@@ -294,16 +299,24 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 	"content" = ?,
 	"handle" = ?,
 	"excerpt" = ?,
-	"metadata" = ?
-	'
+	"metadata" = ?'
 
 	mut vars := []p_mysql.Param{}
-	vars = arrays.concat(vars, p_mysql.Param(ptw.parent), p_mysql.Param(ptw.visibility),
-		p_mysql.Param(user_id), p_mysql.Param(ptw.title), p_mysql.Param(ptw.subtitle),
-		p_mysql.Param(ptw.content), p_mysql.Param(ptw.handle), p_mysql.Param(ptw.excerpt),
-		p_mysql.Param(ptw.metadata))
+	vars << ptw.visibility
+	vars << user_id
+	vars << ptw.title
+	vars << ptw.subtitle
+	vars << ptw.content
+	vars << ptw.handle
+	vars << ptw.excerpt
+	vars << ptw.metadata
 
-	vars = arrays.concat(vars, p_mysql.Param(post_tag_id))
+	if ptw.parent != '' {
+		query_records += ', parent_id = UUID_TO_BIN(?)'
+		vars << ptw.parent
+	}
+
+	vars << post_tag_id
 
 	mut query := '
 	UPDATE "post_tag" 
@@ -320,14 +333,16 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 
 		if ptw.posts.len == 1 {
 			mut post_tags_vars := []p_mysql.Param{}
-			post_tags_vars = arrays.concat(vars, p_mysql.Param(ptw.posts[0]), p_mysql.Param(post_tag_id))
+			post_tags_vars << ptw.posts[0]
+			post_tags_vars << post_tag_id
 			p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...post_tags_vars)!
 		} else {
 			p_mysql.prep(mut mysql_conn, 'stmt', post_tags_query)!
 			for post_id in ptw.posts {
 				id := post_id
 				mut post_tags_vars := []p_mysql.Param{}
-				post_tags_vars = arrays.concat(vars, p_mysql.Param(id), p_mysql.Param(post_tag_id))
+				post_tags_vars << id
+				post_tags_vars << post_tag_id
 				p_mysql.exec(mut mysql_conn, 'stmt', ...post_tags_vars)!
 			}
 			p_mysql.deallocate(mut mysql_conn, 'stmt')
@@ -406,4 +421,19 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]
 		post_tags = arrays.concat(post_tags, post_tag)
 	}
 	return post_tags
+}
+
+pub fn post_tag_delete_by_id(mut mysql_conn mysql.DB, user_id string, id string) !PostTag {
+	query := '
+	UPDATE post_tag SET 
+		deleted_at = NOW(),
+		deleted_by = ?
+	WHERE id = UUID_TO_BIN(?)'
+
+	mut vars := []p_mysql.Param{}
+	vars << user_id
+	vars << id
+
+	p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+	return post_tag_retrieve_by_id(mut mysql_conn, id)!
 }

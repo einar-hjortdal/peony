@@ -91,3 +91,19 @@ pub fn (mut app App) admin_post_tags_update(id string) vweb.Result {
 
 	return app.json(retrieved_post_tag)
 }
+
+@['/admin/post_tags/:id'; delete]
+pub fn (mut app App) admin_post_tags_delete(id string) vweb.Result {
+	fn_name := 'admin_post_tags_delete'
+
+	v, mut err := app.check_user_auth()
+	if err.code() != 0 {
+		return app.send_error(err, fn_name)
+	}
+
+	post_tag := models.post_tag_delete_by_id(mut app.db, v.user.id, id) or {
+		return app.send_error(err, fn_name)
+	}
+
+	return app.json(post_tag)
+}
