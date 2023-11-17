@@ -13,7 +13,11 @@ pub fn (mut app App) storefront_post_tags_get() vweb.Result {
 		return app.send_error(err, fn_name)
 	}
 
-	post_tags := models.post_tag_list(mut app.db) or { return app.send_error(err, fn_name) }
+	params := models.PostTagListParams{
+		exclude_deleted: true
+	}
+
+	post_tags := models.post_tag_list(mut app.db, params) or { return app.send_error(err, fn_name) }
 
 	return app.json(post_tags)
 }

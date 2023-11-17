@@ -95,7 +95,16 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id 
 	// TODO insert post_tags values
 }
 
-pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
+pub struct PostTagListParams {
+	exclude_deleted bool
+}
+
+pub fn post_tag_list(mut mysql_conn mysql.DB, params PostTagListParams) ![]PostTag {
+	mut where_clauses := ''
+	if params.exclude_deleted {
+		where_clauses = 'AND post_tag.deleted_at IS NOT NULL'
+	}
+
 	// TODO get parent tag if not empty
 	query := '
 	SELECT 
@@ -117,6 +126,7 @@ pub fn post_tag_list(mut mysql_conn mysql.DB) ![]PostTag {
 		BIN_TO_UUID(post_tags.post_id)
 	FROM post_tag
 	LEFT JOIN post_tags ON post_tag.id = post_tags.post_tag_id
+	${where_clauses}
 	ORDER BY created_at DESC'
 
 	res := p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
