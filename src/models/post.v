@@ -42,7 +42,6 @@ pub struct Post {
 	// images       []Image
 }
 
-// TODO only use this struct for create and update. Make Post immutable
 // TODO handle authors, accept array of strings (expect user id)
 pub struct PostWriteable {
 pub mut:
@@ -52,7 +51,7 @@ pub mut:
 	title      string
 	subtitle   string
 	content    string
-	handle     string // TODO generate handle using title if not provided
+	handle     string
 	excerpt    string
 	metadata   string   @[raw]
 	authors    []string
@@ -458,4 +457,19 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	// DELETE FROM "post_authors" WHERE "post_id" = ?
 	// DELETE FROM "post_tags" WHERE "post_id" = ?
 	// Then re-insert records at every update
+}
+
+pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !Post {
+	query := '
+	UPDATE post SET 
+		deleted_at = NOW(),
+		deleted_by = ?
+	WHERE id = UUID_TO_BIN(?)'
+
+	mut vars := []mysql.Param{}
+	vars << user_id
+	vars << id
+
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+	return post_retrieve_by_id(mut mysql_conn, id)!
 }
