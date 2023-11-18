@@ -88,7 +88,7 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id 
 	}
 
 	query := '
-	INSERT INTO "post_tag" (${columns})
+	INSERT INTO post_tag (${columns})
 	VALUES (${qm})'
 
 	p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
@@ -301,15 +301,15 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id string, user_id string) ! {
 	ptw.validate()!
 	mut query_records := '
-	"visibility" = ?,
-	"updated_at" = NOW(),
-	"updated_by" = UUID_TO_BIN(?),
-	"title" = ?,
-	"subtitle" = ?,
-	"content" = ?,
-	"handle" = ?,
-	"excerpt" = ?,
-	"metadata" = ?'
+	visibility = ?,
+	updated_at = NOW(),
+	updated_by = UUID_TO_BIN(?),
+	title = ?,
+	subtitle = ?,
+	content = ?,
+	handle = ?,
+	excerpt = ?,
+	metadata = ?'
 
 	mut vars := []p_mysql.Param{}
 	vars << ptw.visibility
@@ -329,16 +329,16 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 	vars << post_tag_id
 
 	mut query := '
-	UPDATE "post_tag" 
+	UPDATE post_tag
 	SET ${query_records}
-	WHERE "id" = UUID_TO_BIN(?)'
+	WHERE id = UUID_TO_BIN(?)'
 
 	p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
 	// TODO the following could return errors if post_id does not exist
 	if ptw.posts.len > 0 {
 		post_tags_query := '
-		INSERT IGNORE INTO "post_tags" ("post_id", "post_tag_id")
+		INSERT IGNORE INTO post_tags (post_id, post_tag_id)
 		VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 		if ptw.posts.len == 1 {
@@ -363,25 +363,25 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]PostTag {
 	query := '
 	SELECT 
-		BIN_TO_UUID("post_tag"."id"),
-		BIN_TO_UUID("post_tag"."parent_id"),
-		"post_tag"."visibility",
-		"post_tag"."created_at",
-		BIN_TO_UUID("post_tag"."created_by"),
-		"post_tag"."updated_at",
-		BIN_TO_UUID("post_tag"."updated_by"),
-		"post_tag"."deleted_at",
-		BIN_TO_UUID("post_tag"."deleted_by"),
-		"post_tag"."title",
-		"post_tag"."subtitle",
-		"post_tag"."content",
-		"post_tag"."handle",
-		"post_tag"."excerpt",
-		"post_tag"."metadata"
-	FROM "post_tag"
-	INNER JOIN "post_tags" ON "post_tag"."id" = "post_tags"."post_tag_id"
-	WHERE "post_id" = ?
-	ORDER BY "post_tags"."sort_order"'
+		BIN_TO_UUID(post_tag.id),
+		BIN_TO_UUID(post_tag.parent_id),
+		post_tag.visibility,
+		post_tag.created_at,
+		BIN_TO_UUID(post_tag.created_by),
+		post_tag.updated_at,
+		BIN_TO_UUID(post_tag.updated_by),
+		post_tag.deleted_at,
+		BIN_TO_UUID(post_tag.deleted_by),
+		post_tag.title,
+		post_tag.subtitle,
+		post_tag.content,
+		post_tag.handle,
+		post_tag.excerpt,
+		post_tag.metadata
+	FROM post_tag
+	INNER JOIN post_tags ON post_tag.id = post_tags.post_tag_id
+	WHERE post_id = ?
+	ORDER BY post_tags.sort_order'
 
 	res := p_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
 

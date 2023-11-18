@@ -48,9 +48,9 @@ pub mut:
 	metadata                  string @[raw]
 }
 
-pub fn (store Store) create(mut mysql_conn mysql.DB) ! {
-	query := 'INSERT INTO "store" ("id") VALUES (UUID_TO_BIN(?))'
-	c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, store.id)!
+pub fn (store StoreWriteable) create(mut mysql_conn mysql.DB, id string) ! {
+	query := 'INSERT INTO store (id) VALUES (UUID_TO_BIN(?))'
+	c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 }
 
 pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
@@ -59,43 +59,43 @@ pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
 	}
 
 	mut query_columns := '
-	"updated_at" = NOW(),
-	"name" = ?,
-	"metadata" = ?'
+	updated_at = NOW(),
+	name = ?,
+	metadata = ?'
 
 	mut vars := []c_mysql.Param{}
 	vars << sw.name
 	vars << sw.metadata
 
 	if sw.default_locale_code != '' {
-		query_columns += ', "default_locale_code" = ?'
+		query_columns += ', default_locale_code = ?'
 		vars << sw.default_locale_code
 	}
 
 	if sw.default_currency_code != '' {
-		query_columns += ', "default_currency_code" = ?'
+		query_columns += ', default_currency_code = ?'
 		vars << sw.default_currency_code
 	}
 
 	if sw.invite_link_template != '' {
-		query_columns += ', "invite_link_template" = ?'
+		query_columns += ', invite_link_template = ?'
 		vars << sw.invite_link_template
 	}
 
 	if sw.default_stock_location_id != '' {
-		query_columns += ', "default_stock_location_id" = ?'
+		query_columns += ', default_stock_location_id = ?'
 		vars << sw.default_stock_location_id
 	}
 
 	if sw.default_sales_channel_id != '' {
-		query_columns += ', "default_sales_channel_id" = ?'
+		query_columns += ', default_sales_channel_id = ?'
 		vars << sw.default_sales_channel_id
 	}
 
 	query := '
-	UPDATE "store"
+	UPDATE store
 	SET ${query_columns}
-	WHERE "id" = UUID_TO_BIN(?)'
+	WHERE id = UUID_TO_BIN(?)'
 
 	vars << id
 
@@ -105,18 +105,18 @@ pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
 pub fn store_retrieve(mut mysql_conn mysql.DB) !Store {
 	query := '
 	SELECT 
-		BIN_TO_UUID("id"),
-		"created_at", 
-		"updated_at", 
-		"name", 
-		"default_locale_code",
-		"default_currency_code", 
-		"swap_link_template", 
-		"invite_link_template",
-		"default_stock_location_id", 
-		"default_sales_channel_id", 
-		"metadata"
-	FROM "store"'
+		BIN_TO_UUID(id),
+		created_at, 
+		updated_at, 
+		name, 
+		default_locale_code,
+		default_currency_code, 
+		swap_link_template, 
+		invite_link_template,
+		default_stock_location_id, 
+		default_sales_channel_id, 
+		metadata
+	FROM store'
 
 	res := c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
 

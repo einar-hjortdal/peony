@@ -80,7 +80,7 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 		qm += ', ?'
 	}
 
-	query := 'INSERT INTO "user" (${columns}) VALUES (${qm})'
+	query := 'INSERT INTO user (${columns}) VALUES (${qm})'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 }
 
@@ -98,7 +98,7 @@ pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	}
 
 	mut columns := '
-	"updated_at" = NOW(),
+	updated_at = NOW(),
 	handle = ?,
 	first_name = ?,
 	last_name = ?,
@@ -114,9 +114,9 @@ pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	}
 
 	query := '
-	UPDATE "user"
+	UPDATE user
 	SET ${columns}
-	WHERE "id" = UUID_TO_BIN(?)
+	WHERE id = UUID_TO_BIN(?)
 	'
 	vars = arrays.concat(vars, mysql.Param(id))
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
@@ -130,18 +130,18 @@ fn user_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !User {
 
 	query := '
 	SELECT
-		BIN_TO_UUID("id"),
-		"handle",
-		"email",
-		"role",
-		"created_at",
-		"updated_at",
-		"deleted_at",
-		"first_name",
-		"last_name",
-		"metadata"
-	FROM "user"
-	WHERE "${column}" = ${qm}'
+		BIN_TO_UUID(id),
+		handle,
+		email,
+		role,
+		created_at,
+		updated_at,
+		deleted_at,
+		first_name,
+		last_name,
+		metadata
+	FROM user
+	WHERE ${column} = ${qm}'
 
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
@@ -179,7 +179,7 @@ pub fn user_retrieve_by_email(mut mysql_conn v_mysql.DB, email string) !User {
 }
 
 pub fn user_password_hash_by_email(mut mysql_conn v_mysql.DB, email string) !string {
-	query := 'SELECT "password_hash" FROM "user" WHERE "email" = ?'
+	query := 'SELECT password_hash FROM user WHERE email = ?'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, email)!
 	rows := res.rows()
 	if rows.len == 0 {
@@ -190,21 +190,21 @@ pub fn user_password_hash_by_email(mut mysql_conn v_mysql.DB, email string) !str
 
 pub fn user_delete_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 	query := '
-	UPDATE "user"
+	UPDATE user
 	SET 
-		"updated_at" = NOW(),
-		"deleted_at" = NOW()
-	WHERE "id" = UUID_TO_BIN(?)'
+		updated_at = NOW(),
+		deleted_at = NOW()
+	WHERE id = UUID_TO_BIN(?)'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 }
 
 pub fn user_restore_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 	query := '
-	UPDATE "user"
+	UPDATE user
 	SET 
-	"updated_at" = NOW(),
-	"deleted_at" = NULL
-	WHERE "id" = UUID_TO_BIN(?)'
+	updated_at = NOW(),
+	deleted_at = NULL
+	WHERE id = UUID_TO_BIN(?)'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
 }
 
@@ -212,17 +212,17 @@ pub fn user_restore_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
 	query := '
 	SELECT
-		BIN_TO_UUID("id"),
-		"handle",
-		"email",
-		"role",
-		"created_at",
-		"updated_at",
-		"deleted_at",
-		"first_name",
-		"last_name",
-		"metadata"
-	FROM "user"'
+		BIN_TO_UUID(id),
+		handle,
+		email,
+		role,
+		created_at,
+		updated_at,
+		deleted_at,
+		first_name,
+		last_name,
+		metadata
+	FROM user'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
 
 	rows := res.rows()
@@ -304,19 +304,19 @@ fn user_retrieve_author(mut mysql_conn v_mysql.DB, column string, var string) !U
 
 	query := '
 	SELECT
-		BIN_TO_UUID("id")
-		"user"."handle",
-		"user"."email",
-		"user"."role",
-		"user"."created_at",
-		"user"."updated_at",
-		"user"."deleted_at",
-		"user"."first_name",
-		"user"."last_name",
-		"user"."metadata"
-	FROM "user"
-	INNER JOIN "post_authors" on "user"."id" = "post_authors"."author_id"
-	WHERE "user"."${column}" = ${qm}'
+		BIN_TO_UUID(id)
+		user.handle,
+		user.email,
+		user.role,
+		user.created_at,
+		user.updated_at,
+		user.deleted_at,
+		user.first_name,
+		user.last_name,
+		user.metadata
+	FROM user
+	INNER JOIN post_authors on user.id = post_authors.author_id
+	WHERE user.${column} = ${qm}'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
 	rows := res.rows()
@@ -350,7 +350,7 @@ pub fn user_retrieve_author_by_handle(mut mysql_conn v_mysql.DB, handle string) 
 
 pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]User {
 	// TODO check cache
-	query := 'SELECT BIN_TO_UUID("author_id") FROM "post_authors" WHERE "post_id" = UUID_TO_BIN(?)'
+	query := 'SELECT BIN_TO_UUID(author_id) FROM post_authors WHERE post_id = UUID_TO_BIN(?)'
 
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
 

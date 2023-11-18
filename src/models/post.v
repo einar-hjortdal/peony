@@ -124,33 +124,33 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	vars << pw.metadata
 
 	if post_type in allowed_post_type {
-		query_columns += ', "type"'
+		query_columns += ', type'
 		values += ', ?'
 		vars << post_type
 	}
 
 	if pw.status != '' {
-		query_columns += ', "status"'
+		query_columns += ', status'
 		values += ', ?'
 		vars << pw.status
 	}
 
 	if pw.status == 'published' {
-		query_columns += ', "published_at", "published_by"'
+		query_columns += ', published_at, published_by'
 		values += ', NOW(), UUID_TO_BIN(?)'
 		vars << created_by_id
 	}
 
 	if pw.visibility != '' {
-		query_columns += ', "visibility"'
+		query_columns += ', visibility'
 		values += ', ?'
 		vars << pw.visibility
 	}
 
-	mut query := 'INSERT INTO "post" (${query_columns}) VALUES (${values})'
+	mut query := 'INSERT INTO post (${query_columns}) VALUES (${values})'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
-	authors_query := 'INSERT INTO "post_authors" ("post_id", "author_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+	authors_query := 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 	vars = []mysql.Param{}
 	vars << id
@@ -178,7 +178,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 
 	// tags
 	if pw.tags.len != 0 {
-		tags_query := 'INSERT INTO "post_tags" ("post_id", "post_tag_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+		tags_query := 'INSERT INTO post_tags (post_id, post_tag_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 		if pw.tags.len == 1 {
 			vars = []mysql.Param{}
@@ -310,27 +310,27 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 
 	query := '
 	SELECT
-		BIN_TO_UUID("id"),
-		"created_at",
-		BIN_TO_UUID("created_by"),
-		"updated_at",
-		BIN_TO_UUID("updated_by"),
-		"deleted_at",
-		BIN_TO_UUID("deleted_by"),
-		"status",
-		"type",
-		CASE WHEN "featured" = 0x01 THEN 1 ELSE 0 END,
-		"published_at",
-		BIN_TO_UUID("published_by"),
-		"visibility",
-		"title",
-		"subtitle",
-		"content",
-		"handle",
-		"excerpt",
-		"metadata"
-	FROM "post"
-	WHERE "${column}" = ${qm}'
+		BIN_TO_UUID(id),
+		created_at,
+		BIN_TO_UUID(created_by),
+		updated_at,
+		BIN_TO_UUID(updated_by),
+		deleted_at,
+		BIN_TO_UUID(deleted_by),
+		status,
+		type,
+		CASE WHEN featured = 0x01 THEN 1 ELSE 0 END,
+		published_at,
+		BIN_TO_UUID(published_by),
+		visibility,
+		title,
+		subtitle,
+		content,
+		handle,
+		excerpt,
+		metadata
+	FROM post
+	WHERE ${column} = ${qm}'
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
 
 	rows := res.rows()
@@ -468,7 +468,7 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 
 	vars << post_id
 
-	mut query := 'UPDATE "post" SET ${query_records} WHERE "id" = UUID_TO_BIN(?)'
+	mut query := 'UPDATE post SET ${query_records} WHERE id = UUID_TO_BIN(?)'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
 	// TODO cleanup post_authors and post_tags
