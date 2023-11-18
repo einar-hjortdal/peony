@@ -97,81 +97,80 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 
 	mut query_columns := '
-		"id",
-		"created_at",
-		"created_by",
-		"updated_at",
-		"updated_by",
-		"featured",
-		"title",
-		"subtitle",
-		"content",
-		"excerpt",
-		"handle",
-		"metadata"'
-	mut values := '
-	UUID_TO_BIN(?),
-	NOW(),
-	UUID_TO_BIN(?),
-	NOW(),
-	UUID_TO_BIN(?),
-	?,
-	?,
-	?,
-	?,
-	?,
-	?,
-	?'
+		id,
+		created_at,
+		created_by,
+		updated_at,
+		updated_by,
+		featured,
+		title,
+		subtitle,
+		content,
+		excerpt,
+		handle,
+		metadata'
+	mut values := 'UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?, ?'
 
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, mysql.Param(id), mysql.Param(created_by_id), mysql.Param(created_by_id),
-		mysql.Param(pw.featured), mysql.Param(pw.title), mysql.Param(pw.subtitle), mysql.Param(pw.content),
-		mysql.Param(pw.excerpt), mysql.Param(pw.handle), mysql.Param(pw.metadata))
+	vars << id
+	vars << created_by_id
+	vars << created_by_id
+	vars << pw.featured
+	vars << pw.title
+	vars << pw.subtitle
+	vars << pw.content
+	vars << pw.excerpt
+	vars << pw.handle
+	vars << pw.metadata
 
 	if post_type in allowed_post_type {
 		query_columns += ', "type"'
 		values += ', ?'
-		vars = arrays.concat(vars, mysql.Param(post_type))
+		vars << post_type
 	}
 
 	if pw.status != '' {
 		query_columns += ', "status"'
 		values += ', ?'
-		vars = arrays.concat(vars, mysql.Param(pw.status))
+		vars << pw.status
 	}
 
 	if pw.status == 'published' {
 		query_columns += ', "published_at", "published_by"'
-		values += ', UUID_TO_BIN(?), UUID_TO_BIN(?)'
-		vars = arrays.concat(vars, mysql.Param('NOW()'), mysql.Param(created_by_id))
+		values += ', NOW(), UUID_TO_BIN(?)'
+		vars << created_by_id
 	}
 
 	if pw.visibility != '' {
 		query_columns += ', "visibility"'
 		values += ', ?'
-		vars = arrays.concat(vars, mysql.Param(pw.visibility))
+		vars << pw.visibility
 	}
 
 	mut query := 'INSERT INTO "post" (${query_columns}) VALUES (${values})'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
-	query = 'INSERT INTO "post_authors" ("post_id", "author_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+	authors_query := 'INSERT INTO "post_authors" ("post_id", "author_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
-	vars = [mysql.Param(id)]
+	vars = []mysql.Param{}
+	vars << id
 
 	if pw.authors.len < 2 {
+		// Add user as author automatically if no authors are provided
 		if pw.authors.len == 0 {
-			vars = arrays.concat(vars, mysql.Param(created_by_id))
+			vars << created_by_id
 		}
 		if pw.authors.len == 1 {
-			vars = arrays.concat(vars, mysql.Param(pw.authors[0]))
+			vars << pw.authors[0]
 		}
-		mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+		mysql.prep_n_exec(mut mysql_conn, 'stmt', authors_query, ...vars)!
 	} else {
+		mysql.prep(mut mysql_conn, 'stmt', authors_query)!
 		for author in pw.authors {
 			author_id := author
-			vars = [mysql.Param(id), mysql.Param(author_id)]
-			mysql.prep(mut mysql_conn, 'stmt', query)!
+			vars = []mysql.Param{}
+			vars << id
+			vars << author_id
 			mysql.exec(mut mysql_conn, 'stmt', ...vars)!
 		}
 		mysql.deallocate(mut mysql_conn, 'stmt')
@@ -179,18 +178,20 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 
 	// tags
 	if pw.tags.len != 0 {
-		query = 'INSERT INTO "post_tags" ("post_id", "post_tag_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+		tags_query := 'INSERT INTO "post_tags" ("post_id", "post_tag_id") VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 		if pw.tags.len == 1 {
 			vars = []mysql.Param{}
-			vars = arrays.concat(vars, mysql.Param(id), mysql.Param(pw.tags[0]))
-			mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+			vars << id
+			vars << pw.tags[0]
+			mysql.prep_n_exec(mut mysql_conn, 'stmt', tags_query, ...vars)!
 		} else {
-			mysql.prep(mut mysql_conn, 'stmt', query)!
+			mysql.prep(mut mysql_conn, 'stmt', tags_query)!
 			for tag_id in pw.tags {
 				tag := tag_id
 				vars = []mysql.Param{}
-				vars = arrays.concat(vars, mysql.Param(id), mysql.Param(tag))
+				vars << id
+				vars << tag
 				mysql.exec(mut mysql_conn, 'stmt', ...vars)!
 			}
 			mysql.deallocate(mut mysql_conn, 'stmt')
@@ -425,40 +426,47 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	}
 
 	mut query_records := '
-	"status" = ?,
-	"featured" = ?,
-	"updated_at" = NOW(),
-	"updated_by" = UUID_TO_BIN(?),
-	"visibility" = ?,
-	"title" = ?,
-	"subtitle" = ?,
-	"content" = ?,
-	"handle" = ?,
-	"excerpt" = ?,
-	"metadata" = ?'
+	status = ?,
+	featured = ?,
+	updated_at = NOW(),
+	updated_by = UUID_TO_BIN(?),
+	visibility = ?,
+	title = ?,
+	subtitle = ?,
+	content = ?,
+	handle = ?,
+	excerpt = ?,
+	metadata = ?'
 
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, mysql.Param(pw.status), mysql.Param(pw.featured), mysql.Param(user_id),
-		mysql.Param(pw.visibility), mysql.Param(pw.title), mysql.Param(pw.subtitle), mysql.Param(pw.content),
-		mysql.Param(pw.handle), mysql.Param(pw.excerpt), mysql.Param(pw.metadata))
+	vars << pw.status
+	vars << pw.featured
+	vars << user_id
+	vars << pw.visibility
+	vars << pw.title
+	vars << pw.subtitle
+	vars << pw.content
+	vars << pw.handle
+	vars << pw.excerpt
+	vars << pw.metadata
 
 	// Only update published_at and published_by if post is being published for the first time
 	if pw.status == 'published' {
-		query_records += ',
-		"published_at" = CASE
-			WHEN "published_at" IS NOT NULL AND status IS NOT \'published\'
+		query_records += ",
+		published_at = CASE
+			WHEN published_at IS NOT NULL AND status IS NOT 'published'
 			THEN NOW()
-			ELSE "published_at"
+			ELSE published_at
 		END,
-		"published_by" = CASE
-			WHEN "published_by" IS NOT NULL
+		published_by = CASE
+			WHEN published_by IS NOT NULL
 			THEN UUID_TO_BIN(?)
-			ELSE "published_by"
-		END'
-		vars = arrays.concat(vars, mysql.Param(user_id))
+			ELSE published_by
+		END"
+		vars << user_id
 	}
 
-	vars = arrays.concat(vars, mysql.Param(post_id))
+	vars << post_id
 
 	mut query := 'UPDATE "post" SET ${query_records} WHERE "id" = UUID_TO_BIN(?)'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
