@@ -12,10 +12,8 @@ import utils
 @['/admin/users'; get]
 pub fn (mut app App) admin_users_get() vweb.Result {
 	fn_name := 'admin_users_get'
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	users := models.user_list(mut app.db) or { return app.send_error(err, fn_name) }
 	return app.json(users)
@@ -34,10 +32,7 @@ mut:
 pub fn (mut app App) admin_users_post() vweb.Result {
 	fn_name := 'admin_users_post'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	mut body := json.decode(AdminUsersPostRequest, app.req.data) or {
 		return app.send_error(err, fn_name)
@@ -57,11 +52,11 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 
 	role := body.role.trim_space()
 	if role == '' {
-		err = utils.new_peony_error(400, 'role is required')
+		err := utils.new_peony_error(400, 'role is required')
 		return app.send_error(err, fn_name)
 	}
 	if role !in models.allowed_role {
-		err = utils.new_peony_error(400, 'role invalid')
+		err := utils.new_peony_error(400, 'role invalid')
 		return app.send_error(err, fn_name)
 	}
 
@@ -84,10 +79,8 @@ pub fn (mut app App) admin_users_post() vweb.Result {
 @['/admin/users/:id'; get]
 pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
 	fn_name := 'admin_users_id_get'
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	user := models.user_retrieve_by_id(mut app.db, id) or { return app.send_error(err, fn_name) }
 	return app.json(user)
@@ -99,10 +92,7 @@ pub fn (mut app App) admin_users_id_get(id string) vweb.Result {
 pub fn (mut app App) admin_users_id_post(id string) vweb.Result {
 	fn_name := 'admin_users_id_post'
 
-	mut v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	mut v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	mut body := json.decode(models.UserWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
@@ -139,10 +129,7 @@ struct AdminUsersIdGetDelResponse {
 pub fn (mut app App) admin_users_id_del(id string) vweb.Result {
 	fn_name := 'admin_users_id_del'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	// TODO do not delete last user. Check if number of non-delete users is >1
 

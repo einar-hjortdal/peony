@@ -10,10 +10,7 @@ import models
 pub fn (mut app App) admin_post_tags_get() vweb.Result {
 	fn_name := 'admin_post_tags_get'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	params := models.PostTagListParams{
 		exclude_deleted: false
@@ -28,10 +25,7 @@ pub fn (mut app App) admin_post_tags_get() vweb.Result {
 pub fn (mut app App) admin_post_tags_post() vweb.Result {
 	fn_name := 'admin_post_tags_post'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	mut body := json.decode(models.PostTagWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
@@ -57,10 +51,7 @@ pub fn (mut app App) admin_post_tags_post() vweb.Result {
 pub fn (mut app App) admin_tags_get_by_id(id string) vweb.Result {
 	fn_name := 'admin_tags_get_by_id'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	post_tag := models.post_tag_retrieve_by_id(mut app.db, id) or {
 		return app.send_error(err, fn_name)
@@ -73,10 +64,7 @@ pub fn (mut app App) admin_tags_get_by_id(id string) vweb.Result {
 pub fn (mut app App) admin_post_tags_update(id string) vweb.Result {
 	fn_name := 'admin_post_tags_update'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	mut body := json.decode(models.PostTagWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
@@ -100,10 +88,7 @@ pub fn (mut app App) admin_post_tags_update(id string) vweb.Result {
 pub fn (mut app App) admin_post_tags_delete(id string) vweb.Result {
 	fn_name := 'admin_post_tags_delete'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	post_tag := models.post_tag_delete_by_id(mut app.db, v.user.id, id) or {
 		return app.send_error(err, fn_name)

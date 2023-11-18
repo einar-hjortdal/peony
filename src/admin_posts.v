@@ -13,10 +13,7 @@ import models
 pub fn (mut app App) admin_posts_get() vweb.Result {
 	fn_name := 'admin_posts_get'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	params := models.PostListParams{
 		post_type: 'post'
@@ -34,10 +31,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 pub fn (mut app App) admin_posts_post() vweb.Result {
 	fn_name := 'admin_posts_post'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	body := json.decode(models.PostWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
@@ -65,10 +59,7 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 	fn_name := 'admin_post_get_by_id'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	retrieved_post := models.post_retrieve_by_id(mut app.db, id) or {
 		return app.send_error(err, fn_name)
@@ -83,10 +74,7 @@ pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 pub fn (mut app App) admin_post_update(id string) vweb.Result {
 	fn_name := 'admin_post_update'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	mut body := json.decode(models.PostWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)
@@ -105,10 +93,7 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 pub fn (mut app App) admin_post_delete(id string) vweb.Result {
 	fn_name := 'admin_post_delete'
 
-	v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	post_tag := models.post_delete_by_id(mut app.db, v.user.id, id) or {
 		return app.send_error(err, fn_name)
@@ -129,10 +114,7 @@ pub fn (mut app App) admin_post_delete(id string) vweb.Result {
 pub fn (mut app App) admin_pages_get() vweb.Result {
 	fn_name := 'admin_pages_get'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	params := models.PostListParams{
 		post_type: 'page'

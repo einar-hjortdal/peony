@@ -69,15 +69,23 @@ fn (mut app App) auth_user(mut values AdminValues, email string, password string
 }
 
 // check_user_auth verifies that an admin session is authenticated.
-// If the session is authenticated, AdminValues are returned together with a nil PeonyError.
-// Otherwise, an empty AdminValues is returned together with a PeonyError.
-// TODO just return !AdminValues, PeonyError implements IError interface
-fn (mut app App) check_user_auth() (AdminValues, utils.PeonyError) {
+// If the session is authenticated, AdminValues are returned. Otherwise, an PeonyError is returned.
+fn (mut app App) check_user_auth() !AdminValues {
 	v := app.new_admin_session()
 	if v.user.id == '' {
-		return v, utils.new_peony_error(401, 'User data is missing')
+		return utils.new_peony_error(401, 'User data is missing')
 	}
-	return v, utils.new_peony_error(0, '')
+	return v
+}
+
+// new_user_session creates a new admin session and returns AdminValues.
+// If the user was already authenticated, a PeonyError is returned instead.
+fn (mut app App) new_user_session() !AdminValues {
+	v := app.new_admin_session()
+	if v.user.id != '' {
+		return utils.new_peony_error(500, 'User already authenticated')
+	}
+	return v
 }
 
 /*

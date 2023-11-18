@@ -11,10 +11,8 @@ import utils
 @['/admin/auth'; get]
 pub fn (mut app App) admin_auth_get() vweb.Result {
 	fn_name := 'admin_auth_get'
-	v, err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+
+	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	return app.json(v.user)
 }
@@ -41,19 +39,19 @@ pub fn (mut app App) admin_auth_post() vweb.Result {
 
 	validate_email(email) or { return app.send_error(err, fn_name) }
 
-	mut v, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		// Handle unauthenticated sessions
-		app.auth_user(mut v, email, body.password) or { return app.send_error(err, fn_name) }
-
-		app.save_admin_session(v) or { return app.send_error(err, fn_name) }
-
-		return app.json(v.user)
-	} else {
+	mut v := app.new_user_session() or {
 		// Handle authenticated sessions
-		err = utils.new_peony_error(5, 'User already logged in')
 		return app.send_error(err, fn_name)
 	}
+	// Handle unauthenticated sessions
+	app.auth_user(mut v, email, body.password) or {
+		app.delete_admin_session() or { return app.send_error(err, fn_name) }
+		return app.send_error(err, fn_name)
+	}
+
+	app.save_admin_session(v) or { return app.send_error(err, fn_name) }
+
+	return app.json(v.user)
 }
 
 // admin_auth_del deletes the current session for the logged in user.
@@ -62,10 +60,7 @@ pub fn (mut app App) admin_auth_post() vweb.Result {
 pub fn (mut app App) admin_auth_delete() vweb.Result {
 	fn_name := 'admin_auth_delete'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	app.delete_admin_session() or { return app.send_error(err, fn_name) }
 

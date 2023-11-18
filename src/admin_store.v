@@ -12,10 +12,7 @@ import json
 pub fn (mut app App) admin_store_get() vweb.Result {
 	fn_name := 'admin_store_get'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	store := models.store_retrieve(mut app.db) or { return app.send_error(err, fn_name) }
 	return app.json(store)
@@ -27,10 +24,7 @@ pub fn (mut app App) admin_store_get() vweb.Result {
 pub fn (mut app App) admin_store_post(id string) vweb.Result {
 	fn_name := 'admin_store_post'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
+	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	body := json.decode(models.StoreWriteable, app.req.data) or {
 		return app.send_error(err, fn_name)

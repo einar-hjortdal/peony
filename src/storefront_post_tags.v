@@ -8,11 +8,6 @@ import models
 pub fn (mut app App) storefront_post_tags_get() vweb.Result {
 	fn_name := 'storefront_post_tags_get'
 
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
-
 	params := models.PostTagListParams{
 		exclude_deleted: true
 	}
@@ -34,11 +29,6 @@ pub fn (mut app App) storefront_post_tags_get_by_handle(handle string) vweb.Resu
 
 fn (mut app App) storefront_post_tag_retrieve(id_or_handle string, retrieve_fn fn (mut mysql.DB, string) !models.PostTag) vweb.Result {
 	fn_name := 'storefront_post_tag_retrieve'
-
-	_, mut err := app.check_user_auth()
-	if err.code() != 0 {
-		return app.send_error(err, fn_name)
-	}
 
 	post_tag := retrieve_fn(mut app.db, id_or_handle) or { return app.send_error(err, fn_name) }
 
