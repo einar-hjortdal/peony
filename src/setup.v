@@ -52,7 +52,7 @@ fn add_currency_codes(mut logger log.Log, mut mysql_conn v_mysql.DB, mut luuid_g
 
 	for line in lines {
 		new_currency_id := luuid_gen.v2() or { panic(err) }
-		query_string := 'INSERT INTO "currency" ("id", "code") VALUES (UUID_TO_BIN(\'${new_currency_id}\', 0), \'${line}\')'
+		query_string := "INSERT INTO currency (id, code) VALUES (UUID_TO_BIN('${new_currency_id}'), '${line}')"
 		mysql_conn.real_query(query_string) or { panic(err) }
 	}
 }
@@ -68,7 +68,7 @@ fn add_country_codes(mut logger log.Log, mut mysql_conn v_mysql.DB, mut luuid_ge
 
 	for line in lines {
 		new_country_id := luuid_gen.v2() or { panic(err) }
-		query_string := 'INSERT INTO "country" ("id", "code") VALUES (UUID_TO_BIN(\'${new_country_id}\', 0), \'${line}\')'
+		query_string := "INSERT INTO country (id, code) VALUES (UUID_TO_BIN('${new_country_id}'), '${line}')"
 		mysql_conn.real_query(query_string) or { panic(err) }
 	}
 }
@@ -85,7 +85,7 @@ fn add_locale_codes(mut logger log.Log, mut mysql_conn v_mysql.DB, mut luuid_gen
 
 	for line in lines {
 		new_locale_id := luuid_gen.v2() or { panic(err) }
-		query_string := 'INSERT INTO "locale" ("id", "code") VALUES (UUID_TO_BIN(\'${new_locale_id}\', 0), \'${line}\')'
+		query_string := "INSERT INTO locale (id, code) VALUES (UUID_TO_BIN('${new_locale_id}'), '${line}')"
 		mysql_conn.real_query(query_string) or { panic(err) }
 	}
 }
@@ -95,12 +95,10 @@ fn add_store(mut logger log.Log, mut mysql_conn v_mysql.DB, mut luuid_gen luuid.
 	logger.debug('Adding default store to the database')
 
 	new_store_id := luuid_gen.v2() or { panic(err) }
-	store := models.Store{
-		id: new_store_id
-	}
-	store.create(mut mysql_conn) or { panic(err) }
+	store := models.StoreWriteable{}
+	store.create(mut mysql_conn, new_store_id) or { panic(err) }
 
-	logger.debug('The randomly generated store ID is ${store.id}')
+	logger.debug('The randomly generated store ID is ${new_store_id}')
 }
 
 // add_default_admin creates the default admin in the table user
@@ -153,10 +151,7 @@ fn needs_setup(mut logger log.Log, mut mysql_conn v_mysql.DB) bool {
 
 // check_default_admin warns the user if the default admin account still uses the default email address
 fn check_default_admin(mut logger log.Log, mut mysql_conn v_mysql.DB) {
-	// TODO use model
-	query := 'SELECT "id" FROM "user" WHERE "email" = ?'
-	result := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, default_email) or { panic(err) }
-	if result.n_rows() != 0 {
+	if _ := models.user_retrieve_by_email(mut mysql_conn, default_email) {
 		logger.warn('It is recommended to change both email and password for the default user account')
 	}
 }
