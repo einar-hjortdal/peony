@@ -24,9 +24,7 @@ In vweb, routes are defined together with their controllers.
 
 ### Routes
 
-Storefront routes are prefixed with `/storefront` and Admin routes are prefixed with `/admin`. Routes 
-are defined in the respective directories (`src/routes/storefront` or `src/routes/admin`) and are enabled 
-in `src/routes/routes_enabled.v`
+Storefront routes are prefixed with `/storefront` and Admin routes are prefixed with `/admin`.
 
 <!--
 /storefront/auth authorize customers to manage their sessions
