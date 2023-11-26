@@ -357,7 +357,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			deleted_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 		mut published_by := User{}
-		if vals[6] != '' {
+		if vals[11] != '' {
 			published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
 		}
 
