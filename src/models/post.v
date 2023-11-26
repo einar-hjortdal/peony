@@ -24,7 +24,7 @@ pub struct Post {
 	deleted_at   string    @[json: 'deletedAt']
 	deleted_by   User      @[json: 'deletedBy']
 	status       string
-	post_type    string    @[json: 'postType'] // `type` is a reserved keyword in V
+	post_type    string    @[json: 'postType'] // `type` is a reserved keyword in V and in MySQL
 	featured     bool
 	published_at string    @[json: 'publishedAt']
 	published_by User      @[json: 'publishedBy']
@@ -198,13 +198,12 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 }
 
-// TODO add public
+// TODO add public, filter, limit and order
 pub struct PostListParams {
 	post_type       string
 	exclude_deleted bool
 }
 
-// TODO do not return post.content unless requested with query parameter
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	if params.post_type != '' {
 		if params.post_type != 'page' && params.post_type != 'post' {
@@ -214,7 +213,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 
 	mut where_clauses := ''
 	if params.exclude_deleted {
-		where_clauses += 'AND post.deleted_at IS NOT NULL'
+		where_clauses += 'AND post.deleted_at IS NULL'
 	}
 
 	query_string := '
@@ -349,7 +348,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			created_by = user_retrieve_by_id(mut mysql_conn, vals[2])!
 		}
 		mut updated_by := User{}
-		if vals[2] != '' {
+		if vals[4] != '' {
 			updated_by = user_retrieve_by_id(mut mysql_conn, vals[4])!
 		}
 		mut deleted_by := User{}
