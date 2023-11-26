@@ -198,6 +198,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 }
 
+// TODO add public
 pub struct PostListParams {
 	post_type       string
 	exclude_deleted bool
@@ -451,24 +452,32 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	vars << pw.metadata
 
 	// Only update published_at and published_by if post is being published for the first time
+	// Note: concatenate string at the beginning because of MySQL non-standard behavior
+	//  https://dev.mysql.com/doc/refman/8.0/en/ansi-diff-update.html
 	if pw.status == 'published' {
-		query_records += ",
+		query_records =
+			"
 		published_at = CASE
-			WHEN published_at IS NOT NULL AND status != 'published'
+			WHEN published_at IS NULL AND status != 'published'
 			THEN NOW()
 			ELSE published_at
 		END,
 		published_by = CASE
-			WHEN published_by IS NOT NULL
+			WHEN published_by IS NULL AND status != 'published'
 			THEN UUID_TO_BIN(?)
 			ELSE published_by
-		END"
-		vars << user_id
+		END, " +
+			query_records
+		mut new_params := []mysql.Param{}
+		new_params << user_id
+		vars = arrays.concat(new_params, ...vars)
 	}
 
 	vars << post_id
 
 	mut query := 'UPDATE post SET ${query_records} WHERE id = UUID_TO_BIN(?)'
+	println(query)
+	println(vars)
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
 	// TODO cleanup post_authors and post_tags
