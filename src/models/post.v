@@ -58,7 +58,6 @@ pub mut:
 	tags       []string
 }
 
-// TODO add created_by to post_authors if authors is empty
 pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
 	if post_type !in allowed_post_type {
 		return utils.new_peony_error(500, 'post_type invalid')
@@ -204,6 +203,7 @@ pub struct PostListParams {
 	exclude_deleted bool
 }
 
+// TODO do not return post.content unless requested with query parameter
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	if params.post_type != '' {
 		if params.post_type != 'page' && params.post_type != 'post' {
@@ -454,7 +454,7 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	if pw.status == 'published' {
 		query_records += ",
 		published_at = CASE
-			WHEN published_at IS NOT NULL AND status IS NOT 'published'
+			WHEN published_at IS NOT NULL AND status != 'published'
 			THEN NOW()
 			ELSE published_at
 		END,
