@@ -11,7 +11,7 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 
 	params := models.PostListParams{
 		post_type: 'post'
-		exclude_deleted: true
+		deleted: false
 	}
 
 	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
@@ -49,7 +49,7 @@ pub fn (mut app App) storefront_pages_get() vweb.Result {
 
 	params := models.PostListParams{
 		post_type: 'page'
-		exclude_deleted: true
+		deleted: false
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }

@@ -17,7 +17,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 
 	params := models.PostListParams{
 		post_type: 'post'
-		exclude_deleted: false
+		deleted: true
 	}
 
 	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
@@ -118,7 +118,7 @@ pub fn (mut app App) admin_pages_get() vweb.Result {
 
 	params := models.PostListParams{
 		post_type: 'page'
-		exclude_deleted: false
+		deleted: true
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }

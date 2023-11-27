@@ -198,26 +198,86 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 }
 
-// TODO add public, filter, limit and order
+// PostListParams allows to shape the response
+// `post_type` allowed_post_type
+// `deleted` when false excludes deleted posts in the response
+// `visibility` allowed_visibility
+// `order` defaults to `created_at DESC`
+// `limit` defaults to 10
+// `offset` defaults to 0
+// `authors` defaults to false. When false only the primary author is returned.
+// `tags` defaults to false When false only the primary tag is returned.
 pub struct PostListParams {
-	post_type       string
-	exclude_deleted bool
+	post_type  string
+	deleted    bool
+	visibility bool
+	order      string
+	limit      int
+	offset     int
+	authors    bool
+	tags       bool
 }
 
+// TODO optimization: use keyset pagination
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	if params.post_type != '' {
-		if params.post_type != 'page' && params.post_type != 'post' {
+		if params.post_type !in allowed_post_type {
 			return error("post_type must be either 'post' or 'page'")
 		}
 	}
 
 	mut where_clauses := ''
-	if params.exclude_deleted {
+	if params.deleted == false {
 		where_clauses += 'AND post.deleted_at IS NULL'
 	}
 
+	mut limit := '10'
+	if params.limit > 0 {
+		limit = '${params.limit}'
+	}
+
+	mut offset := 0
+	if params.offset > 0 {
+		limit = '${params.offset}'
+	}
+
+	// TODO validate params.order
+	mut order := 'created_at DESC'
+	if params.order != '' {
+		order = params.order
+	}
+
+	mut author_id := 'BIN_TO_UUID(post_authors.author_id)'
+	mut post_authors := '
+		(
+			SELECT post_id, author_id
+			FROM post_authors
+			WHERE sort_order = 0
+		) AS post_authors'
+	if params.authors {
+		author_id = 'GROUP_CONCAT(BIN_TO_UUID(post_authors.author_id) ORDER BY post_authors.sort_order)'
+		post_authors = 'post_authors'
+	}
+
+	mut post_tag_id := 'BIN_TO_UUID(post_tags.post_tag_id)'
+	mut post_tags := '
+		(
+			SELECT post_id, post_tag_id
+			FROM post_tags
+			WHERE sort_order = 0
+		) AS post_tags'
+	if params.tags {
+		post_tag_id = 'GROUP_CONCAT(BIN_TO_UUID(post_tags.post_tag_id) ORDER BY post_tags.sort_order)'
+		post_tags = 'post_tags'
+	}
+
+	mut group := ''
+	if params.authors || params.tags {
+		group = 'GROUP BY post.id'
+	}
+
 	query_string := '
-		SELECT DISTINCT
+		SELECT
 			BIN_TO_UUID(post.id),
 			post.created_at,
 			BIN_TO_UUID(post.created_by),
@@ -237,13 +297,16 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			post.handle,
 			post.excerpt,
 			post.metadata,
-			BIN_TO_UUID(post_authors.author_id),
-			BIN_TO_UUID(post_tags.post_tag_id)
+			${author_id},
+			${post_tag_id}
 		FROM post
-		LEFT JOIN post_authors ON post.id = post_authors.post_id
-		LEFT JOIN post_tags ON post.id = post_tags.post_id
+		LEFT JOIN ${post_authors} ON post.id = post_authors.post_id
+		LEFT JOIN ${post_tags} ON post.id = post_tags.post_id
 		WHERE post."type" = ? ${where_clauses}
-		ORDER BY created_at DESC'
+		${group}
+		ORDER BY ${order}
+		LIMIT ${limit}
+		OFFSET ${offset}'
 
 	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query_string, params.post_type)!
 
@@ -270,8 +333,31 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
 		}
 
-		authors := authors_retrieve_by_post_id(mut mysql_conn, vals[0])!
-		tags := post_tag_retrieve_by_post_id(mut mysql_conn, vals[0])!
+		mut authors := []User{}
+		if params.authors {
+			author_ids := vals[19].split(',')
+			for id in author_ids {
+				author := user_retrieve_by_id(mut mysql_conn, id)!
+				authors << author
+			}
+		} else {
+			primary_author := user_retrieve_by_id(mut mysql_conn, vals[19])!
+			authors << primary_author
+		}
+
+		mut tags := []PostTag{}
+		if vals[20] != '' { // post may have no tags
+			if params.tags {
+				tag_ids := vals[20].split(',')
+				for id in tag_ids {
+					tag := post_tag_retrieve_by_id(mut mysql_conn, id)!
+					tags << tag
+				}
+			} else {
+				primary_tag := post_tag_retrieve_by_id(mut mysql_conn, vals[20])!
+				tags << primary_tag
+			}
+		}
 
 		mut post := Post{
 			id: vals[0]

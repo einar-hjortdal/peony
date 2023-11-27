@@ -31,7 +31,6 @@ This release allows the admin to login, create posts and store them in Percona S
 
 Needed enhancements on basic functionality.
 
-- Code optimizations <!-- multiple prepared statements within one transaction -->
 - Query parameters
 - User permissions:
   - admin: all
@@ -39,6 +38,9 @@ Needed enhancements on basic functionality.
   - developer:
   - author: can write and publish posts
   - contributor: can write posts but not publish
+- New features for posts:
+  - ~~Tags~~
+  - ~~Authors~~
 - Search
 
 ### v3.3.0
@@ -72,6 +74,15 @@ reset, an email is sent to the user email containing a link to change their pass
 This release focuses on polishing peony as a publishing platform. The blogging functionality should 
 be considered mature and stable. Future releases will focus on ecommerce capabilities to allow monetization 
 for content publishers and to make peony appealing as a versatile and comprehensive ecommerce system.
+<!-- 
+Add lower-priority content-publishing features:
+post_tag parent relationships
+restore deleted posts, tags, users
+post revisions
+
+Code optimizations:
+multiple prepared statements within one transaction
+-->
 
 ### v3.7.0
 

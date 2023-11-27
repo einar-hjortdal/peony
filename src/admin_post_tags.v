@@ -13,7 +13,7 @@ pub fn (mut app App) admin_post_tags_get() vweb.Result {
 	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	params := models.PostTagListParams{
-		exclude_deleted: false
+		deleted: true
 	}
 
 	post_tags := models.post_tag_list(mut app.db, params) or { return app.send_error(err, fn_name) }

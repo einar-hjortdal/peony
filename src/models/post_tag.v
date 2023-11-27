@@ -95,14 +95,17 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id 
 	// TODO insert post_tags values
 }
 
+// PostTagListParams allows to shape the response
+// `deleted` when false excludes deleted posts in the response
 pub struct PostTagListParams {
-	exclude_deleted bool
+	deleted bool
 }
 
 pub fn post_tag_list(mut mysql_conn mysql.DB, params PostTagListParams) ![]PostTag {
 	mut where_clauses := ''
-	if params.exclude_deleted {
-		where_clauses = 'AND post_tag.deleted_at IS NOT NULL'
+
+	if params.deleted == false {
+		where_clauses = 'AND post_tag.deleted_at IS NULL'
 	}
 
 	// TODO get parent tag if not empty
