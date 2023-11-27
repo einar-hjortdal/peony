@@ -28,7 +28,7 @@ pub struct Post {
 	featured     bool
 	published_at string    @[json: 'publishedAt']
 	published_by User      @[json: 'publishedBy']
-	visibility   string
+	visibility   string // TODO v3.7.0
 	title        string
 	subtitle     string
 	content      string
@@ -47,7 +47,7 @@ pub struct PostWriteable {
 pub mut:
 	status     string
 	featured   bool
-	visibility string
+	visibility string // TODO v3.7.0
 	title      string
 	subtitle   string
 	content    string
@@ -154,6 +154,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	vars = []mysql.Param{}
 	vars << id
 
+	// TODO use same conditions as update for consistency.
 	if pw.authors.len < 2 {
 		// Add user as author automatically if no authors are provided
 		if pw.authors.len == 0 {
@@ -199,9 +200,9 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 }
 
 // PostListParams allows to shape the response
-// `post_type` allowed_post_type
+// `post_type` required (`allowed_post_type`)
 // `deleted` defaults to false. When false excludes deleted posts in the response
-// `visibility` allowed_visibility
+// `visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
 // `order` defaults to `created_at DESC`
 // `limit` defaults to 10
 // `offset` defaults to 0
@@ -210,7 +211,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 pub struct PostListParams {
 	post_type  string
 	deleted    bool
-	visibility bool
+	visibility string
 	order      string
 	limit      int
 	offset     int
@@ -389,16 +390,14 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 }
 
 // PostRetrieveParams allows to shape the response
-// `post_type` allowed_post_type
 // `deleted` defaults to false. When false returns an error if the post is deleted
-// `visibility` allowed_visibility
+// `visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
 // `authors` defaults to false. When false only the primary author is returned.
 // `tags` defaults to false When false only the primary tag is returned.
 // TODO apply to post_retrieve functions and routes
 pub struct PostRetrieveParams {
-	post_type  string
 	deleted    bool
-	visibility bool
+	visibility string
 	authors    bool
 	tags       bool
 }
@@ -492,6 +491,17 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 
 	return posts[0]
 }
+
+// pub fn internal_post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
+// 	// Retrieve all post data
+// 	params := &PostRetrieveParams{
+// 		deleted: true
+// 		visibility: 'paid'
+// 		authors: true
+// 		tags: true
+// 	}
+// 	return post_retrieve(mut mysql_conn, id, params)
+// }
 
 pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
 	return post_retrieve(mut mysql_conn, 'id', id)
@@ -587,10 +597,39 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	query = 'DELETE FROM "post_tags" WHERE "post_id" = ?'
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
 
-	// Insert new post_authors and post_tags
-	// TODO for now only insert user_id in post_authors
+	// Insert post_authors and post_tags
 	query = 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id, user_id)!
+	if pw.authors.len == 0 {
+		mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id, user_id)!
+	}
+	if pw.authors.len == 1 {
+		mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id, pw.authors[0])!
+	}
+	if pw.authors.len > 1 {
+		mysql.prep(mut mysql_conn, 'stmt', query)!
+		for author in pw.authors {
+			vars = []mysql.Param{}
+			vars = arrays.concat(vars, post_id, author)
+			mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+		}
+		mysql.deallocate(mut mysql_conn, 'stmt')
+	}
+
+	if pw.tags.len != 0 {
+		query = 'INSERT INTO post_tags (post_id, post_tag_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+		if pw.tags.len == 1 {
+			mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id, pw.tags[0])!
+		}
+		if pw.tags.len > 1 {
+			mysql.prep(mut mysql_conn, 'stmt', query)!
+			for tag in pw.tags {
+				vars = []mysql.Param{}
+				vars = arrays.concat(vars, post_id, tag)
+				mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+			}
+			mysql.deallocate(mut mysql_conn, 'stmt')
+		}
+	}
 }
 
 pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) ! {
