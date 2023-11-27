@@ -51,7 +51,6 @@ pub fn (mut app App) admin_posts_post() vweb.Result {
 	retrieved_post := models.post_retrieve_by_id(mut app.db, new_post_id) or {
 		return app.send_error(err, fn_name)
 	}
-
 	return app.json(retrieved_post)
 }
 
@@ -64,7 +63,6 @@ pub fn (mut app App) admin_post_get_by_id(id string) vweb.Result {
 	retrieved_post := models.post_retrieve_by_id(mut app.db, id) or {
 		return app.send_error(err, fn_name)
 	}
-
 	return app.json(retrieved_post)
 }
 
@@ -82,11 +80,10 @@ pub fn (mut app App) admin_post_update(id string) vweb.Result {
 
 	body.update(mut app.db, id, v.user.id) or { return app.send_error(err, fn_name) }
 
-	retrieved_post := models.post_retrieve_by_id(mut app.db, id) or {
+	updated_post := models.post_retrieve_by_id(mut app.db, id) or {
 		return app.send_error(err, fn_name)
 	}
-
-	return app.json(retrieved_post)
+	return app.json(updated_post)
 }
 
 @['/admin/posts/:id'; delete]
@@ -95,11 +92,12 @@ pub fn (mut app App) admin_post_delete(id string) vweb.Result {
 
 	v := app.check_user_auth() or { return app.send_error(err, fn_name) }
 
-	post_tag := models.post_delete_by_id(mut app.db, v.user.id, id) or {
+	models.post_delete_by_id(mut app.db, v.user.id, id) or { return app.send_error(err, fn_name) }
+
+	deleted_post := models.post_retrieve_by_id(mut app.db, id) or {
 		return app.send_error(err, fn_name)
 	}
-
-	return app.json(post_tag)
+	return app.json(deleted_post)
 }
 
 /*
@@ -122,6 +120,5 @@ pub fn (mut app App) admin_pages_get() vweb.Result {
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
-
 	return app.json(pages)
 }

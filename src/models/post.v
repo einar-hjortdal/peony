@@ -200,7 +200,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 
 // PostListParams allows to shape the response
 // `post_type` allowed_post_type
-// `deleted` when false excludes deleted posts in the response
+// `deleted` defaults to false. When false excludes deleted posts in the response
 // `visibility` allowed_visibility
 // `order` defaults to `created_at DESC`
 // `limit` defaults to 10
@@ -218,7 +218,7 @@ pub struct PostListParams {
 	tags       bool
 }
 
-// TODO optimization: use keyset pagination
+// TODO performance optimization: use keyset pagination
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	if params.post_type != '' {
 		if params.post_type !in allowed_post_type {
@@ -226,9 +226,9 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		}
 	}
 
-	mut where_clauses := ''
-	if params.deleted == false {
-		where_clauses += 'AND post.deleted_at IS NULL'
+	mut where := ''
+	if !params.deleted {
+		where += 'AND post.deleted_at IS NULL'
 	}
 
 	mut limit := '10'
@@ -302,7 +302,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		FROM post
 		LEFT JOIN ${post_authors} ON post.id = post_authors.post_id
 		LEFT JOIN ${post_tags} ON post.id = post_tags.post_id
-		WHERE post."type" = ? ${where_clauses}
+		WHERE post."type" = ? ${where}
 		${group}
 		ORDER BY ${order}
 		LIMIT ${limit}
@@ -386,6 +386,21 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	}
 
 	return posts
+}
+
+// PostRetrieveParams allows to shape the response
+// `post_type` allowed_post_type
+// `deleted` defaults to false. When false returns an error if the post is deleted
+// `visibility` allowed_visibility
+// `authors` defaults to false. When false only the primary author is returned.
+// `tags` defaults to false When false only the primary tag is returned.
+// TODO apply to post_retrieve functions and routes
+pub struct PostRetrieveParams {
+	post_type  string
+	deleted    bool
+	visibility bool
+	authors    bool
+	tags       bool
 }
 
 fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
@@ -524,6 +539,7 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	excerpt = ?,
 	metadata = ?'
 
+	// TODO use arrays.concat https://github.com/vlang/v/issues/19976
 	mut vars := []mysql.Param{}
 	vars << pw.status
 	vars << pw.featured
@@ -565,13 +581,19 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	println(vars)
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
 
-	// TODO cleanup post_authors and post_tags
-	// DELETE FROM "post_authors" WHERE "post_id" = ?
-	// DELETE FROM "post_tags" WHERE "post_id" = ?
-	// Then re-insert records at every update
+	// Cleanup post_authors and post_tags
+	query = 'DELETE FROM "post_authors" WHERE "post_id" = ?'
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
+	query = 'DELETE FROM "post_tags" WHERE "post_id" = ?'
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
+
+	// Insert new post_authors and post_tags
+	// TODO for now only insert user_id in post_authors
+	query = 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id, user_id)!
 }
 
-pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !Post {
+pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) ! {
 	query := '
 	UPDATE post SET 
 		deleted_at = NOW(),
@@ -583,5 +605,4 @@ pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !
 	vars << id
 
 	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
-	return post_retrieve_by_id(mut mysql_conn, id)!
 }
