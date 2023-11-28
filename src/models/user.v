@@ -81,7 +81,7 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 	}
 
 	query := 'INSERT INTO user (${columns}) VALUES (${qm})'
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+	mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
 }
 
 pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
@@ -119,7 +119,7 @@ pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	WHERE id = UUID_TO_BIN(?)
 	'
 	vars = arrays.concat(vars, mysql.Param(id))
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+	mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
 }
 
 fn user_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !User {
@@ -143,7 +143,7 @@ fn user_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !User {
 	FROM user
 	WHERE ${column} = ${qm}'
 
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
+	res := mysql.prepare_n_exec(mut mysql_conn, query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -180,7 +180,7 @@ pub fn user_retrieve_by_email(mut mysql_conn v_mysql.DB, email string) !User {
 
 pub fn user_password_hash_by_email(mut mysql_conn v_mysql.DB, email string) !string {
 	query := 'SELECT password_hash FROM user WHERE email = ?'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, email)!
+	res := mysql.prepare_n_exec(mut mysql_conn, query, email)!
 	rows := res.rows()
 	if rows.len == 0 {
 		return error('No email')
@@ -195,7 +195,7 @@ pub fn user_delete_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 		updated_at = NOW(),
 		deleted_at = NOW()
 	WHERE id = UUID_TO_BIN(?)'
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
+	mysql.prepare_n_exec(mut mysql_conn, query, id)!
 }
 
 pub fn user_restore_by_id(mut mysql_conn v_mysql.DB, id string) ! {
@@ -205,7 +205,7 @@ pub fn user_restore_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 	updated_at = NOW(),
 	deleted_at = NULL
 	WHERE id = UUID_TO_BIN(?)'
-	mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
+	mysql.prepare_n_exec(mut mysql_conn, query, id)!
 }
 
 // user_list returns an array of all peony users.
@@ -223,7 +223,7 @@ pub fn user_list(mut mysql_conn v_mysql.DB) ![]User {
 		last_name,
 		metadata
 	FROM user'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
+	res := mysql.prepare_n_exec(mut mysql_conn, query)!
 
 	rows := res.rows()
 	mut users := []User{}
@@ -272,7 +272,7 @@ pub fn user_list_authors(mut mysql_conn v_mysql.DB) ![]User {
 		user.metadata
 	FROM user
 	INNER JOIN post ON user.id = post.published_by'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
+	res := mysql.prepare_n_exec(mut mysql_conn, query)!
 
 	rows := res.rows()
 	mut users := []User{}
@@ -317,7 +317,7 @@ fn user_retrieve_author(mut mysql_conn v_mysql.DB, column string, var string) !U
 	FROM user
 	INNER JOIN post_authors on user.id = post_authors.author_id
 	WHERE user.${column} = ${qm}'
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, var)!
+	res := mysql.prepare_n_exec(mut mysql_conn, query, var)!
 
 	rows := res.rows()
 
@@ -352,7 +352,7 @@ pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![
 	// TODO check cache
 	query := 'SELECT BIN_TO_UUID(author_id) FROM post_authors WHERE post_id = UUID_TO_BIN(?)'
 
-	res := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, post_id)!
+	res := mysql.prepare_n_exec(mut mysql_conn, query, post_id)!
 
 	rows := res.rows()
 	mut author_ids := []string{}

@@ -11,10 +11,8 @@ import utils
 // first party
 import coachonko.luuid
 
-const (
-	default_email    = 'default_admin@peony.com'
-	default_password = 'peony_default_password'
-)
+const default_email = 'default_admin@peony.com'
+const default_password = 'peony_default_password'
 
 // execute_mysql_script executes a mysql script by reading the script data.
 // This command expects properly formatted MySQL scripts. Each query must end with a semicolon.
@@ -141,7 +139,7 @@ fn needs_setup(mut logger log.Log, mut mysql_conn v_mysql.DB) bool {
     AND table_name = 'user'
 	)"
 	table_schema := os.getenv('MYSQL_DATABASE')
-	result := mysql.prep_n_exec(mut mysql_conn, 'stmt', query, table_schema) or { panic(err) }
+	result := mysql.prepare_n_exec(mut mysql_conn, query, table_schema) or { panic(err) }
 	if result.rows()[0].vals[0] == '1' {
 		return false
 	} else {

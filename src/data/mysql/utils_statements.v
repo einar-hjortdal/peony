@@ -60,7 +60,8 @@ pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
 // prepare prepares a statement on the MySQL server.
 // TODO replace prep with this function
 pub fn prepare(mut mysql_conn v_mysql.DB, statement string) !&Stmt {
-	stmt_name := rand.uuid_v4() // TODO replace with luuid_v2b (without generator)
+	// TODO replace with luuid_v2b (without generator)
+	stmt_name := '"${rand.uuid_v4()}"' // double-quoted identifier
 	escaped_query := escape_string(statement)
 	prepared := "PREPARE ${stmt_name} FROM '${escaped_query}'"
 	mysql_conn.real_query(prepared)!
@@ -71,10 +72,12 @@ pub fn prepare(mut mysql_conn v_mysql.DB, statement string) !&Stmt {
 	}
 }
 
-// TODO replace exec with this function
+// exec executes a prepared statement with the given parameters.
+// After the execution, the statement is not deallocated and can be executed again.
+// The statement is also not deallocated in case of error.
 pub fn (mut stmt Stmt) exec(params ...Param) !v_mysql.Result {
 	if params.len == 0 {
-		res := stmt.conn.real_query('EXECUTE "${stmt.name}"') or { return err }
+		res := stmt.conn.real_query('EXECUTE ${stmt.name}') or { return err }
 		return res
 	}
 
@@ -119,7 +122,7 @@ pub fn (mut stmt Stmt) exec(params ...Param) !v_mysql.Result {
 		vars = arrays.concat(vars, '@v${i}')
 	}
 
-	res := stmt.conn.real_query('EXECUTE "${stmt.name}" using ${vars.join(', ')}') or {
+	res := stmt.conn.real_query('EXECUTE ${stmt.name} using ${vars.join(', ')}') or {
 		stmt.null_vars(params.len)
 		return err
 	}
@@ -128,9 +131,6 @@ pub fn (mut stmt Stmt) exec(params ...Param) !v_mysql.Result {
 }
 
 // Deprecated: use Stmt.exec
-// exec executes a prepared statement with the given parameters.
-// After the execution, the statement is not deallocated and can be executed again.
-// The statement is also not deallocated in case of error.
 pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Result {
 	if params.len == 0 {
 		res := mysql_conn.real_query('EXECUTE "${name}"') or { return err }

@@ -50,7 +50,7 @@ pub mut:
 
 pub fn (store StoreWriteable) create(mut mysql_conn mysql.DB, id string) ! {
 	query := 'INSERT INTO store (id) VALUES (UUID_TO_BIN(?))'
-	c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, id)!
+	c_mysql.prepare_n_exec(mut mysql_conn, query, id)!
 }
 
 pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
@@ -99,7 +99,7 @@ pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
 
 	vars << id
 
-	c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query, ...vars)!
+	c_mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
 }
 
 pub fn store_retrieve(mut mysql_conn mysql.DB) !Store {
@@ -118,7 +118,7 @@ pub fn store_retrieve(mut mysql_conn mysql.DB) !Store {
 		metadata
 	FROM store'
 
-	res := c_mysql.prep_n_exec(mut mysql_conn, 'stmt', query)!
+	res := c_mysql.prepare_n_exec(mut mysql_conn, query)!
 
 	rows := res.rows()
 
