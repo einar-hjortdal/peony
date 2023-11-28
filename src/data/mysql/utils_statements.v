@@ -3,14 +3,13 @@ module mysql
 import arrays
 import db.mysql as v_mysql
 import strings
-import rand
 // first party
-// import coachonko.luuid
+import coachonko.luuid
 
 interface Param {}
 
 struct Stmt {
-	name        string // TODO luuid v2b
+	name        string
 	param_count int
 mut:
 	conn      v_mysql.DB
@@ -37,8 +36,8 @@ pub fn prep_n_exec(mut mysql_conn v_mysql.DB, statement string, params ...Param)
 
 // prepare prepares a statement on the MySQL server.
 pub fn prepare(mut mysql_conn v_mysql.DB, statement string) !&Stmt {
-	// TODO replace with luuid_v2b (without generator)
-	stmt_name := '"${rand.uuid_v4()}"' // double-quoted identifier
+	name := luuid.v3()!
+	stmt_name := '"${name}"' // double-quoted identifier
 	escaped_query := escape_string(statement)
 	prepared := "PREPARE ${stmt_name} FROM '${escaped_query}'"
 	mysql_conn.real_query(prepared)!
