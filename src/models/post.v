@@ -2,9 +2,9 @@ module models
 
 // vlib
 import arrays
-import db.mysql as v_mysql
+import db.mysql
 // local
-import data.mysql
+import data.mysql as c_mysql
 import utils
 
 // A post is a resource of content. A subset of posts is pages. pages are resources that are not meant
@@ -58,7 +58,7 @@ pub mut:
 	tags       []string
 }
 
-pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
+pub fn (pw PostWriteable) create(mut mysql_conn mysql.DB, created_by_id string, id string, post_type string) ! {
 	if post_type !in allowed_post_type {
 		return utils.new_peony_error(500, 'post_type invalid')
 	}
@@ -110,17 +110,9 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		metadata'
 	mut values := 'UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?, ?'
 
-	mut vars := []mysql.Param{}
-	vars << id
-	vars << created_by_id
-	vars << created_by_id
-	vars << pw.featured
-	vars << pw.title
-	vars << pw.subtitle
-	vars << pw.content
-	vars << pw.excerpt
-	vars << pw.handle
-	vars << pw.metadata
+	mut vars := []c_mysql.Param{}
+	vars = arrays.concat(vars, id, created_by_id, created_by_id, pw.featured, pw.title,
+		pw.subtitle, pw.content, pw.excerpt, pw.handle, pw.metadata)
 
 	if post_type in allowed_post_type {
 		query_columns += ', type'
@@ -147,11 +139,11 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 
 	mut query := 'INSERT INTO post (${query_columns}) VALUES (${values})'
-	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	c_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 
 	authors_query := 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
-	vars = []mysql.Param{}
+	vars = []c_mysql.Param{}
 	vars << id
 
 	// TODO use same conditions as update for consistency.
@@ -163,14 +155,13 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		if pw.authors.len == 1 {
 			vars << pw.authors[0]
 		}
-		mysql.prep_n_exec(mut mysql_conn, authors_query, ...vars)!
+		c_mysql.prep_n_exec(mut mysql_conn, authors_query, ...vars)!
 	} else {
-		mut stmt := mysql.prepare(mut mysql_conn, authors_query)!
+		mut stmt := c_mysql.prepare(mut mysql_conn, authors_query)!
 		for author in pw.authors {
 			author_id := author
-			vars = []mysql.Param{}
-			vars << id
-			vars << author_id
+			vars = []c_mysql.Param{}
+			vars = arrays.concat(vars, id, author_id)
 			stmt.exec(...vars)!
 		}
 		stmt.deallocate()
@@ -181,17 +172,15 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		tags_query := 'INSERT INTO post_tags (post_id, post_tag_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 		if pw.tags.len == 1 {
-			vars = []mysql.Param{}
-			vars << id
-			vars << pw.tags[0]
-			mysql.prep_n_exec(mut mysql_conn, tags_query, ...vars)!
+			vars = []c_mysql.Param{}
+			vars = arrays.concat(vars, id, pw.tags[0])
+			c_mysql.prep_n_exec(mut mysql_conn, tags_query, ...vars)!
 		} else {
-			mut stmt := mysql.prepare(mut mysql_conn, tags_query)!
+			mut stmt := c_mysql.prepare(mut mysql_conn, tags_query)!
 			for tag_id in pw.tags {
 				tag := tag_id
-				vars = []mysql.Param{}
-				vars << id
-				vars << tag
+				vars = []c_mysql.Param{}
+				vars = arrays.concat(vars, id, tag)
 				stmt.exec(...vars)!
 			}
 			stmt.deallocate()
@@ -220,7 +209,7 @@ pub struct PostListParams {
 }
 
 // TODO performance optimization: use keyset pagination
-pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
+pub fn post_list(mut mysql_conn mysql.DB, params PostListParams) ![]Post {
 	if params.post_type != '' {
 		if params.post_type !in allowed_post_type {
 			return error("post_type must be either 'post' or 'page'")
@@ -309,7 +298,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		LIMIT ${limit}
 		OFFSET ${offset}'
 
-	res := mysql.prep_n_exec(mut mysql_conn, query_string, params.post_type)!
+	res := c_mysql.prep_n_exec(mut mysql_conn, query_string, params.post_type)!
 
 	rows := res.rows()
 	mut posts := []Post{}
@@ -370,7 +359,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			deleted_by: deleted_by
 			status: vals[7]
 			post_type: vals[8]
-			featured: mysql.bit_to_bool(vals[9])
+			featured: c_mysql.bit_to_bool(vals[9])
 			published_at: vals[10]
 			published_by: published_by
 			visibility: vals[12]
@@ -402,7 +391,7 @@ pub struct PostRetrieveParams {
 	tags       bool
 }
 
-fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
+fn post_retrieve(mut mysql_conn mysql.DB, column string, var string) !Post {
 	mut qm := '?'
 	if column == 'id' {
 		qm = 'UUID_TO_BIN(?)'
@@ -431,7 +420,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 		metadata
 	FROM post
 	WHERE ${column} = ${qm}'
-	res := mysql.prep_n_exec(mut mysql_conn, query, var)!
+	res := c_mysql.prep_n_exec(mut mysql_conn, query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -473,7 +462,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			deleted_by: deleted_by
 			status: vals[7]
 			post_type: vals[8]
-			featured: mysql.bit_to_bool(vals[9])
+			featured: c_mysql.bit_to_bool(vals[9])
 			published_at: vals[10]
 			published_by: published_by
 			visibility: vals[12]
@@ -492,7 +481,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 	return posts[0]
 }
 
-// pub fn internal_post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
+// pub fn internal_post_retrieve_by_id(mut mysql_conn mysql.DB, id string) !Post {
 // 	// Retrieve all post data
 // 	params := &PostRetrieveParams{
 // 		deleted: true
@@ -503,15 +492,15 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 // 	return post_retrieve(mut mysql_conn, id, params)
 // }
 
-pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
+pub fn post_retrieve_by_id(mut mysql_conn mysql.DB, id string) !Post {
 	return post_retrieve(mut mysql_conn, 'id', id)
 }
 
-pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
+pub fn post_retrieve_by_handle(mut mysql_conn mysql.DB, handle string) !Post {
 	return post_retrieve(mut mysql_conn, 'handle', handle)
 }
 
-pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, user_id string) ! {
+pub fn (mut pw PostWriteable) update(mut mysql_conn mysql.DB, post_id string, user_id string) ! {
 	if user_id == '' {
 		return error('PostWriteable.update: parameter user_id invalid')
 	}
@@ -549,18 +538,9 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	excerpt = ?,
 	metadata = ?'
 
-	// TODO use arrays.concat https://github.com/vlang/v/issues/19976
-	mut vars := []mysql.Param{}
-	vars << pw.status
-	vars << pw.featured
-	vars << user_id
-	vars << pw.visibility
-	vars << pw.title
-	vars << pw.subtitle
-	vars << pw.content
-	vars << pw.handle
-	vars << pw.excerpt
-	vars << pw.metadata
+	mut vars := []c_mysql.Param{}
+	vars = arrays.concat(vars, pw.status, pw.featured, user_id, pw.visibility, pw.title,
+		pw.subtitle, pw.content, pw.handle, pw.excerpt, pw.metadata)
 
 	// Only update published_at and published_by if post is being published for the first time
 	// Note: concatenate string at the beginning because of MySQL non-standard behavior
@@ -579,7 +559,7 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 			ELSE published_by
 		END, " +
 			query_records
-		mut new_params := []mysql.Param{}
+		mut new_params := []c_mysql.Param{}
 		new_params << user_id
 		vars = arrays.concat(new_params, ...vars)
 	}
@@ -587,44 +567,55 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	vars << post_id
 
 	mut query := 'UPDATE post SET ${query_records} WHERE id = UUID_TO_BIN(?)'
-	println(query)
-	println(vars)
-	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	c_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 
 	// Cleanup post_authors and post_tags
-	query = 'DELETE FROM "post_authors" WHERE "post_id" = ?'
-	mysql.prep_n_exec(mut mysql_conn, query, post_id)!
-	query = 'DELETE FROM "post_tags" WHERE "post_id" = ?'
-	mysql.prep_n_exec(mut mysql_conn, query, post_id)!
+	query = 'DELETE FROM post_authors WHERE post_id = UUID_TO_BIN(?)'
+	c_mysql.prep_n_exec(mut mysql_conn, query, post_id)!
+	query = 'DELETE FROM post_tags WHERE post_id = UUID_TO_BIN(?)'
+	c_mysql.prep_n_exec(mut mysql_conn, query, post_id)!
 
 	// Insert post_authors and post_tags
-	query = 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
-	if pw.authors.len == 0 {
-		mysql.prep_n_exec(mut mysql_conn, query, post_id, user_id)!
-	}
-	if pw.authors.len == 1 {
-		mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.authors[0])!
-	}
-	if pw.authors.len > 1 {
-		mut stmt := mysql.prepare(mut mysql_conn, query)!
-		for author in pw.authors {
-			vars = []mysql.Param{}
-			vars = arrays.concat(vars, post_id, author)
+	if pw.authors.len < 2 {
+		query = 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+		if pw.authors.len == 1 {
+			c_mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.authors[0])!
+		} else {
+			c_mysql.prep_n_exec(mut mysql_conn, query, post_id, user_id)!
+		}
+	} else {
+		query = '
+			INSERT INTO post_authors (
+				post_id,
+				author_id,
+				sort_order
+				)
+			VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?), ?)'
+		mut stmt := c_mysql.prepare(mut mysql_conn, query)!
+		for i := 0; i < pw.authors.len; i++ {
+			vars = []c_mysql.Param{}
+			vars = arrays.concat(vars, post_id, pw.authors[i], i)
 			stmt.exec(...vars)!
 		}
 		stmt.deallocate()
 	}
 
 	if pw.tags.len != 0 {
-		query = 'INSERT INTO post_tags (post_id, post_tag_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 		if pw.tags.len == 1 {
-			mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.tags[0])!
-		}
-		if pw.tags.len > 1 {
-			mut stmt := mysql.prepare(mut mysql_conn, query)!
-			for tag in pw.tags {
-				vars = []mysql.Param{}
-				vars = arrays.concat(vars, post_id, tag)
+			query = 'INSERT INTO post_tags (post_id, post_tag_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
+			c_mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.tags[0])!
+		} else if pw.tags.len > 1 {
+			query = '
+				INSERT INTO post_tags (
+					post_id,
+					post_tag_id
+					sort_order
+					)
+				VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?), ?)'
+			mut stmt := c_mysql.prepare(mut mysql_conn, query)!
+			for i := 0; i < pw.tags.len; i++ {
+				vars = []c_mysql.Param{}
+				vars = arrays.concat(vars, post_id, pw.tags[i], i)
 				stmt.exec(...vars)!
 			}
 			stmt.deallocate()
@@ -632,16 +623,15 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	}
 }
 
-pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) ! {
+pub fn post_delete_by_id(mut mysql_conn mysql.DB, user_id string, id string) ! {
 	query := '
 	UPDATE post SET 
 		deleted_at = NOW(),
 		deleted_by = ?
 	WHERE id = UUID_TO_BIN(?)'
 
-	mut vars := []mysql.Param{}
-	vars << user_id
-	vars << id
+	mut vars := []c_mysql.Param{}
+	vars = arrays.concat(vars, user_id, id)
 
-	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	c_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 }
