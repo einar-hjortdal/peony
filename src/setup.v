@@ -139,7 +139,7 @@ fn needs_setup(mut logger log.Log, mut mysql_conn v_mysql.DB) bool {
     AND table_name = 'user'
 	)"
 	table_schema := os.getenv('MYSQL_DATABASE')
-	result := mysql.prepare_n_exec(mut mysql_conn, query, table_schema) or { panic(err) }
+	result := mysql.prep_n_exec(mut mysql_conn, query, table_schema) or { panic(err) }
 	if result.rows()[0].vals[0] == '1' {
 		return false
 	} else {

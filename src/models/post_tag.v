@@ -91,7 +91,7 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id 
 	INSERT INTO post_tag (${columns})
 	VALUES (${qm})'
 
-	p_mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
+	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 	// TODO insert post_tags values
 }
 
@@ -132,7 +132,7 @@ pub fn post_tag_list(mut mysql_conn mysql.DB, params PostTagListParams) ![]PostT
 	${where_clauses}
 	ORDER BY created_at DESC'
 
-	res := p_mysql.prepare_n_exec(mut mysql_conn, query)!
+	res := p_mysql.prep_n_exec(mut mysql_conn, query)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -253,7 +253,7 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 	WHERE ${column} = ${qm}
 	ORDER BY created_at DESC'
 
-	res := p_mysql.prepare_n_exec(mut mysql_conn, query, var)!
+	res := p_mysql.prep_n_exec(mut mysql_conn, query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -336,7 +336,7 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 	SET ${query_records}
 	WHERE id = UUID_TO_BIN(?)'
 
-	p_mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
+	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 
 	// TODO the following could return errors if post_id does not exist
 	if ptw.posts.len > 0 {
@@ -348,7 +348,7 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 			mut post_tags_vars := []p_mysql.Param{}
 			post_tags_vars << ptw.posts[0]
 			post_tags_vars << post_tag_id
-			p_mysql.prepare_n_exec(mut mysql_conn, query, ...post_tags_vars)!
+			p_mysql.prep_n_exec(mut mysql_conn, query, ...post_tags_vars)!
 		} else {
 			p_mysql.prep(mut mysql_conn, 'stmt', post_tags_query)!
 			for post_id in ptw.posts {
@@ -386,7 +386,7 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]
 	WHERE post_id = ?
 	ORDER BY post_tags.sort_order'
 
-	res := p_mysql.prepare_n_exec(mut mysql_conn, query, post_id)!
+	res := p_mysql.prep_n_exec(mut mysql_conn, query, post_id)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -447,6 +447,6 @@ pub fn post_tag_delete_by_id(mut mysql_conn mysql.DB, user_id string, id string)
 	vars << user_id
 	vars << id
 
-	p_mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
+	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 	return post_tag_retrieve_by_id(mut mysql_conn, id)!
 }

@@ -21,7 +21,7 @@ mut:
 // statement is deallocated.
 // It returns the `v_mysql.Result` of the prepared statement execution, or any error that occurs instead.
 // This function is convenient to execute prepared statements that are meant to be executed once only.
-pub fn prepare_n_exec(mut mysql_conn v_mysql.DB, statement string, params ...Param) !v_mysql.Result {
+pub fn prep_n_exec(mut mysql_conn v_mysql.DB, statement string, params ...Param) !v_mysql.Result {
 	mut stmt := prepare(mut mysql_conn, statement)!
 	res := stmt.exec(...params) or {
 		stmt.deallocate()
@@ -30,21 +30,6 @@ pub fn prepare_n_exec(mut mysql_conn v_mysql.DB, statement string, params ...Par
 
 	if params.len > 0 {
 		stmt.cleanup(params.len)
-	}
-
-	return res
-}
-
-// Deprecated: use prepare_n_exc
-pub fn prep_n_exec(mut mysql_conn v_mysql.DB, name string, statement string, params ...Param) !v_mysql.Result {
-	prep(mut mysql_conn, name, statement)!
-	res := exec(mut mysql_conn, name, ...params) or {
-		deallocate(mut mysql_conn, name)
-		return err
-	}
-
-	if params.len > 0 {
-		cleanup(mut mysql_conn, name, params.len)
 	}
 
 	return res

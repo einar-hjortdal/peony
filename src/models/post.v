@@ -147,7 +147,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	}
 
 	mut query := 'INSERT INTO post (${query_columns}) VALUES (${values})'
-	mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 
 	authors_query := 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
@@ -163,7 +163,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		if pw.authors.len == 1 {
 			vars << pw.authors[0]
 		}
-		mysql.prepare_n_exec(mut mysql_conn, authors_query, ...vars)!
+		mysql.prep_n_exec(mut mysql_conn, authors_query, ...vars)!
 	} else {
 		mysql.prep(mut mysql_conn, 'stmt', authors_query)!
 		for author in pw.authors {
@@ -184,7 +184,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 			vars = []mysql.Param{}
 			vars << id
 			vars << pw.tags[0]
-			mysql.prepare_n_exec(mut mysql_conn, tags_query, ...vars)!
+			mysql.prep_n_exec(mut mysql_conn, tags_query, ...vars)!
 		} else {
 			mysql.prep(mut mysql_conn, 'stmt', tags_query)!
 			for tag_id in pw.tags {
@@ -309,7 +309,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		LIMIT ${limit}
 		OFFSET ${offset}'
 
-	res := mysql.prepare_n_exec(mut mysql_conn, query_string, params.post_type)!
+	res := mysql.prep_n_exec(mut mysql_conn, query_string, params.post_type)!
 
 	rows := res.rows()
 	mut posts := []Post{}
@@ -431,7 +431,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 		metadata
 	FROM post
 	WHERE ${column} = ${qm}'
-	res := mysql.prepare_n_exec(mut mysql_conn, query, var)!
+	res := mysql.prep_n_exec(mut mysql_conn, query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -589,21 +589,21 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	mut query := 'UPDATE post SET ${query_records} WHERE id = UUID_TO_BIN(?)'
 	println(query)
 	println(vars)
-	mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 
 	// Cleanup post_authors and post_tags
 	query = 'DELETE FROM "post_authors" WHERE "post_id" = ?'
-	mysql.prepare_n_exec(mut mysql_conn, query, post_id)!
+	mysql.prep_n_exec(mut mysql_conn, query, post_id)!
 	query = 'DELETE FROM "post_tags" WHERE "post_id" = ?'
-	mysql.prepare_n_exec(mut mysql_conn, query, post_id)!
+	mysql.prep_n_exec(mut mysql_conn, query, post_id)!
 
 	// Insert post_authors and post_tags
 	query = 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 	if pw.authors.len == 0 {
-		mysql.prepare_n_exec(mut mysql_conn, query, post_id, user_id)!
+		mysql.prep_n_exec(mut mysql_conn, query, post_id, user_id)!
 	}
 	if pw.authors.len == 1 {
-		mysql.prepare_n_exec(mut mysql_conn, query, post_id, pw.authors[0])!
+		mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.authors[0])!
 	}
 	if pw.authors.len > 1 {
 		mysql.prep(mut mysql_conn, 'stmt', query)!
@@ -618,7 +618,7 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	if pw.tags.len != 0 {
 		query = 'INSERT INTO post_tags (post_id, post_tag_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 		if pw.tags.len == 1 {
-			mysql.prepare_n_exec(mut mysql_conn, query, post_id, pw.tags[0])!
+			mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.tags[0])!
 		}
 		if pw.tags.len > 1 {
 			mysql.prep(mut mysql_conn, 'stmt', query)!
@@ -643,5 +643,5 @@ pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !
 	vars << user_id
 	vars << id
 
-	mysql.prepare_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 }
