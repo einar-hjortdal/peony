@@ -350,15 +350,15 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 			post_tags_vars << post_tag_id
 			p_mysql.prep_n_exec(mut mysql_conn, query, ...post_tags_vars)!
 		} else {
-			p_mysql.prep(mut mysql_conn, 'stmt', post_tags_query)!
+			mut stmt := p_mysql.prepare(mut mysql_conn, post_tags_query)!
 			for post_id in ptw.posts {
 				id := post_id
 				mut post_tags_vars := []p_mysql.Param{}
 				post_tags_vars << id
 				post_tags_vars << post_tag_id
-				p_mysql.exec(mut mysql_conn, 'stmt', ...post_tags_vars)!
+				stmt.exec(...post_tags_vars)!
 			}
-			p_mysql.deallocate(mut mysql_conn, 'stmt')
+			stmt.deallocate()
 		}
 	}
 }

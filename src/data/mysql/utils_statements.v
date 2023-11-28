@@ -35,15 +35,7 @@ pub fn prep_n_exec(mut mysql_conn v_mysql.DB, statement string, params ...Param)
 	return res
 }
 
-// Deprecated: use prepare
-pub fn prep(mut mysql_conn v_mysql.DB, name string, statement string) ! {
-	escaped_query := escape_string(statement)
-	prepared := "PREPARE ${name} FROM '${escaped_query}'"
-	_ := mysql_conn.real_query(prepared)!
-}
-
 // prepare prepares a statement on the MySQL server.
-// TODO replace prep with this function
 pub fn prepare(mut mysql_conn v_mysql.DB, statement string) !&Stmt {
 	// TODO replace with luuid_v2b (without generator)
 	stmt_name := '"${rand.uuid_v4()}"' // double-quoted identifier
@@ -115,71 +107,9 @@ pub fn (mut stmt Stmt) exec(params ...Param) !v_mysql.Result {
 	return res
 }
 
-// Deprecated: use Stmt.exec
-pub fn exec(mut mysql_conn v_mysql.DB, name string, params ...Param) !v_mysql.Result {
-	if params.len == 0 {
-		res := mysql_conn.real_query('EXECUTE "${name}"') or { return err }
-		return res
-	}
-
-	mut vars := []string{}
-
-	for i := 0; i < params.len; i += 1 {
-		param := params[i]
-		match param {
-			string {
-				// string literals must be wrapped in single quotes
-				escaped_string := mysql_conn.escape_string(param)
-				_ := mysql_conn.real_query("SET @v${i} = '${escaped_string}'") or {
-					null_vars(mut mysql_conn, i)
-					return err
-				}
-			}
-			int {
-				_ := mysql_conn.real_query('SET @v${i} = ${param}') or {
-					null_vars(mut mysql_conn, i)
-					return err
-				}
-			}
-			bool { // https://github.com/vlang/v/issues/19834
-				// In MySQL boolean values are stored as bit(1): 0x01 is true and 0x00 is false.
-				if param == true {
-					_ := mysql_conn.real_query('SET @v${i} = 0x01') or {
-						null_vars(mut mysql_conn, i)
-						return err
-					}
-				} else {
-					_ := mysql_conn.real_query('SET @v${i} = 0x00') or {
-						null_vars(mut mysql_conn, i)
-						return err
-					}
-				}
-			}
-			else {
-				null_vars(mut mysql_conn, i)
-				return error('Param type not supported: ${param}')
-			}
-		}
-		vars = arrays.concat(vars, '@v${i}')
-	}
-
-	res := mysql_conn.real_query('EXECUTE "${name}" using ${vars.join(', ')}') or {
-		null_vars(mut mysql_conn, params.len)
-		return err
-	}
-	null_vars(mut mysql_conn, params.len)
-	return res
-}
-
 fn (mut stmt Stmt) cleanup(index int) {
 	stmt.null_vars(index)
 	stmt.deallocate()
-}
-
-// Deprecated: use Stmt.cleanup
-fn cleanup(mut mysql_conn v_mysql.DB, name string, index int) {
-	null_vars(mut mysql_conn, index)
-	deallocate(mut mysql_conn, name)
 }
 
 fn (mut stmt Stmt) null_vars(index int) {
@@ -188,20 +118,8 @@ fn (mut stmt Stmt) null_vars(index int) {
 	}
 }
 
-// Deprecated: use Stmt.null_vars
-fn null_vars(mut mysql_conn v_mysql.DB, index int) {
-	for i := 0; i < index; i += 1 {
-		mysql_conn.real_query('SET @v${i} = NULL') or {}
-	}
-}
-
-fn (mut stmt Stmt) deallocate() {
+pub fn (mut stmt Stmt) deallocate() {
 	stmt.conn.real_query('DEALLOCATE PREPARE "${stmt.name}"') or {}
-}
-
-// Deprecated: use Stmt.deallocate
-pub fn deallocate(mut mysql_conn v_mysql.DB, name string) {
-	mysql_conn.real_query('DEALLOCATE PREPARE "${name}"') or {}
 }
 
 // escape_string escapes special characters in a string for use in an SQL statement.

@@ -165,15 +165,15 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		}
 		mysql.prep_n_exec(mut mysql_conn, authors_query, ...vars)!
 	} else {
-		mysql.prep(mut mysql_conn, 'stmt', authors_query)!
+		mut stmt := mysql.prepare(mut mysql_conn, authors_query)!
 		for author in pw.authors {
 			author_id := author
 			vars = []mysql.Param{}
 			vars << id
 			vars << author_id
-			mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+			stmt.exec(...vars)!
 		}
-		mysql.deallocate(mut mysql_conn, 'stmt')
+		stmt.deallocate()
 	}
 
 	// tags
@@ -186,15 +186,15 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 			vars << pw.tags[0]
 			mysql.prep_n_exec(mut mysql_conn, tags_query, ...vars)!
 		} else {
-			mysql.prep(mut mysql_conn, 'stmt', tags_query)!
+			mut stmt := mysql.prepare(mut mysql_conn, tags_query)!
 			for tag_id in pw.tags {
 				tag := tag_id
 				vars = []mysql.Param{}
 				vars << id
 				vars << tag
-				mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+				stmt.exec(...vars)!
 			}
-			mysql.deallocate(mut mysql_conn, 'stmt')
+			stmt.deallocate()
 		}
 	}
 }
@@ -606,13 +606,13 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 		mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.authors[0])!
 	}
 	if pw.authors.len > 1 {
-		mysql.prep(mut mysql_conn, 'stmt', query)!
+		mut stmt := mysql.prepare(mut mysql_conn, query)!
 		for author in pw.authors {
 			vars = []mysql.Param{}
 			vars = arrays.concat(vars, post_id, author)
-			mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+			stmt.exec(...vars)!
 		}
-		mysql.deallocate(mut mysql_conn, 'stmt')
+		stmt.deallocate()
 	}
 
 	if pw.tags.len != 0 {
@@ -621,13 +621,13 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 			mysql.prep_n_exec(mut mysql_conn, query, post_id, pw.tags[0])!
 		}
 		if pw.tags.len > 1 {
-			mysql.prep(mut mysql_conn, 'stmt', query)!
+			mut stmt := mysql.prepare(mut mysql_conn, query)!
 			for tag in pw.tags {
 				vars = []mysql.Param{}
 				vars = arrays.concat(vars, post_id, tag)
-				mysql.exec(mut mysql_conn, 'stmt', ...vars)!
+				stmt.exec(...vars)!
 			}
-			mysql.deallocate(mut mysql_conn, 'stmt')
+			stmt.deallocate()
 		}
 	}
 }
