@@ -1,7 +1,7 @@
 module main
 
 import vweb
-import db.mysql
+import db.mysql as v_mysql
 import models
 
 @['/storefront/post_tags'; get]
@@ -27,7 +27,7 @@ pub fn (mut app App) storefront_post_tags_get_by_handle(handle string) vweb.Resu
 	return app.storefront_post_tag_retrieve(handle, models.post_tag_retrieve_by_handle)
 }
 
-fn (mut app App) storefront_post_tag_retrieve(id_or_handle string, retrieve_fn fn (mut mysql.DB, string) !models.PostTag) vweb.Result {
+fn (mut app App) storefront_post_tag_retrieve(id_or_handle string, retrieve_fn fn (mut v_mysql.DB, string) !models.PostTag) vweb.Result {
 	fn_name := 'storefront_post_tag_retrieve'
 
 	post_tag := retrieve_fn(mut app.db, id_or_handle) or { return app.send_error(err, fn_name) }

@@ -1,9 +1,9 @@
 module models
 
 // vlib
-import db.mysql
+import db.mysql as v_mysql
 // local
-import data.mysql as c_mysql
+import data.mysql
 import utils
 
 // TODO when requested with a query, fetch more data:
@@ -48,12 +48,12 @@ pub mut:
 	metadata                  string @[raw]
 }
 
-pub fn (store StoreWriteable) create(mut mysql_conn mysql.DB, id string) ! {
+pub fn (store StoreWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 	query := 'INSERT INTO store (id) VALUES (UUID_TO_BIN(?))'
-	c_mysql.prep_n_exec(mut mysql_conn, query, id)!
+	mysql.prep_n_exec(mut mysql_conn, query, id)!
 }
 
-pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
+pub fn (sw StoreWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	if sw.name == '' {
 		return utils.new_peony_error(400, 'name is required')
 	}
@@ -63,7 +63,7 @@ pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
 	name = ?,
 	metadata = ?'
 
-	mut vars := []c_mysql.Param{}
+	mut vars := []mysql.Param{}
 	vars << sw.name
 	vars << sw.metadata
 
@@ -99,10 +99,10 @@ pub fn (sw StoreWriteable) update(mut mysql_conn mysql.DB, id string) ! {
 
 	vars << id
 
-	c_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 }
 
-pub fn store_retrieve(mut mysql_conn mysql.DB) !Store {
+pub fn store_retrieve(mut mysql_conn v_mysql.DB) !Store {
 	query := '
 	SELECT 
 		BIN_TO_UUID(id),
@@ -118,7 +118,7 @@ pub fn store_retrieve(mut mysql_conn mysql.DB) !Store {
 		metadata
 	FROM store'
 
-	res := c_mysql.prep_n_exec(mut mysql_conn, query)!
+	res := mysql.prep_n_exec(mut mysql_conn, query)!
 
 	rows := res.rows()
 

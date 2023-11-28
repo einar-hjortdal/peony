@@ -2,7 +2,7 @@ module models
 
 // vlib
 import arrays
-import db.mysql
+import db.mysql as v_mysql
 // local
 import utils
 import data.mysql as p_mysql
@@ -39,7 +39,7 @@ pub mut:
 	posts      []string
 }
 
-pub fn (mut ptw PostTagWriteable) create(mut mysql_conn mysql.DB, created_by_id string, id string) ! {
+pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string) ! {
 	ptw.validate()!
 
 	mut columns := '
@@ -101,7 +101,7 @@ pub struct PostTagListParams {
 	deleted bool
 }
 
-pub fn post_tag_list(mut mysql_conn mysql.DB, params PostTagListParams) ![]PostTag {
+pub fn post_tag_list(mut mysql_conn v_mysql.DB, params PostTagListParams) ![]PostTag {
 	mut where_clauses := ''
 
 	if params.deleted == false {
@@ -216,15 +216,15 @@ fn (ptw PostTagWriteable) validate() ! {
 	// TODO UUID must be validated or risk mysql fail operations
 }
 
-pub fn post_tag_retrieve_by_id(mut mysql_conn mysql.DB, id string) !PostTag {
+pub fn post_tag_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !PostTag {
 	return post_tag_retrieve(mut mysql_conn, 'id', id)!
 }
 
-pub fn post_tag_retrieve_by_handle(mut mysql_conn mysql.DB, handle string) !PostTag {
+pub fn post_tag_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !PostTag {
 	return post_tag_retrieve(mut mysql_conn, 'handle', handle)!
 }
 
-fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTag {
+fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !PostTag {
 	mut qm := '?'
 	if column == 'id' {
 		qm = 'UUID_TO_BIN(?)'
@@ -301,7 +301,7 @@ fn post_tag_retrieve(mut mysql_conn mysql.DB, column string, var string) !PostTa
 	return post_tag
 }
 
-pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id string, user_id string) ! {
+pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id string, user_id string) ! {
 	ptw.validate()!
 	mut query_records := '
 	visibility = ?,
@@ -363,7 +363,7 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn mysql.DB, post_tag_id st
 	}
 }
 
-pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]PostTag {
+pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]PostTag {
 	query := '
 	SELECT 
 		BIN_TO_UUID(post_tag.id),
@@ -436,7 +436,7 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn mysql.DB, post_id string) ![]
 	return post_tags
 }
 
-pub fn post_tag_delete_by_id(mut mysql_conn mysql.DB, user_id string, id string) !PostTag {
+pub fn post_tag_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !PostTag {
 	query := '
 	UPDATE post_tag SET 
 		deleted_at = NOW(),
