@@ -6,6 +6,8 @@ import db.mysql as v_mysql
 // local
 import utils
 import data.mysql as p_mysql
+// first party
+import coachonko.luuid
 
 pub struct PostTag {
 	id         string
@@ -41,6 +43,11 @@ pub mut:
 
 pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string) ! {
 	ptw.validate()!
+
+	luuid.verify(created_by_id) or {
+		return utils.new_peony_error(400, 'created_by_id is not a UUID')
+	}
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
 
 	mut columns := '
 	id,
@@ -217,6 +224,8 @@ fn (ptw PostTagWriteable) validate() ! {
 }
 
 pub fn post_tag_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !PostTag {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	return post_tag_retrieve(mut mysql_conn, 'id', id)!
 }
 
@@ -303,6 +312,10 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 
 pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id string, user_id string) ! {
 	ptw.validate()!
+
+	luuid.verify(post_tag_id) or { return utils.new_peony_error(400, 'post_tag_id is not a UUID') }
+	luuid.verify(user_id) or { return utils.new_peony_error(400, 'user_id is not a UUID') }
+
 	mut query_records := '
 	visibility = ?,
 	updated_at = NOW(),
@@ -364,6 +377,8 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id 
 }
 
 pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]PostTag {
+	luuid.verify(post_id) or { return utils.new_peony_error(400, 'post_id is not a UUID') }
+
 	query := '
 	SELECT 
 		BIN_TO_UUID(post_tag.id),
@@ -437,6 +452,9 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) !
 }
 
 pub fn post_tag_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !PostTag {
+	luuid.verify(user_id) or { return utils.new_peony_error(400, 'user_id is not a UUID') }
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	query := '
 	UPDATE post_tag SET 
 		deleted_at = NOW(),

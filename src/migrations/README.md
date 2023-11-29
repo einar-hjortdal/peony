@@ -29,7 +29,7 @@ and then the old element is removed.
   2. An underscore to separate the first 2 letters from the following characters
   3. The UUID generated with a minimal V program 
     ```v
-    import rand
+    import coachonko.luuid
     
-    println(rand.uuid_v4())
+    println(luuid.v3())
     ```

@@ -6,6 +6,8 @@ import db.mysql as v_mysql
 // local
 import data.mysql
 import utils
+// first party
+import coachonko.luuid
 
 // Users are either `admin`, `member`, `developer`, `author`, `contributor`
 // They are part of the team that runs a peony website.
@@ -39,6 +41,8 @@ pub mut:
 // create_user creates a peony user in the database.
 // id, email, password_hash and handle are required.
 pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	mut columns := '
 	id,
 	email,
@@ -85,6 +89,8 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 }
 
 pub fn (user UserWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	if user.handle == '' {
 		return utils.new_peony_error(400, 'handle is required')
 	}
@@ -171,6 +177,8 @@ fn user_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !User {
 
 // user_retrieve_by_id returns the data of a peony user identified by the provided id.
 pub fn user_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !User {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	return user_retrieve(mut mysql_conn, 'id', id)
 }
 
@@ -189,6 +197,8 @@ pub fn user_password_hash_by_email(mut mysql_conn v_mysql.DB, email string) !str
 }
 
 pub fn user_delete_by_id(mut mysql_conn v_mysql.DB, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	query := '
 	UPDATE user
 	SET 
@@ -199,6 +209,8 @@ pub fn user_delete_by_id(mut mysql_conn v_mysql.DB, id string) ! {
 }
 
 pub fn user_restore_by_id(mut mysql_conn v_mysql.DB, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	query := '
 	UPDATE user
 	SET 
@@ -341,6 +353,8 @@ fn user_retrieve_author(mut mysql_conn v_mysql.DB, column string, var string) !U
 }
 
 pub fn user_retrieve_author_by_id(mut mysql_conn v_mysql.DB, id string) !User {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	return user_retrieve_author(mut mysql_conn, 'id', id)
 }
 
@@ -349,6 +363,8 @@ pub fn user_retrieve_author_by_handle(mut mysql_conn v_mysql.DB, handle string) 
 }
 
 pub fn authors_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]User {
+	luuid.verify(post_id) or { return utils.new_peony_error(400, 'post_id is not a UUID') }
+
 	// TODO check cache
 	query := 'SELECT BIN_TO_UUID(author_id) FROM post_authors WHERE post_id = UUID_TO_BIN(?)'
 

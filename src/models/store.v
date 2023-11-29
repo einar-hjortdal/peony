@@ -5,6 +5,8 @@ import db.mysql as v_mysql
 // local
 import data.mysql
 import utils
+// first party
+import coachonko.luuid
 
 // TODO when requested with a query, fetch more data:
 // location
@@ -49,11 +51,15 @@ pub mut:
 }
 
 pub fn (store StoreWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	query := 'INSERT INTO store (id) VALUES (UUID_TO_BIN(?))'
 	mysql.prep_n_exec(mut mysql_conn, query, id)!
 }
 
 pub fn (sw StoreWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	if sw.name == '' {
 		return utils.new_peony_error(400, 'name is required')
 	}

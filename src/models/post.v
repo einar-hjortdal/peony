@@ -6,6 +6,8 @@ import db.mysql as v_mysql
 // local
 import data.mysql
 import utils
+// first party
+import coachonko.luuid
 
 // A post is a resource of content. A subset of posts is pages. pages are resources that are not meant
 // to be listed together with posts.
@@ -59,6 +61,11 @@ pub mut:
 }
 
 pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string, post_type string) ! {
+	luuid.verify(created_by_id) or {
+		return utils.new_peony_error(400, 'created_by_id is not a UUID')
+	}
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	if post_type !in allowed_post_type {
 		return utils.new_peony_error(500, 'post_type invalid')
 	}
@@ -491,6 +498,8 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 // }
 
 pub fn post_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !Post {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	return post_retrieve(mut mysql_conn, 'id', id)
 }
 
@@ -499,6 +508,9 @@ pub fn post_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !Post {
 }
 
 pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, user_id string) ! {
+	luuid.verify(post_id) or { return utils.new_peony_error(400, 'post_id is not a UUID') }
+	luuid.verify(user_id) or { return utils.new_peony_error(400, 'user_id is not a UUID') }
+
 	if user_id == '' {
 		return error('PostWriteable.update: parameter user_id invalid')
 	}
@@ -622,6 +634,8 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 }
 
 pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) ! {
+	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
+
 	query := '
 	UPDATE post SET 
 		deleted_at = NOW(),
