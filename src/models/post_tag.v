@@ -11,7 +11,7 @@ import coachonko.luuid
 
 pub struct PostTag {
 	id         string
-	parent     ?&PostTag // TODO ensure no circular
+	parent     ?&PostTag // TODO 3.6.0 ensure no circular
 	visibility string
 	created_at string    @[json: 'createdAt']
 	created_by User      @[json: 'createdBy']
@@ -58,39 +58,35 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_i
 	mut qm := 'UUID_TO_BIN(?), UUID_TO_BIN(?), UUID_TO_BIN(?), ?, ?'
 
 	mut vars := []p_mysql.Param{}
-	vars << id
-	vars << created_by_id
-	vars << created_by_id
-	vars << ptw.title
-	vars << ptw.handle
+	vars = arrays.concat(vars, id, created_by_id, created_by_id, ptw.title, ptw.handle)
 
 	if ptw.parent != '' {
 		columns += ', parent'
-		vars << ptw.parent
+		vars = arrays.concat(vars, ptw.parent)
 		qm += ', ?'
 	}
 
 	if ptw.visibility != '' {
 		columns += ', visibility'
-		vars << ptw.visibility
+		vars = arrays.concat(vars, ptw.visibility)
 		qm += ', ?'
 	}
 
 	if ptw.subtitle != '' {
 		columns += ', subtitle'
-		vars << ptw.subtitle
+		vars = arrays.concat(vars, ptw.subtitle)
 		qm += ', ?'
 	}
 
 	if ptw.content != '' {
 		columns += ', content'
-		vars << ptw.content
+		vars = arrays.concat(vars, ptw.content)
 		qm += ', ?'
 	}
 
 	if ptw.excerpt != '' {
 		columns += ', excerpt'
-		vars << ptw.excerpt
+		vars = arrays.concat(vars, ptw.excerpt)
 		qm += ', ?'
 	}
 
@@ -328,21 +324,15 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id 
 	metadata = ?'
 
 	mut vars := []p_mysql.Param{}
-	vars << ptw.visibility
-	vars << user_id
-	vars << ptw.title
-	vars << ptw.subtitle
-	vars << ptw.content
-	vars << ptw.handle
-	vars << ptw.excerpt
-	vars << ptw.metadata
+	vars = arrays.concat(vars, ptw.visibility, user_id, ptw.title, ptw.subtitle, ptw.content,
+		ptw.handle, ptw.excerpt, ptw.metadata)
 
 	if ptw.parent != '' {
 		query_records += ', parent_id = UUID_TO_BIN(?)'
-		vars << ptw.parent
+		vars = arrays.concat(vars, ptw.parent)
 	}
 
-	vars << post_tag_id
+	vars = arrays.concat(vars, post_tag_id)
 
 	mut query := '
 	UPDATE post_tag
@@ -359,16 +349,16 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id 
 
 		if ptw.posts.len == 1 {
 			mut post_tags_vars := []p_mysql.Param{}
-			post_tags_vars << ptw.posts[0]
-			post_tags_vars << post_tag_id
+			post_tags_vars = arrays.concat(vars, ptw.posts[0])
+			post_tags_vars = arrays.concat(vars, post_tag_id)
 			p_mysql.prep_n_exec(mut mysql_conn, query, ...post_tags_vars)!
 		} else {
 			mut stmt := p_mysql.prepare(mut mysql_conn, post_tags_query)!
 			for post_id in ptw.posts {
 				id := post_id
 				mut post_tags_vars := []p_mysql.Param{}
-				post_tags_vars << id
-				post_tags_vars << post_tag_id
+				post_tags_vars = arrays.concat(vars, id)
+				post_tags_vars = arrays.concat(vars, post_tag_id)
 				stmt.exec(...post_tags_vars)!
 			}
 			stmt.deallocate()
@@ -462,8 +452,8 @@ pub fn post_tag_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id strin
 	WHERE id = UUID_TO_BIN(?)'
 
 	mut vars := []p_mysql.Param{}
-	vars << user_id
-	vars << id
+	vars = arrays.concat(vars, user_id)
+	vars = arrays.concat(vars, id)
 
 	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 	return post_tag_retrieve_by_id(mut mysql_conn, id)!

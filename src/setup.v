@@ -1,6 +1,7 @@
 module main
 
 // vlib
+import arrays
 import db.mysql as v_mysql
 import log
 import os
@@ -25,7 +26,7 @@ fn execute_mysql_script(file_path string, mut mysql_conn v_mysql.DB) {
 	// Note that the last element is skipped, this is because it is an empty string.
 	mut trimmed_data := []string{}
 	for data_string in split_data[0..split_data.len - 1] {
-		trimmed_data << data_string.trim('\n')
+		trimmed_data = arrays.concat(trimmed_data, data_string.trim('\n'))
 	}
 	for query in trimmed_data {
 		mysql_conn.real_query(query) or { panic(err) } // TODO cleanup when panic

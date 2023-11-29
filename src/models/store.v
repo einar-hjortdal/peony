@@ -1,6 +1,7 @@
 module models
 
 // vlib
+import arrays
 import db.mysql as v_mysql
 // local
 import data.mysql
@@ -70,32 +71,32 @@ pub fn (sw StoreWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	metadata = ?'
 
 	mut vars := []mysql.Param{}
-	vars << sw.name
-	vars << sw.metadata
+	vars = arrays.concat(vars, sw.name)
+	vars = arrays.concat(vars, sw.metadata)
 
 	if sw.default_locale_code != '' {
 		query_columns += ', default_locale_code = ?'
-		vars << sw.default_locale_code
+		vars = arrays.concat(vars, sw.default_locale_code)
 	}
 
 	if sw.default_currency_code != '' {
 		query_columns += ', default_currency_code = ?'
-		vars << sw.default_currency_code
+		vars = arrays.concat(vars, sw.default_currency_code)
 	}
 
 	if sw.invite_link_template != '' {
 		query_columns += ', invite_link_template = ?'
-		vars << sw.invite_link_template
+		vars = arrays.concat(vars, sw.invite_link_template)
 	}
 
 	if sw.default_stock_location_id != '' {
 		query_columns += ', default_stock_location_id = ?'
-		vars << sw.default_stock_location_id
+		vars = arrays.concat(vars, sw.default_stock_location_id)
 	}
 
 	if sw.default_sales_channel_id != '' {
 		query_columns += ', default_sales_channel_id = ?'
-		vars << sw.default_sales_channel_id
+		vars = arrays.concat(vars, sw.default_sales_channel_id)
 	}
 
 	query := '
@@ -103,7 +104,7 @@ pub fn (sw StoreWriteable) update(mut mysql_conn v_mysql.DB, id string) ! {
 	SET ${query_columns}
 	WHERE id = UUID_TO_BIN(?)'
 
-	vars << id
+	vars = arrays.concat(vars, id)
 
 	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 }

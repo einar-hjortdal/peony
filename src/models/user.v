@@ -52,10 +52,7 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 	mut qm := 'UUID_TO_BIN(?), ?, ?, ?'
 
 	mut vars := []mysql.Param{}
-	vars << id
-	vars << uw.email
-	vars << uw.password_hash
-	vars << uw.handle
+	vars = arrays.concat(vars, id, uw.email, uw.password_hash, uw.handle)
 
 	// TODO error if id, email, password or handle are missing
 
@@ -65,22 +62,22 @@ pub fn (uw UserWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {
 			return error('user.role must be either "admin", "member", "developer", "author" or "contributor"')
 		}
 		columns += ', role'
-		vars << uw.role
+		vars = arrays.concat(vars, uw.role)
 		qm += ', ?'
 	}
 	if uw.first_name != '' {
 		columns += ', first_name'
-		vars << uw.first_name
+		vars = arrays.concat(vars, uw.first_name)
 		qm += ', ?'
 	}
 	if uw.last_name != '' {
 		columns += ', last_name'
-		vars << uw.last_name
+		vars = arrays.concat(vars, uw.last_name)
 		qm += ', ?'
 	}
 	if uw.metadata != '' {
 		columns += ', metadata'
-		vars << uw.metadata
+		vars = arrays.concat(vars, uw.metadata)
 		qm += ', ?'
 	}
 

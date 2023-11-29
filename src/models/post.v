@@ -124,25 +124,25 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	if post_type in allowed_post_type {
 		query_columns += ', type'
 		values += ', ?'
-		vars << post_type
+		vars = arrays.concat(vars, post_type)
 	}
 
 	if pw.status != '' {
 		query_columns += ', status'
 		values += ', ?'
-		vars << pw.status
+		vars = arrays.concat(vars, pw.status)
 	}
 
 	if pw.status == 'published' {
 		query_columns += ', published_at, published_by'
 		values += ', NOW(), UUID_TO_BIN(?)'
-		vars << created_by_id
+		vars = arrays.concat(vars, created_by_id)
 	}
 
 	if pw.visibility != '' {
 		query_columns += ', visibility'
 		values += ', ?'
-		vars << pw.visibility
+		vars = arrays.concat(vars, pw.visibility)
 	}
 
 	mut query := 'INSERT INTO post (${query_columns}) VALUES (${values})'
@@ -151,16 +151,16 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 	authors_query := 'INSERT INTO post_authors (post_id, author_id) VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
 
 	vars = []mysql.Param{}
-	vars << id
+	vars = arrays.concat(vars, id)
 
 	// TODO use same conditions as update for consistency.
 	if pw.authors.len < 2 {
 		// Add user as author automatically if no authors are provided
 		if pw.authors.len == 0 {
-			vars << created_by_id
+			vars = arrays.concat(vars, created_by_id)
 		}
 		if pw.authors.len == 1 {
-			vars << pw.authors[0]
+			vars = arrays.concat(vars, pw.authors[0])
 		}
 		mysql.prep_n_exec(mut mysql_conn, authors_query, ...vars)!
 	} else {
@@ -333,11 +333,11 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			author_ids := vals[19].split(',')
 			for id in author_ids {
 				author := user_retrieve_by_id(mut mysql_conn, id)!
-				authors << author
+				authors = arrays.concat(authors, author)
 			}
 		} else {
 			primary_author := user_retrieve_by_id(mut mysql_conn, vals[19])!
-			authors << primary_author
+			authors = arrays.concat(authors, primary_author)
 		}
 
 		mut tags := []PostTag{}
@@ -346,11 +346,11 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 				tag_ids := vals[20].split(',')
 				for id in tag_ids {
 					tag := post_tag_retrieve_by_id(mut mysql_conn, id)!
-					tags << tag
+					tags = arrays.concat(tags, tag)
 				}
 			} else {
 				primary_tag := post_tag_retrieve_by_id(mut mysql_conn, vals[20])!
-				tags << primary_tag
+				tags = arrays.concat(tags, primary_tag)
 			}
 		}
 
@@ -570,11 +570,11 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 		END, " +
 			query_records
 		mut new_params := []mysql.Param{}
-		new_params << user_id
+		new_params = arrays.concat(new_params, user_id)
 		vars = arrays.concat(new_params, ...vars)
 	}
 
-	vars << post_id
+	vars = arrays.concat(vars, post_id)
 
 	mut query := 'UPDATE post SET ${query_records} WHERE id = UUID_TO_BIN(?)'
 	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!

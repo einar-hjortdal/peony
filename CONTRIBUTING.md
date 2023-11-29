@@ -33,8 +33,9 @@ Please follow these standards
 - Prefer factory functions over static methods.
 - The model should validate data before acting on the database.
 - The controller can prepare the data before giving it to the model by adding values.
-- Do not use the `[required]` attribute in struct definitions, always manually check values to return 
+- Do not use the `@[required]` attribute in struct definitions, always manually check values to return 
   adequate error messages.
+- For consistency reasons, use `arrays.concat` over `<<` to concatenare items to an array.
 
 #### Patterns
 
