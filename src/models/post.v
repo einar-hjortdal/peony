@@ -639,7 +639,7 @@ pub fn post_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id string) !
 	query := '
 	UPDATE post SET 
 		deleted_at = NOW(),
-		deleted_by = ?
+		deleted_by = UUID_TO_BIN(?)
 	WHERE id = UUID_TO_BIN(?)'
 
 	mut vars := []mysql.Param{}
