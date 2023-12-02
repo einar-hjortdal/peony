@@ -9,6 +9,7 @@ import models
 // admin_posts_get retrieves a list of posts
 // Requires authorization.
 // TODO query parameters for sorting and filtering
+// by default exclude deleted posts
 @['/admin/posts'; get]
 pub fn (mut app App) admin_posts_get() vweb.Result {
 	fn_name := 'admin_posts_get'
@@ -17,7 +18,7 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 
 	params := models.PostListParams{
 		post_type: 'post'
-		deleted: true
+		deleted: false
 	}
 
 	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
@@ -116,7 +117,7 @@ pub fn (mut app App) admin_pages_get() vweb.Result {
 
 	params := models.PostListParams{
 		post_type: 'page'
-		deleted: true
+		deleted: false
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }

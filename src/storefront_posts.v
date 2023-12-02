@@ -1,6 +1,9 @@
 module main
 
+// vlib
 import vweb
+import strconv
+// local
 import models
 
 // TODO
@@ -12,6 +15,7 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 	params := models.PostListParams{
 		post_type: 'post'
 		deleted: false
+		offset: strconv.atoi(app.query['offset']) or { 0 }
 	}
 
 	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }

@@ -27,7 +27,6 @@ pub struct Post {
 	deleted_by   User      @[json: 'deletedBy']
 	status       string
 	post_type    string    @[json: 'postType'] // `type` is a reserved keyword in V and in MySQL
-	featured     bool
 	published_at string    @[json: 'publishedAt']
 	published_by User      @[json: 'publishedBy']
 	visibility   string // TODO v3.7.0
@@ -48,7 +47,6 @@ pub struct Post {
 pub struct PostWriteable {
 pub mut:
 	status     string
-	featured   bool
 	visibility string // TODO v3.7.0
 	title      string
 	subtitle   string
@@ -108,18 +106,17 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 		created_by,
 		updated_at,
 		updated_by,
-		featured,
 		title,
 		subtitle,
 		content,
 		excerpt,
 		handle,
 		metadata'
-	mut values := 'UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?, ?'
+	mut values := 'UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), NOW(), UUID_TO_BIN(?), ?, ?, ?, ?, ?, ?'
 
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, id, created_by_id, created_by_id, pw.featured, pw.title,
-		pw.subtitle, pw.content, pw.excerpt, pw.handle, pw.metadata)
+	vars = arrays.concat(vars, id, created_by_id, created_by_id, pw.title, pw.subtitle,
+		pw.content, pw.excerpt, pw.handle, pw.metadata)
 
 	if post_type in allowed_post_type {
 		query_columns += ', type'
@@ -196,14 +193,23 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 }
 
 // PostListParams allows to shape the response
-// `post_type` required (`allowed_post_type`)
-// `deleted` defaults to false. When false excludes deleted posts in the response
-// `visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
+// `include_authors` defaults to false. When false only the primary author is returned.
+// `include_tags` defaults to false When false only the primary tag is returned.
+// `filter_post_type` required (`allowed_post_type`)
+// `filter_deleted` defaults to false. When false excludes deleted posts in the response
+// `filter_visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
+// `filter_id` not applied by default TODO
+// `filter_title` not applied by default TODO
+// `filter_handle` not applied by default TODO
+// `filter_description` not applied by default TODO
+// `filter_tags` not applied by default TODO
+// `filter_category` not applied by default TODO
+// `filter_created_at` TODO
+// `filter_updated_at` TODO
+// `filter_sales_channel` TODO v3.10.0
 // `order` defaults to `created_at DESC`
 // `limit` defaults to 10
 // `offset` defaults to 0
-// `authors` defaults to false. When false only the primary author is returned.
-// `tags` defaults to false When false only the primary tag is returned.
 pub struct PostListParams {
 	post_type  string
 	deleted    bool
@@ -282,7 +288,6 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			BIN_TO_UUID(post.deleted_by),
 			post.status,
 			post."type",
-			CASE WHEN post.featured = 0x01 THEN 1 ELSE 0 END,
 			post.published_at,
 			BIN_TO_UUID(post.published_by),
 			post.visibility,
@@ -324,32 +329,32 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			deleted_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 		mut published_by := User{}
-		if vals[11] != '' {
-			published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
+		if vals[10] != '' {
+			published_by = user_retrieve_by_id(mut mysql_conn, vals[10])!
 		}
 
 		mut authors := []User{}
 		if params.authors {
-			author_ids := vals[19].split(',')
+			author_ids := vals[18].split(',')
 			for id in author_ids {
 				author := user_retrieve_by_id(mut mysql_conn, id)!
 				authors = arrays.concat(authors, author)
 			}
 		} else {
-			primary_author := user_retrieve_by_id(mut mysql_conn, vals[19])!
+			primary_author := user_retrieve_by_id(mut mysql_conn, vals[18])!
 			authors = arrays.concat(authors, primary_author)
 		}
 
 		mut tags := []PostTag{}
-		if vals[20] != '' { // post may have no tags
+		if vals[19] != '' { // post may have no tags
 			if params.tags {
-				tag_ids := vals[20].split(',')
+				tag_ids := vals[19].split(',')
 				for id in tag_ids {
 					tag := post_tag_retrieve_by_id(mut mysql_conn, id)!
 					tags = arrays.concat(tags, tag)
 				}
 			} else {
-				primary_tag := post_tag_retrieve_by_id(mut mysql_conn, vals[20])!
+				primary_tag := post_tag_retrieve_by_id(mut mysql_conn, vals[19])!
 				tags = arrays.concat(tags, primary_tag)
 			}
 		}
@@ -364,16 +369,15 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 			deleted_by: deleted_by
 			status: vals[7]
 			post_type: vals[8]
-			featured: mysql.bit_to_bool(vals[9])
-			published_at: vals[10]
+			published_at: vals[9]
 			published_by: published_by
-			visibility: vals[12]
-			title: vals[13]
-			subtitle: vals[14]
-			content: vals[15]
-			handle: vals[16]
-			excerpt: vals[17]
-			metadata: vals[18]
+			visibility: vals[11]
+			title: vals[12]
+			subtitle: vals[13]
+			content: vals[14]
+			handle: vals[15]
+			excerpt: vals[16]
+			metadata: vals[17]
 			authors: authors
 			tags: tags
 		}
@@ -412,8 +416,7 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 		deleted_at,
 		BIN_TO_UUID(deleted_by),
 		status,
-		type,
-		CASE WHEN featured = 0x01 THEN 1 ELSE 0 END,
+		"type",
 		published_at,
 		BIN_TO_UUID(published_by),
 		visibility,
@@ -450,8 +453,8 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			deleted_by = user_retrieve_by_id(mut mysql_conn, vals[6])!
 		}
 		mut published_by := User{}
-		if vals[11] != '' {
-			published_by = user_retrieve_by_id(mut mysql_conn, vals[11])!
+		if vals[10] != '' {
+			published_by = user_retrieve_by_id(mut mysql_conn, vals[10])!
 		}
 
 		authors := authors_retrieve_by_post_id(mut mysql_conn, vals[0])!
@@ -467,16 +470,15 @@ fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 			deleted_by: deleted_by
 			status: vals[7]
 			post_type: vals[8]
-			featured: mysql.bit_to_bool(vals[9])
-			published_at: vals[10]
+			published_at: vals[9]
 			published_by: published_by
-			visibility: vals[12]
-			title: vals[13]
-			subtitle: vals[14]
-			content: vals[15]
-			handle: vals[16]
-			excerpt: vals[17]
-			metadata: vals[18]
+			visibility: vals[11]
+			title: vals[12]
+			subtitle: vals[13]
+			content: vals[14]
+			handle: vals[15]
+			excerpt: vals[16]
+			metadata: vals[17]
 			authors: authors
 			tags: tags
 		}
@@ -537,7 +539,6 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 
 	mut query_records := '
 	status = ?,
-	featured = ?,
 	updated_at = NOW(),
 	updated_by = UUID_TO_BIN(?),
 	visibility = ?,
@@ -549,8 +550,8 @@ pub fn (mut pw PostWriteable) update(mut mysql_conn v_mysql.DB, post_id string, 
 	metadata = ?'
 
 	mut vars := []mysql.Param{}
-	vars = arrays.concat(vars, pw.status, pw.featured, user_id, pw.visibility, pw.title,
-		pw.subtitle, pw.content, pw.handle, pw.excerpt, pw.metadata)
+	vars = arrays.concat(vars, pw.status, user_id, pw.visibility, pw.title, pw.subtitle,
+		pw.content, pw.handle, pw.excerpt, pw.metadata)
 
 	// Only update published_at and published_by if post is being published for the first time
 	// Note: concatenate string at the beginning because of MySQL non-standard behavior
