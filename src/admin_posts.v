@@ -17,8 +17,8 @@ pub fn (mut app App) admin_posts_get() vweb.Result {
 	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	params := models.PostListParams{
-		post_type: 'post'
-		deleted: false
+		filter_post_type: 'post'
+		filter_deleted: true
 	}
 
 	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
@@ -116,8 +116,8 @@ pub fn (mut app App) admin_pages_get() vweb.Result {
 	app.check_user_auth() or { return app.send_error(err, fn_name) }
 
 	params := models.PostListParams{
-		post_type: 'page'
-		deleted: false
+		filter_post_type: 'page'
+		filter_deleted: true
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }

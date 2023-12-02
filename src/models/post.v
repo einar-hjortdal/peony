@@ -43,7 +43,6 @@ pub struct Post {
 	// images       []Image
 }
 
-// TODO handle authors, accept array of strings (expect user id)
 pub struct PostWriteable {
 pub mut:
 	status     string
@@ -196,13 +195,13 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `include_authors` defaults to false. When false only the primary author is returned.
 // `include_tags` defaults to false When false only the primary tag is returned.
 // `filter_post_type` required (`allowed_post_type`)
-// `filter_deleted` defaults to false. When false excludes deleted posts in the response
+// `filter_deleted` defaults to true. When true excludes deleted posts in the response.
 // `filter_visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
 // `filter_id` not applied by default TODO
 // `filter_title` not applied by default TODO
 // `filter_handle` not applied by default TODO
 // `filter_description` not applied by default TODO
-// `filter_tags` not applied by default TODO
+// `filter_tags` not applied by default. Accepts one or more comma-separated tag id.
 // `filter_category` not applied by default TODO
 // `filter_created_at` TODO
 // `filter_updated_at` TODO
@@ -211,27 +210,40 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `limit` defaults to 10
 // `offset` defaults to 0
 pub struct PostListParams {
-	post_type  string
-	deleted    bool
-	visibility string
-	order      string
-	limit      int
-	offset     int
-	authors    bool
-	tags       bool
+	filter_post_type  string
+	filter_deleted    bool
+	filter_visibility string
+	filter_tags       []string
+	include_authors   bool
+	include_tags      bool
+	order             string
+	limit             int
+	offset            int
 }
 
 // TODO performance optimization: use keyset pagination
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
-	if params.post_type != '' {
-		if params.post_type !in allowed_post_type {
+	// TODO validate id are UUID, remove invalid ones.
+
+	if params.filter_post_type != '' {
+		if params.filter_post_type !in allowed_post_type {
 			return error("post_type must be either 'post' or 'page'")
 		}
 	}
 
 	mut where := ''
-	if !params.deleted {
+	if params.filter_deleted {
 		where += 'AND post.deleted_at IS NULL'
+	}
+
+	if params.filter_tags.len == 1 {
+		where += ' AND post_tag.id = ?'
+	}
+	if params.filter_tags.len > 1 {
+		where += ' AND post_tag.id = ?'
+		for i := 0; i < params.filter_tags.len; i++ {
+			where += ' OR post_tag.id = ?'
+		}
 	}
 
 	mut limit := '10'
@@ -256,7 +268,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		FROM post_authors
 		WHERE sort_order = 0)
 		AS post_authors'
-	if params.authors {
+	if params.include_authors {
 		author_id = 'GROUP_CONCAT(BIN_TO_UUID(post_authors.author_id) ORDER BY post_authors.sort_order)'
 		post_authors = 'post_authors'
 	}
@@ -267,13 +279,13 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		FROM post_tags
 		WHERE sort_order = 0)
 		AS post_tags'
-	if params.tags {
+	if params.include_tags {
 		post_tag_id = 'GROUP_CONCAT(BIN_TO_UUID(post_tags.post_tag_id) ORDER BY post_tags.sort_order)'
 		post_tags = 'post_tags'
 	}
 
 	mut group := ''
-	if params.authors || params.tags {
+	if params.include_authors || params.include_tags {
 		group = 'GROUP BY post.id'
 	}
 
@@ -308,7 +320,19 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		LIMIT ${limit}
 		OFFSET ${offset}'
 
-	res := mysql.prep_n_exec(mut mysql_conn, query_string, params.post_type)!
+	mut vars := []mysql.Param{}
+	vars = arrays.concat(vars, params.filter_post_type)
+
+	if params.filter_tags.len == 1 {
+		vars = arrays.concat(vars, params.filter_tags[0])
+	}
+	if params.filter_tags.len > 1 {
+		for i := 0; i < params.filter_tags.len; i++ {
+			vars = arrays.concat(vars, params.filter_tags[i])
+		}
+	}
+
+	res := mysql.prep_n_exec(mut mysql_conn, query_string, ...vars)!
 
 	rows := res.rows()
 	mut posts := []Post{}
@@ -334,7 +358,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		}
 
 		mut authors := []User{}
-		if params.authors {
+		if params.include_authors {
 			author_ids := vals[18].split(',')
 			for id in author_ids {
 				author := user_retrieve_by_id(mut mysql_conn, id)!
@@ -347,7 +371,7 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 
 		mut tags := []PostTag{}
 		if vals[19] != '' { // post may have no tags
-			if params.tags {
+			if params.include_tags {
 				tag_ids := vals[19].split(',')
 				for id in tag_ids {
 					tag := post_tag_retrieve_by_id(mut mysql_conn, id)!

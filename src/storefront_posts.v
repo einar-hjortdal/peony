@@ -12,9 +12,16 @@ import models
 pub fn (mut app App) storefront_posts_get() vweb.Result {
 	fn_name := 'storefront_posts_get'
 
+	mut q_filter_tags := []string{}
+	// TODO move validation of data to model
+	if app.query['filter_tags'] != '' {
+		q_filter_tags = app.query['filter_tags'].split(',')
+	}
+
 	params := models.PostListParams{
-		post_type: 'post'
-		deleted: false
+		filter_post_type: 'post'
+		filter_deleted: true
+		filter_tags: q_filter_tags
 		offset: strconv.atoi(app.query['offset']) or { 0 }
 	}
 
@@ -52,8 +59,8 @@ pub fn (mut app App) storefront_pages_get() vweb.Result {
 	fn_name := 'storefront_pages_get'
 
 	params := models.PostListParams{
-		post_type: 'page'
-		deleted: false
+		filter_post_type: 'page'
+		filter_deleted: true
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
