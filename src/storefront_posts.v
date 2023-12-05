@@ -5,17 +5,20 @@ import vweb
 import strconv
 // local
 import models
+import utils
 
-// TODO
-// all of these methods: only get public and delete_at = null
 @['/storefront/posts'; get]
 pub fn (mut app App) storefront_posts_get() vweb.Result {
 	fn_name := 'storefront_posts_get'
 
 	mut q_filter_tags := []string{}
-	// TODO move validation of data to model
-	if app.query['filter_tags'] != '' {
-		q_filter_tags = app.query['filter_tags'].split(',')
+	if 'filter_tags' in app.query {
+		if app.query['filter_tags'] == '' {
+			err := utils.new_peony_error(400, 'empty filter_tag query')
+			return app.send_error(err, fn_name)
+		} else {
+			q_filter_tags = app.query['filter_tags'].split(',')
+		}
 	}
 
 	params := models.PostListParams{

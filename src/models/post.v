@@ -197,7 +197,6 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `filter_post_type` required (`allowed_post_type`)
 // `filter_deleted` defaults to true. When true excludes deleted posts in the response.
 // `filter_visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
-// `filter_id` not applied by default TODO
 // `filter_title` not applied by default TODO
 // `filter_handle` not applied by default TODO
 // `filter_description` not applied by default TODO
@@ -210,12 +209,12 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `limit` defaults to 10
 // `offset` defaults to 0
 pub struct PostListParams {
+	include_authors   bool
+	include_tags      bool
 	filter_post_type  string
 	filter_deleted    bool
 	filter_visibility string
 	filter_tags       []string
-	include_authors   bool
-	include_tags      bool
 	order             string
 	limit             int
 	offset            int
@@ -223,7 +222,13 @@ pub struct PostListParams {
 
 // TODO performance optimization: use keyset pagination
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
-	// TODO validate id are UUID, remove invalid ones.
+	if params.filter_tags.len > 0 {
+		for i := 0; i < params.filter_tags.len; i++ {
+			luuid.verify(params.filter_tags[0]) or {
+				return utils.new_peony_error(400, 'tag id ${params.filter_tags[0]} is not a UUID')
+			}
+		}
+	}
 
 	if params.filter_post_type != '' {
 		if params.filter_post_type !in allowed_post_type {
@@ -237,12 +242,12 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	}
 
 	if params.filter_tags.len == 1 {
-		where += ' AND post_tag.id = ?'
+		where += ' AND post_tags.post_tag_id = ?'
 	}
 	if params.filter_tags.len > 1 {
-		where += ' AND post_tag.id = ?'
+		where += ' AND post_tags.post_tag_id = ?'
 		for i := 0; i < params.filter_tags.len; i++ {
-			where += ' OR post_tag.id = ?'
+			where += ' OR post_tags.post_tag_id = ?'
 		}
 	}
 
