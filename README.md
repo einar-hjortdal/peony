@@ -1,19 +1,21 @@
 # peony
 
-<a href="https://github.com/mkenney/software-guides/blob/master/STABILITY-BADGES.md#alpha"><img src="https://img.shields.io/badge/stability-alpha-f4d03f.svg" alt="Alpha"></a>
-
 A content management system and shoping cart API for simple ecommerce needs. It is developed and used 
 for [Coachonko's blog](https://coachonko.com). 
 
-## Objectives
+## Goals
 
-This project aims to satisfy the needs of humble businesses: with support for multi-language, multi-currency, 
-multi-channel, multiple stock locations, physical and virtual products.
+This project aims to satisfy the needs of hobbists and professional content publishers. peony aims to 
+provide the tools to publish content, market it and monetize it. These tools should also be able to 
+satisfy merchants and service providers
+
+peony aims to support multi-language, multi-channel, multi-currency, multi-stock locations, physical, 
+virtual products and services.
 
 ## Architecture
 
-This graph represents how peony works on a single-server deployment. This setup can be scale horizontally 
-by deploying each box on multiple servers.
+This graph represents how peony works on a single-server deployment. This setup may scale horizontally 
+by deploying each box on several independent servers.
 
 ```
 ┌────────────┐                           ┌──────────────────────┐        ┌───────┐
