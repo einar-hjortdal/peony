@@ -11,21 +11,20 @@ import coachonko.luuid
 
 pub struct PostTag {
 	id         string
-	parent     ?&PostTag // TODO 3.6.0 ensure no circular
+	parent     ?&PostTag @[omitempty] // TODO 3.6.0 ensure no circular
 	visibility string
 	created_at string    @[json: 'createdAt']
 	created_by User      @[json: 'createdBy']
 	updated_at string    @[json: 'updatedAt']
 	updated_by User      @[json: 'updatedBy']
-	deleted_at string    @[json: 'deletedAt']
-	deleted_by User      @[json: 'deletedBy']
+	deleted_at string    @[json: 'deletedAt'; omitempty]
+	deleted_by User      @[json: 'deletedBy'; omitempty]
 	title      string
 	subtitle   string
 	content    string
 	handle     string
 	excerpt    string
 	metadata   string    @[raw]
-	posts      []Post
 }
 
 pub struct PostTagWriteable {
@@ -37,8 +36,7 @@ pub mut:
 	content    string
 	handle     string
 	excerpt    string
-	metadata   string   @[raw]
-	posts      []string
+	metadata   string @[raw]
 }
 
 pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string, id string) ! {
@@ -99,7 +97,7 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_i
 }
 
 // PostTagListParams allows to shape the response
-// `deleted` when false excludes deleted posts in the response
+// `deleted` when false excludes deleted PostTag in the response
 pub struct PostTagListParams {
 	deleted bool
 }
@@ -183,7 +181,6 @@ pub fn post_tag_list(mut mysql_conn v_mysql.DB, params PostTagListParams) ![]Pos
 			metadata: vals[14]
 		}
 
-		// TODO fetch posts by id
 		post_tags = arrays.concat(post_tags, post_tag)
 	}
 	return post_tags
@@ -265,7 +262,6 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 		return utils.new_peony_error(404, 'No post_tag exists with the given ${column}')
 	}
 	// TODO it will return more than one row if a tag is linked to more than one post.
-	// TODO fetch posts by id
 	row := rows[0]
 	vals := row.vals
 
@@ -286,12 +282,6 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 		deleted_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 	}
 
-	// TODO handle params appropriately (both for both storefront and admin apis)
-	post_list_param := PostListParams{
-		filter_tags: [vals[0]]
-	}
-	posts := post_list(mut mysql_conn, post_list_param)!
-
 	post_tag := PostTag{
 		id: vals[0]
 		visibility: vals[2]
@@ -307,7 +297,6 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 		handle: vals[12]
 		excerpt: vals[13]
 		metadata: vals[14]
-		posts: posts
 	}
 
 	return post_tag
@@ -347,30 +336,6 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id 
 	WHERE id = UUID_TO_BIN(?)'
 
 	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
-
-	// TODO the following could return errors if post_id does not exist
-	if ptw.posts.len > 0 {
-		post_tags_query := '
-		INSERT IGNORE INTO post_tags (post_id, post_tag_id)
-		VALUES (UUID_TO_BIN(?), UUID_TO_BIN(?))'
-
-		if ptw.posts.len == 1 {
-			mut post_tags_vars := []p_mysql.Param{}
-			post_tags_vars = arrays.concat(vars, ptw.posts[0])
-			post_tags_vars = arrays.concat(vars, post_tag_id)
-			p_mysql.prep_n_exec(mut mysql_conn, query, ...post_tags_vars)!
-		} else {
-			mut stmt := p_mysql.prepare(mut mysql_conn, post_tags_query)!
-			for post_id in ptw.posts {
-				id := post_id
-				mut post_tags_vars := []p_mysql.Param{}
-				post_tags_vars = arrays.concat(vars, id)
-				post_tags_vars = arrays.concat(vars, post_tag_id)
-				stmt.exec(...post_tags_vars)!
-			}
-			stmt.deallocate()
-		}
-	}
 }
 
 pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]PostTag {

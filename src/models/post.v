@@ -23,12 +23,12 @@ pub struct Post {
 	created_by   User      @[json: 'createdBy']
 	updated_at   string    @[json: 'updatedAt']
 	updated_by   User      @[json: 'updatedBy']
-	deleted_at   string    @[json: 'deletedAt']
-	deleted_by   User      @[json: 'deletedBy']
+	deleted_at   string    @[json: 'deletedAt'; omitempty]
+	deleted_by   User      @[json: 'deletedBy'; omitempty]
 	status       string
 	post_type    string    @[json: 'postType'] // `type` is a reserved keyword in V and in MySQL
-	published_at string    @[json: 'publishedAt']
-	published_by User      @[json: 'publishedBy']
+	published_at string    @[json: 'publishedAt'; omitempty]
+	published_by User      @[json: 'publishedBy'; omitempty]
 	visibility   string // TODO v3.7.0
 	title        string
 	subtitle     string
@@ -37,7 +37,7 @@ pub struct Post {
 	excerpt      string
 	metadata     string    @[raw]
 	authors      []User
-	tags         []PostTag
+	tags         []PostTag @[omitempty]
 	// revisions    []Revision
 	// products     []Product
 	// images       []Image

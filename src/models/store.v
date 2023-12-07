@@ -25,7 +25,7 @@ pub:
 	name                string
 	default_locale_code string @[json: 'defaultLocaleCode']
 	// default_location Location [json: 'defaultLocation']
-	default_currency_code string @[json: 'defaultCurrencyCode']
+	default_currency_code string @[json: 'defaultCurrencyCode'; omitempty]
 	// default_currency Currency [json: 'defaultCurrency']
 	// currencies []Currency
 	// swap_link_template string [json: 'swapLinkTemplate']
@@ -43,12 +43,12 @@ pub:
 pub struct StoreWriteable {
 pub mut:
 	name                      string
-	default_locale_code       string @[json: 'defaultLocaleCode']
-	default_currency_code     string @[json: 'defaultCurrencyCode']
-	invite_link_template      string @[json: 'inviteLinkTemplate']
-	default_stock_location_id string @[json: 'defaultStockLocationId']
-	default_sales_channel_id  string @[json: 'defaultSalesChannelId']
-	metadata                  string @[raw]
+	default_locale_code       string
+	default_currency_code     string
+	invite_link_template      string
+	default_stock_location_id string
+	default_sales_channel_id  string
+	metadata                  string
 }
 
 pub fn (store StoreWriteable) create(mut mysql_conn v_mysql.DB, id string) ! {

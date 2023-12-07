@@ -20,22 +20,21 @@ pub:
 	role          string
 	created_at    string @[json: 'createdAt']
 	updated_at    string @[json: 'updatedAt']
-	deleted_at    string @[json: 'deletedAt']
-	first_name    string @[json: 'firstName']
-	last_name     string @[json: 'lastName']
+	deleted_at    string @[json: 'deletedAt'; omitempty]
+	first_name    string @[json: 'firstName'; omitempty]
+	last_name     string @[json: 'lastName'; omitempty]
 	metadata      string @[raw]
 }
 
-// TODO make User immutable
 pub struct UserWriteable {
 pub mut:
 	handle        string
 	email         string
-	password_hash string @[json: '-']
+	password_hash string
 	role          string
-	first_name    string @[json: 'firstName']
-	last_name     string @[json: 'lastName']
-	metadata      string @[raw]
+	first_name    string
+	last_name     string
+	metadata      string
 }
 
 // create_user creates a peony user in the database.
