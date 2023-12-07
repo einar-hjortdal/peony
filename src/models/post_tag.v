@@ -388,7 +388,7 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) !
 		post_tag.metadata
 	FROM post_tag
 	INNER JOIN post_tags ON post_tag.id = post_tags.post_tag_id
-	WHERE post_id = ?
+	WHERE post_id = UUID_TO_BIN(?)
 	ORDER BY post_tags.sort_order'
 
 	res := p_mysql.prep_n_exec(mut mysql_conn, query, post_id)!
