@@ -192,10 +192,10 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 }
 
 // PostListParams allows to shape the response
-// `include_authors` defaults to false. When false only the primary author is returned.
-// `include_tags` defaults to false When false only the primary tag is returned.
+// `include_authors` When false only the primary author is returned.
+// `include_tags` When false only the primary tag is returned.
 // `filter_post_type` required (`allowed_post_type`)
-// `filter_deleted` defaults to true. When true excludes deleted posts in the response.
+// `filter_deleted` When false includes deleted posts in the response.
 // `filter_visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
 // `filter_title` not applied by default TODO
 // `filter_handle` not applied by default TODO
@@ -242,12 +242,12 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	}
 
 	if params.filter_tags.len == 1 {
-		where += ' AND post_tags.post_tag_id = ?'
+		where += ' AND post_tags.post_tag_id = UUID_TO_BIN(?)'
 	}
 	if params.filter_tags.len > 1 {
-		where += ' AND post_tags.post_tag_id = ?'
+		where += ' AND post_tags.post_tag_id = UUID_TO_BIN(?)'
 		for i := 0; i < params.filter_tags.len; i++ {
-			where += ' OR post_tags.post_tag_id = ?'
+			where += ' OR post_tags.post_tag_id = UUID_TO_BIN(?)'
 		}
 	}
 

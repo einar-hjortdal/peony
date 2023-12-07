@@ -286,6 +286,12 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 		deleted_by = user_retrieve_by_id(mut mysql_conn, vals[8])!
 	}
 
+	// TODO handle params appropriately (both for both storefront and admin apis)
+	post_list_param := PostListParams{
+		filter_tags: [vals[0]]
+	}
+	posts := post_list(mut mysql_conn, post_list_param)!
+
 	post_tag := PostTag{
 		id: vals[0]
 		visibility: vals[2]
@@ -301,6 +307,7 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 		handle: vals[12]
 		excerpt: vals[13]
 		metadata: vals[14]
+		posts: posts
 	}
 
 	return post_tag
