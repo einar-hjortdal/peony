@@ -25,6 +25,7 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 		filter_post_type: 'post'
 		filter_deleted: true
 		filter_tags: q_filter_tags
+		limit: strconv.atoi(app.query['limit']) or { 0 }
 		offset: strconv.atoi(app.query['offset']) or { 0 }
 	}
 
@@ -64,6 +65,8 @@ pub fn (mut app App) storefront_pages_get() vweb.Result {
 	params := models.PostListParams{
 		filter_post_type: 'page'
 		filter_deleted: true
+		limit: strconv.atoi(app.query['limit']) or { 0 }
+		offset: strconv.atoi(app.query['offset']) or { 0 }
 	}
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }

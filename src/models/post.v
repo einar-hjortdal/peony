@@ -206,8 +206,8 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `filter_updated_at` TODO
 // `filter_sales_channel` TODO v3.10.0
 // `order` defaults to `created_at DESC`
-// `limit` defaults to 10
-// `offset` defaults to 0
+// `limit` defaults to 0 (no limit)
+// `offset` defaults to 0 (no offset)
 pub struct PostListParams {
 	include_authors   bool
 	include_tags      bool
@@ -251,14 +251,14 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		}
 	}
 
-	mut limit := '10'
+	mut limit := ''
 	if params.limit > 0 {
-		limit = '${params.limit}'
+		limit = 'LIMIT ${params.limit}'
 	}
 
-	mut offset := 0
+	mut offset := ''
 	if params.offset > 0 {
-		limit = '${params.offset}'
+		limit = 'OFFSET ${params.offset}'
 	}
 
 	// TODO validate params.order
@@ -322,8 +322,8 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		WHERE post."type" = ? ${where}
 		${group}
 		ORDER BY ${order}
-		LIMIT ${limit}
-		OFFSET ${offset}'
+		${limit}
+		${offset}'
 
 	mut vars := []mysql.Param{}
 	vars = arrays.concat(vars, params.filter_post_type)

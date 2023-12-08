@@ -39,8 +39,9 @@ Needed enhancements on basic functionality.
   - author: can write and publish posts
   - contributor: can write posts but not publish
 - New features for posts:
-  - ~~Tags~~
+  - ~~Tags~~ <!-- Tags have no hierarchy, categories are a subset of tags and have hierarchy -->
   - ~~Authors~~
+
 - Search
 
 ### v3.3.0
@@ -76,7 +77,6 @@ be considered mature and stable. Future releases will focus on ecommerce capabil
 for content publishers and to make peony appealing as a versatile and comprehensive ecommerce system.
 <!-- 
 Add lower-priority content-publishing features:
-post_tag parent relationships
 restore deleted posts, tags, users
 post revisions
 
@@ -119,9 +119,9 @@ with each currency.
 
 ### v3.10.0
 
-This release allows to create and manage different sales channels. Each channel can have its own products, 
-each product can have different prices and availability on each channel. Each order is associated with 
-the sales channel it came from.
+This release allows to create and manage different sales channels. Each channel can have its own posts 
+and products, each product can have different prices and availability on each channel. Each order is 
+associated with the sales channel it came from.
 
 - multi-channel
 
