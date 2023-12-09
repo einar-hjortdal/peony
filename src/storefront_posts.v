@@ -11,6 +11,16 @@ import utils
 pub fn (mut app App) storefront_posts_get() vweb.Result {
 	fn_name := 'storefront_posts_get'
 
+	mut q_filter_handle := []string{}
+	if 'filter_handle' in app.query {
+		if app.query['filter_handle'] == '' {
+			err := utils.new_peony_error(400, 'empty filter_handle query')
+			return app.send_error(err, fn_name)
+		} else {
+			q_filter_handle = app.query['filter_handle'].split(',')
+		}
+	}
+
 	mut q_filter_tags := []string{}
 	if 'filter_tags' in app.query {
 		if app.query['filter_tags'] == '' {
@@ -24,7 +34,8 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 	params := models.PostListParams{
 		filter_post_type: 'post'
 		filter_deleted: true
-		filter_tags: q_filter_tags
+		filter_handle: q_filter_handle
+		filter_tag: q_filter_tags
 		limit: strconv.atoi(app.query['limit']) or { 0 }
 		offset: strconv.atoi(app.query['offset']) or { 0 }
 	}
@@ -43,7 +54,7 @@ pub fn (mut app App) storefront_post_get_by_id(id string) vweb.Result {
 }
 
 @['/storefront/posts/handle/:handle'; get]
-fn (mut app App) storefront_post_get_by_handle(handle string) vweb.Result {
+pub fn (mut app App) storefront_post_post_get_by_handle(handle string) vweb.Result {
 	fn_name := 'storefront_post_get_by_handle'
 
 	post := models.post_retrieve_by_handle(mut app.db, handle) or {
@@ -71,4 +82,22 @@ pub fn (mut app App) storefront_pages_get() vweb.Result {
 
 	pages := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
 	return app.json(pages)
+}
+
+@['/storefront/pages/handle/:handle'; get]
+pub fn (mut app App) storefront_post_page_get_by_handle(handle string) vweb.Result {
+	fn_name := 'storefront_post_get_by_handle'
+
+	p_filter_handle := [handle]
+
+	params := models.PostListParams{
+		filter_post_type: 'page'
+		filter_deleted: true
+		filter_handle: p_filter_handle
+	}
+
+	// handle is unique, array returns one or no items
+	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
+	post := posts[0]
+	return app.json(post)
 }
