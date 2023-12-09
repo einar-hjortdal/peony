@@ -198,10 +198,10 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `filter_deleted` When false includes deleted posts in the response.
 // `filter_visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
 // `filter_title` not applied by default TODO
-// `filter_handle` not applied by default TODO
+// `filter_handle` not applied by default. Accepts one or more handle.
 // `filter_description` not applied by default TODO
-// `filter_tags` not applied by default. Accepts one or more comma-separated tag id.
-// `filter_category` not applied by default TODO
+// `filter_tag` not applied by default. Accepts one or more tag id.
+// `filter_category` not applied by default
 // `filter_created_at` TODO
 // `filter_updated_at` TODO
 // `filter_sales_channel` TODO v3.10.0
@@ -214,7 +214,8 @@ pub struct PostListParams {
 	filter_post_type  string
 	filter_deleted    bool
 	filter_visibility string
-	filter_tags       []string
+	filter_handle     []string
+	filter_tag        []string
 	order             string
 	limit             int
 	offset            int
@@ -222,10 +223,10 @@ pub struct PostListParams {
 
 // TODO performance optimization: use keyset pagination
 pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
-	if params.filter_tags.len > 0 {
-		for i := 0; i < params.filter_tags.len; i++ {
-			luuid.verify(params.filter_tags[0]) or {
-				return utils.new_peony_error(400, 'tag id ${params.filter_tags[0]} is not a UUID')
+	if params.filter_tag.len > 0 {
+		for i := 0; i < params.filter_tag.len; i++ {
+			luuid.verify(params.filter_tag[0]) or {
+				return utils.new_peony_error(400, 'tag id ${params.filter_tag[0]} is not a UUID')
 			}
 		}
 	}
@@ -241,12 +242,22 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 		where += 'AND post.deleted_at IS NULL'
 	}
 
-	if params.filter_tags.len == 1 {
+	if params.filter_handle.len == 1 {
+		where += ' AND post.handle = ?'
+	}
+	if params.filter_handle.len > 1 {
+		where += ' AND post.handle = ?'
+		for i := 0; i < params.filter_handle.len; i++ {
+			where += ' OR post.handle = ?'
+		}
+	}
+
+	if params.filter_tag.len == 1 {
 		where += ' AND post_tags.post_tag_id = UUID_TO_BIN(?)'
 	}
-	if params.filter_tags.len > 1 {
+	if params.filter_tag.len > 1 {
 		where += ' AND post_tags.post_tag_id = UUID_TO_BIN(?)'
-		for i := 0; i < params.filter_tags.len; i++ {
+		for i := 0; i < params.filter_tag.len; i++ {
 			where += ' OR post_tags.post_tag_id = UUID_TO_BIN(?)'
 		}
 	}
@@ -328,12 +339,21 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	mut vars := []mysql.Param{}
 	vars = arrays.concat(vars, params.filter_post_type)
 
-	if params.filter_tags.len == 1 {
-		vars = arrays.concat(vars, params.filter_tags[0])
+	if params.filter_handle.len == 1 {
+		vars = arrays.concat(vars, params.filter_handle[0])
 	}
-	if params.filter_tags.len > 1 {
-		for i := 0; i < params.filter_tags.len; i++ {
-			vars = arrays.concat(vars, params.filter_tags[i])
+	if params.filter_handle.len > 1 {
+		for i := 0; i < params.filter_handle.len; i++ {
+			vars = arrays.concat(vars, params.filter_handle[i])
+		}
+	}
+
+	if params.filter_tag.len == 1 {
+		vars = arrays.concat(vars, params.filter_tag[0])
+	}
+	if params.filter_tag.len > 1 {
+		for i := 0; i < params.filter_tag.len; i++ {
+			vars = arrays.concat(vars, params.filter_tag[i])
 		}
 	}
 
@@ -421,14 +441,17 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 // `visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
 // `authors` defaults to false. When false only the primary author is returned.
 // `tags` defaults to false When false only the primary tag is returned.
+// `filter_post_type` required (`allowed_post_type`)
 // TODO apply to post_retrieve functions and routes
 pub struct PostRetrieveParams {
-	deleted    bool
-	visibility string
-	authors    bool
-	tags       bool
+	deleted          bool
+	visibility       string
+	authors          bool
+	tags             bool
+	filter_post_type string
 }
 
+// TODO add post_type parameter
 fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 	mut qm := '?'
 	if column == 'id' {
