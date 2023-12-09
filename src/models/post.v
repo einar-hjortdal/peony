@@ -192,8 +192,8 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 }
 
 // PostListParams allows to shape the response
-// `include_authors` When false only the primary author is returned.
-// `include_tags` When false only the primary tag is returned.
+// `include_authors` defaults to false. When false only the primary author is returned.
+// `include_tags` defaults to false. When false only the primary tag is returned.
 // `filter_post_type` required (`allowed_post_type`)
 // `filter_deleted` When false includes deleted posts in the response.
 // `filter_visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
@@ -206,7 +206,7 @@ pub fn (pw PostWriteable) create(mut mysql_conn v_mysql.DB, created_by_id string
 // `filter_updated_at` TODO
 // `filter_sales_channel` TODO v3.10.0
 // `order` defaults to `created_at DESC`
-// `limit` defaults to 0 (no limit)
+// `limit` defaults to 0 (no limit), required when offset is not 0.
 // `offset` defaults to 0 (no offset)
 pub struct PostListParams {
 	include_authors   bool
@@ -269,7 +269,10 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 
 	mut offset := ''
 	if params.offset > 0 {
-		limit = 'OFFSET ${params.offset}'
+		if limit == '' {
+			return error('limit is required when offset > 0')
+		}
+		offset = 'OFFSET ${params.offset}'
 	}
 
 	// TODO validate params.order
@@ -436,22 +439,6 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	return posts
 }
 
-// PostRetrieveParams allows to shape the response
-// `deleted` defaults to false. When false returns an error if the post is deleted
-// `visibility` defaults to 'public' (`allowed_visibility`). TODO v3.7.0
-// `authors` defaults to false. When false only the primary author is returned.
-// `tags` defaults to false When false only the primary tag is returned.
-// `filter_post_type` required (`allowed_post_type`)
-// TODO apply to post_retrieve functions and routes
-pub struct PostRetrieveParams {
-	deleted          bool
-	visibility       string
-	authors          bool
-	tags             bool
-	filter_post_type string
-}
-
-// TODO add post_type parameter
 fn post_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post {
 	mut qm := '?'
 	if column == 'id' {
