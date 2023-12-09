@@ -365,6 +365,11 @@ pub fn post_list(mut mysql_conn v_mysql.DB, params PostListParams) ![]Post {
 	rows := res.rows()
 	mut posts := []Post{}
 
+	// return empty array if no results
+	if rows.len == 0 {
+		return posts
+	}
+
 	for row in rows {
 		vals := row.vals
 
