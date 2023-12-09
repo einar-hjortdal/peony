@@ -7,9 +7,26 @@ import strconv
 import models
 import utils
 
+// TODO instead of route to get by handle, use /storefront/posts with filter_handle param
+
 @['/storefront/posts'; get]
 pub fn (mut app App) storefront_posts_get() vweb.Result {
 	fn_name := 'storefront_posts_get'
+
+	mut q_include_authors := false
+	if 'include_authors' in app.query {
+		if app.query['include_authors'] == '' {
+			err := utils.new_peony_error(400, 'empty include_authors query')
+			return app.send_error(err, fn_name)
+		} else {
+			if utils.can_parse_bool(app.query['include_authors']) {
+				q_include_authors = utils.parse_bool(app.query['include_authors'])
+			} else {
+				err := utils.new_peony_error(400, 'include_authors query cannot be parsed to a boolean value')
+				return app.send_error(err, fn_name)
+			}
+		}
+	}
 
 	mut q_filter_handle := []string{}
 	if 'filter_handle' in app.query {
@@ -32,6 +49,7 @@ pub fn (mut app App) storefront_posts_get() vweb.Result {
 	}
 
 	params := models.PostListParams{
+		include_authors: q_include_authors
 		filter_post_type: 'post'
 		filter_deleted: true
 		filter_handle: q_filter_handle
@@ -88,16 +106,37 @@ pub fn (mut app App) storefront_pages_get() vweb.Result {
 pub fn (mut app App) storefront_post_page_get_by_handle(handle string) vweb.Result {
 	fn_name := 'storefront_post_get_by_handle'
 
+	mut q_include_authors := false
+	if 'include_authors' in app.query {
+		if app.query['include_authors'] == '' {
+			err := utils.new_peony_error(400, 'empty include_authors query')
+			return app.send_error(err, fn_name)
+		} else {
+			if utils.can_parse_bool(app.query['include_authors']) {
+				q_include_authors = utils.parse_bool(app.query['include_authors'])
+			} else {
+				err := utils.new_peony_error(400, 'include_authors query cannot be parsed to a boolean value')
+				return app.send_error(err, fn_name)
+			}
+		}
+	}
+
 	p_filter_handle := [handle]
 
 	params := models.PostListParams{
+		include_authors: q_include_authors
 		filter_post_type: 'page'
 		filter_deleted: true
 		filter_handle: p_filter_handle
 	}
 
-	// handle is unique, array returns one or no items
 	posts := models.post_list(mut app.db, params) or { return app.send_error(err, fn_name) }
+
+	if posts.len == 0 {
+		err := utils.new_peony_error(404, 'No page exists with the given handle')
+		return app.json(err)
+	}
+
 	post := posts[0]
 	return app.json(post)
 }
