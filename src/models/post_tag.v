@@ -5,7 +5,7 @@ import arrays
 import db.mysql as v_mysql
 // local
 import utils
-import data.mysql as p_mysql
+import data.mysql
 // first party
 import coachonko.luuid
 
@@ -55,7 +55,7 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_i
 	handle'
 	mut qm := 'UUID_TO_BIN(?), UUID_TO_BIN(?), UUID_TO_BIN(?), ?, ?'
 
-	mut vars := []p_mysql.Param{}
+	mut vars := []mysql.Param{}
 	vars = arrays.concat(vars, id, created_by_id, created_by_id, ptw.title, ptw.handle)
 
 	if ptw.parent != '' {
@@ -92,57 +92,87 @@ pub fn (mut ptw PostTagWriteable) create(mut mysql_conn v_mysql.DB, created_by_i
 	INSERT INTO post_tag (${columns})
 	VALUES (${qm})'
 
-	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 	// TODO insert post_tags values
 }
 
 // PostTagListParams allows to shape the response
-// `deleted` when false excludes deleted PostTag in the response
+// `filter_deleted` when false excludes deleted PostTag in the response
 pub struct PostTagListParams {
-	deleted bool
+	filter_handle  []string
+	filter_deleted bool
 }
 
 pub fn post_tag_list(mut mysql_conn v_mysql.DB, params PostTagListParams) ![]PostTag {
-	mut where_clauses := ''
+	mut where := ''
+	if params.filter_deleted || params.filter_handle.len > 0 {
+		where = 'WHERE '
+	}
 
-	if params.deleted == false {
-		where_clauses = 'AND post_tag.deleted_at IS NULL'
+	if params.filter_deleted {
+		where += 'deleted_at IS NULL'
+	}
+
+	if params.filter_handle.len == 1 {
+		if !params.filter_deleted {
+			where += 'handle = ?'
+		} else {
+			where += ' AND handle = ?'
+		}
+	}
+	if params.filter_handle.len > 1 {
+		if !params.filter_deleted {
+			where += 'handle = ?'
+		} else {
+			where += ' AND handle = ?'
+		}
+		for i := 0; i < params.filter_handle.len; i++ {
+			where += ' OR handle = ?'
+		}
 	}
 
 	// TODO get parent tag if not empty
 	query := '
 	SELECT 
-		BIN_TO_UUID(post_tag.id),
-		BIN_TO_UUID(post_tag.parent_id),
-		post_tag.visibility,
-		post_tag.created_at,
-		BIN_TO_UUID(post_tag.created_by),
-		post_tag.updated_at,
-		BIN_TO_UUID(post_tag.updated_by),
-		post_tag.deleted_at,
-		BIN_TO_UUID(post_tag.deleted_by),
-		post_tag.title,
-		post_tag.subtitle,
-		post_tag.content,
-		post_tag.handle,
-		post_tag.excerpt,
-		post_tag.metadata,
-		BIN_TO_UUID(post_tags.post_id)
+		BIN_TO_UUID(id),
+		BIN_TO_UUID(parent_id),
+		visibility,
+		created_at,
+		BIN_TO_UUID(created_by),
+		updated_at,
+		BIN_TO_UUID(updated_by),
+		deleted_at,
+		BIN_TO_UUID(deleted_by),
+		title,
+		subtitle,
+		content,
+		handle,
+		excerpt,
+		metadata
 	FROM post_tag
-	LEFT JOIN post_tags ON post_tag.id = post_tags.post_tag_id
-	${where_clauses}
+	${where}
 	ORDER BY created_at DESC'
 
-	res := p_mysql.prep_n_exec(mut mysql_conn, query)!
+	mut vars := []mysql.Param{}
+	if params.filter_handle.len == 1 {
+		vars = arrays.concat(vars, params.filter_handle[0])
+	}
+	if params.filter_handle.len > 1 {
+		for i := 0; i < params.filter_handle.len; i++ {
+			vars = arrays.concat(vars, params.filter_handle[i])
+		}
+	}
+
+	res := mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 
 	rows := res.rows()
+	mut post_tags := []PostTag{}
+
 	if rows.len == 0 {
-		return []PostTag{}
+		return post_tags
 	}
 
 	// TODO a single tag may be listed more than once if it is linked to more than one post.
-
-	mut post_tags := []PostTag{}
 
 	for row in rows {
 		vals := row.vals
@@ -187,6 +217,10 @@ pub fn post_tag_list(mut mysql_conn v_mysql.DB, params PostTagListParams) ![]Pos
 }
 
 fn (ptw PostTagWriteable) validate() ! {
+	if ptw.parent != '' {
+		luuid.verify(ptw.parent) or { return utils.new_peony_error(400, 'parent is not a UUID') }
+	}
+
 	if ptw.visibility != '' {
 		if ptw.visibility !in allowed_visibility {
 			return utils.new_peony_error(400, 'visibility not allowed')
@@ -216,16 +250,19 @@ fn (ptw PostTagWriteable) validate() ! {
 	// TODO UUID must be validated or risk mysql fail operations
 }
 
+// TODO REMOVE
 pub fn post_tag_retrieve_by_id(mut mysql_conn v_mysql.DB, id string) !PostTag {
 	luuid.verify(id) or { return utils.new_peony_error(400, 'id is not a UUID') }
 
 	return post_tag_retrieve(mut mysql_conn, 'id', id)!
 }
 
+// TODO REMOVE
 pub fn post_tag_retrieve_by_handle(mut mysql_conn v_mysql.DB, handle string) !PostTag {
 	return post_tag_retrieve(mut mysql_conn, 'handle', handle)!
 }
 
+// TODO REMOVE
 fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !PostTag {
 	mut qm := '?'
 	if column == 'id' {
@@ -255,7 +292,7 @@ fn post_tag_retrieve(mut mysql_conn v_mysql.DB, column string, var string) !Post
 	WHERE ${column} = ${qm}
 	ORDER BY created_at DESC'
 
-	res := p_mysql.prep_n_exec(mut mysql_conn, query, var)!
+	res := mysql.prep_n_exec(mut mysql_conn, query, var)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -319,7 +356,7 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id 
 	excerpt = ?,
 	metadata = ?'
 
-	mut vars := []p_mysql.Param{}
+	mut vars := []mysql.Param{}
 	vars = arrays.concat(vars, ptw.visibility, user_id, ptw.title, ptw.subtitle, ptw.content,
 		ptw.handle, ptw.excerpt, ptw.metadata)
 
@@ -335,7 +372,7 @@ pub fn (mut ptw PostTagWriteable) update(mut mysql_conn v_mysql.DB, post_tag_id 
 	SET ${query_records}
 	WHERE id = UUID_TO_BIN(?)'
 
-	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 }
 
 pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) ![]PostTag {
@@ -363,7 +400,7 @@ pub fn post_tag_retrieve_by_post_id(mut mysql_conn v_mysql.DB, post_id string) !
 	WHERE post_id = UUID_TO_BIN(?)
 	ORDER BY post_tags.sort_order'
 
-	res := p_mysql.prep_n_exec(mut mysql_conn, query, post_id)!
+	res := mysql.prep_n_exec(mut mysql_conn, query, post_id)!
 
 	rows := res.rows()
 	if rows.len == 0 {
@@ -423,10 +460,10 @@ pub fn post_tag_delete_by_id(mut mysql_conn v_mysql.DB, user_id string, id strin
 		deleted_by = UUID_TO_BIN(?)
 	WHERE id = UUID_TO_BIN(?)'
 
-	mut vars := []p_mysql.Param{}
+	mut vars := []mysql.Param{}
 	vars = arrays.concat(vars, user_id)
 	vars = arrays.concat(vars, id)
 
-	p_mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
+	mysql.prep_n_exec(mut mysql_conn, query, ...vars)!
 	return post_tag_retrieve_by_id(mut mysql_conn, id)!
 }

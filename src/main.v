@@ -21,12 +21,6 @@ import coachonko.sessions as c_sessions
 // must run peony like so on Euro Linux 9:
 // v -cflags "-I/usr/include/mysql" run .
 
-/*
-*
-* App
-*
-*/
-
 struct App {
 	vweb.Context
 	db_handle vweb.DatabasePool[v_mysql.DB] = unsafe { nil }
@@ -66,12 +60,6 @@ fn handle_cors(mut app App) {
 		app.add_header('Access-Control-Expose-Headers', '${admin_header}, ${storefront_header}')
 	}
 }
-
-/*
-*
-* Main
-*
-*/
 
 fn main() {
 	cpus := runtime.nr_cpus()
