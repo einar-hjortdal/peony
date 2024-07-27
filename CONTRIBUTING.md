@@ -35,7 +35,7 @@ Please follow these standards
 - The controller can prepare the data before giving it to the model by adding values.
 - Do not use the `@[required]` attribute in struct definitions, always manually check values to return 
   adequate error messages.
-- For consistency reasons, use `arrays.concat` over `<<` to concatenare items to an array.
+- For consistency reasons, use `arrays.concat` over `<<` to concatenate items to an array.
 
 #### Patterns
 
@@ -51,24 +51,16 @@ Each request-response cycle follows the route-controller-model pattern.
 Note: in vweb, routes and controllers are defined together. The key takeaway is that a route/controller 
   should never perform data-layer operations directly, but only invoke model functions or methods.
 
-### MySQL
+### Firebird
 
-- Only use raw SQL queries, do not use on the V ORM.
 - Only use *prepared statements* to pass V values to the MySQL server. An acceptable exception to this 
   rule is when executing SQL scripts before the app starts.
 - Only use pooled connections to query the database unless an independent connection is required. One 
   such case is when database connections are needed before starting vweb with `vweb.run_at`.
 
-- Use uppercase for keywords and lowercase for identifiers, including data types.
-- Always use double quotes (`ANSI_QUOTES`) for identifiers, never backticks.
-- Use `real` and `double precision` for floating point types.
-- Use `char` for strings with expected exact lengths.
-- Use `varchar` for strings with expected maximum lengths, for strings with default values, and for 
+- Uppercase for keywords, data types. Lowercase all other identifiers.
+- Use `REAL` and `DOUBLE PRECISION` for floating point types.
+- Use `CHAR` for strings with expected exact lengths.
+- Use `VARCHAR` for strings with expected maximum lengths, for strings with default values, and for 
   strings that are in an `INDEX` or `UNIQUE` constraint.
-- Use `text`, `mediumtext` and `longtext` for unknown-length strings. 
-- Use `bit(1)` to store boolean values.
-<!--
-Note that the character set *utf8mb4* requires 4 bytes per character, therefore the maximum number of 
-characters that can be stored in a single `varchar` column is 16_383. Also note that there exists a 
-row size limit of 65_535 bytes.
--->
+- Use `TEXT` for unknown-length strings.

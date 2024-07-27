@@ -1,31 +1,35 @@
 # TODO
 
+## Rewrite:
+
+- Change BLOB storage: use a [central file server](https://github.com/Coachonko/vistas).
+- Change database: use [Firebird](https://www.firebirdsql.org/).
+- Change cache: use [Redict](https://redict.io/).
+- Change mail handling: use [SensorPro](https://sensorpro.eu/).
+
 ## Roadmap
 
 ### v3.1.0
 
-This release allows the admin to login, create posts and store them in Percona Server.
+This release allows the admin to login, create posts and store them in Firebird.
 
 - Read settings from .env
   - ~~Validate settings~~ <!-- Always panic right away on startup, never on runtime -->
-- MySQL
-  - ~~Prepared statements~~
-  <!-- 
-  https://github.com/vlang/v/issues/17957
-  https://github.com/vlang/v/issues/18059
-  -->
-  - ~~Connection pool~~ <!-- https://github.com/vlang/v/pull/18010 -->
+- Firebird
+  - Write a firebird connector
   - ~~Seeding new database~~
     - ~~Schema~~
     - ~~Data~~ <!-- countries, currencies, locale, default store, default user -->
-- Redis
+- Redict
   - ~~Write a redis library~~ <!-- https://github.com/Coachonko/redis -->
   - ~~Cache~~ <!-- https://github.com/Coachonko/cache -->
-  - ~~Server-side sessions~~ <!-- https://github.com/Coachonko/sessions -->
+  - Sessions
+- BLOBs
+  - ~~Write a BLOB storage service~~ <!-- https://github.com/Coachonko/vistas -->
 - Users
-  - ~~Sessions~~
-- ~~Admin frontend~~ <!-- https://github.com/Coachonko/peony_admin -->
-- ~~Storefront frontend~~ <!-- https://github.com/Coachonko/coachonko_storefront -->
+  - Sessions
+- Admin frontend <!-- https://github.com/Coachonko/peony_admin -->
+- Storefront frontend <!-- https://github.com/Coachonko/coachonko_storefront -->
 
 ### v3.2.0
 
@@ -41,21 +45,22 @@ Needed enhancements on basic functionality.
 - New features for posts:
   - ~~Tags~~ <!-- Tags have no hierarchy, categories are a subset of tags and have hierarchy -->
   - ~~Authors~~
-
 - Search
 
 ### v3.3.0
 
-This release should allow posts to contain BLOBs stored on Garage, implementing a subset of the Amazon 
-S3 API. Posts can now have associated images, in the future more than just images will be supported.
+This release allows the store to have more than one language. The store can have a default language 
+set, content will be in this language by default. More languages can be enabled for the store, then, 
+translations for posts, product names, subtitles, descriptions and handles can be stored in any of the 
+enabled languages. Even images, if necessary, can have language-specific alternatives.
 
-- S3
+- multi-language
 
 ### v3.4.0
 
 This release allows scaling horizontally, by running many instances of peony on different server, thanks 
-to KeyDB working as both job queue and event bus. Additionally, events can now be scheduled: posts can 
-be scheduled to become public at a specific date and time.
+to Redict working as both job queue and event bus. Additionally, events can now be scheduled: posts 
+can be scheduled to become public at a specific date and time.
 
 - Redis:
   - Job queue
@@ -102,12 +107,7 @@ system can be applied to many different use cases.
 
 ### v3.8.0
 
-This release allows the store to have more than one language. The store can have a default language 
-set, content will be in this language by default. More languages can be enabled for the store, then, 
-translations for posts, product names, subtitles, descriptions and handles can be stored in any of the 
-enabled languages. Even images, if necessary, can have language-specific alternatives.
-
-- multi-language
+Reserved
 
 ### v3.9.0
 
@@ -142,10 +142,10 @@ capabilities without having to modify peony itself.
   - Payment
   - Transactional email
 - Official peony plugins <!-- Refactor -->
-  - Sessions: Redis sessions with JWT token
+  - Sessions: Redict sessions with JWT token
   - Fullfillment provider: SkyNet Worldwide Express
   - Payment provider: <!-- TBD -->
-  - Transactional email: SMTP client
+  - Transactional email: Sensorpro
 
 ## Future projects and enhancements
 
@@ -153,6 +153,6 @@ capabilities without having to modify peony itself.
 - Digital products should be able to be stored on Garage.
 - Webmentions
 - Official peony plugins
-  - Sessions: Redis sessions with session ID Cookie
+  - Sessions: Redict sessions with session ID Cookie
   - Transactional email: Cleverreach
   - Email marketing: Cleverreach

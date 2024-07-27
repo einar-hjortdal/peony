@@ -1,13 +1,11 @@
 # peony
 
-A content management system and shoping cart API for simple ecommerce needs. It is developed and used 
-for [Coachonko's blog](https://coachonko.com). 
+A content management system and shoping cart API.
 
 ## Goals
 
-This project aims to satisfy the needs of hobbists and professional content publishers. peony aims to 
-provide the tools to publish content, market it and monetize it. These tools should also be able to 
-satisfy merchants and service providers
+peony aims to provide the tools to publish content, market and monetize it. These tools should also 
+be able to satisfy merchants and service providers.
 
 peony aims to support multi-language, multi-channel, multi-currency, multi-stock locations, physical, 
 virtual products and services.
@@ -15,24 +13,24 @@ virtual products and services.
 ## Architecture
 
 This graph represents how peony works on a single-server deployment. This setup may scale horizontally 
-by deploying each box on several independent servers.
+by deploying each box on its own independent server.
 
 ```
-┌────────────┐                           ┌──────────────────────┐        ┌───────┐
-│            │                           │        peony         │        │       │
-│            │                           │                      ├────────► KeyDB ├───────┐
-│            │     ┌────────────────┐    │                      │        │       │       │
-│            │     │                │    │                      │        └───────┘       │
+┌────────────┐                           ┌──────────────────────┐        ┌────────┐
+│            │                           │        peony         │        │        │
+│            │                           │                      ├────────► Redict ├──────┐
+│            │     ┌────────────────┐    │                      │        │        │      │
+│            │     │                │    │                      │        └────────┘      │
 │            ◄─────► Admin frontend ◄────►       /admin/        │                        │
 │            │     │                │    │                      │   ┌────────────────┐   │
 │            │     └────────────────┘    │                      │   │                │   │
-│            │                           │                      ├───► Percona Server ◄───┘
+│            │                           │                      ├───►    Firebird    ◄───┘
 │            ◄───────────────────────────►                      │   │                │
 │            │                           │                      │   └────────────────┘
-│  lighttpd  │  ┌─────────────────────┐  │                      │
+│ freenginx  │  ┌─────────────────────┐  │                      │
 │            │  │                     │  │                      │   ┌────────────────┐
 │            ◄──► Storefront frontend ◄──►     /storefront/     │   │                │
-│            │  │                     │  │                      ├───►     Garage     ├───┐
+│            │  │                     │  │                      ├───►     Vistas     ├───┐
 │            │  └─────────────────────┘  │                      │   │                │   │
 │            │                           │                      │   └────────────────┘   │
 │            │                           │                      │                        │
@@ -42,15 +40,11 @@ by deploying each box on several independent servers.
 └────────────┘
 ```
 
-peony is meant to work behind a web server set up as reverse proxy. It is recommended to use lighttpd.
+peony is meant to work behind a web server set up as reverse proxy.
 
-peony uses a cloud architecture. It can run on several backend servers sharing a connection to the KeyDB 
-server and Percona Server. Static files uploaded from the Admin frontend (such as images and documents) 
-are stored on Garage. KeyDB works as cache, job queue and session storage, and Percona Server stores 
-data.
-
-While I use these technologies deployed as containers on my VPS, this application can be used with any 
-managed MySQL server, Redis server and S3-compatible object storage.
+peony uses a cloud architecture. It can run on several backend servers sharing a connection to the database 
+servers. BLOBs are uploaded from the Admin frontend (such as images and documents) are stored on a central 
+BLOB server.
 
 The Storefront API routes are all prefixed with `/storefront`, while the Admin API routes are all prefixed 
 with `/admin`.
