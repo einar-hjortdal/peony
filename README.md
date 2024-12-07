@@ -59,13 +59,9 @@ with `/admin`.
 ├── src
 │   ├── config
 │   ├── data
-│   │   ├── mysql
-│   │   ├── redis
-│   │   └── s3
 │   ├── middlewares
 │   ├── migrations
 │   └── utils
-├── container-compose.yml
 ├── Containerfile
 ├── .env
 ├── .env.template
@@ -75,8 +71,8 @@ with `/admin`.
 - `src` contains the entry point of the program `main.v`, and vweb routes in files prefixed with `route_`.
 - `config` contains environment variables-related functions.
 - `controllers` contains the handler functions for the routes.
-- `data` contains everything related to MySQL, Redis and S3.
-- `migrations` contain the MySQL scripts that change the database schema.
+- `data` contains everything related to Firebird, Redict and BLOBs.
+- `migrations` contain the Firebird scripts that change the database schema.
 - `utils` contains useful and reusable functions.
  -->
 
@@ -84,10 +80,6 @@ with `/admin`.
 
 Instructions for development of peony can be found [here](docs/development/), comprehensive instructions 
 for a single-server deployment are provided [here](docs/deployment/).
-
-### Important
-
-- It is required to add `ANSI` to the default `sql-mode` of the MySQL server.
 
 ### Defaults
 

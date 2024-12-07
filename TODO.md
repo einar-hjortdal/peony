@@ -2,10 +2,11 @@
 
 ## Rewrite:
 
-- Change BLOB storage: use a [central file server](https://github.com/Coachonko/vistas).
+- Change BLOB storage: use a [central file server](https://github.com/einar-hjortdal/vistas).
 - Change database: use [Firebird](https://www.firebirdsql.org/).
 - Change cache: use [Redict](https://redict.io/).
 - Change mail handling: use [SensorPro](https://sensorpro.eu/).
+- Deploy as podman containers.
 
 ## Roadmap
 
@@ -21,15 +22,14 @@ This release allows the admin to login, create posts and store them in Firebird.
     - ~~Schema~~
     - ~~Data~~ <!-- countries, currencies, locale, default store, default user -->
 - Redict
-  - ~~Write a redis library~~ <!-- https://github.com/Coachonko/redis -->
-  - ~~Cache~~ <!-- https://github.com/Coachonko/cache -->
+  - ~~Write a Redict library~~ <!-- https://github.com/einar-hjortdal/redict -->
   - Sessions
 - BLOBs
-  - ~~Write a BLOB storage service~~ <!-- https://github.com/Coachonko/vistas -->
+  - ~~Write a BLOB storage service~~ <!-- https://github.com/einar-hjortdal/vistas -->
 - Users
   - Sessions
-- Admin frontend <!-- https://github.com/Coachonko/peony_admin -->
-- Storefront frontend <!-- https://github.com/Coachonko/coachonko_storefront -->
+- Admin frontend
+- Storefront frontend
 
 ### v3.2.0
 
@@ -153,6 +153,5 @@ capabilities without having to modify peony itself.
 - Digital products should be able to be stored on Garage.
 - Webmentions
 - Official peony plugins
-  - Sessions: Redict sessions with session ID Cookie
-  - Transactional email: Cleverreach
-  - Email marketing: Cleverreach
+  - Transactional email: Sensorpro
+  - Email marketing: Sensorpro

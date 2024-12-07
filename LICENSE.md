@@ -1,8 +1,8 @@
 University of Illinois/NCSA Open Source License
 
-Copyright (c) 2023 Coachonko. All rights reserved.
+Copyright (c) 2023 Einar Hjortdal. All rights reserved.
 
-Developed by: Coachonko and the peony community
+Developed by: Einar Hjortdal and the Chiadenis community
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated 
 documentation files (the "Software"), to deal with the Software without restriction, including without 
@@ -16,8 +16,8 @@ conditions:
 * Redistributions in binary form must reproduce the above copyright notice, this list of conditions 
   and the following disclaimers in the documentation and/or other materials provided with the distribution.
 
-* Neither the names of Coachonko, peony nor the names of its contributors may be used to endorse or 
-  promote products derived from this Software without specific prior written permission.
+* Neither the names of Einar Hjortdal, Chiadenis nor the names of its contributors may be used to endorse 
+or promote products derived from this Software without specific prior written permission.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
 LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. 
