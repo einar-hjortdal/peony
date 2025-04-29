@@ -362,7 +362,7 @@ CREATE TABLE product_tag_translations (
 );
 
 CREATE TABLE product_type_translations (
-  product_type_id BINARY(16),
+  product_type_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -374,7 +374,7 @@ CREATE TABLE product_type_translations (
 );
 
 CREATE TABLE product_variant_translations (
-  product_variant_id BINARY(16),
+  product_variant_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -386,7 +386,7 @@ CREATE TABLE product_variant_translations (
 );
 
 CREATE TABLE product_option_value_translations (
-  product_option_value_id BINARY(16),
+  product_option_value_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -398,7 +398,7 @@ CREATE TABLE product_option_value_translations (
 );
 
 CREATE TABLE product_option_translations (
-  product_option_id BINARY(16),
+  product_option_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -410,7 +410,7 @@ CREATE TABLE product_option_translations (
 );
 
 CREATE TABLE product_category_translations (
-  product_category_id BINARY(16),
+  product_category_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -422,7 +422,7 @@ CREATE TABLE product_category_translations (
 );
 
 CREATE TABLE product_translations (
-  product_id BINARY(16),
+  product_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -436,7 +436,7 @@ CREATE TABLE product_translations (
 );
 
 CREATE TABLE product_collection_translations (
-  product_collection_id BINARY(16),
+  product_collection_id BINARY(16) NOT NULL,
   locale_code VARCHAR(63) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
