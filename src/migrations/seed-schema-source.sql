@@ -1,0 +1,458 @@
+CREATE TABLE currency (
+  id BINARY(16),
+  code CHAR(3), -- ISO 4217
+  includes_tax BOOLEAN DEFAULT false NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID UNIQUE (code)
+);
+
+CREATE TABLE image (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  url BLOB SUB_TYPE TEXT NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id)
+);
+
+CREATE TABLE product_collection (
+  id BINARY(16),  
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63) NOT NULL,
+  handle VARCHAR(63) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product_collection (handle) WHERE deleted_at IS NULL;
+
+CREATE TABLE product_tag (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  name VARCHAR(63) NOT NULL
+);
+
+CREATE TABLE product_type (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  name VARCHAR(63) NOT NULL
+);
+
+CREATE TABLE price_list (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  description VARCHAR(191),
+  type VARCHAR(8) DEFAULT 'sale' NOT NULL,
+  status VARCHAR(6) DEFAULT 'draft' NOT NULL,
+  includes_tax BOOLEAN DEFAULT false NOT NULL,
+  starts_at TIMESTAMP,
+  ends_at TIMESTAMP,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID CHECK (type IN ('sale', 'override')),
+  CONSTRAINT REPLACE_WITH_LUUID CHECK (status IN ('active', 'draft'))
+);
+
+CREATE TABLE money_amount (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  currency_code CHAR(3) NOT NULL,
+  amount INTEGER NOT NULL,
+  min_quantity INTEGER,
+  max_quantity INTEGER,
+  price_list_id BINARY(16),
+  variant_id BINARY(16),
+  region_id BINARY(16),
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (currency_code) REFERENCES currency (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (price_list_id) REFERENCES price_list (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (region_id) REFERENCES region (id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON money_amount (currency_code);
+CREATE INDEX REPLACE_WITH_LUUID ON money_amount (variant_id);
+CREATE INDEX REPLACE_WITH_LUUID ON money_amount (region_id);
+
+CREATE TABLE region (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  currency_code CHAR(3) NOT NULL,
+  tax_rate REAL NOT NULL,
+  tax_code VARCHAR(63),
+  includes_tax BOOLEAN DEFAULT false NOT NULL,
+  gift_cards_taxable BOOLEAN DEFAULT true NOT NULL,
+  automatic_taxes BOOLEAN DEFAULT true NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (currency_code) REFERENCES currency (code)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON region (currency_code);
+
+CREATE TABLE country (
+  id BINARY(16),
+  code CHAR(2), -- ISO 3166-1 alpha 2
+  region_id BINARY(16),
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID UNIQUE (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (region_id) REFERENCES region (id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON country (region_id);
+
+CREATE TABLE product (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  handle VARCHAR(63) NOT NULL,
+  is_giftcard BOOLEAN DEFAULT false NOT NULL,
+  status VARCHAR(9) DEFAULT 'draft' NOT NULL,
+  thumbnail BLOB SUB_TYPE TEXT,
+  weight INTEGER,
+  length INTEGER,
+  height INTEGER,
+  width INTEGER,
+  hs_code varchar(63),
+  origin_country char(2),
+  mid_code BLOB SUB_TYPE TEXT,
+  collection_id BINARY(16),
+  type_id BINARY(16),
+  discountable BOOLEAN DEFAULT true NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID CHECK (status IN ('draft', 'proposed', 'published', 'rejected')),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (origin_country) REFERENCES country (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (collection_id) REFERENCES product_collection (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (type_id) REFERENCES product_type (id)
+);
+
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product (handle) WHERE deleted_at IS NULL;
+
+CREATE TABLE product_variant (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63) NOT NULL,
+  product_id BINARY(16) NOT NULL,
+  sku VARCHAR(63),
+  barcode VARCHAR(63),
+  ean VARCHAR(13),
+  upc VARCHAR(12),
+  variant_rank INTEGER DEFAULT 0,
+  inventory_quantity INTEGER NOT NULL,
+  allow_backorder BOOLEAN DEFAULT false NOT NULL,
+  manage_inventory BOOLEAN DEFAULT true NOT NULL,
+  hs_code VARCHAR(63),
+  origin_country CHAR(2),
+  mid_code VARCHAR(63),
+  weight INTEGER,
+  length INTEGER,
+  height INTEGER,
+  width INTEGER,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (origin_country) REFERENCES country (code)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_variant (product_id);
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product_variant (sku) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product_variant (barcode) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product_variant (ean) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product_variant (upc) WHERE deleted_at IS NULL;
+
+CREATE TABLE product_option (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  product_id BINARY(16) NOT NULL,
+  title VARCHAR(63) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id)
+);
+
+CREATE TABLE product_option_value (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  option_id BINARY(16) NOT NULL,
+  variant_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (option_id) REFERENCES product_option (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_option_value (option_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_option_value (variant_id);
+
+CREATE TABLE product_category (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  handle VARCHAR(63) NOT NULL,
+  is_active BOOLEAN NOT NULL,
+  is_internal BOOLEAN NOT NULL,
+  parent_category_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (parent_category_id) REFERENCES product_category (id)
+);
+
+CREATE UNIQUE INDEX REPLACE_WITH_LUUID ON product_category (handle) WHERE deleted_at IS NULL;
+
+CREATE TABLE tax_rate (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  rate REAL,
+  code VARCHAR(63),
+  name VARCHAR(63) NOT NULL,
+  region_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (region_id) REFERENCES region (id)
+);
+
+CREATE TABLE product_tax_rate (
+  product_id BINARY(16) NOT NULL,
+  rate_id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (rate_id) REFERENCES tax_rate (id) ON DELETE CASCADE,
+  PRIMARY KEY (product_id, rate_id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_tax_rate (rate_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_tax_rate (product_id);
+
+CREATE TABLE product_type_tax_rate (
+  product_type_id BINARY(16) NOT NULL,
+  rate_id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_type_id) REFERENCES product_type (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (rate_id) REFERENCES tax_rate (id) ON DELETE CASCADE,
+  PRIMARY KEY (product_type_id, rate_id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_type_tax_rate (rate_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_type_tax_rate (product_type_id);
+
+CREATE TABLE locale (
+  id BINARY(16),
+  code VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID UNIQUE (code)
+);
+
+CREATE TABLE sales_channel (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  description VARCHAR(191),
+  is_disabled BOOLEAN DEFAULT false NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id)
+);
+
+CREATE TABLE store (
+  id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  name VARCHAR(63) DEFAULT 'peony store' NOT NULL,
+  default_locale_code VARCHAR(63) DEFAULT 'en' NOT NULL,
+  default_currency_code CHAR(3) DEFAULT 'EUR' NOT NULL,
+  default_stock_location_id BINARY(16),
+  default_sales_channel_id BINARY(16),
+  CONSTRAINT REPLACE_WITH_LUUID PRIMARY KEY (id),
+  CONSTRAINT REPLACE_WITH_LUUID UNIQUE (default_sales_channel_id),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (default_locale_code) REFERENCES locale (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (default_currency_code) REFERENCES currency (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (default_sales_channel_id) REFERENCES sales_channel (id)
+);
+
+CREATE TABLE product_category_product (
+  product_category_id BINARY(16) NOT NULL,
+  product_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_category_id) REFERENCES product_category (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  PRIMARY KEY (product_category_id, product_id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_category_product (product_category_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_category_product (product_id);
+
+CREATE TABLE product_images (
+  product_id BINARY(16) NOT NULL,
+  image_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  PRIMARY KEY (product_id, image_id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_images (product_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_images (image_id);
+
+CREATE TABLE product_tags (
+  product_id BINARY(16) NOT NULL,
+  product_tag_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_tag_id) REFERENCES product_tag (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  PRIMARY KEY (product_id, product_tag_id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_tags (product_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_tags (product_tag_id);
+
+CREATE TABLE product_sales_channel (
+  product_id BINARY(16) NOT NULL,
+  sales_channel_id BINARY(16) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  PRIMARY KEY (product_id, sales_channel_id)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON product_sales_channel (product_id);
+CREATE INDEX REPLACE_WITH_LUUID ON product_sales_channel (sales_channel_id);
+
+CREATE TABLE store_currencies (
+  store_id BINARY(16) NOT NULL,
+  currency_code CHAR(3) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (store_id) REFERENCES store (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (currency_code) REFERENCES currency (code) ON DELETE CASCADE ON UPDATE CASCADE,
+  PRIMARY KEY (store_id, currency_code)
+);
+
+CREATE INDEX REPLACE_WITH_LUUID ON store_currencies (store_id);
+CREATE INDEX REPLACE_WITH_LUUID ON store_currencies (currency_code);
+
+CREATE TABLE store_locales (
+  store_id BINARY(16) NOT NULL,
+  locale_code VARCHAR(63) NOT NULL,
+  PRIMARY KEY (store_id, locale_code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (store_id) REFERENCES store (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code)
+);
+
+CREATE TABLE product_tag_translations (
+  product_tag_id BINARY(16) NOT NULL,
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_tag_id) REFERENCES product_tag (id) ON DELETE CASCADE,
+  PRIMARY KEY (product_tag_id, locale_code)
+);
+
+CREATE TABLE product_type_translations (
+  product_type_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_type_id) REFERENCES product_type (id) ON DELETE CASCADE,
+  PRIMARY KEY (product_type_id, locale_code)
+);
+
+CREATE TABLE product_variant_translations (
+  product_variant_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+  PRIMARY KEY (product_variant_id, locale_code)
+);
+
+CREATE TABLE product_option_value_translations (
+  product_option_value_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_option_value_id) REFERENCES product_option_value (id) ON DELETE CASCADE,
+  PRIMARY KEY (product_option_value_id, locale_code)
+);
+
+CREATE TABLE product_option_translations (
+  product_option_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_option_id) REFERENCES product_option (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  PRIMARY KEY (product_option_id, locale_code)
+);
+
+CREATE TABLE product_category_translations (
+  product_category_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63),
+  handle VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_category_id) REFERENCES product_category (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  PRIMARY KEY (product_category_id, locale_code)
+);
+
+CREATE TABLE product_translations (
+  product_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63),
+  subtitle VARCHAR(191),
+  description BLOB SUB_TYPE TEXT,
+  handle VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  PRIMARY KEY (product_id, locale_code)
+);
+
+CREATE TABLE product_collection_translations (
+  product_collection_id BINARY(16),
+  locale_code VARCHAR(63) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63) NOT NULL,
+  handle VARCHAR(63),
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (product_collection_id) REFERENCES product_collection (id) ON DELETE CASCADE,
+  CONSTRAINT REPLACE_WITH_LUUID FOREIGN KEY (locale_code) REFERENCES locale (code),
+  PRIMARY KEY (product_collection_id, locale_code)
+);
