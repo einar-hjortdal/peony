@@ -36,12 +36,12 @@ A product:
   - may have one or more image.
   - may have a price. This price may be in one or more currency (TODO).
   - may have one or more *option*. An option defines properties that may vary between different variants 
-  of a product (eg. color, length...). Each option has a value.
+  of a product (eg. color, length...). Each option has a value. option can be translated.
   - may have one or more *variant*. Each variant may have a price, described by the price_list, which 
   overrides its base price. A variant specifies a unique combination of product option values.
-  - may have one or more product_tag.
-  - may have one or more product_type.
-  - may be part of one or more product_collection.
+  - may have one or more product_tag. product_tag can be translated.
+  - may have one or more product_type. product_type can be translated.
+  - may be part of one or more product_collection. product_collection can be translated.
   - may have one title. This title may be have translations.
   - may have one subtitle. This subtitle may be have translations.
   - may have one description. This description may be have translations.

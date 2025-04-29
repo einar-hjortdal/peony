@@ -20,7 +20,6 @@ CREATE TABLE product_collection (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  title VARCHAR(63) NOT NULL,
   handle VARCHAR(63) NOT NULL,
   CONSTRAINT "06810e2b-d498-167f-4800-579fc213e01c" PRIMARY KEY (id)
 );
@@ -32,8 +31,7 @@ CREATE TABLE product_tag (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  CONSTRAINT "06810e2b-d498-19cb-5400-3ea67daf93dc" PRIMARY KEY (id),
-  name VARCHAR(63) NOT NULL
+  CONSTRAINT "06810e2b-d498-19cb-5400-3ea67daf93dc" PRIMARY KEY (id)
 );
 
 CREATE TABLE product_type (
@@ -42,7 +40,6 @@ CREATE TABLE product_type (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   CONSTRAINT "06810e2b-d498-1ca4-4800-27645d378a33" PRIMARY KEY (id),
-  name VARCHAR(63) NOT NULL
 );
 
 CREATE TABLE price_list (
@@ -147,7 +144,6 @@ CREATE TABLE product_variant (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  title VARCHAR(63) NOT NULL,
   product_id BINARY(16) NOT NULL,
   sku VARCHAR(63),
   barcode VARCHAR(63),
@@ -181,7 +177,6 @@ CREATE TABLE product_option (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   product_id BINARY(16) NOT NULL,
-  title VARCHAR(63) NOT NULL,
   CONSTRAINT "06810e2b-d49c-1c96-b000-21d2bbccc15f" PRIMARY KEY (id),
   CONSTRAINT "06810e2b-d49c-1d09-1400-a6521ed9ae50" FOREIGN KEY (product_id) REFERENCES product (id)
 );
@@ -191,7 +186,6 @@ CREATE TABLE product_option_value (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  name VARCHAR(63) NOT NULL,
   option_id BINARY(16) NOT NULL,
   variant_id BINARY(16) NOT NULL,
   CONSTRAINT "06810e2b-d49d-10dc-6400-3a4194c4ee73" PRIMARY KEY (id),
@@ -207,7 +201,6 @@ CREATE TABLE product_category (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  name VARCHAR(63) NOT NULL,
   handle VARCHAR(63) NOT NULL,
   is_active BOOLEAN NOT NULL,
   is_internal BOOLEAN NOT NULL,
@@ -423,7 +416,6 @@ CREATE TABLE product_category_translations (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   name VARCHAR(63),
-  handle VARCHAR(63),
   CONSTRAINT "06810e2b-d4a2-1a10-e400-9449adae8f8b" FOREIGN KEY (product_category_id) REFERENCES product_category (id) ON DELETE CASCADE,
   CONSTRAINT "06810e2b-d4a2-1a69-3800-09ad7710ab34" FOREIGN KEY (locale_code) REFERENCES locale (code),
   PRIMARY KEY (product_category_id, locale_code)
@@ -438,7 +430,6 @@ CREATE TABLE product_translations (
   title VARCHAR(63),
   subtitle VARCHAR(191),
   description BLOB SUB_TYPE TEXT,
-  handle VARCHAR(63),
   CONSTRAINT "06810e2b-d4a2-1f00-3800-27ab93a88179" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
   CONSTRAINT "06810e2b-d4a2-1f58-c000-7c5702b7795a" FOREIGN KEY (locale_code) REFERENCES locale (code),
   PRIMARY KEY (product_id, locale_code)
@@ -451,7 +442,6 @@ CREATE TABLE product_collection_translations (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   title VARCHAR(63) NOT NULL,
-  handle VARCHAR(63),
   CONSTRAINT "06810e2b-d4a3-1346-0800-376492a82411" FOREIGN KEY (product_collection_id) REFERENCES product_collection (id) ON DELETE CASCADE,
   CONSTRAINT "06810e2b-d4a3-13a4-6800-0775cd18724e" FOREIGN KEY (locale_code) REFERENCES locale (code),
   PRIMARY KEY (product_collection_id, locale_code)
