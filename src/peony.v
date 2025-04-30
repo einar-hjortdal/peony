@@ -9,13 +9,13 @@ import einar_hjortdal.firebird
 import einar_hjortdal.luuid
 // import einar_hjortdal.sessions
 
-struct App {
+pub struct App {
 mut:
 	luuid_generator &luuid.Generator
 	fb              &firebird.Connection
 }
 
-struct Context {
+pub struct Context {
 	veb.Context
 }
 
@@ -32,12 +32,14 @@ fn set_log_level() {
 fn main() {
 	load_settings()
 	set_log_level()
-	// prepare_db()
 
-	mut new_luuid_generator := luuid.new_generator()
 	firebird_url := os.getenv(env_firebird_url)
 	mut new_firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
-	mut app := &App{
+	mut new_luuid_generator := luuid.new_generator()
+
+	prepare_db(mut new_firebird_connection)!
+
+	mut app := App{
 		luuid_generator: new_luuid_generator
 		fb:              new_firebird_connection
 	}
