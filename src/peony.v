@@ -37,7 +37,7 @@ fn main() {
 	mut new_firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
 	mut new_luuid_generator := luuid.new_generator()
 
-	prepare_db(mut new_firebird_connection)!
+	prepare_db(mut new_firebird_connection, mut new_luuid_generator) or { panic(err) }
 
 	mut app := App{
 		luuid_generator: new_luuid_generator
