@@ -1,13 +1,10 @@
 module main
 
-fn test_get_schema_queries() {
+fn test_posix_new_line_end_of_text_file() {
 	queries := get_schema_queries()
-	len := queries.len
-	assert len > 0
-	assert queries[len - 1] != '\n'
-}
+	assert queries.len > 0
+	assert queries[queries.len - 1] != '\n'
 
-fn test_get_codes() {
 	country_codes := get_country_codes()
 	assert country_codes.len > 0
 	assert country_codes[country_codes.len - 1] != '\n'

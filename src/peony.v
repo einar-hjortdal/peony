@@ -32,11 +32,6 @@ fn set_log_level() {
 	}
 }
 
-fn (mut app App) session_middleware(mut ctx Context) bool {
-	ctx.session = app.session_store.new(ctx.req, os.getenv('SESSION_NAME'))
-	return true
-}
-
 fn main() {
 	load_settings()
 	set_log_level()
