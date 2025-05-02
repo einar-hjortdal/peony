@@ -4,6 +4,7 @@ module main
 // import log
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
+import os
 
 const schema_file = $embed_file('migrations/seed-schema.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
@@ -78,6 +79,14 @@ fn add_data(mut conn firebird.Connection, mut gen luuid.Generator) ! {
 		stmt.execute(id, code)!
 	}
 	stmt.close()!
+
+	user_id := gen.v1()
+	user_handle := gen.v1()
+	user_email := os.getenv(env_email)
+	password_salt, password_hash := hash_password(os.getenv(env_password))!
+	tx.execute('INSERT INTO user (id, handle, email, password_hash, password_salt, role)
+	VALUES (?, ?, ?, ?, ?, ?)',
+		user_id, user_handle, user_email, password_hash, password_salt, role_admin)!
 
 	tx.commit()!
 }

@@ -4,7 +4,7 @@ CREATE TABLE user (
   email VARCHAR(254), -- IETF RFC 3696 Errata 1690
   password_hash BINARY(64) NOT NULL,
   password_salt BINARY(32) NOT NULL,
-  role varchar(11) NOT NULL DEFAULT 'member',
+  role VARCHAR(11) NOT NULL DEFAULT 'member',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,

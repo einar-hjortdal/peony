@@ -6,7 +6,8 @@ import einar_hjortdal.dotenv
 
 const env_prefix = lib.to_upper() + '_'
 
-// add email, password
+const env_email = 'EMAIL'
+const env_password = 'PASSWORD'
 const env_session_secret = 'SESSION_SECRET'
 const env_firebird_url = 'FIREBIRD_URL'
 const env_redict_url = 'REDICT_URL'
@@ -20,6 +21,8 @@ const env_session_refresh_expire = 'SESSION_REFRESH_EXPIRE'
 const env_session_admin_prefix = 'SESSION_ADMIN_PREFIX'
 
 const env_required = [
+	env_email,
+	env_password,
 	env_session_secret,
 	env_firebird_url,
 	env_redict_url,

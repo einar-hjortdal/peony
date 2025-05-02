@@ -1,25 +1,26 @@
-module utils
+module main
 
-// vlib
-import crypto.bcrypt
+import crypto.rand
+import crypto.scrypt
 
-// validate_password should always be executed before new_password_hash.
-pub fn validate_password(password string) ! {
-	if password.runes().len < 10 {
-		return error('password must have at least 10 characters')
-	}
-	// limit passwords to 72 bytes (max bcrypt can handle)
-	if password.len > 72 {
-		return error('password cannot be larger than 72 bytes')
-	}
-	// TODO use regex to enforce some specific characters to be included
+const scrypt_n = 1 << 16 // 2 raised to the power of 16
+const scrypt_r = 8
+const scrypt_p = 2
+const scrypt_salt_length = 32
+const scrypt_hash_length = 64
+
+// returns salt and hash
+fn hash_password(pwd string) !([]u8, []u8) {
+	password_salt := rand.bytes(scrypt_salt_length)!
+	password_hash := scrypt.scrypt(pwd.bytes(), password_salt, scrypt_n, scrypt_r, scrypt_p,
+		scrypt_hash_length)!
+	return password_hash, password_salt
 }
 
-// new_password_hash returns a binary string of the
-pub fn new_password_hash(password string) !string {
-	return bcrypt.generate_from_password(password.bytes(), bcrypt.default_cost)!
-}
-
-pub fn verify_password(password string, hashed_password string) ! {
-	bcrypt.compare_hash_and_password(password.bytes(), hashed_password.bytes())!
+fn verify_password(pwd string, password_hash []u8, password_salt []u8) ! {
+	new_hash := scrypt.scrypt(pwd.bytes(), password_salt, scrypt_n, scrypt_r, scrypt_p,
+		scrypt_hash_length)!
+	if password_hash != new_hash {
+		return error(format_error_message('Bad password'))
+	}
 }
