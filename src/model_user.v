@@ -8,6 +8,11 @@ const role_developer = 'developer'
 const role_author = 'author'
 const role_contributor = 'contributor'
 
+fn is_valid_role(s string) bool {
+	return s == role_admin || s == role_member || s == role_developer || s == role_author
+		|| s == role_contributor
+}
+
 struct User {
 	id            string
 	handle        string
@@ -73,17 +78,17 @@ fn (mut app App) create_user(d NewUserData) !string {
 		role,
 		first_name,
 		last_name
-		)	VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+		)	VALUES (CHAR_TO_UUID(?), ?, ?, ?, ?, ?, ?, ?)',
 		id, handle, d.email, password_hash, password_salt, d.role, d.first_name, d.last_name)!
 	tx.commit()!
 
 	return id
 }
 
-fn (mut app App) retreieve_user(id string) !User {
+fn (mut app App) retrieve_user(id string) !User {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	res := tx.execute('SELECT (
-		id,
+		UUID_TO_CHAR(id),
 		handle,
 		email,
 		password_hash,
@@ -91,7 +96,7 @@ fn (mut app App) retreieve_user(id string) !User {
 		role,
 		first_name,
 		last_name
-		)	FROM user WHERE id = ?',
+		)	FROM user WHERE id = CHAR_TO_UUID(?)',
 		id)!
 	tx.rollback()!
 
@@ -100,4 +105,28 @@ fn (mut app App) retreieve_user(id string) !User {
 	}
 
 	return parse_user_data(res.rows[0].values)!
+}
+
+struct UpdateUserData {
+	first_name string
+	last_name  string
+	role       string
+}
+
+fn (mut app App) update_user(id string, data UpdateUserData) ! {
+	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	tx.execute('UPDATE user SET
+		first_name = ?,
+		last_name = ?,
+		role = ?
+		WHERE id = CHAR_TO_UUID(?)',
+		data.first_name, data.last_name, data.role, id)!
+	tx.commit()!
+}
+
+fn (mut app App) delete_user(id string) ! {
+	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	tx.execute('UPDATE user SET deleted_at = CURRENT_TIMESTAMP WHERE id = CHAR_TO_UUID(?)',
+		id)!
+	tx.commit()!
 }

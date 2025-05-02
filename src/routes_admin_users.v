@@ -39,17 +39,66 @@ fn parse_user_response(u User) UserResponse {
 // creates a user
 @['/admin/users/'; post]
 fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
-	expected := json.decode(NewUserData, ctx.req.data) or {
-		pe := new_peony_error(1, 'bad request')
-		return ctx.json(pe)
+	body := json.decode(NewUserData, ctx.req.data) or {
+		return ctx.json(new_peony_error(0, 'bad request'))
 	}
 
 	// error if email obviously wrong?
-	uid := app.create_user(expected) or {
-		return ctx.json(new_peony_error(1, 'Failed to create user'))
-	}
-	u := app.retreieve_user(uid) or {
+	uid := app.create_user(body) or { return ctx.json(new_peony_error(1, 'Failed to create user')) }
+	u := app.retrieve_user(uid) or {
 		return ctx.json(new_peony_error(1, 'Failed to retrieve the new user'))
 	}
 	return ctx.json(parse_user_response(u))
+}
+
+// requests a password reset
+// ['/admin/users/password-token'; post]
+// body: {email: string}
+
+// reset password
+// ['/admin/users/reset_password'; post]
+// body: {
+// token: string
+// password: string
+// }
+
+// retrieves a user details
+@['/admin/users/:id'; get]
+fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
+	user := app.retrieve_user(id) or {
+		return ctx.json(new_peony_error(1, 'Could not retrieve user from database'))
+	}
+	return ctx.json(parse_user_response(user))
+}
+
+// updates a user
+@['/admin/users/:id'; post]
+fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
+	body := json.decode(UpdateUserData, ctx.req.data) or {
+		return ctx.json(new_peony_error(0, 'bad request'))
+	}
+
+	if !is_valid_role(body.role) {
+		return ctx.json(new_peony_error(0, 'invalid role'))
+	}
+
+	app.update_user(id, body) or { return ctx.json(new_peony_error(1, 'Failed to update user')) }
+
+	updated_user := app.retrieve_user(id) or {
+		return ctx.json(new_peony_error(1, 'Failed to retrieve the updated user'))
+	}
+
+	return ctx.json(parse_user_response(updated_user))
+}
+
+// deleted a user
+@['/admin/users/:id'; post]
+fn (mut app App) admin_users_id_delete(mut ctx Context, id string) veb.Result {
+	app.delete_user(id) or { return ctx.json(new_peony_error(1, 'Failed to delete user')) }
+	return ctx.text('ok')
+	// {
+	// 	id:      id
+	// 	deleted: true
+	// 	deleted: true
+	// }
 }

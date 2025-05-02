@@ -85,7 +85,7 @@ fn add_data(mut conn firebird.Connection, mut gen luuid.Generator) ! {
 	user_email := os.getenv(env_email)
 	password_salt, password_hash := hash_password(os.getenv(env_password))!
 	tx.execute('INSERT INTO user (id, handle, email, password_hash, password_salt, role)
-	VALUES (?, ?, ?, ?, ?, ?)',
+	VALUES (CHAR_TO_UUID(?), ?, ?, ?, ?, ?)',
 		user_id, user_handle, user_email, password_hash, password_salt, role_admin)!
 
 	tx.commit()!
