@@ -16,7 +16,7 @@ pub struct App {
 mut:
 	luuid_generator &luuid.Generator
 	fb              &firebird.Connection
-	session_store   &sessions.JsonWebTokenStore
+	session_store   &sessions.Store
 }
 
 pub struct Context {
@@ -33,28 +33,32 @@ fn set_log_level() {
 	}
 }
 
-fn main() {
-	load_settings()
-	set_log_level()
-
-	firebird_url := os.getenv(env_firebird_url)
-	mut new_firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
-	mut new_luuid_generator := luuid.new_generator()
-
-	prepare_db(mut new_firebird_connection, mut new_luuid_generator) or { panic(err) }
-
+fn new_session_store() !&sessions.Store {
 	mut session_store_options := sessions.JsonWebTokenStoreOptions{
 		app_name:  lib
 		issuer:    os.getenv(env_instance_number)
 		secret:    os.getenv(env_session_secret)
 		prefix:    os.getenv(env_session_admin_prefix)
-		valid_end: strconv.parse_int(os.getenv(env_session_max_age), 10, 64) or { panic(err) }
+		valid_end: strconv.parse_int(os.getenv(env_session_max_age), 10, 64)!
 	}
-	mut session_store := sessions.new_jwt_store(mut session_store_options) or { panic(err) }
+	return sessions.new_jwt_store(mut session_store_options)!
+}
+
+fn main() {
+	load_settings()
+	set_log_level()
+
+	firebird_url := os.getenv(env_firebird_url)
+	mut firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
+	mut luuid_generator := luuid.new_generator()
+
+	prepare_db(mut firebird_connection, mut luuid_generator) or { panic(err) }
+
+	mut session_store := new_session_store() or { panic(err) }
 
 	mut app := App{
-		luuid_generator: new_luuid_generator
-		fb:              new_firebird_connection
+		luuid_generator: luuid_generator
+		fb:              firebird_connection
 		session_store:   session_store
 	}
 

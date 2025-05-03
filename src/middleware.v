@@ -3,9 +3,6 @@ module main
 import os
 import net.http
 
-// TODO
-// SESSION_REFRESH_EXPIRE
-
 fn (mut app App) load_session_middleware(mut ctx Context) bool {
 	// [/admin/auth; post] must accept unauthorized request to log in
 	if ctx.req.url == '/admin/auth' && ctx.req.method == http.Method.post {
