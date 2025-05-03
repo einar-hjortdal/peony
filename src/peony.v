@@ -1,9 +1,10 @@
 module main
 
 // vlib
-import veb
-import os
 import log
+import os
+import strconv
+import veb
 // first party
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
@@ -25,7 +26,7 @@ mut:
 }
 
 fn set_log_level() {
-	if os.getenv('DEBUG') == 'true' {
+	if os.getenv(env_debug) == 'true' {
 		log.set_level(log.Level.debug)
 	} else {
 		log.set_level(log.Level.info)
@@ -43,7 +44,11 @@ fn main() {
 	prepare_db(mut new_firebird_connection, mut new_luuid_generator) or { panic(err) }
 
 	mut session_store_options := sessions.JsonWebTokenStoreOptions{
-		secret: os.getenv('SESSION_SECRET')
+		app_name:  lib
+		issuer:    os.getenv(env_instance_number)
+		secret:    os.getenv(env_session_secret)
+		prefix:    os.getenv(env_session_admin_prefix)
+		valid_end: strconv.parse_int(os.getenv(env_session_max_age), 10, 64) or { panic(err) }
 	}
 	mut session_store := sessions.new_jwt_store(mut session_store_options) or { panic(err) }
 
@@ -52,7 +57,9 @@ fn main() {
 		fb:              new_firebird_connection
 		session_store:   session_store
 	}
-	app.route_use('/admin/:path...', handler: app.session_middleware)
+
+	app.route_use('/admin/:path...', handler: app.load_session_middleware)
+	app.route_use('/admin/:path...', handler: app.save_session_middleware, after: true)
 
 	port := os.getenv(env_port).int()
 	veb.run[App, Context](mut app, port)

@@ -54,7 +54,7 @@ const env_defaults = {
 // and these settings have defaults (added with add_default_settings), they are removed from the environment.
 fn remove_invalid_settings() {
 	bool_to_be_parsed := [
-		'DEBUG',
+		env_debug,
 	]
 	for str in bool_to_be_parsed {
 		if !can_parse_bool(os.getenv(env_prefix + str)) {

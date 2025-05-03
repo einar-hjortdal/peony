@@ -38,7 +38,7 @@ fn parse_store_data(data []firebird.Value) !Store {
 fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 	mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
 	res := tx.execute('SELECT (
-		id,
+		UUID_TO_CHAR(id),
 		created_at,
 		updated_at,
 		name,
