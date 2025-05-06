@@ -1,22 +1,40 @@
 module main
 
+import json
+import net.http
 import veb
-
-// retrieves current user data
-@['/admin/auth/'; get]
-fn (app &App) admin_auth_get(mut ctx Context) veb.Result {
-	return ctx.text('ok')
-}
 
 // log in user
 @['/admin/auth/'; post]
-fn (app &App) admin_auth_post(mut ctx Context) veb.Result {
-	// json body: email, password
-	return ctx.text('ok')
+fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
+	body := json.decode(struct {
+		email    string
+		password string
+	}, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error(0, 'bad request'))
+	}
+
+	user := app.retrieve_user_by_email(body.email) or {
+		ctx.res.set_status(http.Status.unauthorized)
+		return ctx.json(new_peony_error(0, 'Invalid email or password'))
+	}
+
+	verify_password(body.password, user.password_hash, user.password_salt) or {
+		ctx.res.set_status(http.Status.unauthorized)
+		return ctx.json(new_peony_error(0, 'Invalid email or password'))
+	}
+
+	ctx.user_session_values = UserSessionValues{
+		id: user.id
+	}
+
+	return ctx.json(format_user_response(user))
 }
 
 // log out user
 @['/admin/auth/'; del]
 fn (app &App) admin_auth_del(mut ctx Context) veb.Result {
+	ctx.user_session.to_prune = true
 	return ctx.text('ok')
 }

@@ -39,6 +39,11 @@ const env_expected = arrays.append(env_required, [
 	env_session_admin_prefix,
 ])
 
+const bool_to_be_parsed = [
+	env_debug,
+	env_session_refresh_expire,
+]
+
 const env_defaults = {
 	env_debug:                  'false'
 	env_instance_number:        '0'
@@ -53,9 +58,6 @@ const env_defaults = {
 // remove_invalid_settings checks if the settings provided are valid: if the provided settings are invalid,
 // and these settings have defaults (added with add_default_settings), they are removed from the environment.
 fn remove_invalid_settings() {
-	bool_to_be_parsed := [
-		env_debug,
-	]
 	for str in bool_to_be_parsed {
 		if !can_parse_bool(os.getenv(env_prefix + str)) {
 			os.unsetenv(env_prefix + str)

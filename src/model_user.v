@@ -85,7 +85,7 @@ fn (mut app App) create_user(d NewUserData) !string {
 	return id
 }
 
-fn (mut app App) retrieve_user(id string) !User {
+fn (mut app App) retrieve_user_by_id(id string) !User {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	res := tx.execute('SELECT (
 		UUID_TO_CHAR(id),
@@ -98,6 +98,28 @@ fn (mut app App) retrieve_user(id string) !User {
 		last_name
 		)	FROM user WHERE id = CHAR_TO_UUID(?)',
 		id)!
+	tx.rollback()!
+
+	if res.rows.len == 0 {
+		return error(format_error_message('No user found'))
+	}
+
+	return parse_user_data(res.rows[0].values)!
+}
+
+fn (mut app App) retrieve_user_by_email(email string) !User {
+	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	res := tx.execute('SELECT (
+		UUID_TO_CHAR(id),
+		handle,
+		email,
+		password_hash,
+		password_salt,
+		role,
+		first_name,
+		last_name
+		)	FROM user WHERE email = ?',
+		email)!
 	tx.rollback()!
 
 	if res.rows.len == 0 {

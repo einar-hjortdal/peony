@@ -22,7 +22,7 @@ struct UserResponse {
 	last_name  string    @[omitempty]
 }
 
-fn parse_user_response(u User) UserResponse {
+fn format_user_response(u User) UserResponse {
 	return UserResponse{
 		id:         u.id
 		handle:     u.handle
@@ -45,10 +45,10 @@ fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 
 	// error if email obviously wrong?
 	uid := app.create_user(body) or { return ctx.json(new_peony_error(1, 'Failed to create user')) }
-	u := app.retrieve_user(uid) or {
+	u := app.retrieve_user_by_id(uid) or {
 		return ctx.json(new_peony_error(1, 'Failed to retrieve the new user'))
 	}
-	return ctx.json(parse_user_response(u))
+	return ctx.json(format_user_response(u))
 }
 
 // requests a password reset
@@ -65,10 +65,10 @@ fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 // retrieves a user details
 @['/admin/users/:id'; get]
 fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
-	user := app.retrieve_user(id) or {
+	user := app.retrieve_user_by_id(id) or {
 		return ctx.json(new_peony_error(1, 'Could not retrieve user from database'))
 	}
-	return ctx.json(parse_user_response(user))
+	return ctx.json(format_user_response(user))
 }
 
 // updates a user
@@ -84,11 +84,11 @@ fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 
 	app.update_user(id, body) or { return ctx.json(new_peony_error(1, 'Failed to update user')) }
 
-	updated_user := app.retrieve_user(id) or {
+	updated_user := app.retrieve_user_by_id(id) or {
 		return ctx.json(new_peony_error(1, 'Failed to retrieve the updated user'))
 	}
 
-	return ctx.json(parse_user_response(updated_user))
+	return ctx.json(format_user_response(updated_user))
 }
 
 // deleted a user

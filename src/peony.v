@@ -22,7 +22,10 @@ mut:
 pub struct Context {
 	veb.Context
 mut:
-	session sessions.Session
+	user_session        sessions.Session
+	user_session_values UserSessionValues
+	// customer_session        sessions.Session
+	// customer_session_values CustomerSessionValues
 }
 
 fn set_log_level() {
@@ -62,8 +65,8 @@ fn main() {
 		session_store:   session_store
 	}
 
-	app.route_use('/admin/:path...', handler: app.load_session_middleware)
-	app.route_use('/admin/:path...', handler: app.save_session_middleware, after: true)
+	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)
+	app.route_use('/admin/:path...', handler: app.save_user_session_middleware, after: true)
 
 	port := os.getenv(env_port).int()
 	veb.run[App, Context](mut app, port)
