@@ -3,10 +3,11 @@ module main
 import einar_hjortdal.firebird
 
 struct Store {
-	id                        string
-	created_at                firebird.DateTime
-	updated_at                firebird.DateTime
-	name                      string
+	id         string
+	created_at firebird.DateTime
+	updated_at firebird.DateTime
+	name       string
+	// currencies []string
 	default_locale_code       string
 	default_currency_code     string
 	default_stock_location_id firebird.NullString
@@ -59,4 +60,18 @@ fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 fn (mut app App) store_retrieve() !Store {
 	data := get_store_data(mut app.fb)!
 	return parse_store_data(data)
+}
+
+struct NewStoreData {
+	name                  string
+	default_locale_code   string
+	default_currency_code string
+}
+
+fn (mut app App) update_store_data(id string, data NewStoreData) ! {
+	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	tx.execute('UPDATE store SET name = ?, default_locale_code = ?, default_currency_code = ?
+	WHERE id = CHAR_TO_UUID(?)',
+		data.name, data.default_locale_code, data.default_currency_code, id)!
+	tx.commit()!
 }

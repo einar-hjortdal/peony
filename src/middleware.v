@@ -25,7 +25,6 @@ fn (mut app App) load_user_session_middleware(mut ctx Context) bool {
 	return true
 }
 
-// TODO delete session on logout or if not authenticated
 fn (mut app App) save_user_session_middleware(mut ctx Context) bool {
 	ctx.user_session.values = json.encode(ctx.user_session_values)
 
