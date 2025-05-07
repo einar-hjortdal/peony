@@ -8,10 +8,24 @@ import veb
 // query parameters:
 // code
 // offset
-// limit
+// fetch
 @['/admin/currencies/'; get]
-fn (app &App) admin_currencies_get(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
+	if code := ctx.query['code'] {
+		currency := app.retrieve_currency_by_code(code) or {
+			ctx.res.set_status(http.Status.internal_server_error)
+			return ctx.json(new_peony_error(0, 'Could not retrieve currency by code'))
+		}
+		return ctx.json(currency)
+	}
+
+	offset := ctx.query['offset'].i32()
+	fetch := ctx.query['fetch'].i32()
+	currencies := app.retrieve_currencies(offset, fetch) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error(0, 'Could not retrieve currencies from database'))
+	}
+	return ctx.json(currencies)
 }
 
 // updates a currency
