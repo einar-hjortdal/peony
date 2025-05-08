@@ -8,6 +8,10 @@ const product_status_proposed = 'proposed'
 const product_status_published = 'published'
 const product_status_rejected = 'rejected'
 
+// A product is a saleable item that holds general information. It must include at least one product_variant,
+// where each product variant defines different options to purchase the product with (for example, different
+// sizes or colors). The prices and inventory of the product are defined on the variant level. Public
+// descriptive data such as name and description are defined as product_translations.
 struct Product {
 	id            string
 	created_at    firebird.DateTime
@@ -100,7 +104,6 @@ struct ProductParams {
 
 fn build_query_retrieve_products(p ProductParams) (string, []firebird.Value) {
 	fetch := i32_or_max(p.fetch)
-	order := string_or_default(p.order, order_desc)
 
 	base_query := 'SELECT
 		UUID_TO_CHAR(p.id),
@@ -141,7 +144,7 @@ fn build_query_retrieve_products(p ProductParams) (string, []firebird.Value) {
 	sorting := '
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY
-		ORDER BY p.created_at = ?'
+		ORDER BY p.created_at ${parse_order(p.order)}'
 
 	mut params := []firebird.Value{}
 
@@ -155,7 +158,7 @@ fn build_query_retrieve_products(p ProductParams) (string, []firebird.Value) {
 		params = arrays.concat(params, p.locale)
 	}
 
-	params = arrays.concat(params, p.offset, fetch, order)
+	params = arrays.concat(params, p.offset, fetch)
 
 	return '${base_query}${joins}${conditions}${sorting}', params
 }

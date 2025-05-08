@@ -1,13 +1,15 @@
 module main
 
 import net.http
+import json
 import veb
 
 // retrieves a list of products
-// A product is a saleable item that holds general information such as name or description. It must
-// include at least one Product Variant, where each product variant defines different options to purchase
-// the product with (for example, different sizes or colors). The prices and inventory of the product
-// are defined on the variant level.
+// query parameters:
+// locale
+// offset
+// fetch
+// order
 @['/admin/products'; get]
 fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := ProductParams{
@@ -32,7 +34,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 
 	products := app.retrieve_products(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Failed to retrieve store data'))
+		return ctx.json(new_peony_error(1, 'Failed to retrieve products data'))
 	}
 
 	return ctx.json(products)
@@ -41,6 +43,27 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 // create a product
 @['/admin/products'; post]
 fn (app &App) admin_products_post(mut ctx Context) veb.Result {
+	body := json.decode(struct {
+		title          string
+		subtitle       string
+		description    string
+		is_giftcard    bool
+		discountable   bool
+		images         []string
+		thumbnail      string
+		handle         string
+		status         string
+		type_id        string
+		collection_id  string
+		tags           []string
+		sales_channels []string
+		categories     []string
+		options        []string
+		variants       []ProductVariant
+	}, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error(1, 'Could not decode body data structure'))
+	}
 	// json body: title required string, (filter by status), id []string, collection_id []string, tags []string,
 	// price_list_id []string, sales_channel_id []string, discount_condition_id []string, type_id []string,
 	// category_id []string, include_category_children bool, title string, description string, handle string,
