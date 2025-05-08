@@ -3,15 +3,14 @@ module main
 import einar_hjortdal.firebird
 
 struct Store {
-	id         string
-	created_at firebird.DateTime
-	updated_at firebird.DateTime
-	name       string
-	// currencies []string
+	id                        string
+	created_at                firebird.DateTime
+	updated_at                firebird.DateTime
+	name                      string
 	default_locale_code       string
 	default_currency_code     string
-	default_stock_location_id firebird.NullString
-	default_sales_channel_id  firebird.NullString
+	default_stock_location_id string @[omitempty]
+	default_sales_channel_id  string @[omitempty]
 }
 
 fn parse_store_data(data []firebird.Value) !Store {
@@ -21,8 +20,8 @@ fn parse_store_data(data []firebird.Value) !Store {
 	name, _ := firebird.get_string(data[3])!
 	default_locale_code, _ := firebird.get_string(data[4])!
 	default_currency_code, _ := firebird.get_string(data[5])!
-	default_stock_location_id := firebird.get_null_string(data[6])!
-	default_sales_channel_id := firebird.get_null_string(data[7])!
+	default_stock_location_id, _ := firebird.get_string(data[6])!
+	default_sales_channel_id, _ := firebird.get_string(data[7])!
 
 	return Store{
 		id:                        id

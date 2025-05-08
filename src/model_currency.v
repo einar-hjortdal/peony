@@ -25,7 +25,8 @@ fn (mut app App) retrieve_currencies(offset i32, fetch i32) ![]Currency {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	data := tx.execute('SELECT (UUID_TO_CHAR(id), code, includes_tax) FROM currency 
 		OFFSET ? ROWS
-		FETCH NEXT ? ROWS ONLY',
+		FETCH NEXT ? ROWS ONLY
+		ORDER BY code ASC',
 		offset, i32_or_max(fetch))!
 	tx.rollback()!
 

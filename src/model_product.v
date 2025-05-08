@@ -1,0 +1,176 @@
+module main
+
+import arrays
+import einar_hjortdal.firebird
+
+const product_status_draft = 'draft'
+const product_status_proposed = 'proposed'
+const product_status_published = 'published'
+const product_status_rejected = 'rejected'
+
+struct Product {
+	id            string
+	created_at    firebird.DateTime
+	updated_at    firebird.DateTime
+	deleted_at    firebird.DateTime @[omitempty]
+	handle        string
+	is_giftcard   bool
+	status        string
+	thumbnail     string @[omitempty]
+	collection_id string @[omitempty]
+	type_id       string @[omitempty]
+	discountable  bool
+	// from product_variant
+	origin_country string @[omitempty]
+	weight         i32    @[omitempty]
+	length         i32    @[omitempty]
+	height         i32    @[omitempty]
+	width          i32    @[omitempty]
+	// from product_translations
+	title       string @[omitempty]
+	subtitle    string @[omitempty]
+	description string @[omitempty]
+}
+
+fn parse_product(v []firebird.Value) !Product {
+	id, _ := firebird.get_string(v[0])!
+	created_at, _ := firebird.get_date_time(v[1])!
+	updated_at, _ := firebird.get_date_time(v[2])!
+	deleted_at, _ := firebird.get_date_time(v[3])!
+	handle, _ := firebird.get_string(v[4])!
+	is_giftcard, _ := firebird.get_bool(v[5])!
+	status, _ := firebird.get_string(v[6])!
+	thumbnail, _ := firebird.get_string(v[8])!
+	collection_id, _ := firebird.get_string(v[9])!
+	type_id, _ := firebird.get_string(v[10])!
+	discountable, _ := firebird.get_bool(v[11])!
+	origin_country, _ := firebird.get_string(v[12])!
+	weight, _ := firebird.get_i32(v[13])!
+	length, _ := firebird.get_i32(v[14])!
+	height, _ := firebird.get_i32(v[15])!
+	width, _ := firebird.get_i32(v[16])!
+	title, _ := firebird.get_string(v[17])!
+	subtitle, _ := firebird.get_string(v[18])!
+	description, _ := firebird.get_string(v[19])!
+
+	return Product{
+		id:            id
+		created_at:    created_at
+		updated_at:    updated_at
+		deleted_at:    deleted_at
+		handle:        handle
+		is_giftcard:   is_giftcard
+		status:        status
+		thumbnail:     thumbnail
+		collection_id: collection_id
+		type_id:       type_id
+		discountable:  discountable
+		// from product_variant
+		origin_country: origin_country
+		weight:         weight
+		length:         length
+		height:         height
+		width:          width
+		// from product_translations
+		title:       title
+		subtitle:    subtitle
+		description: description
+	}
+}
+
+struct ProductParams {
+	id               []string
+	handle           string
+	is_giftcard      bool
+	status           string
+	collection_id    []string
+	type_id          []string
+	tags             []string
+	title            string
+	description      string
+	category_id      []string
+	sales_channel_id []string
+	region_id        string
+	currency_code    string
+	locale           string
+	offset           i32
+	fetch            i32
+	order            string
+}
+
+fn build_query_retrieve_products(p ProductParams) (string, []firebird.Value) {
+	fetch := i32_or_max(p.fetch)
+	order := string_or_default(p.order, order_desc)
+
+	base_query := 'SELECT
+		UUID_TO_CHAR(p.id),
+		p.created_at,
+		p.updated_at,
+		p.deleted_at,
+		p.handle,
+		p.is_giftcard,
+		p.status,
+		p.thumbnail,
+		UUID_TO_CHAR(p.collection_id),
+		UUID_TO_CHAR(p.type_id),
+		p.discountable,
+
+		pv.origin_country,
+		pv.weight,
+		pv.length,
+		pv.height,
+		pv.width,
+
+		pt.title,
+		pt.subtitle,
+		pt.description,
+
+		FROM product p'
+
+	mut joins := '
+		LEFT JOIN product_variant pv
+		ON pv.product_id = p.id
+
+		LEFT JOIN product_translations pt
+		ON pt.product_id = p.id'
+
+	mut conditions := '
+		WHERE p.deleted_at IS NULL
+		AND pv.variant_rank IS 0'
+
+	sorting := '
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY
+		ORDER BY p.created_at = ?'
+
+	mut params := []firebird.Value{}
+
+	if p.locale == '' {
+		joins += '
+			LEFT JOIN store s ON TRUE
+			AND pt.locale_code = s.default_locale_code'
+	} else {
+		conditions += '
+		AND pt.locale_code = ?'
+		params = arrays.concat(params, p.locale)
+	}
+
+	params = arrays.concat(params, p.offset, fetch, order)
+
+	return '${base_query}${joins}${conditions}${sorting}', params
+}
+
+fn (mut app App) retrieve_products(p ProductParams) ![]Product {
+	query, params := build_query_retrieve_products(p)
+	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	data := tx.execute(query, ...params)!
+	tx.rollback()!
+
+	mut products := []Product{}
+	for i := 0; i < data.rows.len; i++ {
+		product := parse_product(data.rows[i].values)!
+		products = arrays.concat(products, product)
+	}
+
+	return products
+}

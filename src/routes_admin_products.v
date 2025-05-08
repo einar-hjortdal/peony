@@ -1,39 +1,41 @@
 module main
 
+import net.http
 import veb
 
 // retrieves a list of products
+// A product is a saleable item that holds general information such as name or description. It must
+// include at least one Product Variant, where each product variant defines different options to purchase
+// the product with (for example, different sizes or colors). The prices and inventory of the product
+// are defined on the variant level.
 @['/admin/products'; get]
-fn (app &App) admin_products_get(mut ctx Context) veb.Result {
-	// query: status []string (filter by status), id []string, collection_id []string, tags []string,
-	// price_list_id []string, sales_channel_id []string, discount_condition_id []string, type_id []string,
-	// category_id []string, include_category_children bool, title string, description string, handle string,
-	// created_at, updated_at, deleted_at, offset, limit, fields, order
-	return ctx.text('ok')
-}
+fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
+	p := ProductParams{
+		id:               ctx.query['id'].split(',')
+		handle:           ctx.query['handle']
+		is_giftcard:      parse_bool(ctx.query['is_giftcard'])
+		status:           ctx.query['status']
+		collection_id:    ctx.query['collection_id'].split(',')
+		type_id:          ctx.query['type_id'].split(',')
+		tags:             ctx.query['tags'].split(',')
+		title:            ctx.query['title']
+		description:      ctx.query['description']
+		category_id:      ctx.query['category_id'].split(',')
+		sales_channel_id: ctx.query['sales_channel_id'].split(',')
+		region_id:        ctx.query['region_id']
+		currency_code:    ctx.query['currency_code']
+		locale:           ctx.query['locale']
+		offset:           ctx.query['offset'].i32()
+		fetch:            ctx.query['fetch'].i32()
+		order:            ctx.query['order']
+	}
 
-struct AdminProductsPost {
-	title       string // required
-	subtitle    string
-	description string
-	images      []string
-	thumbnail   string
-	handle      string
-	status      string // draft, proposed, published, rejected
-	// product_type  ProductType
-	collection_id string
-	// tags          []Tag
-	// sales_channels []SalesChannel
-	// categories []Categories
-	// options []Options
-	// variants []Variant
-	weight         int
-	length         int
-	height         int
-	width          int
-	hs_code        string
-	origin_country string
-	material       []string
+	products := app.retrieve_products(p) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error(1, 'Failed to retrieve store data'))
+	}
+
+	return ctx.json(products)
 }
 
 // create a product
