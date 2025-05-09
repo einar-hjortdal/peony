@@ -9,10 +9,10 @@ struct Currency {
 	includes_tax bool
 }
 
-fn parse_currency_data(v []firebird.Value) !Currency {
-	id, _ := firebird.get_string(v[0])!
-	code, _ := firebird.get_string(v[1])!
-	includes_tax, _ := firebird.get_bool(v[2])!
+fn parse_currency(v []firebird.Value) !Currency {
+	id, _ := v[0].get_string()!
+	code, _ := v[1].get_string()!
+	includes_tax, _ := v[2].get_bool()!
 
 	return Currency{
 		id:           id
@@ -32,7 +32,7 @@ fn (mut app App) retrieve_currencies(offset i32, fetch i32) ![]Currency {
 
 	mut res := []Currency{}
 	for i := 0; i < data.rows.len; i++ {
-		currency := parse_currency_data(data.rows[i].values)!
+		currency := parse_currency(data.rows[i].values)!
 		res = arrays.concat(res, currency)
 	}
 	return res
@@ -48,7 +48,7 @@ fn (mut app App) retrieve_currency_by_id(id string) !Currency {
 		return error(format_error_message('No currency found'))
 	}
 
-	return parse_currency_data(res.rows[0].values)!
+	return parse_currency(res.rows[0].values)!
 }
 
 fn (mut app App) retrieve_currency_by_code(code string) !Currency {
@@ -61,7 +61,7 @@ fn (mut app App) retrieve_currency_by_code(code string) !Currency {
 		return error(format_error_message('No currency found'))
 	}
 
-	return parse_currency_data(res.rows[0].values)!
+	return parse_currency(res.rows[0].values)!
 }
 
 struct NewCurrencyData {

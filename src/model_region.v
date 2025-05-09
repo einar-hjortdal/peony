@@ -18,17 +18,17 @@ struct Region {
 }
 
 fn parse_region(v []firebird.Value) !Region {
-	id, _ := firebird.get_string(v[0])!
-	name, _ := firebird.get_string(v[1])!
-	created_at, _ := firebird.get_date_time(v[2])!
-	updated_at, _ := firebird.get_date_time(v[3])!
-	deleted_at, _ := firebird.get_date_time(v[4])!
-	currency_code, _ := firebird.get_string(v[5])!
-	tax_rate, _ := firebird.get_f32(v[6])!
-	tax_code, _ := firebird.get_string(v[7])!
-	includes_tax, _ := firebird.get_bool(v[8])!
-	gift_cards_taxable, _ := firebird.get_bool(v[9])!
-	automatic_taxes, _ := firebird.get_bool(v[10])!
+	id, _ := v[0].get_string()!
+	name, _ := v[1].get_string()!
+	created_at, _ := v[2].get_date_time()!
+	updated_at, _ := v[3].get_date_time()!
+	deleted_at, _ := v[4].get_date_time()!
+	currency_code, _ := v[5].get_string()!
+	tax_rate, _ := v[6].get_f32()!
+	tax_code, _ := v[7].get_string()!
+	includes_tax, _ := v[8].get_bool()!
+	gift_cards_taxable, _ := v[9].get_bool()!
+	automatic_taxes, _ := v[10].get_bool()!
 
 	return Region{
 		id:                 id
@@ -126,14 +126,6 @@ fn (mut app App) retrieve_region_by_id(id string) !Region {
 	return parse_region(data.rows[0].values)!
 }
 
-fn add_countries(mut tx firebird.Transaction, country_ids []string, region_id string) ! {
-	if country_ids.len == 0 {
-		return
-	}
-	tx.execute('UPDATE country SET region_id = ? WHERE id IN (${get_placeholders(country_ids)})',
-		...arrays.append([region_id], country_ids))!
-}
-
 fn (mut app App) add_country(country_id string, region_id string) ! {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	tx.execute('UPDATE country SET region_id = ? WHERE id = ?', region_id, country_id)!
@@ -145,6 +137,15 @@ fn (mut app App) remove_country(country_id string, region_id string) ! {
 	tx.execute('UPDATE country SET region_id = NULL WHERE region_id = ? AND code = ?',
 		region_id, country_id)!
 	tx.commit()!
+}
+
+fn add_countries(mut tx firebird.Transaction, country_ids []string, region_id string) ! {
+	if country_ids.len == 0 {
+		return
+	}
+	country_id_params := get_values_array(country_ids)
+	tx.execute('UPDATE country SET region_id = ? WHERE id IN (${get_placeholders(country_ids)})',
+		...country_id_params)!
 }
 
 struct CreateRegionData {

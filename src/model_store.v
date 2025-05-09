@@ -13,15 +13,15 @@ struct Store {
 	default_sales_channel_id  string @[omitempty]
 }
 
-fn parse_store_data(data []firebird.Value) !Store {
-	id, _ := firebird.get_string(data[0])!
-	created_at, _ := firebird.get_date_time(data[1])!
-	updated_at, _ := firebird.get_date_time(data[2])!
-	name, _ := firebird.get_string(data[3])!
-	default_locale_code, _ := firebird.get_string(data[4])!
-	default_currency_code, _ := firebird.get_string(data[5])!
-	default_stock_location_id, _ := firebird.get_string(data[6])!
-	default_sales_channel_id, _ := firebird.get_string(data[7])!
+fn parse_store(v []firebird.Value) !Store {
+	id, _ := v[0].get_string()!
+	created_at, _ := v[1].get_date_time()!
+	updated_at, _ := v[2].get_date_time()!
+	name, _ := v[3].get_string()!
+	default_locale_code, _ := v[4].get_string()!
+	default_currency_code, _ := v[5].get_string()!
+	default_stock_location_id, _ := v[6].get_string()!
+	default_sales_channel_id, _ := v[7].get_string()!
 
 	return Store{
 		id:                        id
@@ -58,7 +58,7 @@ fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 
 fn (mut app App) store_retrieve() !Store {
 	data := get_store_data(mut app.fb)!
-	return parse_store_data(data)
+	return parse_store(data)
 }
 
 struct NewStoreData {

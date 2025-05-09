@@ -28,17 +28,17 @@ struct User {
 }
 
 fn parse_user_data(v []firebird.Value) !User {
-	id, _ := firebird.get_string(v[0])!
-	handle, _ := firebird.get_string(v[1])!
-	email, _ := firebird.get_string(v[2])!
-	password_hash, _ := firebird.get_array_u8(v[3])!
-	password_salt, _ := firebird.get_array_u8(v[4])!
-	role, _ := firebird.get_string(v[5])!
-	created_at, _ := firebird.get_date_time(v[6])!
-	updated_at, _ := firebird.get_date_time(v[7])!
-	deleted_at := firebird.get_null_date_time(v[8])!
-	first_name := firebird.get_null_string(v[9])!
-	last_name := firebird.get_null_string(v[10])!
+	id, _ := v[0].get_string()!
+	handle, _ := v[1].get_string()!
+	email, _ := v[2].get_string()!
+	password_hash, _ := v[3].get_array_u8()!
+	password_salt, _ := v[4].get_array_u8()!
+	role, _ := v[5].get_string()!
+	created_at, _ := v[6].get_date_time()!
+	updated_at, _ := v[7].get_date_time()!
+	deleted_at := v[8].get_null_date_time()!
+	first_name := v[9].get_null_string()!
+	last_name := v[10].get_null_string()!
 
 	return User{
 		id:            id

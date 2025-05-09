@@ -37,25 +37,25 @@ struct Product {
 }
 
 fn parse_product(v []firebird.Value) !Product {
-	id, _ := firebird.get_string(v[0])!
-	created_at, _ := firebird.get_date_time(v[1])!
-	updated_at, _ := firebird.get_date_time(v[2])!
-	deleted_at, _ := firebird.get_date_time(v[3])!
-	handle, _ := firebird.get_string(v[4])!
-	is_giftcard, _ := firebird.get_bool(v[5])!
-	status, _ := firebird.get_string(v[6])!
-	thumbnail, _ := firebird.get_string(v[8])!
-	collection_id, _ := firebird.get_string(v[9])!
-	type_id, _ := firebird.get_string(v[10])!
-	discountable, _ := firebird.get_bool(v[11])!
-	origin_country, _ := firebird.get_string(v[12])!
-	weight, _ := firebird.get_i32(v[13])!
-	length, _ := firebird.get_i32(v[14])!
-	height, _ := firebird.get_i32(v[15])!
-	width, _ := firebird.get_i32(v[16])!
-	title, _ := firebird.get_string(v[17])!
-	subtitle, _ := firebird.get_string(v[18])!
-	description, _ := firebird.get_string(v[19])!
+	id, _ := v[0].get_string()!
+	created_at, _ := v[1].get_date_time()!
+	updated_at, _ := v[2].get_date_time()!
+	deleted_at, _ := v[3].get_date_time()!
+	handle, _ := v[4].get_string()!
+	is_giftcard, _ := v[5].get_bool()!
+	status, _ := v[6].get_string()!
+	thumbnail, _ := v[8].get_string()!
+	collection_id, _ := v[9].get_string()!
+	type_id, _ := v[10].get_string()!
+	discountable, _ := v[11].get_bool()!
+	origin_country, _ := v[12].get_string()!
+	weight, _ := v[13].get_i32()!
+	length, _ := v[14].get_i32()!
+	height, _ := v[15].get_i32()!
+	width, _ := v[16].get_i32()!
+	title, _ := v[17].get_string()!
+	subtitle, _ := v[18].get_string()!
+	description, _ := v[19].get_string()!
 
 	return Product{
 		id:            id
