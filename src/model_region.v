@@ -159,7 +159,8 @@ struct CreateRegionData {
 
 fn build_create_region_query(d CreateRegionData, id string) (string, []firebird.Value) {
 	mut columns := ['id', 'name', 'currency_code', 'tax_rate']
-	mut params := [firebird.Value(id), d.name, d.currency_code, d.tax_rate]
+	mut params := [firebird.Value(id), firebird.Value(d.name), firebird.Value(d.currency_code),
+		firebird.Value(d.tax_rate)] // https://github.com/vlang/v/issues/24442
 	if d.tax_code != '' {
 		columns = arrays.concat(columns, 'tax_code')
 		params = arrays.concat(params, d.tax_code)
