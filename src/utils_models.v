@@ -9,9 +9,9 @@ fn get_columns(columns []string) string {
 	return columns.join(', ')
 }
 
-fn get_placeholders(columns []string) string {
+fn get_placeholders(a []string) string {
 	mut res := []string{}
-	for i := 0; i < columns.len; i++ {
+	for i := 0; i < a.len; i++ {
 		res = arrays.concat(res, '?')
 	}
 	return res.join(', ')

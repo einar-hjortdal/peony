@@ -126,13 +126,17 @@ fn (mut app App) retrieve_region_by_id(id string) !Region {
 	return parse_region(data.rows[0].values)!
 }
 
-fn add_country(mut tx firebird.Transaction, country_id string, region_id string) ! {
-	tx.execute('UPDATE country SET region_id = ? WHERE id = ?', region_id, country_id)!
+fn add_countries(mut tx firebird.Transaction, country_ids []string, region_id string) ! {
+	if country_ids.len == 0 {
+		return
+	}
+	tx.execute('UPDATE country SET region_id = ? WHERE id IN (${get_placeholders(country_ids)})',
+		...arrays.append([region_id], country_ids))!
 }
 
 fn (mut app App) add_country(country_id string, region_id string) ! {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	add_country(mut tx, country_id, region_id)!
+	tx.execute('UPDATE country SET region_id = ? WHERE id = ?', region_id, country_id)!
 	tx.commit()!
 }
 
@@ -174,13 +178,12 @@ fn (mut app App) create_region(d CreateRegionData) !string {
 		tx.rollback()!
 		return err
 	}
-	for i := 0; i < d.countries.len; i++ {
-		country_id := d.countries[i]
-		add_country(mut tx, country_id, id) or {
-			tx.rollback()!
-			return err
-		}
+
+	add_countries(mut tx, d.countries, id) or {
+		tx.rollback()!
+		return err
 	}
+
 	tx.commit()!
 	return id
 }
