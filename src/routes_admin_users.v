@@ -40,13 +40,15 @@ fn format_user_response(u User) UserResponse {
 @['/admin/users/'; post]
 fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	body := json.decode(NewUserData, ctx.req.data) or {
-		return ctx.json(new_peony_error(0, 'bad request'))
+		return ctx.json(new_peony_error('Could not decode NewUserData', err.msg()))
 	}
 
 	// error if email obviously wrong?
-	uid := app.create_user(body) or { return ctx.json(new_peony_error(1, 'Failed to create user')) }
+	uid := app.create_user(body) or {
+		return ctx.json(new_peony_error('Failed to create user', err.msg()))
+	}
 	u := app.retrieve_user_by_id(uid) or {
-		return ctx.json(new_peony_error(1, 'Failed to retrieve the new user'))
+		return ctx.json(new_peony_error('Failed to retrieve the new user', err.msg()))
 	}
 	return ctx.json(format_user_response(u))
 }
@@ -66,7 +68,7 @@ fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 @['/admin/users/:id'; get]
 fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
 	user := app.retrieve_user_by_id(id) or {
-		return ctx.json(new_peony_error(1, 'Could not retrieve user from database'))
+		return ctx.json(new_peony_error('Could not retrieve user from database', err.msg()))
 	}
 	return ctx.json(format_user_response(user))
 }
@@ -75,17 +77,15 @@ fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
 @['/admin/users/:id'; post]
 fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 	body := json.decode(UpdateUserData, ctx.req.data) or {
-		return ctx.json(new_peony_error(0, 'bad request'))
+		return ctx.json(new_peony_error('Could not decode UpdateUserData', err.msg()))
 	}
 
-	if !is_valid_role(body.role) {
-		return ctx.json(new_peony_error(0, 'invalid role'))
+	app.update_user(id, body) or {
+		return ctx.json(new_peony_error('Failed to update user', err.msg()))
 	}
-
-	app.update_user(id, body) or { return ctx.json(new_peony_error(1, 'Failed to update user')) }
 
 	updated_user := app.retrieve_user_by_id(id) or {
-		return ctx.json(new_peony_error(1, 'Failed to retrieve the updated user'))
+		return ctx.json(new_peony_error('Failed to retrieve the updated user', err.msg()))
 	}
 
 	return ctx.json(format_user_response(updated_user))

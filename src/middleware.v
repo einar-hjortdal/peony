@@ -18,7 +18,7 @@ fn (mut app App) load_user_session_middleware(mut ctx Context) bool {
 
 	ctx.user_session_values = json.decode(UserSessionValues, ctx.user_session.values) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(new_peony_error(0, 'Could not decode UserSessionValues'))
+		ctx.json(new_peony_error('Could not decode UserSessionValues', err.msg()))
 		return false
 	}
 
@@ -30,7 +30,7 @@ fn (mut app App) save_user_session_middleware(mut ctx Context) bool {
 
 	app.session_store.save(mut ctx.res.header, mut ctx.user_session) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(new_peony_error(0, 'failed to save session'))
+		ctx.json(new_peony_error('failed to save session', err.msg()))
 		return false
 	}
 

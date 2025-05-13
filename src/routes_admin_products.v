@@ -34,7 +34,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 
 	products := app.retrieve_products(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Failed to retrieve products data'))
+		return ctx.json(new_peony_error('Failed to retrieve products data', err.msg()))
 	}
 
 	return ctx.json(products)
@@ -62,7 +62,7 @@ fn (app &App) admin_products_post(mut ctx Context) veb.Result {
 		variants       []ProductVariant
 	}, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error(1, 'Could not decode body data structure'))
+		return ctx.json(new_peony_error('Could not decode body data structure', err.msg()))
 	}
 	// json body: title required string, (filter by status), id []string, collection_id []string, tags []string,
 	// price_list_id []string, sales_channel_id []string, discount_condition_id []string, type_id []string,

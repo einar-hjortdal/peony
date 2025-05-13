@@ -172,3 +172,14 @@ fn (mut app App) delete_sales_channel(id string) ! {
 		id)!
 	tx.commit()!
 }
+
+fn (mut app App) add_products_to_sales_channel(id string, products_ids []string) ! {
+	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut stmt := tx.prepare('INSERT INTO product_sales_channel (
+		product_id, sales_channel_id) VALUES (CHAR_TO_UUID(?), CHAR_TO_UUID(?))')!
+	for i := 0; i < products_ids.len; i++ {
+		pid := products_ids[i]
+		stmt.execute(pid, id)!
+	}
+	tx.commit()!
+}

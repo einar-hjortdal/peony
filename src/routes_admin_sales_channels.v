@@ -18,7 +18,7 @@ fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 
 	sc := app.list_sales_channels(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Failed to retrieve sales channels data'))
+		return ctx.json(new_peony_error('Failed to retrieve sales channels data', err.msg()))
 	}
 
 	return ctx.json(sc)
@@ -29,7 +29,7 @@ fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Result {
 	sc := app.retrieve_sales_channel_by_id(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Could not retrieve sales channel data'))
+		return ctx.json(new_peony_error('Could not retrieve sales channel data', err.msg()))
 	}
 
 	return ctx.json(sc)
@@ -40,12 +40,12 @@ fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Res
 fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 	data := json.decode(NewSalesChannelData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error(1, 'Could not decode NewSalesChannelData'))
+		return ctx.json(new_peony_error('Could not decode NewSalesChannelData', err.msg()))
 	}
 
 	id := app.create_sales_channel(data) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Could not create sales channel'))
+		return ctx.json(new_peony_error('Could not create sales channel', err.msg()))
 	}
 
 	return app.admin_sales_channels_id_get(mut ctx, id)
@@ -62,7 +62,7 @@ fn (mut app App) admin_sales_channels_id_post(mut ctx Context, id string) veb.Re
 
 	app.update_sales_channel(id, p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Could not update sales channel data'))
+		return ctx.json(new_peony_error('Could not update sales channel data', err.msg()))
 	}
 
 	return app.admin_sales_channels_id_get(mut ctx, id)
@@ -73,13 +73,29 @@ fn (mut app App) admin_sales_channels_id_post(mut ctx Context, id string) veb.Re
 fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) veb.Result {
 	app.delete_sales_channel(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error(1, 'Could not delete sales channel'))
+		return ctx.json(new_peony_error('Could not delete sales channel', err.msg()))
 	}
 
 	return ctx.text('OK')
 }
 
 // add products to a sales channel
+@['/admin/sales-channels/:id/products'; post]
+fn (mut app App) admin_sales_channels_id_products_post(mut ctx Context, id string) veb.Result {
+	data := json.decode(struct {
+		product_ids []string
+	}, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Could not decode request body', err.msg()))
+	}
+	app.add_products_to_sales_channel(id, data.product_ids) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Could not associate products to sales channel',
+			err.msg()))
+	}
+	return app.admin_sales_channels_id_get(mut ctx, id)
+}
+
 // remove products from a sales channel
 // associate stock location to a channel
 // remove stock location from a channel
