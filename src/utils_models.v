@@ -22,10 +22,14 @@ fn get_placeholders(a []string) string {
 }
 
 fn get_conditions(c []string) string {
+	return c.join(' AND ')
+}
+
+fn get_where_conditions(c []string) string {
 	if c.len == 0 {
 		return ''
 	}
-	return '\nWHERE ${c.join(' AND ')}'
+	return '\nWHERE ${get_conditions(c)}'
 }
 
 fn i32_or_max(n i32) i32 {

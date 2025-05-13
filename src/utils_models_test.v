@@ -17,5 +17,13 @@ fn test_get_conditions() {
 	assert get_conditions(c) == ''
 
 	c = ['id IN ?', "name LIKE '%' || ? '%'"]
-	assert get_conditions(c) == "\nWHERE id IN ? AND name LIKE '%' || ? '%'"
+	assert get_conditions(c) == "id IN ? AND name LIKE '%' || ? '%'"
+}
+
+fn test_get_where_conditions() {
+	mut c := []string{}
+	assert get_where_conditions(c) == ''
+
+	c = ['id IN ?', "name LIKE '%' || ? '%'"]
+	assert get_where_conditions(c) == "\nWHERE id IN ? AND name LIKE '%' || ? '%'"
 }

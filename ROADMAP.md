@@ -1,5 +1,12 @@
 # Roadmap
 
+### v3.7.0
+
+Payments.
+
+Subscriptions are not supported internally because payment processors themselves may support such feature. 
+Implementation example is documented.
+
 ### v3.6.0
 
 Allows customers to submit orders that can be manually approved by the admin.

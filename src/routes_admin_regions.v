@@ -21,6 +21,7 @@ fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 	return ctx.json(regions)
 }
 
+// creates a region
 @['/admin/regions/'; post]
 fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	data := json.decode(CreateRegionData, ctx.req.data) or {

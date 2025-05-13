@@ -54,7 +54,7 @@ struct ListRegionParams {
 
 fn build_list_regions_query(p ListRegionParams) (string, []firebird.Value) {
 	base_query := 'SELECT 
-	id,
+	UUID_TO_CHAR(id),
 	name,
 	created_at,
 	updated_at,
@@ -107,7 +107,7 @@ fn (mut app App) list_regions(p ListRegionParams) ![]Region {
 fn (mut app App) retrieve_region_by_id(id string) !Region {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	data := tx.execute('SELECT 
-		id
+		UUID_TO_CHAR(id),
 		name
 		created_at
 		updated_at
@@ -118,23 +118,26 @@ fn (mut app App) retrieve_region_by_id(id string) !Region {
 		includes_tax
 		gift_cards_taxable
 		automatic_taxes
-		FROM region WHERE id = ?',
+		FROM region WHERE id = CHAR_TO_UUID(?)',
 		id)!
+
 	if data.rows.len == 0 {
 		return error(format_error_message('No region found'))
 	}
+
 	return parse_region(data.rows[0].values)!
 }
 
 fn (mut app App) add_country(country_id string, region_id string) ! {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	tx.execute('UPDATE country SET region_id = ? WHERE id = ?', region_id, country_id)!
+	tx.execute('UPDATE country SET region_id = ? WHERE id = CHAR_TO_UUID(?)', region_id,
+		country_id)!
 	tx.commit()!
 }
 
 fn (mut app App) remove_country(country_id string, region_id string) ! {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	tx.execute('UPDATE country SET region_id = NULL WHERE region_id = ? AND code = ?',
+	tx.execute('UPDATE country SET region_id = NULL WHERE region_id = CHAR_TO_UUID(?) AND code = ?',
 		region_id, country_id)!
 	tx.commit()!
 }
@@ -143,9 +146,8 @@ fn add_countries(mut tx firebird.Transaction, country_ids []string, region_id st
 	if country_ids.len == 0 {
 		return
 	}
-	country_id_params := get_values_array(country_ids)
-	tx.execute('UPDATE country SET region_id = ? WHERE id IN (${get_placeholders(country_ids)})',
-		...country_id_params)!
+	tx.execute('UPDATE country SET region_id = CHAR_TO_UUID(?) WHERE UUID_TO_CHAR(id) IN (${get_placeholders(country_ids)})',
+		...country_ids)!
 }
 
 struct CreateRegionData {
@@ -158,9 +160,8 @@ struct CreateRegionData {
 }
 
 fn build_create_region_query(d CreateRegionData, id string) (string, []firebird.Value) {
-	mut columns := ['id', 'name', 'currency_code', 'tax_rate']
-	mut params := [firebird.Value(id), firebird.Value(d.name), firebird.Value(d.currency_code),
-		firebird.Value(d.tax_rate)] // https://github.com/vlang/v/issues/24442
+	mut columns := ['name', 'currency_code', 'tax_rate']
+	mut params := [firebird.Value(id), d.name, d.currency_code, d.tax_rate]
 	if d.tax_code != '' {
 		columns = arrays.concat(columns, 'tax_code')
 		params = arrays.concat(params, d.tax_code)
@@ -170,7 +171,7 @@ fn build_create_region_query(d CreateRegionData, id string) (string, []firebird.
 		params = arrays.concat(params, d.includes_tax)
 	}
 
-	return 'INSERT INTO region (${get_columns(columns)}) VALUES (${get_placeholders(columns)})', params
+	return 'INSERT INTO region (id, ${get_columns(columns)}) VALUES (CHAR_TO_UUID(?), ${get_placeholders(columns)})', params
 }
 
 fn (mut app App) create_region(d CreateRegionData) !string {
