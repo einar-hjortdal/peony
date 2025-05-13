@@ -11,3 +11,11 @@ fn test_get_placeholders() {
 	v := get_placeholders(columns)
 	assert v == '?, ?, ?, ?'
 }
+
+fn test_get_conditions() {
+	mut c := []string{}
+	assert get_conditions(c) == ''
+
+	c = ['id IN ?', "name LIKE '%' || ? '%'"]
+	assert get_conditions(c) == "\nWHERE id IN ? AND name LIKE '%' || ? '%'"
+}

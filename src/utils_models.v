@@ -5,8 +5,12 @@ import arrays
 const order_asc = 'ASC'
 const order_desc = 'DESC'
 
-fn get_columns(columns []string) string {
-	return columns.join(', ')
+fn appendln(s string, ln string) string {
+	return '${s}\n${ln}'
+}
+
+fn get_columns(c []string) string {
+	return c.join(', ')
 }
 
 fn get_placeholders(a []string) string {
@@ -15,6 +19,13 @@ fn get_placeholders(a []string) string {
 		res = arrays.concat(res, '?')
 	}
 	return res.join(', ')
+}
+
+fn get_conditions(c []string) string {
+	if c.len == 0 {
+		return ''
+	}
+	return '\nWHERE ${c.join(' AND ')}'
 }
 
 fn i32_or_max(n i32) i32 {
