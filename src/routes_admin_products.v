@@ -26,7 +26,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		sales_channel_id: ctx.query['sales_channel_id'].split(',')
 		region_id:        ctx.query['region_id']
 		currency_code:    ctx.query['currency_code']
-		locale:           ctx.query['locale_code']
+		locale_code:      ctx.query['locale_code']
 		offset:           ctx.query['offset'].i32()
 		fetch:            ctx.query['fetch'].i32()
 		order:            ctx.query['order']
@@ -43,7 +43,8 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 // get a product
 @['/admin/products/:id'; get]
 fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	p := app.retrieve_product_by_id(id) or {
+	locale_code := ctx.query['locale_code']
+	p := app.retrieve_product_by_id(id, locale_code) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
 	}
