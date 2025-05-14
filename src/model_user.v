@@ -1,5 +1,6 @@
 module main
 
+import arrays
 import einar_hjortdal.firebird
 
 const role_admin = 'admin'
@@ -7,11 +8,6 @@ const role_member = 'member'
 const role_developer = 'developer'
 const role_author = 'author'
 const role_contributor = 'contributor'
-
-fn is_valid_role(s string) bool {
-	return s == role_admin || s == role_member || s == role_developer || s == role_author
-		|| s == role_contributor
-}
 
 struct User {
 	id            string
@@ -22,9 +18,9 @@ struct User {
 	role          string
 	created_at    firebird.DateTime
 	updated_at    firebird.DateTime
-	deleted_at    firebird.NullDateTime
-	first_name    firebird.NullString
-	last_name     firebird.NullString
+	deleted_at    firebird.DateTime @[omitempty]
+	first_name    string            @[omitempty]
+	last_name     string            @[omitempty]
 }
 
 fn parse_user_data(v []firebird.Value) !User {
@@ -36,9 +32,9 @@ fn parse_user_data(v []firebird.Value) !User {
 	role, _ := v[5].get_string()!
 	created_at, _ := v[6].get_date_time()!
 	updated_at, _ := v[7].get_date_time()!
-	deleted_at := v[8].get_null_date_time()!
-	first_name := v[9].get_null_string()!
-	last_name := v[10].get_null_string()!
+	deleted_at, _ := v[8].get_date_time()!
+	first_name, _ := v[9].get_string()!
+	last_name, _ := v[10].get_string()!
 
 	return User{
 		id:            id
@@ -58,15 +54,30 @@ fn parse_user_data(v []firebird.Value) !User {
 struct NewUserData {
 	email      string
 	password   string
-	first_name string
-	last_name  string
-	role       string
+	first_name string @[omitempty]
+	last_name  string @[omitempty]
+	role       string @[omitempty]
 }
 
 fn (mut app App) create_user(d NewUserData) !string {
 	id := app.luuid_generator.v1()
 	handle := app.luuid_generator.v1()
 	password_hash, password_salt := hash_password(d.password)!
+
+	mut c := ['handle', 'email', 'password_hash', 'password_salt']
+	mut params := [firebird.Value(handle), d.email, password_hash, password_salt]
+	if d.role != '' {
+		c = arrays.concat(c, 'role')
+		params = arrays.concat(params, d.role)
+	}
+	if d.first_name != '' {
+		c = arrays.concat(c, 'first_name')
+		params = arrays.concat(params, d.first_name)
+	}
+	if d.last_name != '' {
+		c = arrays.concat(c, 'last_name')
+		params = arrays.concat(params, d.last_name)
+	}
 
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	tx.execute('INSERT INTO user (
@@ -78,8 +89,8 @@ fn (mut app App) create_user(d NewUserData) !string {
 		role,
 		first_name,
 		last_name
-		)	VALUES (CHAR_TO_UUID(?), ?, ?, ?, ?, ?, ?, ?)',
-		id, handle, d.email, password_hash, password_salt, d.role, d.first_name, d.last_name)!
+		)	VALUES (CHAR_TO_UUID(?), ${get_columns(c)})',
+		arrays.concat([firebird.Value(id)], params))!
 	tx.commit()!
 
 	return id

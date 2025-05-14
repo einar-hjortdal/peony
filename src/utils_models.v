@@ -1,6 +1,8 @@
 module main
 
 import arrays
+import einar_hjortdal.firebird
+import einar_hjortdal.luuid
 
 const order_asc = 'ASC'
 const order_desc = 'DESC'
@@ -55,4 +57,22 @@ fn if_true_then_a_else_b(condition bool, a string, b string) string {
 
 fn parse_order(order string) string {
 	return if_true_then_a_else_b(order.to_upper() == order_asc, order_asc, order_desc)
+}
+
+fn (mut app App) start_transaction() !&firebird.Transaction {
+	return app.fb.start_transaction(firebird.isolation_level_read_commited)!
+}
+
+fn (mut app App) new_id() !(string, []u8) {
+	id_string := app.luuid_generator.v1().to_upper()
+	id_bin := luuid.to_bytes(id_string)!
+	return id_string, id_bin
+}
+
+fn id_from_bin(id []u8) !string {
+	return luuid.from_bytes(id)!
+}
+
+fn id_to_bin(id string) ![]u8 {
+	return luuid.to_bytes(id)!
 }

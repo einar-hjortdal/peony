@@ -25,3 +25,23 @@ struct ProductVariant {
 	width              i32    @[omitempty]
 	title              string
 }
+
+struct NewProductVariantData {
+	product_id         string
+	sku                string @[omitempty]
+	barcode            string @[omitempty]
+	ean                string @[omitempty]
+	upc                string @[omitempty]
+	variant_rank       i32    @[omitempty]
+	inventory_quantity i32
+	allow_backorder    bool   @[omitempty]
+	manage_inventory   bool   @[omitempty]
+	hs_code            string @[omitempty]
+	origin_country     string @[omitempty]
+	mid_code           string @[omitempty]
+	weight             i32    @[omitempty]
+	length             i32    @[omitempty]
+	height             i32    @[omitempty]
+	width              i32    @[omitempty]
+	title              string
+}

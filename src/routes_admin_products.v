@@ -26,7 +26,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		sales_channel_id: ctx.query['sales_channel_id'].split(',')
 		region_id:        ctx.query['region_id']
 		currency_code:    ctx.query['currency_code']
-		locale:           ctx.query['locale']
+		locale:           ctx.query['locale_code']
 		offset:           ctx.query['offset'].i32()
 		fetch:            ctx.query['fetch'].i32()
 		order:            ctx.query['order']
@@ -40,46 +40,35 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	return ctx.json(products)
 }
 
+// get a product
+@['/admin/products/:id'; get]
+fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
+	p := app.retrieve_product_by_id(id) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
+	}
+	return ctx.json(p)
+}
+
 // create a product
 @['/admin/products'; post]
-fn (app &App) admin_products_post(mut ctx Context) veb.Result {
-	body := json.decode(struct {
-		title          string
-		subtitle       string
-		description    string
-		is_giftcard    bool
-		discountable   bool
-		images         []string
-		thumbnail      string
-		handle         string
-		status         string
-		type_id        string
-		collection_id  string
-		tags           []string
-		sales_channels []string
-		categories     []string
-		options        []string
-		variants       []ProductVariant
-	}, ctx.req.data) or {
+fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
+	body := json.decode(NewProductData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode body data structure', err.msg()))
 	}
-	// json body: title required string, (filter by status), id []string, collection_id []string, tags []string,
-	// price_list_id []string, sales_channel_id []string, discount_condition_id []string, type_id []string,
-	// category_id []string, include_category_children bool, title string, description string, handle string,
-	// created_at, updated_at, deleted_at, offset, limit, fields, order
-	return ctx.text('ok')
+
+	id := app.create_product(body) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to create product', err.msg()))
+	}
+
+	return app.admin_products_id_get(mut ctx, id)
 }
 
 // retrieves a list of tags and the amount of times each tag is being used by products
 @['/admin/products/tag-usage'; get]
 fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
-	return ctx.text('ok')
-}
-
-// creates a product
-@['/admin/products/:id'; post]
-fn (app &App) admin_products_id_post(mut ctx Context) veb.Result {
 	return ctx.text('ok')
 }
 

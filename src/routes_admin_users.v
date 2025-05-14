@@ -1,8 +1,8 @@
 module main
 
 import json
-import time
 import veb
+import einar_hjortdal.firebird
 
 // retrieves a list of users
 @['/admin/users/'; get]
@@ -15,11 +15,11 @@ struct UserResponse {
 	handle     string
 	email      string
 	role       string
-	created_at time.Time
-	updated_at time.Time
-	deleted_at time.Time @[omitempty]
-	first_name string    @[omitempty]
-	last_name  string    @[omitempty]
+	created_at firebird.DateTime
+	updated_at firebird.DateTime
+	deleted_at firebird.DateTime @[omitempty]
+	first_name string            @[omitempty]
+	last_name  string            @[omitempty]
 }
 
 fn format_user_response(u User) UserResponse {
@@ -28,11 +28,11 @@ fn format_user_response(u User) UserResponse {
 		handle:     u.handle
 		email:      u.email
 		role:       u.role
-		created_at: u.created_at.Time
-		updated_at: u.updated_at.Time
-		deleted_at: u.deleted_at.value.Time
-		first_name: u.first_name.value
-		last_name:  u.last_name.value
+		created_at: u.created_at
+		updated_at: u.updated_at
+		deleted_at: u.deleted_at
+		first_name: u.first_name
+		last_name:  u.last_name
 	}
 }
 
@@ -94,7 +94,7 @@ fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 // deleted a user
 @['/admin/users/:id'; post]
 fn (mut app App) admin_users_id_delete(mut ctx Context, id string) veb.Result {
-	app.delete_user(id) or { return ctx.json(new_peony_error(1, 'Failed to delete user')) }
+	app.delete_user(id) or { return ctx.json(new_peony_error('Failed to delete user', err.msg())) }
 	return ctx.text('ok')
 	// {
 	// 	id:      id
