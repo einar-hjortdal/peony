@@ -158,6 +158,7 @@ CREATE TABLE product_variant (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   product_id BINARY(16) NOT NULL,
+  title VARCHAR(63),
   sku VARCHAR(63),
   barcode VARCHAR(63),
   ean VARCHAR(13),
@@ -384,18 +385,6 @@ CREATE TABLE product_type_translations (
   CONSTRAINT "0681493b-ad87-120a-a800-56399e88f404" FOREIGN KEY (locale_code) REFERENCES locale (code),
   CONSTRAINT "0681493b-ad87-125c-c000-ecfcbc02751b" FOREIGN KEY (product_type_id) REFERENCES product_type (id) ON DELETE CASCADE,
   PRIMARY KEY (product_type_id, locale_code)
-);
-
-CREATE TABLE product_variant_translations (
-  product_variant_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  title VARCHAR(63),
-  CONSTRAINT "0681493b-ad87-1a5c-2000-2565c95cd9a4" FOREIGN KEY (locale_code) REFERENCES locale (code),
-  CONSTRAINT "0681493b-ad87-1aac-8400-a8b5dce1a420" FOREIGN KEY (product_variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
-  PRIMARY KEY (product_variant_id, locale_code)
 );
 
 CREATE TABLE product_option_value_translations (

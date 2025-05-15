@@ -70,53 +70,57 @@ fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 // retrieves a list of tags and the amount of times each tag is being used by products
 @['/admin/products/tag-usage'; get]
 fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+	return ctx.text('TODO')
 }
 
 // deletes a product
 @['/admin/products/:id'; delete]
-fn (app &App) admin_products_id_delete(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+fn (app &App) admin_products_id_delete(mut ctx Context, id string) veb.Result {
+	app.delete_product(id) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to delete product', err.msg()))
+	}
+	return ctx.text('ok') // TODO better response
 }
 
 // adds a product option
 @['/admin/products/:id/options'; post]
-fn (app &App) admin_products_id_options_post(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+fn (app &App) admin_products_id_options_post(mut ctx Context, id string) veb.Result {
+	return ctx.text('TODO')
 }
 
 // deletes a product option
 @['/admin/products/:id/options'; delete]
-fn (app &App) admin_products_id_options_delete(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+fn (app &App) admin_products_id_options_delete(mut ctx Context, id string) veb.Result {
+	return ctx.text('TODO')
 }
 
 // updates a product option
-@['/admin/products/:id/options/:opt_id'; post]
-fn (app &App) admin_products_id_options_opt_id_post(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+@['/admin/products/:id/options/:option_id'; post]
+fn (app &App) admin_products_id_options_option_id_post(mut ctx Context, id string, option_id string) veb.Result {
+	return ctx.text('TODO')
 }
 
 // lists a products variants
 @['/admin/products/:id/variants'; get]
-fn (app &App) admin_products_id_variants_get(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+fn (app &App) admin_products_id_variants_get(mut ctx Context, id string) veb.Result {
+	return ctx.text('TODO')
 }
 
 // creates a product variant
 @['/admin/products/:id/variants'; post]
-fn (app &App) admin_products_id_variants_post(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+fn (app &App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
+	return ctx.text('TODO')
 }
 
 // updates a product variant
-@['/admin/products/:id/variants/:vari_id'; post]
-fn (app &App) admin_products_id_variants_vari_id_post(mut ctx Context) veb.Result {
+@['/admin/products/:id/variants/:variant_id'; post]
+fn (app &App) admin_products_id_variants_variant_id_post(mut ctx Context, id string, variant_id string) veb.Result {
 	return ctx.text('ok')
 }
 
 // deletes a product variant
-@['/admin/products/:id/variants/:vari_id'; delete]
-fn (app &App) admin_products_id_variants_vari_id_delete(mut ctx Context) veb.Result {
-	return ctx.text('ok')
+@['/admin/products/:id/variants/:variant_id'; delete]
+fn (app &App) admin_products_id_variants_variant_id_delete(mut ctx Context, id string, variant_id string) veb.Result {
+	return ctx.text('TODO')
 }

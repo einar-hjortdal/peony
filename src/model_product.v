@@ -372,3 +372,10 @@ fn (mut app App) create_product(p NewProductData) !string {
 	tx.commit()!
 	return product_id
 }
+
+fn (mut app App) delete_product(id string) ! {
+	id_bin := id_to_bin(id)!
+	mut tx := app.start_transaction()!
+	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
+	tx.commit()!
+}
