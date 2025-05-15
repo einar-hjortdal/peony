@@ -379,3 +379,33 @@ fn (mut app App) delete_product(id string) ! {
 	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
 }
+
+fn (mut app App) create_product_option(product_id string, title string) !string {
+	id, id_bin := app.new_id()!
+	product_id_bin := id_to_bin(product_id)!
+	mut tx := app.start_transaction()!
+	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
+	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_code, title) 
+		SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
+		id_bin, title)!
+	tx.commit()!
+	return id
+}
+
+fn (mut app App) delete_product_option(id string) ! {
+	id_bin := id_to_bin(id)!
+	mut tx := app.start_transaction()!
+	tx.execute('UPDATE product_option SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		id_bin)!
+	tx.commit()!
+}
+
+fn (mut app App) update_product_option(id string, title string) !string {
+	id_bin := id_to_bin(id)!
+	mut tx := app.start_transaction()!
+	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
+		SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
+		id_bin, title)!
+	tx.commit()!
+	return id
+}
