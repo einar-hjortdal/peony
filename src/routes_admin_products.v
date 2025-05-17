@@ -103,24 +103,24 @@ fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) veb.
 
 // lists a products variants
 @['/admin/products/:id/variants'; get]
-fn (app &App) admin_products_id_variants_get(mut ctx Context, id string) veb.Result {
+fn (mut app App) admin_products_id_variants_get(mut ctx Context, id string) veb.Result {
 	return ctx.text('TODO')
 }
 
 // creates a product variant
 @['/admin/products/:id/variants'; post]
-fn (app &App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
+fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
 	return ctx.text('TODO')
 }
 
 // updates a product variant
 @['/admin/products/:id/variants/:variant_id'; post]
-fn (app &App) admin_products_id_variants_variant_id_post(mut ctx Context, id string, variant_id string) veb.Result {
+fn (mut app App) admin_products_id_variants_variant_id_post(mut ctx Context, id string, variant_id string) veb.Result {
 	return ctx.text('ok')
 }
 
 // deletes a product variant
 @['/admin/products/:id/variants/:variant_id'; delete]
-fn (app &App) admin_products_id_variants_variant_id_delete(mut ctx Context, id string, variant_id string) veb.Result {
+fn (mut app App) admin_products_id_variants_variant_id_delete(mut ctx Context, id string, variant_id string) veb.Result {
 	return ctx.text('TODO')
 }

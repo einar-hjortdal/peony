@@ -400,12 +400,39 @@ fn (mut app App) delete_product_option(id string) ! {
 	tx.commit()!
 }
 
-fn (mut app App) update_product_option(id string, title string) !string {
+struct UpdateProductOptionData {
+	title string
+}
+
+fn (mut app App) update_product_option(id string, p UpdateProductOptionData) !string {
 	id_bin := id_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
-		SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
-		id_bin, title)!
+			SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
+		id_bin, p.title)!
 	tx.commit()!
 	return id
+}
+
+struct ProductOptionTranslationData {
+	title       string
+	locale_code string
+}
+
+fn (mut app App) update_product_option_translation(id string, p ProductOptionTranslationData) ! {
+	id_bin := id_to_bin(id)!
+	mut tx := app.start_transaction()!
+	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
+		Values(?, ?, ?)',
+		id_bin, p.locale_code, p.title)!
+	tx.commit()!
+}
+
+fn (mut app App) delete_product_option_translation(id string, locale_code string) ! {
+	id_bin := id_to_bin(id)!
+	mut tx := app.start_transaction()!
+	tx.execute('UPDATE product_option_translations SET deleted_at = CURRENT_TIMESTAMP 
+		WHERE product_option_id = ? AND locale_code = ?',
+		id_bin, locale_code)!
+	tx.commit()!
 }

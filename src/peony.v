@@ -55,8 +55,6 @@ fn main() {
 	mut firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
 	mut luuid_generator := luuid.new_generator()
 
-	prepare_db(mut firebird_connection, mut luuid_generator) or { panic(err) }
-
 	mut session_store := new_session_store() or { panic(err) }
 
 	mut app := App{
@@ -67,6 +65,8 @@ fn main() {
 
 	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)
 	app.route_use('/admin/:path...', handler: app.save_user_session_middleware, after: true)
+
+	app.prepare_db() or { panic(err) }
 
 	port := os.getenv(env_port).int()
 	veb.run[App, Context](mut app, port)
