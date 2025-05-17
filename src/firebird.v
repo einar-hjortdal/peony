@@ -10,6 +10,8 @@ const schema_file = $embed_file('migrations/seed-schema.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_codes_file = $embed_file('migrations/seed-currency-codes.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
+const default_locale_code = 'en'
+const default_currency_code = 'EUR'
 
 fn get_schema_queries() []string {
 	queries := schema_file.to_string().split(';')
@@ -49,54 +51,63 @@ fn create_schema(mut conn firebird.Connection) ! {
 	}
 }
 
-fn add_data(mut conn firebird.Connection, mut gen luuid.Generator) ! {
+fn add_data(mut conn firebird.Connection, mut g luuid.Generator) ! {
 	country_codes := get_country_codes()
 	currency_codes := get_currency_codes()
 	locale_codes := get_locale_codes()
 
 	mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
 
-	mut stmt := tx.prepare('INSERT INTO country (id, code) VALUES (?, ?)')!
+	mut stmt := tx.prepare('INSERT INTO country (code) VALUES (?)')!
 	for i := 0; i < country_codes.len; i++ {
-		id := gen.v1()
 		code := country_codes[i]
-		stmt.execute(id, code)!
+		stmt.execute(code)!
 	}
 	stmt.close()!
 
-	stmt = tx.prepare('INSERT INTO currency (id, code) VALUES (?, ?)')!
+	stmt = tx.prepare('INSERT INTO currency (code) VALUES (?)')!
 	for i := 0; i < currency_codes.len; i++ {
-		id := gen.v1()
 		code := currency_codes[i]
-		stmt.execute(id, code)!
+		stmt.execute(code)!
 	}
 	stmt.close()!
 
 	stmt = tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
 	for i := 0; i < locale_codes.len; i++ {
-		id := gen.v1()
+		_, id_bin := new_id(mut g)!
 		code := locale_codes[i]
-		stmt.execute(id, code)!
+		stmt.execute(id_bin, code)!
 	}
 	stmt.close()!
 
-	user_id := gen.v1()
-	user_handle := gen.v1()
+	user_id, user_id_bin := new_id(mut g)!
 	user_email := os.getenv(env_email)
 	password_salt, password_hash := hash_password(os.getenv(env_password))!
 	tx.execute('INSERT INTO user (id, handle, email, password_hash, password_salt, role)
-	VALUES (CHAR_TO_UUID(?), ?, ?, ?, ?, ?)',
-		user_id, user_handle, user_email, password_hash, password_salt, role_admin)!
+	VALUES (?, ?, ?, ?, ?, ?)',
+		user_id_bin, user_id, user_email, password_hash, password_salt, role_admin)!
+
+	store_id, store_id_bin := new_id(mut g)!
+	tx.execute('INSERT INTO store (
+	id, name, default_locale_code, default_currency_code)
+	VALUES (?, ?, ?, ?)',
+		store_id_bin, store_id, default_locale_code, default_currency_code)!
+
+	tx.execute('INSERT INTO store_locales (store_id, locale_code) VALUES (?, ?)', store_id_bin,
+		default_locale_code)!
+
+	tx.execute('INSERT INTO store_currencies (store_id, currency_code) VALUES (?, ?)',
+		store_id_bin, default_currency_code)!
 
 	tx.commit()!
 }
 
 // TODO if error rollback all changes
 // Can't just do tx.rollback() because each table is created in its own transaction.
-fn prepare_db(mut conn firebird.Connection, mut gen luuid.Generator) ! {
+fn prepare_db(mut conn firebird.Connection, mut g luuid.Generator) ! {
 	if database_is_ready(mut conn) {
 		return
 	}
 	create_schema(mut conn)!
-	add_data(mut conn, mut gen)!
+	add_data(mut conn, mut g)!
 }
