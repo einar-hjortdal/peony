@@ -270,6 +270,37 @@ CREATE TABLE locale (
   CONSTRAINT "0681493b-ad84-1b4d-ac00-955f9befd9c9" UNIQUE (code)
 );
 
+CREATE TABLE stock_location_address (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  address_1 VARCHAR(191) NOT NULL,
+  address_2 VARCHAR(191),
+  company VARCHAR(63),
+  city VARCHAR(63),
+  country_code CHAR(2) NOT NULL,
+  phone VARCHAR(63),
+  province VARCHAR(63),
+  postal_code VARCHAR(63),
+  CONSTRAINT "068284bc-d749-1f4e-9000-b6c6e237bd23" PRIMARY KEY (id)
+  CONSTRAINT "068284bc-d749-1fa8-4800-72394cfabf1f" FOREIGN KEY ("country_code") REFERENCES "country" ("code")
+);
+
+CREATE INDEX "068284bc-d74a-113a-cc00-7a45c21dc847" ON stock_location_address (country_code);
+
+CREATE TABLE stock_location (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  address_id BINARY(16),
+  CONSTRAINT "068284bc-d74a-1190-a400-30b8104851fe" PRIMARY KEY (id)
+);
+
+CREATE INDEX "068284bc-d74a-1362-3800-bfa41b2fe4a8" ON stock_location (address_id) WHERE deleted_at IS NOT NULL;
+
 CREATE TABLE sales_channel (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -280,6 +311,22 @@ CREATE TABLE sales_channel (
   is_disabled BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT "0681493b-ad84-1ec7-0800-68d1ec89bf9e" PRIMARY KEY (id)
 );
+
+CREATE TABLE sales_channel_location (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  sales_channel_id BINARY(16) NOT NULL,
+  stock_location_id BINARY(16) NOT NULL,
+  CONSTRAINT "068284bc-d74a-191b-3000-6dd35ee3e21b" PRIMARY KEY (id)
+  CONSTRAINT "068284bc-d74a-1a0b-c000-9f68490f9d3c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id)
+  CONSTRAINT "068284bc-d74a-1f78-5400-6820c274c28e" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id)
+);
+
+CREATE INDEX "068284bc-d74a-1c10-4400-318da191c938" ON sales_channel_location (sales_channel_id);
+
+CREATE INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b" ON sales_channel_location (stock_location_id);
 
 CREATE TABLE store (
   id BINARY(16) NOT NULL,

@@ -87,11 +87,20 @@ fn add_data(mut conn firebird.Connection, mut g luuid.Generator) ! {
 	VALUES (?, ?, ?, ?, ?, ?)',
 		user_id_bin, user_id, user_email, password_hash, password_salt, role_admin)!
 
+	sales_channel_id, sales_channel_id_bin := new_id(mut g)!
+	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id_bin,
+		sales_channel_id)!
+
+	stock_location_id, stock_location_id_bin := new_id(mut g)!
+	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', stock_location_id_bin,
+		stock_location_id)!
+
 	store_id, store_id_bin := new_id(mut g)!
 	tx.execute('INSERT INTO store (
-	id, name, default_locale_code, default_currency_code)
-	VALUES (?, ?, ?, ?)',
-		store_id_bin, store_id, default_locale_code, default_currency_code)!
+	id, name, default_locale_code, default_currency_code, default_stock_location_id, default_sales_channel_id)
+	VALUES (?, ?, ?, ?, ?, ?)',
+		store_id_bin, store_id, default_locale_code, default_currency_code, stock_location_id_bin,
+		sales_channel_id_bin)!
 
 	tx.execute('INSERT INTO store_locales (store_id, locale_code) VALUES (?, ?)', store_id_bin,
 		default_locale_code)!
