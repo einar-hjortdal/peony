@@ -7,12 +7,32 @@ import einar_hjortdal.luuid
 const order_asc = 'ASC'
 const order_desc = 'DESC'
 
-fn appendln(s string, ln string) string {
-	return '${s}\n${ln}'
+fn newln(ln string) string {
+	return '\n${ln}'
+}
+
+fn appendln(src string, ln string) string {
+	return '${src}${newln(ln)}'
 }
 
 fn get_columns(c []string) string {
 	return c.join(', ')
+}
+
+fn get_n_placeholders(n i32) string {
+	if n == 0 {
+		return ''
+	}
+
+	mut res := '?'
+	if n == 1 {
+		return res
+	}
+
+	for i := 1; i < n; i++ {
+		res += ', ?'
+	}
+	return res
 }
 
 fn get_placeholders(a []string) string {
@@ -53,6 +73,17 @@ fn if_true_then_a_else_b(condition bool, a string, b string) string {
 		return a
 	}
 	return b
+}
+
+fn is_order_asc(s string) bool {
+	return s.to_upper() == order_asc
+}
+
+fn get_sorting_order(zs ZeroString) string {
+	if zs.is_set && is_order_asc(zs.v) {
+		return order_asc
+	}
+	return order_desc
 }
 
 fn parse_order(order string) string {

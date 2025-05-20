@@ -144,6 +144,7 @@ fn (mut app App) prepare_db() ! {
 
 	// TODO if error rollback all changes
 	// Can't just do tx.rollback() because each table is created in its own transaction.
+	// Instead a rollback file needs to be created where tables and constrats are dropped in reverse order.
 	create_schema(mut app.fb)!
 
 	mut tx := app.start_transaction()!

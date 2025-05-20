@@ -179,7 +179,6 @@ fn (mut app App) retrieve_products(p ProductParams) ![]Product {
 		product := parse_product(data.rows[i].values)!
 		products = arrays.concat(products, product)
 	}
-
 	return products
 }
 
