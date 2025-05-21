@@ -20,17 +20,17 @@ fn get_columns(c []string) string {
 }
 
 fn get_n_placeholders(n i32) string {
+	mut res := ''
 	if n == 0 {
-		return ''
-	}
-
-	mut res := '?'
-	if n == 1 {
 		return res
 	}
 
-	for i := 1; i < n; i++ {
-		res += ', ?'
+	for i := 0; i < n; i++ {
+		if i == 0 {
+			res += '?'
+		} else {
+			res += ', ?'
+		}
 	}
 	return res
 }
