@@ -112,3 +112,20 @@ fn (mut app App) admin_products_id_variants_get(mut ctx Context, id string) veb.
 fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
 	return ctx.text('TODO')
 }
+
+// updates a product variant
+@['/admin/products/:id/variants/:variant_id'; post]
+fn (mut app App) admin_variants_id_post(mut ctx Context, id string, variant_id string) veb.Result {
+	data := json.decode(UpdateProductVariantData, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Could not decode UpdateProductVariantData ',
+			err.msg()))
+	}
+
+	app.update_product_variant(id, data) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Could not update variant ', err.msg()))
+	}
+
+	return app.admin_products_id_get(mut ctx, id)
+}

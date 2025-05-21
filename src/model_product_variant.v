@@ -28,11 +28,11 @@ struct ProductVariant {
 }
 
 fn parse_product_variant(v []firebird.Value) !ProductVariant {
-	id, _ := v[0].get_string()!
+	id_bin, _ := v[0].get_array_u8()!
 	created_at, _ := v[1].get_date_time()!
 	updated_at, _ := v[2].get_date_time()!
 	deleted_at, _ := v[3].get_date_time()!
-	product_id, _ := v[4].get_string()!
+	product_id_bin, _ := v[4].get_array_u8()!
 	sku, _ := v[5].get_string()!
 	barcode, _ := v[6].get_string()!
 	ean, _ := v[7].get_string()!
@@ -49,6 +49,9 @@ fn parse_product_variant(v []firebird.Value) !ProductVariant {
 	height, _ := v[18].get_i32()!
 	width, _ := v[19].get_i32()!
 	title, _ := v[20].get_string()!
+
+	id := id_from_bin(id_bin)!
+	product_id := id_from_bin(product_id_bin)!
 
 	return ProductVariant{
 		id:                 id
@@ -73,6 +76,42 @@ fn parse_product_variant(v []firebird.Value) !ProductVariant {
 		width:              width
 		title:              title
 	}
+}
+
+fn (mut app App) retrieve_product_variant_by_id(id string) !ProductVariant {
+	id_bin := id_to_bin(id)!
+	mut tx := app.start_transaction()!
+	data := tx.execute('SELECT 
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		product_id,
+		title,
+		sku,
+		barcode,
+		ean,
+		upc,
+		variant_rank,
+		inventory_quantity,
+		allow_backorder,
+		manage_inventory,
+		hs_code,
+		origin_country,
+		mid_code,
+		weight,
+		length,
+		height,
+		width,
+	 	FROM product_variant
+		WHERE id = ?',
+		id_bin)!
+
+	if data.rows.len == 0 {
+		return error('Could not find ProductVariant with the given id')
+	}
+
+	return parse_product_variant(data.rows[0].values)
 }
 
 struct NewProductVariantData {
@@ -199,4 +238,28 @@ fn (mut app App) retrieve_product_variants(p RetrieveProductVariantParams) ![]Pr
 		variants = arrays.concat(variants, variant)
 	}
 	return variants
+}
+
+struct UpdateProductVariantData {
+	sku                ?string
+	barcode            ?string
+	ean                ?string
+	upc                ?string
+	variant_rank       ?i32
+	inventory_quantity ?i32
+	allow_backorder    ?bool
+	manage_inventory   ?bool
+	hs_code            ?string
+	origin_country     ?string
+	mid_code           ?string
+	weight             ?i32
+	length             ?i32
+	height             ?i32
+	width              ?i32
+	title              ?string
+	// prices []
+	// options []
+}
+
+fn (mut app App) update_product_variant(id string, p UpdateProductVariantData) ! {
 }
