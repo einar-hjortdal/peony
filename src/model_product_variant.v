@@ -28,6 +28,51 @@ struct ProductVariant {
 }
 
 fn parse_product_variant(v []firebird.Value) !ProductVariant {
+	id, _ := v[0].get_string()!
+	created_at, _ := v[1].get_date_time()!
+	updated_at, _ := v[2].get_date_time()!
+	deleted_at, _ := v[3].get_date_time()!
+	product_id, _ := v[4].get_string()!
+	sku, _ := v[5].get_string()!
+	barcode, _ := v[6].get_string()!
+	ean, _ := v[7].get_string()!
+	upc, _ := v[8].get_string()!
+	variant_rank, _ := v[9].get_i32()!
+	inventory_quantity, _ := v[10].get_i32()!
+	allow_backorder, _ := v[11].get_bool()!
+	manage_inventory, _ := v[12].get_bool()!
+	hs_code, _ := v[13].get_string()!
+	origin_country, _ := v[14].get_string()!
+	mid_code, _ := v[15].get_string()!
+	weight, _ := v[16].get_i32()!
+	length, _ := v[17].get_i32()!
+	height, _ := v[18].get_i32()!
+	width, _ := v[19].get_i32()!
+	title, _ := v[20].get_string()!
+
+	return ProductVariant{
+		id:                 id
+		created_at:         created_at
+		updated_at:         updated_at
+		deleted_at:         deleted_at
+		product_id:         product_id
+		sku:                sku
+		barcode:            barcode
+		ean:                ean
+		upc:                upc
+		variant_rank:       variant_rank
+		inventory_quantity: inventory_quantity
+		allow_backorder:    allow_backorder
+		manage_inventory:   manage_inventory
+		hs_code:            hs_code
+		origin_country:     origin_country
+		mid_code:           mid_code
+		weight:             weight
+		length:             length
+		height:             height
+		width:              width
+		title:              title
+	}
 }
 
 struct NewProductVariantData {
@@ -51,7 +96,7 @@ struct NewProductVariantData {
 }
 
 struct RetrieveProductVariantParams {
-	id                 ZeroString
+	id                 ZeroArrayString
 	allow_backorder    ZeroBool
 	manage_inventory   ZeroBool
 	region_id          ZeroString
@@ -93,12 +138,11 @@ fn build_query_retrieve_product_variants(p RetrieveProductVariantParams) !(strin
 	mut c := []string{}
 
 	if p.id.is_set {
-		ids := p.id.v.split(',')
-		for i := 0; i < ids.len; i++ {
-			id := ids[i]
+		for i := 0; i < p.id.v.len; i++ {
+			id := p.id.v[i]
 			params = arrays.concat(params, id)
 		}
-		c = arrays.concat(c, 'WHERE id IN ${get_n_placeholders(i32(ids.len))}')
+		c = arrays.concat(c, 'WHERE id IN ${get_n_placeholders(i32(p.id.v.len))}')
 	}
 
 	if p.allow_backorder.is_set {

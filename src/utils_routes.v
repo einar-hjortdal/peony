@@ -15,6 +15,22 @@ fn zero_string(m map[string]string, k string) ZeroString {
 	return ZeroString{}
 }
 
+struct ZeroArrayString {
+	v      []string
+	is_set bool
+}
+
+fn zero_array_string(m map[string]string, k string) ZeroArrayString {
+	s := zero_string(m, k)
+	if s.is_set {
+		return ZeroArrayString{
+			v:      s.v.split(',')
+			is_set: true
+		}
+	}
+	return ZeroArrayString{}
+}
+
 struct ZeroI32 {
 	v      i32
 	is_set bool
