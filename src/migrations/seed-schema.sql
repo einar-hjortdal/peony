@@ -78,29 +78,6 @@ CREATE TABLE price_list (
   CONSTRAINT "0681493b-ad7f-1d3f-7c00-3cd53eb56cd7" CHECK (status IN ('active', 'draft'))
 );
 
-CREATE TABLE money_amount (
-  id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  currency_code CHAR(3) NOT NULL,
-  amount INTEGER NOT NULL,
-  min_quantity INTEGER,
-  max_quantity INTEGER,
-  price_list_id BINARY(16),
-  variant_id BINARY(16),
-  region_id BINARY(16),
-  CONSTRAINT "0681493b-ad80-1816-4c00-b3057a12449b" PRIMARY KEY (id),
-  CONSTRAINT "0681493b-ad80-1868-1400-be1d124a89dc" FOREIGN KEY (currency_code) REFERENCES currency (code),
-  CONSTRAINT "0681493b-ad80-18c0-f800-29cd93ab1246" FOREIGN KEY (price_list_id) REFERENCES price_list (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad80-1918-6c00-b3e1e39d7298" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad80-1965-9c00-560c42556079" FOREIGN KEY (region_id) REFERENCES region (id)
-);
-
-CREATE INDEX "0681493b-ad80-1af0-3400-b14340ac5e59" ON money_amount (currency_code);
-CREATE INDEX "0681493b-ad80-1b42-fc00-0503eb38c731" ON money_amount (variant_id);
-CREATE INDEX "0681493b-ad80-1c69-7800-8a18dd634104" ON money_amount (region_id);
-
 CREATE TABLE region (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -118,6 +95,27 @@ CREATE TABLE region (
 );
 
 CREATE INDEX "0681493b-ad81-11dd-0400-431cb8290aa0" ON region (currency_code);
+
+CREATE TABLE money_amount (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  currency_code CHAR(3) NOT NULL,
+  amount INTEGER NOT NULL,
+  min_quantity INTEGER,
+  max_quantity INTEGER,
+  price_list_id BINARY(16),
+  region_id BINARY(16),
+  CONSTRAINT "0681493b-ad80-1816-4c00-b3057a12449b" PRIMARY KEY (id),
+  CONSTRAINT "0681493b-ad80-1868-1400-be1d124a89dc" FOREIGN KEY (currency_code) REFERENCES currency (code),
+  CONSTRAINT "0681493b-ad80-18c0-f800-29cd93ab1246" FOREIGN KEY (price_list_id) REFERENCES price_list (id) ON DELETE CASCADE,
+  CONSTRAINT "0681493b-ad80-1965-9c00-560c42556079" FOREIGN KEY (region_id) REFERENCES region (id)
+);
+
+CREATE INDEX "0681493b-ad80-1af0-3400-b14340ac5e59" ON money_amount (currency_code);
+CREATE INDEX "0681493b-ad80-1b42-fc00-0503eb38c731" ON money_amount (variant_id);
+CREATE INDEX "0681493b-ad80-1c69-7800-8a18dd634104" ON money_amount (region_id);
 
 CREATE TABLE country (
   id BINARY(16) NOT NULL,
@@ -181,6 +179,20 @@ CREATE UNIQUE INDEX "0681493b-ad82-1729-cc00-081f57f16e27" ON product_variant (s
 CREATE UNIQUE INDEX "0681493b-ad82-1799-4800-7aba05e57f99" ON product_variant (barcode) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX "0681493b-ad82-1802-d000-454acce626f6" ON product_variant (ean) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX "0681493b-ad82-186b-2800-015e1c02ca35" ON product_variant (upc) WHERE deleted_at IS NULL;
+
+CREATE TABLE product_variant_money_amount (
+  id BINARY(16) NOT NULL,
+  variant_id BINARY(16) NOT NULL,
+  money_amount_id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT "06828532-0dde-11b1-bc00-ed787ddb3a8a" PRIMARY KEY (id),
+  CONSTRAINT "0681493b-ad80-1918-6c00-b3e1e39d7298" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+)
+
+CREATE UNIQUE INDEX "06828532-0dde-1256-9c00-c34b44f8e9c4" ON product_variant_money_amount (money_amount_id);
+CREATE INDEX "06828532-0dde-1203-f000-21b06004cfa4" ON product_variant_money_amount (variant_id);
 
 CREATE TABLE product_option (
   id BINARY(16) NOT NULL,
