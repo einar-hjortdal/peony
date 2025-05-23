@@ -1,3 +1,10 @@
+CREATE TABLE migrations (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  name VARCHAR(191) NOT NULL,
+  CONSTRAINT "06828532-0de2-15f4-6c00-263bdaf3d865" PRIMARY KEY (id)
+)
+
 CREATE TABLE user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,
@@ -127,6 +134,61 @@ CREATE TABLE country (
 
 CREATE INDEX "0681493b-ad81-151d-7400-ec056f0a59c9" ON country (region_id);
 
+CREATE TABLE inventory_item (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  title VARCHAR(63),
+  sku VARCHAR(63),
+  hs_code VARCHAR(63),
+  origin_country CHAR(2),
+  mid_code VARCHAR(63),
+  weight INTEGER,
+  length INTEGER,
+  height INTEGER,
+  width INTEGER,
+  thumbnail BLOB SUB_TYPE TEXT,
+  requires_shipping BOOLEAN DEFAULT true NOT NULL,
+  CONSTRAINT "06828532-0de1-11a7-a000-6f71f973f8bf" PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX "06828532-0de1-1536-e000-0e3bbc33555c" ON inventory_item (sku) WHERE deleted_at IS NULL;
+
+CREATE TABLE inventory_level (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  inventory_item_id BINARY(16) NOT NULL,
+  location_id BINARY(16) NOT NULL,
+  stocked_quantity INTEGER DEFAULT 0 NOT NULL,
+  reserved_quantity INTEGER DEFAULT 0 NOT NULL,
+  incoming_quantity INTEGER DEFAULT 0 NOT NULL,
+  CONSTRAINT "06828532-0de1-11fb-5800-aecf67f0cc77" PRIMARY KEY (id)
+);
+
+CREATE INDEX "06828532-0de1-1585-f000-574b161483a2" ON reservation_item (line_item_id) WHERE deleted_at IS NULL;
+CREATE INDEX "06828532-0de1-15d5-b000-1bf0f6ec61a7" ON reservation_item (inventory_item_id) WHERE deleted_at IS NULL;
+CREATE INDEX "06828532-0de1-16b6-0800-7138bd647653" ON reservation_item (location_id) WHERE deleted_at IS NULL;
+
+CREATE TABLE inventory_level (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  inventory_item_id BINARY(16) NOT NULL,
+  location_id BINARY(16) NOT NULL,
+  stocked_quantity INTEGER NOT NULL DEFAULT 0,
+  reserved_quantity INTEGER NOT NULL DEFAULT 0,
+  incoming_quantity INTEGER NOT NULL DEFAULT 0,
+  CONSTRAINT "06828532-0de1-1706-0400-73c34c41aa55" PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX "06828532-0de1-1ef1-e000-ed029783b4aa" ON inventory_level (inventory_item_id, location_id);
+CREATE INDEX "06828532-0de1-1f47-fc00-0bd5681967b9" ON inventory_level (inventory_item_id);
+CREATE INDEX "06828532-0de2-10cd-6400-0d702f5a6fea" ON inventory_level (location_id);
+
 CREATE TABLE product (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -193,6 +255,23 @@ CREATE TABLE product_variant_money_amount (
 
 CREATE UNIQUE INDEX "06828532-0dde-1256-9c00-c34b44f8e9c4" ON product_variant_money_amount (money_amount_id);
 CREATE INDEX "06828532-0dde-1203-f000-21b06004cfa4" ON product_variant_money_amount (variant_id);
+
+CREATE TABLE product_variant_inventory_item (
+  id BINARY(16) NOT NULL,
+  inventory_item_id BINARY(16) NOT NULL,
+  variant_id BINARY(16) NOT NULL,
+  required_quantity INTEGER DEFAULT 1 NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT "06828532-0de0-1cd6-3000-96dbe91750c7" PRIMARY KEY (id)
+  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+  -- TODO foreign key checks
+)
+
+CREATE UNIQUE INDEX "06828532-0de0-1d21-f800-7309e0f7c125" ON product_variant_inventory_item (variant_id, inventory_item_id);
+CREATE INDEX "06828532-0de0-1d95-9800-ae9f318d828f" ON product_variant_inventory_item (inventory_item_id) WHERE (deleted_at IS NULL);
+CREATE INDEX "06828532-0de0-1e01-2800-55bcee8d13c3" ON product_variant_inventory_item (variant_id) WHERE (deleted_at IS NULL);
 
 CREATE TABLE product_option (
   id BINARY(16) NOT NULL,

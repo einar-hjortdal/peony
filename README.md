@@ -32,11 +32,11 @@ by deploying each box on its own independent server.
                                │ freenginx  │                                   │                      │                        │
                                │            │                                   │                      │                        │
                                │            │                                   │                      │                        │
-┌────────────────────────┐     │            │   ┌────────────────────────────┐  │                      │                        │
-│                        │     │            │   │                            │  │                      │                        │
-│ Storefront browser app ◄─────►            ◄───► Storefront frontend server ◄──►     /storefront/     │   ┌────────────────┐   │
-│                        │     │            │   │                            │  │                      │   │                │   │
-└────────────────────────┘     │            │   └────────────────────────────┘  │                      ├───►    Firebird    ◄───┘
+     ┌───────────────────┐     │            │     ┌───────────────────────┐     │                      │                        │
+     │                   │     │            │     │                       │     │                      │                        │
+     │ Store browser app ◄─────►            ◄─────► Store frontend server ◄─────►       /store/        │   ┌────────────────┐   │
+     │                   │     │            │     │                       │     │                      │   │                │   │
+     └───────────────────┘     │            │     └───────────────────────┘     │                      ├───►    Firebird    ◄───┘
                                │            │                                   │                      │   │                │    
                                │            │                                   │                      │   └────────────────┘    
                                │            │                                   └──────────────────────┘                         
@@ -51,8 +51,8 @@ peony uses a cloud architecture. It can run on several backend servers sharing a
 servers. BLOBs are uploaded from the Admin frontend (such as images and documents) are stored on a central 
 BLOB server.
 
-The Storefront API routes are all prefixed with `/storefront`, while the Admin API routes are all prefixed 
-with `/admin`.
+The Store API routes are all prefixed with `/store/`, while the Admin API routes are all prefixed with 
+`/admin/`.
 
 ### Environment variables
 
