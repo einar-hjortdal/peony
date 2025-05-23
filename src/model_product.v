@@ -246,22 +246,23 @@ fn (mut app App) retrieve_product_by_id(id string, locale_code string) !Product 
 	return parse_product(data.rows[0].values)
 }
 
+// TODO use option types
 struct NewProductData {
 	title          string
-	subtitle       string   @[omitempty]
-	description    string   @[omitempty]
-	is_giftcard    bool     @[omitempty]
-	discountable   bool     @[omitempty]
-	images         []string @[omitempty]
-	thumbnail      string   @[omitempty]
-	handle         string   @[omitempty]
-	status         string   @[omitempty]
-	type_id        string   @[omitempty]
-	collection_id  string   @[omitempty]
-	tags           []string @[omitempty]
-	sales_channels []string @[omitempty]
-	categories     []string @[omitempty]
-	options        []string @[omitempty]
+	subtitle       string
+	description    string
+	is_giftcard    bool
+	discountable   bool
+	images         []string
+	thumbnail      string
+	handle         string
+	status         string
+	type_id        string
+	collection_id  string
+	tags           []string
+	sales_channels []string
+	categories     []string
+	options        []string
 }
 
 fn build_query_create_product(product_id string, product_id_bin []u8, p NewProductData) !(string, []firebird.Value) {

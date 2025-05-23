@@ -3,7 +3,7 @@ CREATE TABLE migrations (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   name VARCHAR(191) NOT NULL,
   CONSTRAINT "06828532-0de2-15f4-6c00-263bdaf3d865" PRIMARY KEY (id)
-)
+);
 
 CREATE TABLE user (
   id BINARY(16) NOT NULL,
@@ -243,18 +243,17 @@ CREATE UNIQUE INDEX "0681493b-ad82-1802-d000-454acce626f6" ON product_variant (e
 CREATE UNIQUE INDEX "0681493b-ad82-186b-2800-015e1c02ca35" ON product_variant (upc) WHERE deleted_at IS NULL;
 
 CREATE TABLE product_variant_money_amount (
-  id BINARY(16) NOT NULL,
   variant_id BINARY(16) NOT NULL,
   money_amount_id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  CONSTRAINT "06828532-0dde-11b1-bc00-ed787ddb3a8a" PRIMARY KEY (id),
+  CONSTRAINT "06828532-0dde-11b1-bc00-ed787ddb3a8a" PRIMARY KEY (variant_id, money_amount),
   CONSTRAINT "0681493b-ad80-1918-6c00-b3e1e39d7298" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
-)
+  CONSTRAINT "06828532-0de2-16cc-0c00-cf4ad2b29958" FOREIGN KEY (money_amount_id) REFERENCES money_amount (id) ON DELETE CASCADE
+);
 
 CREATE UNIQUE INDEX "06828532-0dde-1256-9c00-c34b44f8e9c4" ON product_variant_money_amount (money_amount_id);
-CREATE INDEX "06828532-0dde-1203-f000-21b06004cfa4" ON product_variant_money_amount (variant_id);
 
 CREATE TABLE product_variant_inventory_item (
   id BINARY(16) NOT NULL,
@@ -266,8 +265,7 @@ CREATE TABLE product_variant_inventory_item (
   deleted_at TIMESTAMP,
   CONSTRAINT "06828532-0de0-1cd6-3000-96dbe91750c7" PRIMARY KEY (id)
   CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
-  -- TODO foreign key checks
-)
+);
 
 CREATE UNIQUE INDEX "06828532-0de0-1d21-f800-7309e0f7c125" ON product_variant_inventory_item (variant_id, inventory_item_id);
 CREATE INDEX "06828532-0de0-1d95-9800-ae9f318d828f" ON product_variant_inventory_item (inventory_item_id) WHERE (deleted_at IS NULL);
@@ -416,7 +414,6 @@ CREATE TABLE sales_channel_location (
 );
 
 CREATE INDEX "068284bc-d74a-1c10-4400-318da191c938" ON sales_channel_location (sales_channel_id);
-
 CREATE INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b" ON sales_channel_location (stock_location_id);
 
 CREATE TABLE store (

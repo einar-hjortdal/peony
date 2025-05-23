@@ -257,9 +257,131 @@ struct UpdateProductVariantData {
 	height             ?i32
 	width              ?i32
 	title              ?string
-	// prices []
 	// options []
 }
 
+fn build_query_update_product_variant(id string, p UpdateProductVariantData) !(string, []firebird.Value) {
+	id_bin := id_to_bin(id)!
+	mut query := 'UPDATE product_variant SET'
+	mut params := []firebird.Value{}
+
+	if sku := p.sku {
+		query = appendln(query, 'sku = ?')
+		params = arrays.concat(params, sku)
+	}
+
+	// TODO continue
+
+	query = appendln(query, 'WHERE id = ?')
+	params = arrays.concat(params, id_bin)
+	return query, params
+}
+
 fn (mut app App) update_product_variant(id string, p UpdateProductVariantData) ! {
+	query, params := build_query_update_product_variant(id, p)!
+	mut tx := app.start_transaction()!
+	tx.execute(query, ...params)!
+	tx.commit()!
+}
+
+struct ProductVariantMoneyAmount {
+	variant_id      string
+	money_amount_id string
+	created_at      firebird.DateTime
+	updated_at      firebird.DateTime
+	deleted_at      firebird.DateTime @[omitempty]
+}
+
+fn parse_product_variant_money_amount(v []firebird.Value) !ProductVariantMoneyAmount {
+}
+
+struct UpdateMoneyAmountData {
+	id            ?string
+	currency_code string
+	amount        i32
+	min_quantity  ?i32
+	max_quantity  ?i32
+	price_list_id ?string
+	variant_id    ?string
+	region_id     ?string
+}
+
+fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, variant_id string, data []UpdateMoneyAmountData) ! {
+	mut persisting_money_amounts := []string{}
+	for i := 0; i < data.len; i++ {
+		ma := data[i]
+		if ma_id := ma.id {
+			arrays.concat(persisting_money_amounts, ma_id)
+		}
+	}
+	mut money_amount_to_prune := []string{}
+
+	variant_id_bin := id_to_bin(variant_id)!
+	current_data := tx.execute('SELECT 
+		variant_id,
+		money_amount_id,
+		created_at,
+		updated_at,
+		deleted_at
+		FROM product_variant_money_amount WHERE variant_id = ?',
+		variant_id_bin)!
+
+	if current_data.rows.len == 0 && persisting_money_amounts.len > 0 {
+		return error('Provided money_amount id is not related to variant')
+	}
+
+	// If there already exist some relation, prune the relations that do not need to persist.
+	if current_data.rows.len > 0 {
+		mut product_variant_money_amounts := []ProductVariantMoneyAmount{}
+		for i := 0; i < current_data.rows.len; i++ {
+			values := current_data.rows[i].values
+			product_variant_money_amount := parse_product_variant_money_amount(values)!
+			product_variant_money_amounts = arrays.concat(product_variant_money_amounts,
+				product_variant_money_amount)
+		}
+
+		for i := 0; i < product_variant_money_amounts.len; i++ {
+			money_amount_id := product_variant_money_amounts[i].money_amount_id
+			if money_amount_id !in persisting_money_amounts {
+				arrays.concat(money_amount_to_prune, money_amount_id)
+			}
+		}
+
+		if money_amount_to_prune.len > 0 {
+			mut stmt := tx.prepare('DELETE FROM money_amount WHERE id = ? AND price_list_id IS NULL')!
+			for i := 0; i < money_amount_to_prune.len; i++ {
+				money_amount_id_bin := id_to_bin(money_amount_to_prune[i])!
+				stmt.execute(money_amount_id_bin)!
+			}
+			stmt.close()!
+		}
+	}
+
+	for i := 0; i < data.len; i++ {
+		ma := data[i]
+		if money_amount_id := ma.id {
+			if money_amount_id !in money_amount_to_prune {
+				money_amount_id_bin := id_to_bin(money_amount_id)!
+				tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount,
+					money_amount_id_bin)!
+			}
+		} else {
+			_, money_amount_id_bin := app.new_id()!
+			tx.execute('INSERT INTO money_amount (id, currency_code, amount) VALUES (?, ?, ?)',
+				money_amount_id_bin, ma.currency_code, ma.amount)!
+			tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)',
+				variant_id_bin, money_amount_id_bin)!
+		}
+	}
+}
+
+// delete any money_amount that is not in the array and that does not have a price_list_id associated with it
+// add money_amount that do not yet exist
+fn (mut app App) update_variant_money_amounts(variant_id string, data []UpdateMoneyAmountData) ! {
+	mut tx := app.start_transaction()!
+	app.do_update_variant_money_amounts(mut tx, variant_id, data) or {
+		tx.rollback()!
+		return err
+	}
+	tx.commit()!
 }
