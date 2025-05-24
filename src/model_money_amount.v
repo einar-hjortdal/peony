@@ -30,21 +30,21 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 	region_id_bin, region_id_is_null := v[9].get_array_u8()!
 	variant_id_bin, variant_id_is_null := v[10].get_array_u8()!
 
-	id := id_from_bin(id_bin)!
+	id := id_bin_to_string(id_bin)!
 	mut price_list_id := ''
 	mut region_id := ''
 	mut variant_id := ''
 
 	if !price_list_id_is_null {
-		price_list_id = id_from_bin(price_list_id_bin)!
+		price_list_id = id_bin_to_string(price_list_id_bin)!
 	}
 
 	if !region_id_is_null {
-		region_id = id_from_bin(region_id_bin)!
+		region_id = id_bin_to_string(region_id_bin)!
 	}
 
 	if !variant_id_is_null {
-		variant_id = id_from_bin(variant_id_bin)!
+		variant_id = id_bin_to_string(variant_id_bin)!
 	}
 
 	return MoneyAmount{

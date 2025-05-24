@@ -46,8 +46,8 @@ fn parse_product(v []firebird.Value) !Product {
 	is_giftcard, _ := v[5].get_bool()!
 	status, _ := v[6].get_string()!
 	thumbnail, _ := v[8].get_string()!
-	collection_id_bin, _ := v[9].get_array_u8()!
-	type_id_bin, _ := v[10].get_array_u8()!
+	collection_id_bin, collection_id_bin_is_null := v[9].get_array_u8()!
+	type_id_bin, type_id_bin_is_null := v[10].get_array_u8()!
 	discountable, _ := v[11].get_bool()!
 	origin_country, _ := v[12].get_string()!
 	weight, _ := v[13].get_i32()!
@@ -59,11 +59,20 @@ fn parse_product(v []firebird.Value) !Product {
 	description, _ := v[19].get_string()!
 
 	id := id_from_bin(id_bin)!
-	collection_id := id_from_bin(collection_id_bin)!
-	type_id := id_from_bin(type_id_bin)!
+
+	mut collection_id := ''
+	mut type_id := ''
+
+	if !collection_id_bin_is_null {
+		collection_id = id_bin_to_string(collection_id_bin)!
+	}
+
+	if !type_id_bin_is_null {
+		type_id = id_bin_to_string(type_id_bin)!
+	}
 
 	return Product{
-		id:            id
+		id:            id.string()
 		created_at:    created_at
 		updated_at:    updated_at
 		deleted_at:    deleted_at
@@ -183,7 +192,7 @@ fn (mut app App) retrieve_products(p ProductParams) ![]Product {
 }
 
 fn build_query_retrieve_product(id string, locale_code string) !(string, []firebird.Value) {
-	id_bin := id_to_bin(id)!
+	p_id := id_from_string(id)!
 
 	base_query := 'SELECT
 		p.id,
@@ -221,7 +230,7 @@ fn build_query_retrieve_product(id string, locale_code string) !(string, []fireb
 		WHERE id = ?
 		AND pv.variant_rank IS 0'
 
-	mut params := [firebird.Value(id_bin)]
+	mut params := [firebird.Value(p_id.bin())]
 
 	if locale_code == '' {
 		joins += '
@@ -342,8 +351,8 @@ fn build_query_create_product_translations(product_id_bin []u8, p NewProductData
 fn build_query_create_product_variant_translations() {}
 
 fn (mut app App) create_product(p NewProductData) !string {
-	product_id, product_id_bin := app.new_id()!
-	product_query, product_params := build_query_create_product(product_id, product_id_bin,
+	p_id := app.new_id()!
+	product_query, product_params := build_query_create_product(p_id.string(), p_id.bin(),
 		p)!
 
 	variant_id, variant_id_bin := app.new_id()!
