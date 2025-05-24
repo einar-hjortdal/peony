@@ -100,14 +100,31 @@ fn new_id(mut g luuid.Generator) !(string, []u8) {
 	return id_string, id_bin
 }
 
-fn (mut app App) new_id() !(string, []u8) {
-	return new_id(mut app.luuid_generator)
-}
-
 fn id_from_bin(id []u8) !string {
 	return luuid.from_bytes(id)!
 }
 
 fn id_to_bin(id string) ![]u8 {
 	return luuid.to_bytes(id)!
+}
+
+struct ID {
+	s string
+	b []u8
+}
+
+fn (id ID) string() string {
+	return id.s
+}
+
+fn (id ID) bin() []u8 {
+	return id.b
+}
+
+fn (mut app App) new_id() !ID {
+	s, b := new_id(mut app.luuid_generator)!
+	return ID{
+		s: s
+		b: b
+	}
 }
