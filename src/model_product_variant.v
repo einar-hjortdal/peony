@@ -151,7 +151,7 @@ fn parse_product_variant_row(v []firebird.Value) !ProductVariantRow {
 	}
 }
 
-// TODO get money_amounts from product_variant_money_amount and money_amount tables
+// TODO this sucks. rewrite: fetch money_amount separately with a second query
 fn (mut app App) retrieve_product_variant_by_id(id string) !ProductVariant {
 	id_bin := id_to_bin(id)!
 	mut tx := app.start_transaction()!
