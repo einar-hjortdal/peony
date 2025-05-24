@@ -25,9 +25,45 @@ struct ProductVariant {
 	height             i32    @[omitempty]
 	width              i32    @[omitempty]
 	title              string
+	money_amounts      []MoneyAmount @[omitempty]
+	// options
 }
 
-fn parse_product_variant(v []firebird.Value) !ProductVariant {
+struct ProductVariantRow {
+	id                         string
+	created_at                 firebird.DateTime
+	updated_at                 firebird.DateTime
+	deleted_at                 firebird.DateTime
+	product_id                 string
+	sku                        string
+	barcode                    string
+	ean                        string
+	upc                        string
+	variant_rank               i32
+	inventory_quantity         i32
+	allow_backorder            bool
+	manage_inventory           bool
+	hs_code                    string
+	origin_country             string
+	mid_code                   string
+	weight                     i32
+	length                     i32
+	height                     i32
+	width                      i32
+	title                      string
+	money_amount_id            string
+	money_amount_created_at    firebird.DateTime
+	money_amount_updated_at    firebird.DateTime
+	money_amount_deleted_at    firebird.DateTime
+	money_amount_currency_code string
+	money_amount_amount        i32
+	money_amount_min_quantity  i32
+	money_amount_max_quantity  i32
+	money_amount_price_list_id string
+	money_amount_region_id     string
+}
+
+fn parse_product_variant_row(v []firebird.Value) !ProductVariantRow {
 	id_bin, _ := v[0].get_array_u8()!
 	created_at, _ := v[1].get_date_time()!
 	updated_at, _ := v[2].get_date_time()!
@@ -53,65 +89,159 @@ fn parse_product_variant(v []firebird.Value) !ProductVariant {
 	id := id_from_bin(id_bin)!
 	product_id := id_from_bin(product_id_bin)!
 
-	return ProductVariant{
-		id:                 id
-		created_at:         created_at
-		updated_at:         updated_at
-		deleted_at:         deleted_at
-		product_id:         product_id
-		sku:                sku
-		barcode:            barcode
-		ean:                ean
-		upc:                upc
-		variant_rank:       variant_rank
-		inventory_quantity: inventory_quantity
-		allow_backorder:    allow_backorder
-		manage_inventory:   manage_inventory
-		hs_code:            hs_code
-		origin_country:     origin_country
-		mid_code:           mid_code
-		weight:             weight
-		length:             length
-		height:             height
-		width:              width
-		title:              title
+	money_amount_id_bin, money_amount_id_bin_is_null := v[21].get_array_u8()!
+	money_amount_created_at, _ := v[22].get_date_time()!
+	money_amount_updated_at, _ := v[23].get_date_time()!
+	money_amount_deleted_at, _ := v[24].get_date_time()!
+	money_amount_currency_code, _ := v[25].get_string()!
+	money_amount_amount, _ := v[26].get_i32()!
+	money_amount_min_quantity, _ := v[27].get_i32()!
+	money_amount_max_quantity, _ := v[28].get_i32()!
+	money_amount_price_list_id_bin, money_amount_price_list_id_is_null := v[29].get_array_u8()!
+	money_amount_region_id_bin, money_amount_region_id_is_null := v[30].get_array_u8()!
+
+	mut money_amount_id := ''
+	mut money_amount_price_list_id := ''
+	mut money_amount_region_id := ''
+
+	if !money_amount_id_bin_is_null {
+		money_amount_id = id_from_bin(money_amount_id_bin)!
+	}
+
+	if !money_amount_price_list_id_is_null {
+		money_amount_price_list_id = id_from_bin(money_amount_price_list_id_bin)!
+	}
+
+	if !money_amount_region_id_is_null {
+		money_amount_region_id = id_from_bin(money_amount_region_id_bin)!
+	}
+
+	return ProductVariantRow{
+		id:                         id
+		created_at:                 created_at
+		updated_at:                 updated_at
+		deleted_at:                 deleted_at
+		product_id:                 product_id
+		sku:                        sku
+		barcode:                    barcode
+		ean:                        ean
+		upc:                        upc
+		variant_rank:               variant_rank
+		inventory_quantity:         inventory_quantity
+		allow_backorder:            allow_backorder
+		manage_inventory:           manage_inventory
+		hs_code:                    hs_code
+		origin_country:             origin_country
+		mid_code:                   mid_code
+		weight:                     weight
+		length:                     length
+		height:                     height
+		width:                      width
+		title:                      title
+		money_amount_id:            money_amount_id
+		money_amount_created_at:    money_amount_created_at
+		money_amount_updated_at:    money_amount_updated_at
+		money_amount_deleted_at:    money_amount_deleted_at
+		money_amount_currency_code: money_amount_currency_code
+		money_amount_amount:        money_amount_amount
+		money_amount_min_quantity:  money_amount_min_quantity
+		money_amount_max_quantity:  money_amount_max_quantity
+		money_amount_price_list_id: money_amount_price_list_id
+		money_amount_region_id:     money_amount_region_id
 	}
 }
 
+// TODO get money_amounts from product_variant_money_amount and money_amount tables
 fn (mut app App) retrieve_product_variant_by_id(id string) !ProductVariant {
 	id_bin := id_to_bin(id)!
 	mut tx := app.start_transaction()!
 	data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		product_id,
-		title,
-		sku,
-		barcode,
-		ean,
-		upc,
-		variant_rank,
-		inventory_quantity,
-		allow_backorder,
-		manage_inventory,
-		hs_code,
-		origin_country,
-		mid_code,
-		weight,
-		length,
-		height,
-		width,
-	 	FROM product_variant
-		WHERE id = ?',
+		pv.id,
+		pv.created_at,
+		pv.updated_at,
+		pv.deleted_at,
+		pv.product_id,
+		pv.title,
+		pv.sku,
+		pv.barcode,
+		pv.ean,
+		pv.upc,
+		pv.variant_rank,
+		pv.inventory_quantity,
+		pv.allow_backorder,
+		pv.manage_inventory,
+		pv.hs_code,
+		pv.origin_country,
+		pv.mid_code,
+		pv.weight,
+		pv.length,
+		pv.height,
+		pv.width,
+		m.id AS m_id,
+		m.created_at AS m_created_at,
+		m.updated_at AS m_updated_at,
+		m.deleted_at AS m_deleted_at,
+		m.currency_code,
+		m.amount,
+		m.min_quantity,
+		m.max_quantity,
+		m.price_list_id,
+		m.region_id
+		FROM product_variant pv
+		LEFT JOIN product_variant_money_amount pvma ON pv.id = pvma.variant_id
+		LEFT JOIN money_amount m ON pvma.money_amount_id = m.id
+		WHERE pv.id = ?',
 		id_bin)!
 
 	if data.rows.len == 0 {
 		return error('Could not find ProductVariant with the given id')
 	}
 
-	return parse_product_variant(data.rows[0].values)
+	// eliminate duplicate rows
+	mut parsed_rows := []ProductVariantRow{}
+	for i := 0; i < data.rows.len; i++ {
+		parsed_row := parse_product_variant_row(data.rows[i].values)!
+		parsed_rows = arrays.concat(parsed_rows, parsed_row)
+	}
+
+	if parsed_rows.len == 1 {
+		money_amount := MoneyAmount{
+			id:            parsed_rows[0].money_amount_id
+			created_at:    parsed_rows[0].money_amount_created_at
+			updated_at:    parsed_rows[0].money_amount_updated_at
+			deleted_at:    parsed_rows[0].money_amount_deleted_at
+			currency_code: parsed_rows[0].money_amount_currency_code
+			amount:        parsed_rows[0].money_amount_amount
+			min_quantity:  parsed_rows[0].money_amount_min_quantity
+			max_quantity:  parsed_rows[0].money_amount_max_quantity
+			price_list_id: parsed_rows[0].money_amount_price_list_id
+			region_id:     parsed_rows[0].money_amount_region_id
+		}
+		return ProductVariant{
+			id:                 parsed_rows[0].id
+			created_at:         parsed_rows[0].created_at
+			updated_at:         parsed_rows[0].updated_at
+			deleted_at:         parsed_rows[0].deleted_at
+			product_id:         parsed_rows[0].product_id
+			sku:                parsed_rows[0].sku
+			barcode:            parsed_rows[0].barcode
+			ean:                parsed_rows[0].ean
+			upc:                parsed_rows[0].upc
+			variant_rank:       parsed_rows[0].variant_rank
+			inventory_quantity: parsed_rows[0].inventory_quantity
+			allow_backorder:    parsed_rows[0].allow_backorder
+			manage_inventory:   parsed_rows[0].manage_inventory
+			hs_code:            parsed_rows[0].hs_code
+			origin_country:     parsed_rows[0].origin_country
+			mid_code:           parsed_rows[0].mid_code
+			weight:             parsed_rows[0].weight
+			length:             parsed_rows[0].length
+			height:             parsed_rows[0].height
+			width:              parsed_rows[0].width
+			title:              parsed_rows[0].title
+			money_amounts:      [money_amount]
+		}
+	}
 }
 
 struct NewProductVariantData {
@@ -284,32 +414,10 @@ fn (mut app App) update_product_variant(id string, p UpdateProductVariantData) !
 	tx.commit()!
 }
 
-struct ProductVariantMoneyAmount {
-	variant_id      string
-	money_amount_id string
-	created_at      firebird.DateTime
-	updated_at      firebird.DateTime
-	deleted_at      firebird.DateTime @[omitempty]
-}
-
-fn parse_product_variant_money_amount(v []firebird.Value) !ProductVariantMoneyAmount {
-}
-
-struct UpdateMoneyAmountData {
-	id            ?string
-	currency_code string
-	amount        i32
-	min_quantity  ?i32
-	max_quantity  ?i32
-	price_list_id ?string
-	variant_id    ?string
-	region_id     ?string
-}
-
 fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, variant_id string, data []UpdateMoneyAmountData) ! {
 	variant_id_bin := id_to_bin(variant_id)!
 
-	// Delete all money_amounts that are not given by the user
+	// Delete all money_amounts that are not given by the user and that have no related price_list
 	mut persisting_ids := []ID{}
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
