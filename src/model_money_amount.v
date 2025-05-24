@@ -13,6 +13,7 @@ struct MoneyAmount {
 	max_quantity  i32    @[omitempty]
 	price_list_id string @[omitempty]
 	region_id     string @[omitempty]
+	variant_id    string @[omitempty] // from product_variant_money_amount
 }
 
 fn parse_money_amount(v []firebird.Value) !MoneyAmount {
@@ -27,10 +28,12 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 
 	price_list_id_bin, price_list_id_is_null := v[8].get_array_u8()!
 	region_id_bin, region_id_is_null := v[9].get_array_u8()!
+	variant_id_bin, variant_id_is_null := v[10].get_array_u8()!
 
 	id := id_from_bin(id_bin)!
 	mut price_list_id := ''
 	mut region_id := ''
+	mut variant_id := ''
 
 	if !price_list_id_is_null {
 		price_list_id = id_from_bin(price_list_id_bin)!
@@ -38,6 +41,10 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 
 	if !region_id_is_null {
 		region_id = id_from_bin(region_id_bin)!
+	}
+
+	if !variant_id_is_null {
+		variant_id = id_from_bin(variant_id_bin)!
 	}
 
 	return MoneyAmount{
@@ -51,6 +58,7 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 		max_quantity:  max_quantity
 		price_list_id: price_list_id
 		region_id:     region_id
+		variant_id:    variant_id
 	}
 }
 
