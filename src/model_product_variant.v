@@ -307,70 +307,62 @@ struct UpdateMoneyAmountData {
 }
 
 fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, variant_id string, data []UpdateMoneyAmountData) ! {
-	mut persisting_money_amounts := []string{}
+	variant_id_bin := id_to_bin(variant_id)!
+
+	// Delete all money_amounts that are not given by the user
+	mut persisting_ids := []ID{}
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
 		if ma_id := ma.id {
-			arrays.concat(persisting_money_amounts, ma_id)
-		}
-	}
-	mut money_amount_to_prune := []string{}
-
-	variant_id_bin := id_to_bin(variant_id)!
-	current_data := tx.execute('SELECT 
-		variant_id,
-		money_amount_id,
-		created_at,
-		updated_at,
-		deleted_at
-		FROM product_variant_money_amount WHERE variant_id = ?',
-		variant_id_bin)!
-
-	if current_data.rows.len == 0 && persisting_money_amounts.len > 0 {
-		return error('Provided money_amount id is not related to variant')
-	}
-
-	// If there already exist some relation, prune the relations that do not need to persist.
-	if current_data.rows.len > 0 {
-		mut product_variant_money_amounts := []ProductVariantMoneyAmount{}
-		for i := 0; i < current_data.rows.len; i++ {
-			values := current_data.rows[i].values
-			product_variant_money_amount := parse_product_variant_money_amount(values)!
-			product_variant_money_amounts = arrays.concat(product_variant_money_amounts,
-				product_variant_money_amount)
-		}
-
-		for i := 0; i < product_variant_money_amounts.len; i++ {
-			money_amount_id := product_variant_money_amounts[i].money_amount_id
-			if money_amount_id !in persisting_money_amounts {
-				arrays.concat(money_amount_to_prune, money_amount_id)
+			ma_id_bin := id_to_bin(ma_id)!
+			persisting_id := ID{
+				s: ma_id
+				b: ma_id_bin
 			}
-		}
-
-		if money_amount_to_prune.len > 0 {
-			mut stmt := tx.prepare('DELETE FROM money_amount WHERE id = ? AND price_list_id IS NULL')!
-			for i := 0; i < money_amount_to_prune.len; i++ {
-				money_amount_id_bin := id_to_bin(money_amount_to_prune[i])!
-				stmt.execute(money_amount_id_bin)!
-			}
-			stmt.close()!
+			arrays.concat(persisting_ids, persisting_id)
 		}
 	}
 
+	if persisting_ids.len == 0 {
+		tx.execute('DELETE FROM money_amount
+		WHERE price_list_id IS NULL
+		AND id IN (
+			SELECT money_amount_id
+			FROM product_variant_money_amount
+			WHERE variant_id = ?)',
+			variant_id_bin)!
+	} else {
+		mut persisting_ids_bin := [][]u8{len: persisting_ids.len}
+		for i := 0; i < persisting_ids.len; i++ {
+			persisting_id_bin := persisting_ids[i].bin()
+			persisting_ids_bin[i] = persisting_id_bin
+		}
+
+		tx.execute('DELETE FROM money_amount
+		WHERE price_list_id IS NULL
+		AND id IN (
+			SELECT money_amount_id
+			FROM product_variant_money_amount
+			WHERE variant_id = ?
+			AND money_amount_id NOT IN (${get_n_placeholders(i32(persisting_ids_bin.len))}))
+	',
+			...arrays.concat([variant_id_bin], ...persisting_ids_bin))!
+	}
+
+	// TODO inefficient
+	// option 1: prepare statements (simple, not the best)
+	// option 2: use a complex merge statement (complex, best performance)
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
 		if money_amount_id := ma.id {
-			if money_amount_id !in money_amount_to_prune {
-				money_amount_id_bin := id_to_bin(money_amount_id)!
-				tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount,
-					money_amount_id_bin)!
-			}
+			money_amount_id_bin := id_to_bin(money_amount_id)!
+			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, money_amount_id_bin)!
 		} else {
-			_, money_amount_id_bin := app.new_id()!
+			ma_id := app.new_id()!
 			tx.execute('INSERT INTO money_amount (id, currency_code, amount) VALUES (?, ?, ?)',
-				money_amount_id_bin, ma.currency_code, ma.amount)!
+				ma_id.bin(), ma.currency_code, ma.amount)!
 			tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)',
-				variant_id_bin, money_amount_id_bin)!
+				variant_id_bin, ma_id.bin())!
 		}
 	}
 }
