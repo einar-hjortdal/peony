@@ -4,33 +4,10 @@ import net.http
 import json
 import veb
 
-// retrieves a list of products
-// query parameters:
-// locale
-// offset
-// fetch
-// order
+// lists products
 @['/admin/products'; get]
 fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
-	p := ProductParams{
-		id:               ctx.query['id'].split(',')
-		handle:           ctx.query['handle']
-		is_giftcard:      parse_bool(ctx.query['is_giftcard'])
-		status:           ctx.query['status']
-		collection_id:    ctx.query['collection_id'].split(',')
-		type_id:          ctx.query['type_id'].split(',')
-		tags:             ctx.query['tags'].split(',')
-		title:            ctx.query['title']
-		description:      ctx.query['description']
-		category_id:      ctx.query['category_id'].split(',')
-		sales_channel_id: ctx.query['sales_channel_id'].split(',')
-		region_id:        ctx.query['region_id']
-		currency_code:    ctx.query['currency_code']
-		locale_code:      ctx.query['locale_code']
-		offset:           ctx.query['offset'].i32()
-		fetch:            ctx.query['fetch'].i32()
-		order:            ctx.query['order']
-	}
+	p := extract_retrieve_products_params(ctx.query)
 
 	products := app.retrieve_products(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
@@ -116,7 +93,7 @@ fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb
 // updates a product variant
 @['/admin/products/:id/variants/:variant_id'; post]
 fn (mut app App) admin_variants_id_post(mut ctx Context, id string, variant_id string) veb.Result {
-	data := json.decode(UpdateProductVariantData, ctx.req.data) or {
+	data := json.decode(UpdateVariantData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode UpdateProductVariantData ',
 			err.msg()))

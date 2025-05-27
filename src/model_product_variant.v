@@ -210,6 +210,12 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
 	query, params := build_query_retrieve_product_variants(p)!
 	data := tx.execute(query, ...params)!
+
+	// exit early if no rows returned
+	if data.rows.len == 0 {
+		return []Variant{}
+	}
+
 	mut variants := []Variant{}
 	for i := 0; i < data.rows.len; i++ {
 		variant := parse_variant(data.rows[i].values)!
@@ -311,6 +317,7 @@ struct UpdateVariantData {
 	// options []
 }
 
+// TODO create utility function and refactor
 fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(string, []firebird.Value) {
 	variant_id_bin := id_string_to_bin(variant_id)!
 	mut query := 'UPDATE product_variant SET'
@@ -321,7 +328,80 @@ fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(
 		params = arrays.concat(params, sku)
 	}
 
-	// TODO continue
+	if barcode := p.barcode {
+		query = appendln(query, 'barcode = ?')
+		params = arrays.concat(params, barcode)
+	}
+
+	if ean := p.ean {
+		query = appendln(query, 'ean = ?')
+		params = arrays.concat(params, ean)
+	}
+
+	if upc := p.upc {
+		query = appendln(query, 'upc = ?')
+		params = arrays.concat(params, upc)
+	}
+
+	if variant_rank := p.variant_rank {
+		query = appendln(query, 'variant_rank = ?')
+		params = arrays.concat(params, variant_rank)
+	}
+
+	if inventory_quantity := p.inventory_quantity {
+		query = appendln(query, 'inventory_quantity = ?')
+		params = arrays.concat(params, inventory_quantity)
+	}
+
+	if allow_backorder := p.allow_backorder {
+		query = appendln(query, 'allow_backorder = ?')
+		params = arrays.concat(params, allow_backorder)
+	}
+
+	if manage_inventory := p.manage_inventory {
+		query = appendln(query, 'manage_inventory = ?')
+		params = arrays.concat(params, manage_inventory)
+	}
+
+	if hs_code := p.hs_code {
+		query = appendln(query, 'hs_code = ?')
+		params = arrays.concat(params, hs_code)
+	}
+
+	if origin_country := p.origin_country {
+		query = appendln(query, 'origin_country = ?')
+		params = arrays.concat(params, origin_country)
+	}
+
+	if mid_code := p.mid_code {
+		query = appendln(query, 'mid_code = ?')
+		params = arrays.concat(params, mid_code)
+	}
+
+	if weight := p.weight {
+		query = appendln(query, 'weight = ?')
+		params = arrays.concat(params, weight)
+	}
+
+	if length := p.length {
+		query = appendln(query, 'length = ?')
+		params = arrays.concat(params, length)
+	}
+
+	if height := p.height {
+		query = appendln(query, 'height = ?')
+		params = arrays.concat(params, height)
+	}
+
+	if width := p.width {
+		query = appendln(query, 'width = ?')
+		params = arrays.concat(params, width)
+	}
+
+	if title := p.title {
+		query = appendln(query, 'title = ?')
+		params = arrays.concat(params, title)
+	}
 
 	query = appendln(query, 'WHERE id = ?')
 	params = arrays.concat(params, variant_id_bin)
@@ -331,7 +411,10 @@ fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(
 fn (mut app App) update_product_variant(id string, p UpdateVariantData) ! {
 	query, params := build_query_update_product_variant(id, p)!
 	mut tx := app.start_transaction()!
-	tx.execute(query, ...params)!
+	tx.execute(query, ...params) or {
+		tx.rollback()!
+		return err
+	}
 	tx.commit()!
 }
 
@@ -350,11 +433,11 @@ fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, va
 
 	if persisting_ids.len == 0 {
 		tx.execute('DELETE FROM money_amount
-		WHERE price_list_id IS NULL
-		AND id IN (
-			SELECT money_amount_id
-			FROM product_variant_money_amount
-			WHERE variant_id = ?)',
+			WHERE price_list_id IS NULL
+			AND id IN (
+				SELECT money_amount_id
+				FROM product_variant_money_amount
+				WHERE variant_id = ?)',
 			variant_id_bin)!
 	} else {
 		mut persisting_ids_bin := [][]u8{len: persisting_ids.len}
@@ -364,19 +447,17 @@ fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, va
 		}
 
 		tx.execute('DELETE FROM money_amount
-		WHERE price_list_id IS NULL
-		AND id IN (
-			SELECT money_amount_id
-			FROM product_variant_money_amount
-			WHERE variant_id = ?
-			AND money_amount_id NOT IN (${get_n_placeholders(i32(persisting_ids_bin.len))}))
-	',
+			WHERE price_list_id IS NULL
+			AND id IN (
+				SELECT money_amount_id
+				FROM product_variant_money_amount
+				WHERE variant_id = ?
+				AND money_amount_id NOT IN (${get_n_placeholders(i32(persisting_ids_bin.len))}))',
 			...arrays.concat([variant_id_bin], ...persisting_ids_bin))!
 	}
 
-	// TODO inefficient
-	// option 1: prepare statements (simple, not the best)
-	// option 2: use a complex merge statement (complex, best performance)
+	// TODO: this is inefficient when many money_amounts are provided
+	// Use a complex merge statement instead (complex SQL but best performance)
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
 		if money_amount_id := ma.id {

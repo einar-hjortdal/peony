@@ -25,16 +25,21 @@ struct Product {
 	collection_id string @[omitempty]
 	type_id       string @[omitempty]
 	discountable  bool
-	// from product_variant
+	// from product_variant.variant_rank = 0
 	origin_country string @[omitempty]
 	weight         i32    @[omitempty]
 	length         i32    @[omitempty]
 	height         i32    @[omitempty]
 	width          i32    @[omitempty]
-	// from product_translations
+	// from product_translations.locale_code = store.default_locale_code
 	title       string @[omitempty]
 	subtitle    string @[omitempty]
 	description string @[omitempty]
+	// translations []ProductTranslations // note: think about it
+	// options     []Option // note: with values
+	variants []Variant @[omitempty]
+	// sales_channels []SalesChannel
+	// tags []Tag
 }
 
 fn parse_product(v []firebird.Value) !Product {
@@ -58,7 +63,7 @@ fn parse_product(v []firebird.Value) !Product {
 	subtitle, _ := v[18].get_string()!
 	description, _ := v[19].get_string()!
 
-	id := id_from_bin(id_bin)!
+	id := id_bin_to_string(id_bin)!
 
 	mut collection_id := ''
 	mut type_id := ''
@@ -72,7 +77,7 @@ fn parse_product(v []firebird.Value) !Product {
 	}
 
 	return Product{
-		id:            id.string()
+		id:            id
 		created_at:    created_at
 		updated_at:    updated_at
 		deleted_at:    deleted_at
@@ -96,28 +101,63 @@ fn parse_product(v []firebird.Value) !Product {
 	}
 }
 
-struct ProductParams {
-	id               []string
-	handle           string
-	is_giftcard      bool
-	status           string
-	collection_id    []string
-	type_id          []string
-	tags             []string
-	title            string
-	description      string
-	category_id      []string
-	sales_channel_id []string
-	region_id        string
-	currency_code    string
-	locale_code      string
-	offset           i32
-	fetch            i32
-	order            string
+struct RetrieveProductParams {
+	id               ZeroArrayString
+	handle           ZeroString
+	is_giftcard      ZeroBool
+	status           ZeroString
+	collection_id    ZeroArrayString
+	type_id          ZeroArrayString
+	tags             ZeroArrayString
+	title            ZeroString
+	description      ZeroString
+	category_id      ZeroArrayString
+	sales_channel_id ZeroArrayString
+	region_id        ZeroString
+	currency_code    ZeroString
+	locale_code      ZeroString
+	offset           ZeroI32
+	fetch            ZeroI32
+	order            ZeroString
 }
 
-fn build_query_retrieve_products(p ProductParams) (string, []firebird.Value) {
-	fetch := i32_or_max(p.fetch)
+fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
+	return RetrieveProductParams{
+		id:               zero_array_string(m, 'id')
+		handle:           zero_string(m, 'handle')
+		is_giftcard:      zero_bool(m, 'is_giftcard')
+		status:           zero_string(m, 'handle')
+		collection_id:    zero_array_string(m, 'collection_id')
+		type_id:          zero_array_string(m, 'type_id')
+		tags:             zero_array_string(m, 'tags')
+		title:            zero_string(m, 'title')
+		description:      zero_string(m, 'description')
+		category_id:      zero_array_string(m, 'category_id')
+		sales_channel_id: zero_array_string(m, 'sales_channel_id')
+		region_id:        zero_string(m, 'region_id')
+		currency_code:    zero_string(m, 'currency_code')
+		locale_code:      zero_string(m, 'locale_code')
+		offset:           zero_i32(m, 'offset')
+		fetch:            zero_i32(m, 'fetch')
+		order:            zero_string(m, 'order')
+	}
+}
+
+fn build_query_retrieve_products(p RetrieveProductParams) (string, []firebird.Value) {
+	mut fetch := max_i32
+	if p.fetch.is_set {
+		fetch = p.fetch.v
+	}
+
+	mut offset := 0
+	if p.offset.is_set {
+		offset = p.offset.v
+	}
+
+	mut order := order_desc
+	if p.order.is_set {
+		order = parse_order(p.order.v)
+	}
 
 	base_query := 'SELECT
 		p.id,
@@ -158,26 +198,26 @@ fn build_query_retrieve_products(p ProductParams) (string, []firebird.Value) {
 	sorting := '
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY
-		ORDER BY p.created_at ${parse_order(p.order)}'
+		ORDER BY p.created_at ${order}'
 
 	mut params := []firebird.Value{}
 
-	if p.locale_code == '' {
+	if p.locale_code.is_set {
 		joins += '
 			LEFT JOIN store s ON TRUE
 			AND pt.locale_code = s.default_locale_code'
 	} else {
 		conditions += '
 		AND pt.locale_code = ?'
-		params = arrays.concat(params, p.locale_code)
+		params = arrays.concat(params, p.locale_code.v)
 	}
 
-	params = arrays.concat(params, p.offset, fetch)
+	params = arrays.concat(params, offset, fetch)
 
 	return '${base_query}${joins}${conditions}${sorting}', params
 }
 
-fn (mut app App) retrieve_products(p ProductParams) ![]Product {
+fn (mut app App) retrieve_products(p RetrieveProductParams) ![]Product {
 	query, params := build_query_retrieve_products(p)
 	mut tx := app.start_transaction()!
 	data := tx.execute(query, ...params)!
@@ -192,7 +232,7 @@ fn (mut app App) retrieve_products(p ProductParams) ![]Product {
 }
 
 fn build_query_retrieve_product(id string, locale_code string) !(string, []firebird.Value) {
-	p_id := id_from_string(id)!
+	id_bin := id_string_to_bin(id)!
 
 	base_query := 'SELECT
 		p.id,
@@ -230,7 +270,7 @@ fn build_query_retrieve_product(id string, locale_code string) !(string, []fireb
 		WHERE id = ?
 		AND pv.variant_rank IS 0'
 
-	mut params := [firebird.Value(p_id.bin())]
+	mut params := [firebird.Value(id_bin)]
 
 	if locale_code == '' {
 		joins += '
@@ -351,8 +391,8 @@ fn build_query_create_product_translations(product_id_bin []u8, p NewProductData
 fn build_query_create_product_variant_translations() {}
 
 fn (mut app App) create_product(p NewProductData) !string {
-	p_id := app.new_id()!
-	product_query, product_params := build_query_create_product(p_id.string(), p_id.bin(),
+	product_id, product_id_bin := app.new_id()!
+	product_query, product_params := build_query_create_product(product_id, product_id_bin,
 		p)!
 
 	variant_id, variant_id_bin := app.new_id()!
@@ -383,7 +423,7 @@ fn (mut app App) create_product(p NewProductData) !string {
 }
 
 fn (mut app App) delete_product(id string) ! {
-	id_bin := id_to_bin(id)!
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
@@ -391,7 +431,7 @@ fn (mut app App) delete_product(id string) ! {
 
 fn (mut app App) create_product_option(product_id string, title string) !string {
 	id, id_bin := app.new_id()!
-	product_id_bin := id_to_bin(product_id)!
+	product_id_bin := id_string_to_bin(product_id)!
 	mut tx := app.start_transaction()!
 	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
 	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_code, title) 
@@ -402,7 +442,7 @@ fn (mut app App) create_product_option(product_id string, title string) !string 
 }
 
 fn (mut app App) delete_product_option(id string) ! {
-	id_bin := id_to_bin(id)!
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product_option SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		id_bin)!
@@ -414,7 +454,7 @@ struct UpdateProductOptionData {
 }
 
 fn (mut app App) update_product_option(id string, p UpdateProductOptionData) !string {
-	id_bin := id_to_bin(id)!
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
 			SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
@@ -429,7 +469,7 @@ struct ProductOptionTranslationData {
 }
 
 fn (mut app App) update_product_option_translation(id string, p ProductOptionTranslationData) ! {
-	id_bin := id_to_bin(id)!
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
 		Values(?, ?, ?)',
@@ -438,7 +478,7 @@ fn (mut app App) update_product_option_translation(id string, p ProductOptionTra
 }
 
 fn (mut app App) delete_product_option_translation(id string, locale_code string) ! {
-	id_bin := id_to_bin(id)!
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product_option_translations SET deleted_at = CURRENT_TIMESTAMP 
 		WHERE product_option_id = ? AND locale_code = ?',
