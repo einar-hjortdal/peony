@@ -25,7 +25,8 @@ struct Variant {
 	height             i32    @[omitempty]
 	width              i32    @[omitempty]
 	title              string
-	money_amounts      []MoneyAmount @[omitempty] // from product_variant_money_amount join money_amount
+mut:
+	money_amounts []MoneyAmount @[omitempty] // from product_variant_money_amount join money_amount
 	// options []Option @[omitempty] // from product_option
 }
 
@@ -80,98 +81,6 @@ fn parse_variant(v []firebird.Value) !Variant {
 	}
 }
 
-fn (mut app App) do_retrieve_product_variant_by_id(mut tx firebird.Transaction, id string) !Variant {
-	v_id := id_from_string(id)!
-	variant_data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		product_id,
-		title,
-		sku,
-		barcode,
-		ean,
-		upc,
-		variant_rank,
-		inventory_quantity,
-		allow_backorder,
-		manage_inventory,
-		hs_code,
-		origin_country,
-		mid_code,
-		weight,
-		length,
-		height,
-		width,
-		FROM product_variant
-		WHERE id = ?',
-		v_id.bin())!
-
-	if variant_data.rows.len == 0 {
-		return error('Could not find ProductVariant with the given id')
-	}
-	v := parse_variant(variant_data.rows[0].values)!
-
-	money_amounts_data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		currency_code,
-		amount,
-		min_quantity,
-		max_quantity,
-		price_list_id,
-		region_id,
-		variant_id,
-		FROM product_variant_money_amount
-		JOIN money_amount ON money_amount_id = id
-		WHERE variant_id = ?',
-		v_id.bin())!
-
-	mut money_amounts := []MoneyAmount{}
-	for i := 0; i < money_amounts_data.rows.len; i++ {
-		money_amount := parse_money_amount(money_amounts_data.rows[i].values)!
-		money_amounts = arrays.concat(money_amounts, money_amount)
-	}
-
-	return Variant{
-		id:                 v.id
-		created_at:         v.created_at
-		updated_at:         v.updated_at
-		deleted_at:         v.deleted_at
-		product_id:         v.product_id
-		sku:                v.sku
-		barcode:            v.barcode
-		ean:                v.ean
-		upc:                v.upc
-		variant_rank:       v.variant_rank
-		inventory_quantity: v.inventory_quantity
-		allow_backorder:    v.allow_backorder
-		manage_inventory:   v.manage_inventory
-		hs_code:            v.hs_code
-		origin_country:     v.origin_country
-		mid_code:           v.mid_code
-		weight:             v.weight
-		length:             v.length
-		height:             v.height
-		width:              v.width
-		title:              v.title
-		money_amounts:      money_amounts
-	}
-}
-
-fn (mut app App) retrieve_product_variant_by_id(variant_id string) !Variant {
-	mut tx := app.start_transaction()!
-	variant := app.do_retrieve_product_variant_by_id(mut tx, variant_id) or {
-		tx.rollback()!
-		return err
-	}
-	tx.rollback()!
-	return variant
-}
-
 struct NewVariantData {
 	product_id         string
 	sku                string
@@ -205,7 +114,21 @@ struct RetrieveVariantParams {
 	order              ZeroString
 }
 
-// TODO update include money_amounts (batch fetch)
+fn extract_retrieve_variant_params(m map[string]string) RetrieveVariantParams {
+	return RetrieveVariantParams{
+		id:                 zero_array_string(m, 'id')
+		allow_backorder:    zero_bool(m, 'allow_backorder')
+		manage_inventory:   zero_bool(m, 'manage_inventory')
+		region_id:          zero_string(m, 'region_id')
+		currency_code:      zero_string(m, 'currency_code')
+		title:              zero_string(m, 'title')
+		inventory_quantity: zero_i32(m, 'inventory_quantity')
+		offset:             zero_i32(m, 'offset')
+		fetch:              zero_i32(m, 'fetch')
+		order:              zero_string(m, 'order')
+	}
+}
+
 fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []firebird.Value) {
 	base_query := 'SELECT 
 		id,
@@ -284,19 +207,88 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 	return '${base_query}${get_conditions(c)}${sorting}', params
 }
 
-fn (mut app App) retrieve_product_variants(p RetrieveVariantParams) ![]Variant {
+fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
 	query, params := build_query_retrieve_product_variants(p)!
-
-	mut tx := app.start_transaction()!
 	data := tx.execute(query, ...params)!
-	tx.rollback()!
-
 	mut variants := []Variant{}
 	for i := 0; i < data.rows.len; i++ {
 		variant := parse_variant(data.rows[i].values)!
 		variants = arrays.concat(variants, variant)
 	}
+
+	// extract the ids of the retrieved variants to batch fetch money_amounts
+	mut ids_bin := [][]u8{}
+	for i := 0; i < variants.len; i++ {
+		id_bin := id_string_to_bin(variants[i].id)!
+		ids_bin = arrays.concat(ids_bin, id_bin)
+	}
+	ids_bin_n := i32(ids_bin.len)
+
+	money_amounts_data := tx.execute('SELECT 
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		currency_code,
+		amount,
+		min_quantity,
+		max_quantity,
+		price_list_id,
+		region_id,
+		variant_id
+		FROM product_variant_money_amount
+		JOIN money_amount ON money_amount_id = id
+		WHERE variant_id IN ${get_n_placeholders(ids_bin_n)}',
+		...ids_bin)!
+
+	mut money_amounts := []MoneyAmount{}
+	for i := 0; i < money_amounts_data.rows.len; i++ {
+		money_amount := parse_money_amount(money_amounts_data.rows[i].values)!
+		money_amounts = arrays.concat(money_amounts, money_amount)
+	}
+
+	// assign each money_amount to its own variant
+	for i := 0; i < money_amounts.len; i++ {
+		for k := 0; k < variants.len; k++ {
+			if variants[k].id == money_amounts[i].variant_id {
+				variants[k].money_amounts = arrays.concat(variants[k].money_amounts, money_amounts[i])
+				break
+			}
+		}
+	}
+
 	return variants
+}
+
+fn (mut app App) retrieve_product_variants(p RetrieveVariantParams) ![]Variant {
+	mut tx := app.start_transaction()!
+	variants := app.do_retrieve_product_variants(mut tx, p) or {
+		tx.rollback()!
+		return err
+	}
+
+	tx.rollback()!
+	return variants
+}
+
+fn (mut app App) retrieve_product_variant_by_id(variant_id string) !Variant {
+	m := {
+		'id': variant_id
+	}
+	p := extract_retrieve_variant_params(m)
+
+	mut tx := app.start_transaction()!
+	variants := app.retrieve_product_variants(p) or {
+		tx.rollback()!
+		return err
+	}
+	tx.rollback()!
+
+	if variants.len == 0 {
+		return error('No variant found with the given id')
+	}
+
+	return variants[0]
 }
 
 struct UpdateVariantData {
@@ -320,7 +312,7 @@ struct UpdateVariantData {
 }
 
 fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(string, []firebird.Value) {
-	v_id := id_from_string(variant_id)!
+	variant_id_bin := id_string_to_bin(variant_id)!
 	mut query := 'UPDATE product_variant SET'
 	mut params := []firebird.Value{}
 
@@ -332,7 +324,7 @@ fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(
 	// TODO continue
 
 	query = appendln(query, 'WHERE id = ?')
-	params = arrays.concat(params, v_id.bin())
+	params = arrays.concat(params, variant_id_bin)
 	return query, params
 }
 
@@ -343,15 +335,15 @@ fn (mut app App) update_product_variant(id string, p UpdateVariantData) ! {
 	tx.commit()!
 }
 
-fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, id string, data []UpdateMoneyAmountData) ! {
-	v_id := id_from_string(id)!
+fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, variant_id string, data []UpdateMoneyAmountData) ! {
+	variant_id_bin := id_string_to_bin(variant_id)!
 
 	// Delete all money_amounts that are not given by the user and that have no related price_list
-	mut persisting_ids := []ID{}
+	mut persisting_ids := [][]u8{}
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
 		if ma_id_string := ma.id {
-			persisting_id := id_from_string(ma_id_string)!
+			persisting_id := id_string_to_bin(ma_id_string)!
 			arrays.concat(persisting_ids, persisting_id)
 		}
 	}
@@ -363,11 +355,11 @@ fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, id
 			SELECT money_amount_id
 			FROM product_variant_money_amount
 			WHERE variant_id = ?)',
-			v_id.bin())!
+			variant_id_bin)!
 	} else {
 		mut persisting_ids_bin := [][]u8{len: persisting_ids.len}
 		for i := 0; i < persisting_ids.len; i++ {
-			persisting_id_bin := persisting_ids[i].bin()
+			persisting_id_bin := persisting_ids[i]
 			persisting_ids_bin[i] = persisting_id_bin
 		}
 
@@ -379,7 +371,7 @@ fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, id
 			WHERE variant_id = ?
 			AND money_amount_id NOT IN (${get_n_placeholders(i32(persisting_ids_bin.len))}))
 	',
-			...arrays.concat([v_id.bin()], ...persisting_ids_bin))!
+			...arrays.concat([variant_id_bin], ...persisting_ids_bin))!
 	}
 
 	// TODO inefficient
@@ -388,14 +380,14 @@ fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, id
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
 		if money_amount_id := ma.id {
-			ma_id := id_from_string(money_amount_id)!
-			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, ma_id.bin())!
+			money_amount_id_bin := id_string_to_bin(money_amount_id)!
+			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, money_amount_id_bin)!
 		} else {
-			ma_id := app.new_id()!
+			_, money_amount_id_bin := app.new_id()!
 			tx.execute('INSERT INTO money_amount (id, currency_code, amount) VALUES (?, ?, ?)',
-				ma_id.bin(), ma.currency_code, ma.amount)!
+				money_amount_id_bin, ma.currency_code, ma.amount)!
 			tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)',
-				v_id.bin(), ma_id.bin())!
+				variant_id_bin, money_amount_id_bin)!
 		}
 	}
 }

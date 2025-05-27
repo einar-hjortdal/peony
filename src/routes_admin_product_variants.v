@@ -7,19 +7,7 @@ import json
 // lists product variants
 @['/admin/variants'; get]
 fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
-	p := RetrieveProductVariantParams{
-		id:                 zero_array_string(ctx.query, 'id')
-		allow_backorder:    zero_bool(ctx.query, 'allow_backorder')
-		manage_inventory:   zero_bool(ctx.query, 'manage_inventory')
-		region_id:          zero_string(ctx.query, 'region_id')
-		currency_code:      zero_string(ctx.query, 'currency_code')
-		title:              zero_string(ctx.query, 'title')
-		inventory_quantity: zero_i32(ctx.query, 'inventory_quantity')
-		offset:             zero_i32(ctx.query, 'offset')
-		fetch:              zero_i32(ctx.query, 'fetch')
-		order:              zero_string(ctx.query, 'order')
-	}
-
+	p := extract_retrieve_variant_params(ctx.query)
 	variants := app.retrieve_product_variants(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))

@@ -1,6 +1,7 @@
 module main
 
 import arrays
+import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
 const order_asc = 'ASC'
@@ -91,4 +92,22 @@ fn parse_order(order string) string {
 
 fn (mut app App) start_transaction() !&firebird.Transaction {
 	return app.fb.start_transaction(firebird.isolation_level_read_commited)!
+}
+
+fn id_string_to_bin(id_string string) ![]u8 {
+	return luuid.to_bytes(id_string)
+}
+
+fn id_bin_to_string(id_bin []u8) !string {
+	return luuid.from_bytes(id_bin)
+}
+
+fn new_id(mut g luuid.Generator) !(string, []u8) {
+	id_string := g.v1().to_upper()
+	id_bin := id_string_to_bin(id_string)!
+	return id_string, id_bin
+}
+
+fn (mut app App) new_id() !(string, []u8) {
+	return new_id(mut app.luuid_generator)
 }
