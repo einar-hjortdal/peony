@@ -23,10 +23,10 @@ struct Product {
 	discountable  bool
 mut:
 	// sales_channels []SalesChannel        @[omitempty]
-	// options  []Option  @[omitempty]
-	variants []Variant @[omitempty]
-	// translations   []ProductTranslations @[omitempty]
-	// tags           []Tag                 @[omitempty]
+	options      []ProductOption       @[omitempty]
+	variants     []Variant             @[omitempty]
+	translations []ProductTranslations @[omitempty]
+	// tags         []Tag                 @[omitempty]
 }
 
 fn parse_product(v []firebird.Value) !Product {
@@ -279,6 +279,48 @@ fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids
 	return products
 }
 
+fn (mut app App) do_retrieve_products__translations(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductTranslations {
+	data := tx.execute('SELECT 
+		product_id,
+		locale_code,
+		created_at,
+		updated_at,
+		deleted_at,
+		title,
+		subtitle,
+		description
+		FROM product_translations
+		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
+
+	mut translations := []ProductTranslations{}
+	for i := 0; i < data.rows.len; i++ {
+		translation := parse_product_translation(data.rows[i].values)!
+		translations = arrays.concat(translations, translation)
+	}
+
+	return translations
+}
+
+fn (mut app App) do_retrieve_products__options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
+	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
+			FROM product_option
+			WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
+
+	mut options := []ProductOption{}
+	for i := 0; i < data.rows.len; i++ {
+		option := parse_product_option(data.rows[i].values)
+		options = arrays.concat(options, option)
+	}
+
+	translations := app.do_retrieve_product_option_translations(mut tx, options)!
+
+	// TODO assign translations to options
+
+	return options
+}
+
 fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
 	data := tx.execute('SELECT
 		id,
@@ -346,6 +388,16 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 			if variants[i].product_id == products[k].id {
 				products[k].variants = arrays.concat(products[k].variants, variants[i])
 				break
+			}
+		}
+	}
+
+	translations := app.do_retrieve_products__translations(mut tx, ids_bin)!
+
+	for i := 0; i < translations.len; i++ {
+		for k := 0; k < products.len; k++ {
+			if translations[i].product_id == products[k].id {
+				products[k].translations = arrays.concat(products[k].translations, translations[i])
 			}
 		}
 	}
