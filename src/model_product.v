@@ -110,8 +110,8 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 	}
 }
 
-fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
-	// step 1: gather filtered and sorted id
+// gather filtered and sorted id
+fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p RetrieveProductParams) ![][]u8 {
 	query := 'SELECT p.id FROM product p'
 	mut params := []firebird.Value{}
 
@@ -219,19 +219,114 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 
 	data := tx.execute('${query}${joins}${conditions}${sorting}', ...params)!
 
-	if data.rows.len == 0 {
-		return []Product{}
-	}
-
-	mut ids := []string{}
+	mut ids := [][]u8{}
 	for i := 0; i < data.rows.len; i++ {
-		id, _ := data.rows[i].values[0].get_string()!
+		id, _ := data.rows[i].values[0].get_array_u8()!
 		ids = arrays.concat(ids, id)
 	}
 
-	// step 2: retrieve all products using sorted and filtered list of id
-	// step 3: retrieve variants using product ids, assign to product with matching id
-	// step 4: reorder retrieved products according to step 1 result
+	return ids
+}
+
+// retrieve all products using list of id, returns unsorted list
+fn (mut app App) do_retrieve_products_step_2(mut tx firebird.Transaction, ids [][]u8) ![]Product {
+	data := tx.execute('SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		handle,
+		is_giftcard,
+		status,
+		thumbnail,
+		collection_id,
+		type_id,
+		discountable
+		FROM product
+		WHERE id IN ${get_n_placeholders(i32(ids.len))}',
+		...ids)!
+
+	mut products := []Product{}
+	for i := 0; i < data.rows.len; i++ {
+		product := parse_product(data.rows[i].values)!
+		products = arrays.concat(products, product)
+	}
+
+	return products
+}
+
+fn (mut app App) do_retrieve_products_step_3(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
+	data := tx.execute('SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		product_id,
+		sku,
+		barcode,
+		ean,
+		upc,
+		variant_rank,
+		inventory_quantity,
+		allow_backorder,
+		manage_inventory,
+		hs_code,
+		origin_country,
+		mid_code,
+		weight,
+		length,
+		height,
+		width,
+		title
+		FROM product_variant
+		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
+
+	mut variants := []Variant{}
+	for i := 0; i < data.rows.len; i++ {
+		variant := parse_variant(data.rows[i].values)!
+		variants = arrays.concat(variants, variant)
+	}
+
+	variants = app.do_retrieve_product_variant_money_amount(mut tx, variants)!
+
+	return variants
+}
+
+fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
+	ids_bin := app.do_retrieve_products_ids_bin(mut tx, p)!
+
+	if ids_bin.len == 0 {
+		return []Product{}
+	}
+
+	unsorted_products := app.do_retrieve_products_step_2(mut tx, ids_bin)!
+
+	// sort products according to ids array
+	// TODO may be more efficient to build a map and then use the map for lookups
+	mut products := []Product{}
+	for i := 0; i < ids_bin.len; i++ {
+		id := id_bin_to_string(ids_bin[i])!
+		for k := 0; k < unsorted_products.len; k++ {
+			if id == unsorted_products[k].id {
+				products = arrays.concat(products, unsorted_products[k])
+				break
+			}
+		}
+	}
+
+	variants := app.do_retrieve_products_step_3(mut tx, ids_bin)!
+
+	for i := 0; i < variants.len; i++ {
+		for k := 0; k < products.len; k++ {
+			if variants[i].product_id == products[k].id {
+				products[k].variants = arrays.concat(products[k].variants, variants[i])
+				break
+			}
+		}
+	}
+
+	return products
 }
 
 fn (mut app App) retrieve_products(p RetrieveProductParams) ![]Product {

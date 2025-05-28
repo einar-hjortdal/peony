@@ -205,21 +205,7 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 	return '${base_query}${get_conditions(c)}${sorting}', params
 }
 
-fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
-	query, params := build_query_retrieve_product_variants(p)!
-	data := tx.execute(query, ...params)!
-
-	// exit early if no rows returned
-	if data.rows.len == 0 {
-		return []Variant{}
-	}
-
-	mut variants := []Variant{}
-	for i := 0; i < data.rows.len; i++ {
-		variant := parse_variant(data.rows[i].values)!
-		variants = arrays.concat(variants, variant)
-	}
-
+fn (mut app App) do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]Variant {
 	// extract the ids of the retrieved variants to batch fetch money_amounts
 	mut ids_bin := [][]u8{}
 	for i := 0; i < variants.len; i++ {
@@ -251,17 +237,35 @@ fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p Ret
 		money_amounts = arrays.concat(money_amounts, money_amount)
 	}
 
-	// assign each money_amount to its own variant
-	for i := 0; i < money_amounts.len; i++ {
-		for k := 0; k < variants.len; k++ {
-			if variants[k].id == money_amounts[i].variant_id {
-				variants[k].money_amounts = arrays.concat(variants[k].money_amounts, money_amounts[i])
-				break
+	mut res := []Variant{len: variants.len}
+	for i := 0; i < variants.len; i++ {
+		res[i] = variants[i]
+		for k := 0; k < money_amounts.len; k++ {
+			if res[i].id == money_amounts[k].variant_id {
+				res[i].money_amounts = arrays.concat(res[i].money_amounts, money_amounts[k])
 			}
 		}
 	}
 
-	return variants
+	return res
+}
+
+fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
+	query, params := build_query_retrieve_product_variants(p)!
+	data := tx.execute(query, ...params)!
+
+	// exit early if no rows returned
+	if data.rows.len == 0 {
+		return []Variant{}
+	}
+
+	mut variants := []Variant{}
+	for i := 0; i < data.rows.len; i++ {
+		variant := parse_variant(data.rows[i].values)!
+		variants = arrays.concat(variants, variant)
+	}
+
+	return app.do_retrieve_product_variant_money_amount(mut tx, variants)
 }
 
 fn (mut app App) retrieve_product_variants(p RetrieveVariantParams) ![]Variant {
