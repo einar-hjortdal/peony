@@ -2,6 +2,7 @@ module main
 
 import einar_hjortdal.firebird
 
+// TODO return price list object?
 struct MoneyAmount {
 	id            string
 	created_at    firebird.DateTime

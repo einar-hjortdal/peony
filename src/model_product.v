@@ -22,7 +22,6 @@ struct Product {
 	type_id       string @[omitempty]
 	discountable  bool
 mut:
-	// price_list_id string @[omitempty]
 	// sales_channels []SalesChannel        @[omitempty]
 	// options  []Option  @[omitempty]
 	variants []Variant @[omitempty]
@@ -82,10 +81,10 @@ struct RetrieveProductParams {
 	title            ZeroString
 	description      ZeroString
 	category_id      ZeroArrayString
+	price_list_id    ZeroArrayString
 	sales_channel_id ZeroArrayString
 	region_id        ZeroString
 	currency_code    ZeroString
-	locale_code      ZeroString
 	offset           ZeroI32
 	fetch            ZeroI32
 	order            ZeroString
@@ -103,7 +102,10 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 		title:            zero_string(m, 'title')
 		description:      zero_string(m, 'description')
 		category_id:      zero_array_string(m, 'category_id')
+		price_list_id:    zero_array_string(m, 'price_list_id')
 		sales_channel_id: zero_array_string(m, 'sales_channel_id')
+		region_id:        zero_string(m, 'region_id') // TODO used by /store/
+		currency_code:    zero_string(m, 'currency_code') // TODO used by /store/
 		offset:           zero_i32(m, 'offset')
 		fetch:            zero_i32(m, 'fetch')
 		order:            zero_string(m, 'order')
@@ -111,17 +113,18 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 }
 
 // gather filtered and sorted id
-fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p RetrieveProductParams) ![][]u8 {
+fn (mut app App) do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParams) ![][]u8 {
 	query := 'SELECT p.id FROM product p'
 	mut params := []firebird.Value{}
 
 	mut joins := ''
-	// TODO price_list_id from money_amount.price_list_id (verify schema too)
 	joins = appendln(joins, 'LEFT JOIN product_variant pv ON pv.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_variant_money_amount pvm ON pvm.variant_id = pv.id')
+	joins = appendln(joins, 'LEFT JOIN money_amount ma ON ma.id = pvm.money_amount_id')
 	joins = appendln(joins, 'LEFT JOIN product_tags pt ON pt.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_category_product pcp ON pcp.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_sales_channel psc ON psc.product_id = p.id')
-	joins = appendln(joins, 'LEFT JOIN product_translations pt ON pt.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_translations ptr ON ptr.product_id = p.id')
 
 	mut conditions := ''
 	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
@@ -153,13 +156,26 @@ fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p Ret
 	}
 
 	if p.collection_id.is_set {
-		conditions = appendln(conditions, 'AND p.collection_id = ?')
-		params = arrays.concat(params, p.collection_id.v)
+		len := p.collection_id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.collection_id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		conditions = appendln(conditions, 'AND p.collection_id IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
 	}
 
 	if p.type_id.is_set {
-		conditions = appendln(conditions, 'AND p.type_id = ?')
-		params = arrays.concat(params, p.type_id.v)
+		len := p.type_id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.type_id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+
+		conditions = appendln(conditions, 'AND IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
 	}
 
 	if p.tag_id.is_set {
@@ -174,12 +190,12 @@ fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p Ret
 	}
 
 	if p.title.is_set {
-		conditions = appendln(conditions, "AND UPPER(pt.title) LIKE UPPER('%' || ? || '%')")
+		conditions = appendln(conditions, "AND UPPER(ptr.title) LIKE UPPER('%' || ? || '%')")
 		params = arrays.concat(params, p.title.v)
 	}
 
 	if p.description.is_set {
-		conditions = appendln(conditions, "AND UPPER(pt.description) LIKE UPPER('%' || ? || '%')")
+		conditions = appendln(conditions, "AND UPPER(ptr.description) LIKE UPPER('%' || ? || '%')")
 		params = arrays.concat(params, p.description.v)
 	}
 
@@ -191,6 +207,17 @@ fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p Ret
 			ids_bin = arrays.concat(ids_bin, id_bin)
 		}
 		conditions = appendln(conditions, 'AND pcp.product_category_id IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
+	}
+
+	if p.price_list_id.is_set {
+		len := p.price_list_id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.price_list_id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		conditions = appendln(conditions, 'AND ma.price_list_id IN ${get_n_placeholders(i32(len))}')
 		params = arrays.concat(params, ...ids_bin)
 	}
 
@@ -214,9 +241,6 @@ fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p Ret
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	conditions = appendln(conditions, 'AND pt.locale_code = ?')
-	params = arrays.concat(params, p.locale_code.v)
-
 	data := tx.execute('${query}${joins}${conditions}${sorting}', ...params)!
 
 	mut ids := [][]u8{}
@@ -229,7 +253,7 @@ fn (mut app App) do_retrieve_products_ids_bin(mut tx firebird.Transaction, p Ret
 }
 
 // retrieve all products using list of id, returns unsorted list
-fn (mut app App) do_retrieve_products_step_2(mut tx firebird.Transaction, ids [][]u8) ![]Product {
+fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids [][]u8) ![]Product {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -255,7 +279,7 @@ fn (mut app App) do_retrieve_products_step_2(mut tx firebird.Transaction, ids []
 	return products
 }
 
-fn (mut app App) do_retrieve_products_step_3(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
+fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -294,13 +318,13 @@ fn (mut app App) do_retrieve_products_step_3(mut tx firebird.Transaction, ids_bi
 }
 
 fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
-	ids_bin := app.do_retrieve_products_ids_bin(mut tx, p)!
+	ids_bin := app.do_retrieve_products__ids(mut tx, p)!
 
 	if ids_bin.len == 0 {
 		return []Product{}
 	}
 
-	unsorted_products := app.do_retrieve_products_step_2(mut tx, ids_bin)!
+	unsorted_products := app.do_retrieve_products__products(mut tx, ids_bin)!
 
 	// sort products according to ids array
 	// TODO may be more efficient to build a map and then use the map for lookups
@@ -315,7 +339,7 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 		}
 	}
 
-	variants := app.do_retrieve_products_step_3(mut tx, ids_bin)!
+	variants := app.do_retrieve_products__variants(mut tx, ids_bin)!
 
 	for i := 0; i < variants.len; i++ {
 		for k := 0; k < products.len; k++ {
