@@ -22,6 +22,7 @@ struct Product {
 	type_id       string @[omitempty]
 	discountable  bool
 mut:
+	// price_list_id string @[omitempty]
 	// sales_channels []SalesChannel        @[omitempty]
 	// options  []Option  @[omitempty]
 	variants []Variant @[omitempty]
@@ -77,7 +78,7 @@ struct RetrieveProductParams {
 	status           ZeroString
 	collection_id    ZeroArrayString
 	type_id          ZeroArrayString
-	tags             ZeroArrayString
+	tag_id           ZeroArrayString
 	title            ZeroString
 	description      ZeroString
 	category_id      ZeroArrayString
@@ -98,7 +99,7 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 		status:           zero_string(m, 'status')
 		collection_id:    zero_array_string(m, 'collection_id')
 		type_id:          zero_array_string(m, 'type_id')
-		tags:             zero_array_string(m, 'tags')
+		tag_id:           zero_array_string(m, 'tag_id')
 		title:            zero_string(m, 'title')
 		description:      zero_string(m, 'description')
 		category_id:      zero_array_string(m, 'category_id')
@@ -115,6 +116,7 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 	mut params := []firebird.Value{}
 
 	mut joins := ''
+	// TODO price_list_id from money_amount.price_list_id (verify schema too)
 	joins = appendln(joins, 'LEFT JOIN product_variant pv ON pv.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_tags pt ON pt.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_category_product pcp ON pcp.product_id = p.id')
@@ -125,8 +127,14 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
 
 	if p.id.is_set {
-		conditions = appendln(conditions, 'AND p.id IN ${get_n_placeholders(i32(p.id.v.len))}')
-		params = arrays.concat(params, ...p.id.v)
+		len := p.id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		conditions = appendln(conditions, 'AND p.id IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
 	}
 
 	if p.handle.is_set {
@@ -152,6 +160,49 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 	if p.type_id.is_set {
 		conditions = appendln(conditions, 'AND p.type_id = ?')
 		params = arrays.concat(params, p.type_id.v)
+	}
+
+	if p.tag_id.is_set {
+		len := p.tag_id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.tag_id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		conditions = appendln(conditions, 'AND pt.tag_id IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
+	}
+
+	if p.title.is_set {
+		conditions = appendln(conditions, "AND UPPER(pt.title) LIKE UPPER('%' || ? || '%')")
+		params = arrays.concat(params, p.title.v)
+	}
+
+	if p.description.is_set {
+		conditions = appendln(conditions, "AND UPPER(pt.description) LIKE UPPER('%' || ? || '%')")
+		params = arrays.concat(params, p.description.v)
+	}
+
+	if p.category_id.is_set {
+		len := p.category_id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.category_id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		conditions = appendln(conditions, 'AND pcp.product_category_id IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
+	}
+
+	if p.sales_channel_id.is_set {
+		len := p.sales_channel_id.v.len
+		mut ids_bin := [][]u8{}
+		for i := 0; i < len; i++ {
+			id_bin := id_string_to_bin(p.sales_channel_id.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		conditions = appendln(conditions, 'AND psc.sales_channel_id IN ${get_n_placeholders(i32(len))}')
+		params = arrays.concat(params, ...ids_bin)
 	}
 
 	mut sorting := ''
