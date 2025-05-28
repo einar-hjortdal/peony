@@ -20,8 +20,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 // get a product
 @['/admin/products/:id'; get]
 fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	locale_code := ctx.query['locale_code']
-	p := app.retrieve_product_by_id(id, locale_code) or {
+	p := app.retrieve_product_by_id(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
 	}

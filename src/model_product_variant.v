@@ -197,12 +197,10 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 		params = arrays.concat(params, p.offset.v)
 	}
 
-	if p.fetch.is_set {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch.v)
-	}
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	sorting = appendln(sorting, 'ORDER BY product_id ${get_sorting_order(p.order)}')
+	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
 
 	return '${base_query}${get_conditions(c)}${sorting}', params
 }

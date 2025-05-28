@@ -9,10 +9,6 @@ const product_status_proposed = 'proposed'
 const product_status_published = 'published'
 const product_status_rejected = 'rejected'
 
-// A product is a saleable item that holds general information. It must include at least one product_variant,
-// where each product variant defines different options to purchase the product with (for example, different
-// sizes or colors). The prices and inventory of the product are defined on the variant level. Public
-// descriptive data such as name and description are defined as product_translations.
 struct Product {
 	id            string
 	created_at    firebird.DateTime
@@ -25,21 +21,12 @@ struct Product {
 	collection_id string @[omitempty]
 	type_id       string @[omitempty]
 	discountable  bool
-	// from product_variant.variant_rank = 0
-	origin_country string @[omitempty]
-	weight         i32    @[omitempty]
-	length         i32    @[omitempty]
-	height         i32    @[omitempty]
-	width          i32    @[omitempty]
-	// from product_translations.locale_code = store.default_locale_code
-	title       string @[omitempty]
-	subtitle    string @[omitempty]
-	description string @[omitempty]
-	// translations []ProductTranslations // note: think about it
-	// options     []Option // note: with values
+mut:
+	// sales_channels []SalesChannel        @[omitempty]
+	// options  []Option  @[omitempty]
 	variants []Variant @[omitempty]
-	// sales_channels []SalesChannel
-	// tags []Tag
+	// translations   []ProductTranslations @[omitempty]
+	// tags           []Tag                 @[omitempty]
 }
 
 fn parse_product(v []firebird.Value) !Product {
@@ -54,14 +41,6 @@ fn parse_product(v []firebird.Value) !Product {
 	collection_id_bin, collection_id_bin_is_null := v[9].get_array_u8()!
 	type_id_bin, type_id_bin_is_null := v[10].get_array_u8()!
 	discountable, _ := v[11].get_bool()!
-	origin_country, _ := v[12].get_string()!
-	weight, _ := v[13].get_i32()!
-	length, _ := v[14].get_i32()!
-	height, _ := v[15].get_i32()!
-	width, _ := v[16].get_i32()!
-	title, _ := v[17].get_string()!
-	subtitle, _ := v[18].get_string()!
-	description, _ := v[19].get_string()!
 
 	id := id_bin_to_string(id_bin)!
 
@@ -88,16 +67,6 @@ fn parse_product(v []firebird.Value) !Product {
 		collection_id: collection_id
 		type_id:       type_id
 		discountable:  discountable
-		// from product_variant
-		origin_country: origin_country
-		weight:         weight
-		length:         length
-		height:         height
-		width:          width
-		// from product_translations
-		title:       title
-		subtitle:    subtitle
-		description: description
 	}
 }
 
@@ -126,7 +95,7 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 		id:               zero_array_string(m, 'id')
 		handle:           zero_string(m, 'handle')
 		is_giftcard:      zero_bool(m, 'is_giftcard')
-		status:           zero_string(m, 'handle')
+		status:           zero_string(m, 'status')
 		collection_id:    zero_array_string(m, 'collection_id')
 		type_id:          zero_array_string(m, 'type_id')
 		tags:             zero_array_string(m, 'tags')
@@ -134,165 +103,108 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 		description:      zero_string(m, 'description')
 		category_id:      zero_array_string(m, 'category_id')
 		sales_channel_id: zero_array_string(m, 'sales_channel_id')
-		region_id:        zero_string(m, 'region_id')
-		currency_code:    zero_string(m, 'currency_code')
-		locale_code:      zero_string(m, 'locale_code')
 		offset:           zero_i32(m, 'offset')
 		fetch:            zero_i32(m, 'fetch')
 		order:            zero_string(m, 'order')
 	}
 }
 
-fn build_query_retrieve_products(p RetrieveProductParams) (string, []firebird.Value) {
-	mut fetch := max_i32
-	if p.fetch.is_set {
-		fetch = p.fetch.v
-	}
-
-	mut offset := 0
-	if p.offset.is_set {
-		offset = p.offset.v
-	}
-
-	mut order := order_desc
-	if p.order.is_set {
-		order = parse_order(p.order.v)
-	}
-
-	base_query := 'SELECT
-		p.id,
-		p.created_at,
-		p.updated_at,
-		p.deleted_at,
-		p.handle,
-		p.is_giftcard,
-		p.status,
-		p.thumbnail,
-		p.collection_id,
-		p.type_id,
-		p.discountable,
-
-		pv.origin_country,
-		pv.weight,
-		pv.length,
-		pv.height,
-		pv.width,
-
-		pt.title,
-		pt.subtitle,
-		pt.description,
-
-		FROM product p'
-
-	mut joins := '
-		LEFT JOIN product_variant pv
-		ON pv.product_id = p.id
-
-		LEFT JOIN product_translations pt
-		ON pt.product_id = p.id'
-
-	mut conditions := '
-		WHERE p.deleted_at IS NULL
-		AND pv.variant_rank IS 0'
-
-	sorting := '
-		OFFSET ? ROWS
-		FETCH NEXT ? ROWS ONLY
-		ORDER BY p.created_at ${order}'
-
+fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
+	// step 1: gather filtered and sorted id
+	query := 'SELECT p.id FROM product p'
 	mut params := []firebird.Value{}
 
-	if p.locale_code.is_set {
-		joins += '
-			LEFT JOIN store s ON TRUE
-			AND pt.locale_code = s.default_locale_code'
-	} else {
-		conditions += '
-		AND pt.locale_code = ?'
-		params = arrays.concat(params, p.locale_code.v)
+	mut joins := ''
+	joins = appendln(joins, 'LEFT JOIN product_variant pv ON pv.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_tags pt ON pt.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_category_product pcp ON pcp.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_sales_channel psc ON psc.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_translations pt ON pt.product_id = p.id')
+
+	mut conditions := ''
+	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
+
+	if p.id.is_set {
+		conditions = appendln(conditions, 'AND p.id IN ${get_n_placeholders(i32(p.id.v.len))}')
+		params = arrays.concat(params, ...p.id.v)
 	}
 
-	params = arrays.concat(params, offset, fetch)
+	if p.handle.is_set {
+		conditions = appendln(conditions, 'AND p.handle = ?')
+		params = arrays.concat(params, p.handle.v)
+	}
 
-	return '${base_query}${joins}${conditions}${sorting}', params
+	if p.is_giftcard.is_set {
+		conditions = appendln(conditions, 'AND p.is_giftcard = ?')
+		params = arrays.concat(params, p.is_giftcard.v)
+	}
+
+	if p.status.is_set {
+		conditions = appendln(conditions, 'AND p.status = ?')
+		params = arrays.concat(params, p.status.v)
+	}
+
+	if p.collection_id.is_set {
+		conditions = appendln(conditions, 'AND p.collection_id = ?')
+		params = arrays.concat(params, p.collection_id.v)
+	}
+
+	if p.type_id.is_set {
+		conditions = appendln(conditions, 'AND p.type_id = ?')
+		params = arrays.concat(params, p.type_id.v)
+	}
+
+	mut sorting := ''
+	if p.offset.is_set {
+		sorting = appendln(sorting, 'OFFSET ? ROWS')
+		params = arrays.concat(params, p.offset.v)
+	}
+
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	params = arrays.concat(params, get_fetch_amount(p.fetch))
+
+	conditions = appendln(conditions, 'AND pt.locale_code = ?')
+	params = arrays.concat(params, p.locale_code.v)
+
+	data := tx.execute('${query}${joins}${conditions}${sorting}', ...params)!
+
+	if data.rows.len == 0 {
+		return []Product{}
+	}
+
+	mut ids := []string{}
+	for i := 0; i < data.rows.len; i++ {
+		id, _ := data.rows[i].values[0].get_string()!
+		ids = arrays.concat(ids, id)
+	}
+
+	// step 2: retrieve all products using sorted and filtered list of id
+	// step 3: retrieve variants using product ids, assign to product with matching id
+	// step 4: reorder retrieved products according to step 1 result
 }
 
 fn (mut app App) retrieve_products(p RetrieveProductParams) ![]Product {
-	query, params := build_query_retrieve_products(p)
 	mut tx := app.start_transaction()!
-	data := tx.execute(query, ...params)!
-	tx.rollback()!
-
-	mut products := []Product{}
-	for i := 0; i < data.rows.len; i++ {
-		product := parse_product(data.rows[i].values)!
-		products = arrays.concat(products, product)
+	products := app.do_retrieve_products(mut tx, p) or {
+		tx.rollback()!
+		return err
 	}
+	tx.rollback()!
 	return products
 }
 
-fn build_query_retrieve_product(id string, locale_code string) !(string, []firebird.Value) {
-	id_bin := id_string_to_bin(id)!
+fn (mut app App) retrieve_product_by_id(id string) !Product {
+	m := {
+		id: id
+	}
+	p := extract_retrieve_products_params(m)
 
-	base_query := 'SELECT
-		p.id,
-		p.created_at,
-		p.updated_at,
-		p.deleted_at,
-		p.handle,
-		p.is_giftcard,
-		p.status,
-		p.thumbnail,
-		p.collection_id,
-		p.type_id,
-		p.discountable,
-
-		pv.origin_country,
-		pv.weight,
-		pv.length,
-		pv.height,
-		pv.width,
-
-		pt.title,
-		pt.subtitle,
-		pt.description,
-
-		FROM product p'
-
-	mut joins := '
-		LEFT JOIN product_variant pv
-		ON pv.product_id = p.id
-
-		LEFT JOIN product_translations pt
-		ON pt.product_id = p.id'
-
-	mut conditions := '
-		WHERE id = ?
-		AND pv.variant_rank IS 0'
-
-	mut params := [firebird.Value(id_bin)]
-
-	if locale_code == '' {
-		joins += '
-			LEFT JOIN store s ON TRUE
-			AND pt.locale_code = s.default_locale_code'
-	} else {
-		conditions += '
-		AND pt.locale_code = ?'
-		params = arrays.concat(params, locale_code)
+	products := app.retrieve_products(p)!
+	if products.len == 0 {
+		return error(format_error_message('No product found with the given id'))
 	}
 
-	return '${base_query}${joins}${conditions}', params
-}
-
-fn (mut app App) retrieve_product_by_id(id string, locale_code string) !Product {
-	mut tx := app.start_transaction()!
-	query, params := build_query_retrieve_product(id, locale_code)!
-	data := tx.execute(query, ...params)!
-	if data.rows.len == 0 {
-		return error(format_error_message('No product found'))
-	}
-	return parse_product(data.rows[0].values)
+	return products[0]
 }
 
 // TODO use option types

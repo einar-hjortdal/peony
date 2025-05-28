@@ -6,6 +6,7 @@ import einar_hjortdal.firebird
 
 const order_asc = 'ASC'
 const order_desc = 'DESC'
+const default_fetch = 15
 
 fn newln(ln string) string {
 	return '\n${ln}'
@@ -75,19 +76,22 @@ fn if_true_then_a_else_b(condition bool, a string, b string) string {
 	return b
 }
 
-fn is_order_asc(s string) bool {
-	return s.to_upper() == order_asc
+fn is_order_desc(s string) bool {
+	return s.to_upper() == order_desc
 }
 
 fn get_sorting_order(zs ZeroString) string {
-	if zs.is_set && is_order_asc(zs.v) {
-		return order_asc
+	if zs.is_set && is_order_desc(zs.v) {
+		return order_desc
 	}
-	return order_desc
+	return order_asc
 }
 
-fn parse_order(order string) string {
-	return if_true_then_a_else_b(order.to_upper() == order_asc, order_asc, order_desc)
+fn get_fetch_amount(zi32 ZeroI32) i32 {
+	if zi32.is_set {
+		return zi32.v
+	}
+	return default_fetch
 }
 
 fn (mut app App) start_transaction() !&firebird.Transaction {
