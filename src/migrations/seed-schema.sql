@@ -1,4 +1,4 @@
-CREATE TABLE migrations (
+CREATE TABLE migration (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   name VARCHAR(191) NOT NULL,
@@ -440,7 +440,7 @@ CREATE TABLE product_category_product (
 CREATE INDEX "0681493b-ad85-1769-8400-121e333361f9" ON product_category_product (product_category_id);
 CREATE INDEX "0681493b-ad85-17b5-1c00-77a1a1ff2a8c" ON product_category_product (product_id);
 
-CREATE TABLE product_images (
+CREATE TABLE product_image (
   product_id BINARY(16) NOT NULL,
   image_id BINARY(16) NOT NULL,
   CONSTRAINT "0681493b-ad85-1944-1c00-f370c73c0267" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -448,8 +448,8 @@ CREATE TABLE product_images (
   PRIMARY KEY (product_id, image_id)
 );
 
-CREATE INDEX "0681493b-ad85-1acc-b000-f10af0f2f686" ON product_images (product_id);
-CREATE INDEX "0681493b-ad85-1b2a-cc00-4a77334dc5b6" ON product_images (image_id);
+CREATE INDEX "0681493b-ad85-1acc-b000-f10af0f2f686" ON product_image (product_id);
+CREATE INDEX "0681493b-ad85-1b2a-cc00-4a77334dc5b6" ON product_image (image_id);
 
 CREATE TABLE product_tags (
   product_id BINARY(16) NOT NULL,

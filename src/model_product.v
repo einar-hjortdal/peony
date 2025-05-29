@@ -29,6 +29,12 @@ mut:
 	// tags         []Tag                 @[omitempty]
 }
 
+struct ProductBins {
+	id            []u8
+	collection_id []u8
+	type_id       []u8
+}
+
 fn parse_product(v []firebird.Value) !Product {
 	id_bin, _ := v[0].get_array_u8()!
 	created_at, _ := v[1].get_date_time()!
@@ -378,8 +384,6 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 	return variants
 }
 
-// TODO: create maps for fast lookups of data
-// TODO: when parsing structs, it would be better to return ids in binary format instead of converting back and forth
 fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
 	ids_bin := do_retrieve_products__ids(mut tx, p)!
 	if ids_bin.len == 0 {
@@ -388,16 +392,11 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 
 	unsorted_products := do_retrieve_products__products(mut tx, ids_bin)!
 
-	// sort products according to ids array
-	mut products := []Product{}
-	for i := 0; i < ids_bin.len; i++ {
-		id := id_bin_to_string(ids_bin[i])!
-		for k := 0; k < unsorted_products.len; k++ {
-			if id == unsorted_products[k].id {
-				products = arrays.concat(products, unsorted_products[k])
-				break
-			}
-		}
+	// Build a map for quick product lookups
+	mut product_map := map[string]Product{}
+	for i := 0; i < unsorted_products.len; i++ {
+		prodct_id := unsorted_products[i].id
+		product_map[prodct_id] = unsorted_products[i]
 	}
 
 	product_images := do_retrieve_product_images(mut tx, ids_bin)!
@@ -409,26 +408,21 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 
 	images := do_retrieve_images(mut tx, images_ids_bin)!
 	for i := 0; i < product_images.len; i++ {
-		for k := 0; k < products.len; k++ {
-			if products[k].id == product_images[i].product_id {
-				for j := 0; j < images.len; j++ {
-					if images[j].id == product_images[i].image_id {
-						products[k].images = arrays.concat(products[k].images, images[j])
-						break // Stop searching for images once found
-					}
-				}
-				break // Stop searching for products once found
+		for j := 0; j < images.len; j++ {
+			if images[j].id == product_images[i].image_id {
+				product_id := product_images[i].product_id
+				product_map[product_id].images = arrays.concat(product_map[product_id].images,
+					images[j])
+				break // Stop searching for images once found
 			}
 		}
 	}
 
 	translations := do_retrieve_products__translations(mut tx, ids_bin)!
 	for i := 0; i < translations.len; i++ {
-		for k := 0; k < products.len; k++ {
-			if translations[i].product_id == products[k].id {
-				products[k].translations = arrays.concat(products[k].translations, translations[i])
-			}
-		}
+		product_id := translations[i].product_id
+		product_map[product_id].translations = arrays.concat(product_map[product_id].translations,
+			translations[i])
 	}
 
 	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
@@ -451,12 +445,16 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 
 	// assign variants to products
 	for i := 0; i < variants.len; i++ {
-		for k := 0; k < products.len; k++ {
-			if variants[i].product_id == products[k].id {
-				products[k].variants = arrays.concat(products[k].variants, variants[i])
-				break
-			}
-		}
+		product_id := variants[i].product_id
+		product_map[product_id].variants = arrays.concat(product_map[product_id].variants,
+			variants[i])
+	}
+
+	// sort products according to ids array
+	mut products := []Product{len: ids_bin.len}
+	for i := 0; i < ids_bin.len; i++ {
+		id := id_bin_to_string(ids_bin[i])!
+		products[i] = product_map[id]
 	}
 
 	return products
