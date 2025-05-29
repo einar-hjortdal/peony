@@ -22,7 +22,6 @@ struct Product {
 	type_id       string @[omitempty]
 	discountable  bool
 mut:
-	// sales_channels []SalesChannel        @[omitempty]
 	options      []ProductOption       @[omitempty]
 	variants     []Variant             @[omitempty]
 	translations []ProductTranslations @[omitempty]

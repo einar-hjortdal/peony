@@ -23,6 +23,7 @@ CMS to manage pages and posts with multilanguage and multichannel support.
 
 Adds features.
 
+- Caching
 - Discounts
 
 ### v3.3.0
