@@ -1,5 +1,12 @@
 # Roadmap
 
+### Future
+
+Features to implement after basic operation has been established and ironed out.
+
+- User permissions
+- Variant images
+
 ### v3.7.0
 
 - Payments
@@ -18,6 +25,10 @@ Allows customers to submit orders that can be manually approved by the admin.
 ### v3.5.0
 
 CMS to manage pages and posts with multilanguage and multichannel support.
+
+- Posts
+- Pages
+- Tags
 
 ### v3.4.0
 

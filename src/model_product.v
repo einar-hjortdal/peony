@@ -22,6 +22,7 @@ struct Product {
 	type_id       string @[omitempty]
 	discountable  bool
 mut:
+	images       []Image               @[omitempty]
 	options      []ProductOption       @[omitempty]
 	variants     []Variant             @[omitempty]
 	translations []ProductTranslations @[omitempty]
@@ -252,7 +253,7 @@ fn (mut app App) do_retrieve_products__ids(mut tx firebird.Transaction, p Retrie
 }
 
 // retrieve all products using list of id, returns unsorted list
-fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids [][]u8) ![]Product {
+fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) ![]Product {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -266,8 +267,8 @@ fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids
 		type_id,
 		discountable
 		FROM product
-		WHERE id IN ${get_n_placeholders(i32(ids.len))}',
-		...ids)!
+		WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
 
 	mut products := []Product{}
 	for i := 0; i < data.rows.len; i++ {
@@ -377,6 +378,8 @@ fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids
 	return variants
 }
 
+// TODO: create maps for fast lookups of data
+// TODO: when parsing structs, it would be better to return ids in binary format instead of converting back and forth
 fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
 	ids_bin := app.do_retrieve_products__ids(mut tx, p)!
 	if ids_bin.len == 0 {
@@ -386,7 +389,6 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 	unsorted_products := app.do_retrieve_products__products(mut tx, ids_bin)!
 
 	// sort products according to ids array
-	// TODO may be more efficient to build a map and then use the map for lookups
 	mut products := []Product{}
 	for i := 0; i < ids_bin.len; i++ {
 		id := id_bin_to_string(ids_bin[i])!
@@ -394,6 +396,28 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 			if id == unsorted_products[k].id {
 				products = arrays.concat(products, unsorted_products[k])
 				break
+			}
+		}
+	}
+
+	product_images := do_retrieve_product_images(mut tx, ids_bin)!
+	mut images_ids_bin := [][]u8{}
+	for i := 0; i < product_images.len; i++ {
+		images_id_bin := id_string_to_bin(product_images[i].image_id)!
+		images_ids_bin = arrays.concat(images_ids_bin, images_id_bin)
+	}
+
+	images := do_retrieve_images(mut tx, images_ids_bin)!
+	for i := 0; i < product_images.len; i++ {
+		for k := 0; k < products.len; k++ {
+			if products[k].id == product_images[i].product_id {
+				for j := 0; j < images.len; j++ {
+					if images[j].id == product_images[i].image_id {
+						products[k].images = arrays.concat(products[k].images, images[j])
+						break // Stop searching for images once found
+					}
+				}
+				break // Stop searching for products once found
 			}
 		}
 	}
