@@ -106,6 +106,21 @@ fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslatio
 	}
 }
 
+fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
+	data := tx.execute('SELECT product_option_id, locale_code, title
+		FROM product_option_translations
+		WHERE id IN ${get_n_placeholders(i32(option_ids_bin.len))}',
+		...option_ids_bin)!
+
+	mut translations := []ProductOptionTranslation{}
+	for i := 0; i < data.rows.len; i++ {
+		translation := parse_product_option_translation(data.rows[i].values)!
+		translations = arrays.concat(translations, translation)
+	}
+
+	return translations
+}
+
 struct ProductOption {
 	id         string
 	created_at firebird.DateTime
@@ -136,17 +151,30 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 	}
 }
 
-fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
-	data := tx.execute('SELECT product_option_id, locale_code, title
-		FROM product_option_translations
-		WHERE id IN ${get_n_placeholders(i32(option_ids_bin.len))}',
-		...option_ids_bin)!
+fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
+	mut data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
+			FROM product_option
+			WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
 
-	mut translations := []ProductOptionTranslation{}
+	mut options := []ProductOption{}
+	mut option_ids_bin := [][]u8{}
 	for i := 0; i < data.rows.len; i++ {
-		translation := parse_product_option_translation(data.rows[i].values)!
-		translations = arrays.concat(translations, translation)
+		option := parse_product_option(data.rows[i].values)!
+		option_id_bin := id_string_to_bin(option.id)!
+		options = arrays.concat(options, option)
+		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
 	}
 
-	return translations
+	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!
+
+	for i := 0; i < translations.len; i++ {
+		for k := 0; k < options.len; k++ {
+			if translations[i].product_option_id == options[k].id {
+				options[k].translations = arrays.concat(options[k].translations, translations[i])
+			}
+		}
+	}
+
+	return options
 }

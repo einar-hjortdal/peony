@@ -285,57 +285,6 @@ fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) !
 	return products
 }
 
-fn do_retrieve_products__translations(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductTranslations {
-	data := tx.execute('SELECT 
-		product_id,
-		locale_code,
-		created_at,
-		updated_at,
-		deleted_at,
-		title,
-		subtitle,
-		description
-		FROM product_translations
-		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
-		...ids_bin)!
-
-	mut translations := []ProductTranslations{}
-	for i := 0; i < data.rows.len; i++ {
-		translation := parse_product_translation(data.rows[i].values)!
-		translations = arrays.concat(translations, translation)
-	}
-
-	return translations
-}
-
-fn do_retrieve_products__options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
-	mut data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
-			FROM product_option
-			WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
-		...ids_bin)!
-
-	mut options := []ProductOption{}
-	mut option_ids_bin := [][]u8{}
-	for i := 0; i < data.rows.len; i++ {
-		option := parse_product_option(data.rows[i].values)!
-		option_id_bin := id_string_to_bin(option.id)!
-		options = arrays.concat(options, option)
-		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
-	}
-
-	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!
-
-	for i := 0; i < translations.len; i++ {
-		for k := 0; k < options.len; k++ {
-			if translations[i].product_option_id == options[k].id {
-				options[k].translations = arrays.concat(options[k].translations, translations[i])
-			}
-		}
-	}
-
-	return options
-}
-
 fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []ProductOption) ![]ProductOptionValue {
 	mut option_ids_bin := [][]u8{}
 	for i := 0; i < po.len; i++ {
@@ -344,44 +293,6 @@ fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []Product
 	}
 
 	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
-}
-
-fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
-	data := tx.execute('SELECT
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		product_id,
-		sku,
-		barcode,
-		ean,
-		upc,
-		variant_rank,
-		inventory_quantity,
-		allow_backorder,
-		manage_inventory,
-		hs_code,
-		origin_country,
-		mid_code,
-		weight,
-		length,
-		height,
-		width,
-		title
-		FROM product_variant
-		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
-		...ids_bin)!
-
-	mut variants := []Variant{}
-	for i := 0; i < data.rows.len; i++ {
-		variant := parse_variant(data.rows[i].values)!
-		variants = arrays.concat(variants, variant)
-	}
-
-	variants = do_retrieve_product_variant_money_amount(mut tx, variants)!
-
-	return variants
 }
 
 fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
@@ -400,33 +311,37 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 	}
 
 	product_images := do_retrieve_product_images(mut tx, ids_bin)!
-	mut images_ids_bin := [][]u8{}
+	mut images_ids_bin := [][]u8{len: product_images.len}
 	for i := 0; i < product_images.len; i++ {
 		images_id_bin := id_string_to_bin(product_images[i].image_id)!
-		images_ids_bin = arrays.concat(images_ids_bin, images_id_bin)
+		images_ids_bin[i] = images_id_bin
 	}
 
 	images := do_retrieve_images(mut tx, images_ids_bin)!
-	for i := 0; i < product_images.len; i++ {
-		for j := 0; j < images.len; j++ {
-			if images[j].id == product_images[i].image_id {
-				product_id := product_images[i].product_id
-				product_map[product_id].images = arrays.concat(product_map[product_id].images,
-					images[j])
-				break // Stop searching for images once found
-			}
-		}
+
+	// Build a map for quick image lookups
+	mut image_map := map[string]Image{}
+	for i := 0; i < images.len; i++ {
+		image_id := images[i].id
+		image_map[image_id] = images[i]
 	}
 
-	translations := do_retrieve_products__translations(mut tx, ids_bin)!
+	for i := 0; i < product_images.len; i++ {
+		image_id := product_images[i].image_id
+		product_id := product_images[i].product_id
+		product_map[product_id].images = arrays.concat(product_map[product_id].images,
+			image_map[image_id])
+	}
+
+	translations := do_retrieve_product_translations(mut tx, ids_bin)!
 	for i := 0; i < translations.len; i++ {
 		product_id := translations[i].product_id
 		product_map[product_id].translations = arrays.concat(product_map[product_id].translations,
 			translations[i])
 	}
 
-	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
-	mut options := do_retrieve_products__options(mut tx, ids_bin)!
+	mut variants := do_retrieve_product_variants(mut tx, ids_bin)!
+	mut options := do_retrieve_product_options(mut tx, ids_bin)!
 	option_values := do_retrieve_products__option_values(mut tx, options)!
 
 	// assign option_values to options and to variants

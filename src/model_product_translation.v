@@ -1,5 +1,6 @@
 module main
 
+import arrays
 import einar_hjortdal.firebird
 
 struct ProductTranslations {
@@ -35,4 +36,27 @@ fn parse_product_translation(v []firebird.Value) !ProductTranslations {
 		subtitle:    subtitle
 		description: description
 	}
+}
+
+fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslations {
+	data := tx.execute('SELECT 
+		product_id,
+		locale_code,
+		created_at,
+		updated_at,
+		deleted_at,
+		title,
+		subtitle,
+		description
+		FROM product_translations
+		WHERE product_id IN ${get_n_placeholders(i32(product_ids_bin.len))}',
+		...product_ids_bin)!
+
+	mut translations := []ProductTranslations{}
+	for i := 0; i < data.rows.len; i++ {
+		translation := parse_product_translation(data.rows[i].values)!
+		translations = arrays.concat(translations, translation)
+	}
+
+	return translations
 }

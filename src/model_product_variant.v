@@ -129,6 +129,44 @@ fn extract_retrieve_variant_params(m map[string]string) RetrieveVariantParams {
 	}
 }
 
+fn do_retrieve_product_variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
+	data := tx.execute('SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		product_id,
+		sku,
+		barcode,
+		ean,
+		upc,
+		variant_rank,
+		inventory_quantity,
+		allow_backorder,
+		manage_inventory,
+		hs_code,
+		origin_country,
+		mid_code,
+		weight,
+		length,
+		height,
+		width,
+		title
+		FROM product_variant
+		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
+
+	mut variants := []Variant{}
+	for i := 0; i < data.rows.len; i++ {
+		variant := parse_variant(data.rows[i].values)!
+		variants = arrays.concat(variants, variant)
+	}
+
+	variants = do_retrieve_product_variant_money_amount(mut tx, variants)!
+
+	return variants
+}
+
 fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []firebird.Value) {
 	base_query := 'SELECT 
 		id,
