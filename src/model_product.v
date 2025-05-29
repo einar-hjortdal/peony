@@ -303,22 +303,41 @@ fn (mut app App) do_retrieve_products__translations(mut tx firebird.Transaction,
 }
 
 fn (mut app App) do_retrieve_products__options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
-	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
+	mut data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
 			FROM product_option
 			WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
 		...ids_bin)!
 
 	mut options := []ProductOption{}
+	mut option_ids_bin := [][]u8{}
 	for i := 0; i < data.rows.len; i++ {
-		option := parse_product_option(data.rows[i].values)
+		option := parse_product_option(data.rows[i].values)!
+		option_id_bin := id_string_to_bin(option.id)!
 		options = arrays.concat(options, option)
+		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
 	}
 
-	translations := app.do_retrieve_product_option_translations(mut tx, options)!
+	translations := app.do_retrieve_product_option_translations(mut tx, option_ids_bin)!
 
-	// TODO assign translations to options
+	for i := 0; i < translations.len; i++ {
+		for k := 0; k < options.len; k++ {
+			if translations[i].product_option_id == options[k].id {
+				options[k].translations = arrays.concat(options[k].translations, translations[i])
+			}
+		}
+	}
 
 	return options
+}
+
+fn (mut app App) do_retrieve_products__option_values(mut tx firebird.Transaction, po []ProductOption) ![]ProductOptionValue {
+	mut option_ids_bin := [][]u8{}
+	for i := 0; i < po.len; i++ {
+		option_id_bin := id_string_to_bin(po[i].id)!
+		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
+	}
+
+	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
 }
 
 fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
@@ -361,7 +380,6 @@ fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids
 
 fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
 	ids_bin := app.do_retrieve_products__ids(mut tx, p)!
-
 	if ids_bin.len == 0 {
 		return []Product{}
 	}
@@ -381,23 +399,39 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 		}
 	}
 
-	variants := app.do_retrieve_products__variants(mut tx, ids_bin)!
+	translations := app.do_retrieve_products__translations(mut tx, ids_bin)!
+	for i := 0; i < translations.len; i++ {
+		for k := 0; k < products.len; k++ {
+			if translations[i].product_id == products[k].id {
+				products[k].translations = arrays.concat(products[k].translations, translations[i])
+			}
+		}
+	}
 
+	mut variants := app.do_retrieve_products__variants(mut tx, ids_bin)!
+	mut options := app.do_retrieve_products__options(mut tx, ids_bin)!
+	option_values := app.do_retrieve_products__option_values(mut tx, options)!
+
+	// assign option_values to options and to variants
+	for i := 0; i < option_values.len; i++ {
+		for k := 0; k < options.len; k++ {
+			if option_values[i].option_id == options[k].id {
+				options[k].values = arrays.concat(options[k].values, option_values[i])
+			}
+		}
+		for k := 0; k < variants.len; k++ {
+			if option_values[i].variant_id == variants[k].id {
+				variants[k].option_values = arrays.concat(variants[k].option_values, option_values[i])
+			}
+		}
+	}
+
+	// assign variants to products
 	for i := 0; i < variants.len; i++ {
 		for k := 0; k < products.len; k++ {
 			if variants[i].product_id == products[k].id {
 				products[k].variants = arrays.concat(products[k].variants, variants[i])
 				break
-			}
-		}
-	}
-
-	translations := app.do_retrieve_products__translations(mut tx, ids_bin)!
-
-	for i := 0; i < translations.len; i++ {
-		for k := 0; k < products.len; k++ {
-			if translations[i].product_id == products[k].id {
-				products[k].translations = arrays.concat(products[k].translations, translations[i])
 			}
 		}
 	}

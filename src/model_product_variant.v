@@ -26,8 +26,8 @@ struct Variant {
 	width              i32    @[omitempty]
 	title              string
 mut:
-	money_amounts []MoneyAmount @[omitempty] // from product_variant_money_amount join money_amount
-	// options []Option @[omitempty] // from product_option
+	money_amounts []MoneyAmount        @[omitempty]
+	option_values []ProductOptionValue @[omitempty]
 }
 
 fn parse_variant(v []firebird.Value) !Variant {
