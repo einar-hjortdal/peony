@@ -6,6 +6,7 @@ Features to implement after basic operation has been established and ironed out.
 
 - User permissions
 - Variant images
+- User-defined data (requires Firebird to support json)
 
 ### v3.7.0
 

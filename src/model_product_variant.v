@@ -205,7 +205,7 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 	return '${base_query}${get_conditions(c)}${sorting}', params
 }
 
-fn (mut app App) do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]Variant {
+fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]Variant {
 	// extract the ids of the retrieved variants to batch fetch money_amounts
 	mut ids_bin := [][]u8{}
 	for i := 0; i < variants.len; i++ {
@@ -250,7 +250,7 @@ fn (mut app App) do_retrieve_product_variant_money_amount(mut tx firebird.Transa
 	return res
 }
 
-fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
+fn do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
 	query, params := build_query_retrieve_product_variants(p)!
 	data := tx.execute(query, ...params)!
 
@@ -265,12 +265,12 @@ fn (mut app App) do_retrieve_product_variants(mut tx firebird.Transaction, p Ret
 		variants = arrays.concat(variants, variant)
 	}
 
-	return app.do_retrieve_product_variant_money_amount(mut tx, variants)
+	return do_retrieve_product_variant_money_amount(mut tx, variants)
 }
 
 fn (mut app App) retrieve_product_variants(p RetrieveVariantParams) ![]Variant {
 	mut tx := app.start_transaction()!
-	variants := app.do_retrieve_product_variants(mut tx, p) or {
+	variants := do_retrieve_product_variants(mut tx, p) or {
 		tx.rollback()!
 		return err
 	}

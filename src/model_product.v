@@ -113,7 +113,7 @@ fn extract_retrieve_products_params(m map[string]string) RetrieveProductParams {
 }
 
 // gather filtered and sorted id
-fn (mut app App) do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParams) ![][]u8 {
+fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParams) ![][]u8 {
 	query := 'SELECT p.id FROM product p'
 	mut params := []firebird.Value{}
 
@@ -253,7 +253,7 @@ fn (mut app App) do_retrieve_products__ids(mut tx firebird.Transaction, p Retrie
 }
 
 // retrieve all products using list of id, returns unsorted list
-fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) ![]Product {
+fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) ![]Product {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -279,7 +279,7 @@ fn (mut app App) do_retrieve_products__products(mut tx firebird.Transaction, ids
 	return products
 }
 
-fn (mut app App) do_retrieve_products__translations(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductTranslations {
+fn do_retrieve_products__translations(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductTranslations {
 	data := tx.execute('SELECT 
 		product_id,
 		locale_code,
@@ -302,7 +302,7 @@ fn (mut app App) do_retrieve_products__translations(mut tx firebird.Transaction,
 	return translations
 }
 
-fn (mut app App) do_retrieve_products__options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
+fn do_retrieve_products__options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
 	mut data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
 			FROM product_option
 			WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
@@ -317,7 +317,7 @@ fn (mut app App) do_retrieve_products__options(mut tx firebird.Transaction, ids_
 		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
 	}
 
-	translations := app.do_retrieve_product_option_translations(mut tx, option_ids_bin)!
+	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!
 
 	for i := 0; i < translations.len; i++ {
 		for k := 0; k < options.len; k++ {
@@ -330,7 +330,7 @@ fn (mut app App) do_retrieve_products__options(mut tx firebird.Transaction, ids_
 	return options
 }
 
-fn (mut app App) do_retrieve_products__option_values(mut tx firebird.Transaction, po []ProductOption) ![]ProductOptionValue {
+fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []ProductOption) ![]ProductOptionValue {
 	mut option_ids_bin := [][]u8{}
 	for i := 0; i < po.len; i++ {
 		option_id_bin := id_string_to_bin(po[i].id)!
@@ -340,7 +340,7 @@ fn (mut app App) do_retrieve_products__option_values(mut tx firebird.Transaction
 	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
 }
 
-fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
+fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -373,20 +373,20 @@ fn (mut app App) do_retrieve_products__variants(mut tx firebird.Transaction, ids
 		variants = arrays.concat(variants, variant)
 	}
 
-	variants = app.do_retrieve_product_variant_money_amount(mut tx, variants)!
+	variants = do_retrieve_product_variant_money_amount(mut tx, variants)!
 
 	return variants
 }
 
 // TODO: create maps for fast lookups of data
 // TODO: when parsing structs, it would be better to return ids in binary format instead of converting back and forth
-fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
-	ids_bin := app.do_retrieve_products__ids(mut tx, p)!
+fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
+	ids_bin := do_retrieve_products__ids(mut tx, p)!
 	if ids_bin.len == 0 {
 		return []Product{}
 	}
 
-	unsorted_products := app.do_retrieve_products__products(mut tx, ids_bin)!
+	unsorted_products := do_retrieve_products__products(mut tx, ids_bin)!
 
 	// sort products according to ids array
 	mut products := []Product{}
@@ -422,7 +422,7 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 		}
 	}
 
-	translations := app.do_retrieve_products__translations(mut tx, ids_bin)!
+	translations := do_retrieve_products__translations(mut tx, ids_bin)!
 	for i := 0; i < translations.len; i++ {
 		for k := 0; k < products.len; k++ {
 			if translations[i].product_id == products[k].id {
@@ -431,9 +431,9 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 		}
 	}
 
-	mut variants := app.do_retrieve_products__variants(mut tx, ids_bin)!
-	mut options := app.do_retrieve_products__options(mut tx, ids_bin)!
-	option_values := app.do_retrieve_products__option_values(mut tx, options)!
+	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
+	mut options := do_retrieve_products__options(mut tx, ids_bin)!
+	option_values := do_retrieve_products__option_values(mut tx, options)!
 
 	// assign option_values to options and to variants
 	for i := 0; i < option_values.len; i++ {
@@ -464,7 +464,7 @@ fn (mut app App) do_retrieve_products(mut tx firebird.Transaction, p RetrievePro
 
 fn (mut app App) retrieve_products(p RetrieveProductParams) ![]Product {
 	mut tx := app.start_transaction()!
-	products := app.do_retrieve_products(mut tx, p) or {
+	products := do_retrieve_products(mut tx, p) or {
 		tx.rollback()!
 		return err
 	}

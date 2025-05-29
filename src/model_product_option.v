@@ -136,7 +136,7 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 	}
 }
 
-fn (mut app App) do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
+fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_code, title
 		FROM product_option_translations
 		WHERE id IN ${get_n_placeholders(i32(option_ids_bin.len))}',
