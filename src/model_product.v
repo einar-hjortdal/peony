@@ -295,6 +295,44 @@ fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []Product
 	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
 }
 
+fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
+	data := tx.execute('SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		product_id,
+		sku,
+		barcode,
+		ean,
+		upc,
+		variant_rank,
+		inventory_quantity,
+		allow_backorder,
+		manage_inventory,
+		hs_code,
+		origin_country,
+		mid_code,
+		weight,
+		length,
+		height,
+		width,
+		title
+		FROM product_variant
+		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		...ids_bin)!
+
+	mut variants := []Variant{}
+	for i := 0; i < data.rows.len; i++ {
+		variant := parse_variant(data.rows[i].values)!
+		variants = arrays.concat(variants, variant)
+	}
+
+	variants = do_retrieve_product_variant_money_amount(mut tx, variants)!
+
+	return variants
+}
+
 fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
 	ids_bin := do_retrieve_products__ids(mut tx, p)!
 	if ids_bin.len == 0 {
@@ -340,7 +378,7 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 			translations[i])
 	}
 
-	mut variants := do_retrieve_product_variants(mut tx, ids_bin)!
+	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
 	mut options := do_retrieve_product_options(mut tx, ids_bin)!
 	option_values := do_retrieve_products__option_values(mut tx, options)!
 
