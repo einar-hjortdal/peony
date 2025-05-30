@@ -79,7 +79,7 @@ fn parse_product_image(v []firebird.Value) !ProductImage {
 	}
 }
 
-fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
+fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ![][]u8 {
 	mut c := ['id', 'url']
 	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
 
@@ -104,6 +104,8 @@ fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_i
 		}
 	}
 	stmt.close()!
+
+	return ids_bin
 }
 
 fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
@@ -130,28 +132,45 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_images
 }
 
-fn do_update_product_images(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
+fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
 	pi := do_retrieve_product_images(mut tx, [product_id_bin])!
+
+	// delete all product_images with url missing from the given array
 	mut ids_bin_to_prune := [][]u8{}
 	for i := 0; i < pi.len; i++ {
-		mut to_prune := true
+		mut found := false
 		for k := 0; k < urls.len; k++ {
 			if urls[k] == pi[i].url {
-				to_prune = false
+				found = true
 				break
 			}
 		}
-		if to_prune {
-			id_bin := pi[i].id_bin
-			ids_bin_to_prune = arrays.concat(ids_bin_to_prune, id_bin)
+		if !found {
+			ids_bin_to_prune = arrays.concat(ids_bin_to_prune, pi[i].id_bin)
 		}
 	}
-	// delete all product_image rows with urls that aren't in the provided array
+
 	tx.execute('DELETE FROM product_image WHERE product_id = ?
 		AND image_id IN (${get_n_placeholders(i32(ids_bin_to_prune.len))}));',
 		...arrays.concat([firebird.Value(product_id_bin)], ...urls))!
 
 	// create image for urls that don't exist in the image table yet
-	// create relations for new image rows in product_image
-	// update rank according to order in array
+	mut images_to_create := []string{}
+	for i := 0; i < urls.len; i++ {
+		mut found := false
+		for k := 0; k < pi.len; k++ {
+			if urls[i] == pi[k].url {
+				found = true
+				break
+			}
+		}
+		if !found {
+			images_to_create = arrays.concat(images_to_create, urls[i])
+		}
+	}
+
+	created_ids_bin := app.do_create_product_images(mut tx, product_id_bin, images_to_create)!
+
+	// create relations for new image rows in product_image and update rank according to order in array
+	// TODO use merge statement
 }
