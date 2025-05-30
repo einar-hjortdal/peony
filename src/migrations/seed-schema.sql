@@ -443,6 +443,7 @@ CREATE INDEX "0681493b-ad85-17b5-1c00-77a1a1ff2a8c" ON product_category_product 
 CREATE TABLE product_image (
   product_id BINARY(16) NOT NULL,
   image_id BINARY(16) NOT NULL,
+  image_rank INTEGER DEFAULT 0 NOT NULL
   CONSTRAINT "0681493b-ad85-1944-1c00-f370c73c0267" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "0681493b-ad85-199a-3c00-5180bc814563" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE CASCADE ON UPDATE CASCADE,
   PRIMARY KEY (product_id, image_id)
@@ -450,6 +451,14 @@ CREATE TABLE product_image (
 
 CREATE INDEX "0681493b-ad85-1acc-b000-f10af0f2f686" ON product_image (product_id);
 CREATE INDEX "0681493b-ad85-1b2a-cc00-4a77334dc5b6" ON product_image (image_id);
+
+CREATE TABLE variant_image (
+  variant_id BINARY(16) NOT NULL,
+  image_id BINARY(16) NOT NULL,
+  CONSTRAINT "0681493b-ad85-1944-1c00-f370c73c0267" FOREIGN KEY (variant_id) REFERENCES variant (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "0681493b-ad85-199a-3c00-5180bc814563" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  PRIMARY KEY (variant_id, image_id)
+);
 
 CREATE TABLE product_tag_product (
   product_id BINARY(16) NOT NULL,
