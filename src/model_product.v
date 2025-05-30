@@ -457,7 +457,6 @@ struct NewProductData {
 	tag_ids           ?[]string
 	sales_channel_ids ?[]string
 	category_ids      ?[]string
-	option_ids        ?[]string
 	translations      ?[]NewTranslationData
 }
 
@@ -610,9 +609,20 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p NewProductData
 			product_id_bin)!
 	}
 
-	// TODO
-	// category_ids
-	// option_ids
+	if category_ids := p.category_ids {
+		mut stmt := tx.prepare('INSERT INTO product_category_product (
+					product_category_id, product_id) VALUES (?, ?)')!
+		for i := 0; i < category_ids.len; i++ {
+			category_id_bin := id_string_to_bin(category_ids[i]) or {
+				stmt.close()!
+				return err
+			}
+			stmt.execute(product_id_bin, category_id_bin) or {
+				stmt.close()!
+				return err
+			}
+		}
+	}
 }
 
 fn (mut app App) create_product(p NewProductData) !string {
