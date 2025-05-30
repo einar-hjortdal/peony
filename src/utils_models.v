@@ -20,6 +20,14 @@ fn get_columns(c []string) string {
 	return c.join(', ')
 }
 
+fn get_set_columns(c []string) string {
+	mut res := ''
+	for i := 0; i < c.len; i++ {
+		res = appendln(res, 'WHERE ${c[i]} = ?')
+	}
+	return res
+}
+
 fn get_n_placeholders(n i32) string {
 	mut res := ''
 	if n == 0 {

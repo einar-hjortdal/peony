@@ -437,15 +437,14 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	return products[0]
 }
 
-struct NewTranslationData {
+struct TranslationData {
 	locale_code string
 	title       ?string
 	subtitle    ?string
 	description ?string
 }
 
-// TODO use option types
-struct NewProductData {
+struct ProductData {
 	handle            ?string
 	is_giftcard       ?bool
 	status            ?string
@@ -457,10 +456,10 @@ struct NewProductData {
 	tag_ids           ?[]string
 	sales_channel_ids ?[]string
 	category_ids      ?[]string
-	translations      ?[]NewTranslationData
+	translations      ?[]TranslationData
 }
 
-fn build_query_create_product(product_id string, product_id_bin []u8, p NewProductData) !(string, []firebird.Value) {
+fn build_query_create_product(product_id string, product_id_bin []u8, p ProductData) !(string, []firebird.Value) {
 	mut c := ['id', 'handle']
 	mut params := [firebird.Value(product_id_bin)]
 
@@ -506,7 +505,7 @@ fn build_query_create_product(product_id string, product_id_bin []u8, p NewProdu
 	return q, params
 }
 
-fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []NewTranslationData) ! {
+fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []TranslationData) ! {
 	c := [
 		'product_id',
 		'locale_code',
@@ -576,7 +575,7 @@ fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_i
 	stmt.close()!
 }
 
-fn (mut app App) do_create_product(mut tx firebird.Transaction, p NewProductData, product_id string, product_id_bin []u8) ! {
+fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, product_id string, product_id_bin []u8) ! {
 	product_query, product_params := build_query_create_product(product_id, product_id_bin,
 		p)!
 	tx.execute(product_query, ...product_params)!
@@ -625,7 +624,7 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p NewProductData
 	}
 }
 
-fn (mut app App) create_product(p NewProductData) !string {
+fn (mut app App) create_product(p ProductData) !string {
 	product_id, product_id_bin := app.new_id()!
 	mut tx := app.start_transaction()!
 
@@ -635,6 +634,68 @@ fn (mut app App) create_product(p NewProductData) !string {
 	}
 	tx.commit()!
 	return product_id
+}
+
+fn build_query_update_product(id_bin []u8, p ProductData) !(string, []firebird.Value) {
+	mut c := []string{}
+	mut params := []firebird.Value{}
+
+	if handle := p.handle {
+		c = arrays.concat(c, 'handle')
+		params = arrays.concat(params, handle)
+	}
+
+	if is_giftcard := p.is_giftcard {
+		c = arrays.concat(c, 'is_giftcard')
+		params = arrays.concat(params, is_giftcard)
+	}
+
+	if status := p.status {
+		c = arrays.concat(c, 'status')
+		params = arrays.concat(params, status)
+	}
+
+	if thumbnail := p.thumbnail {
+		c = arrays.concat(c, 'thumbnail')
+		params = arrays.concat(params, thumbnail)
+	}
+
+	if collection_id := p.collection_id {
+		c = arrays.concat(c, 'collection_id')
+		collection_id_bin := luuid.to_bytes(collection_id)!
+		params = arrays.concat(params, collection_id_bin)
+	}
+
+	if type_id := p.type_id {
+		c = arrays.concat(c, 'type_id')
+		type_id_bin := luuid.to_bytes(type_id)!
+		params = arrays.concat(params, type_id_bin)
+	}
+
+	if discountable := p.discountable {
+		c = arrays.concat(c, 'discountable')
+		params = arrays.concat(params, discountable)
+	}
+
+	params = arrays.concat(params, id_bin)
+	query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
+
+	return query, params
+}
+
+fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p ProductData) ! {
+	id_bin := id_string_to_bin(id)!
+	query, params := build_query_update_product(id_bin, p)!
+	tx.execute(query, ...params)!
+}
+
+fn (mut app App) update_product(id string, p ProductData) ! {
+	mut tx := app.start_transaction()!
+	app.do_update_product(mut tx, id, p) or {
+		tx.rollback()!
+		return err
+	}
+	tx.commit()!
 }
 
 fn (mut app App) delete_product(id string) ! {

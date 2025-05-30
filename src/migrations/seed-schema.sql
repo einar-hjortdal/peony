@@ -451,7 +451,7 @@ CREATE TABLE product_image (
 CREATE INDEX "0681493b-ad85-1acc-b000-f10af0f2f686" ON product_image (product_id);
 CREATE INDEX "0681493b-ad85-1b2a-cc00-4a77334dc5b6" ON product_image (image_id);
 
-CREATE TABLE product_tags (
+CREATE TABLE product_tag_product (
   product_id BINARY(16) NOT NULL,
   product_tag_id BINARY(16) NOT NULL,
   CONSTRAINT "0681493b-ad85-1cb4-3400-a63ff6ece1a3" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
