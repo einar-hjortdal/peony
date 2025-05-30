@@ -17,22 +17,12 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	return ctx.json(products)
 }
 
-// get a product
-@['/admin/products/:id'; get]
-fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	p := app.retrieve_product_by_id(id) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
-	}
-	return ctx.json(p)
-}
-
 // create a product
 @['/admin/products'; post]
 fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
-	body := json.decode(NewProductData, ctx.req.data) or {
+	body := json.decode(ProductData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode body data structure', err.msg()))
+		return ctx.json(new_peony_error('Could not decode ProductData', err.msg()))
 	}
 
 	id := app.create_product(body) or {
@@ -47,6 +37,32 @@ fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 @['/admin/products/tag-usage'; get]
 fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 	return ctx.text('TODO')
+}
+
+// get a product
+@['/admin/products/:id'; get]
+fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
+	p := app.retrieve_product_by_id(id) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
+	}
+	return ctx.json(p)
+}
+
+// updates a product
+@['/admin/products/:id'; post]
+fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
+	body := json.decode(ProductData, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Could not decode ProductData', err.msg()))
+	}
+
+	app.update_product(id, body) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to update product data', err.msg()))
+	}
+
+	return ctx.no_content()
 }
 
 // deletes a product

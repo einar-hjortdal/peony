@@ -351,7 +351,7 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 	product_images := do_retrieve_product_images(mut tx, ids_bin)!
 	mut images_ids_bin := [][]u8{len: product_images.len}
 	for i := 0; i < product_images.len; i++ {
-		images_id_bin := id_string_to_bin(product_images[i].image_id)!
+		images_id_bin := id_string_to_bin(product_images[i].id)!
 		images_ids_bin[i] = images_id_bin
 	}
 
@@ -365,8 +365,9 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 	}
 
 	for i := 0; i < product_images.len; i++ {
-		image_id := product_images[i].image_id
-		product_id := product_images[i].product_id
+		image_id := product_images[i].id
+		product_id_bin := product_images[i].product_id_bin
+		product_id := id_bin_to_string(product_id_bin)!
 		product_map[product_id].images = arrays.concat(product_map[product_id].images,
 			image_map[image_id])
 	}
@@ -546,35 +547,6 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 	stmt.close()!
 }
 
-fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, images []string) ! {
-	mut c := ['id', 'url']
-	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
-
-	mut ids := []string{len: images.len}
-	mut ids_bin := [][]u8{len: images.len}
-
-	for i := 0; i < images.len; i++ {
-		id, id_bin := app.new_id()!
-		ids[i] = id
-		ids_bin[i] = id_bin
-		stmt.execute(id_bin, images[i]) or {
-			stmt.close()!
-			return err
-		}
-	}
-	stmt.close()!
-
-	c = ['product_id', 'image_id']
-	stmt = tx.prepare('INSERT INTO product_image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
-	for i := 0; i < images.len; i++ {
-		stmt.execute(product_id_bin, ids_bin[i]) or {
-			stmt.close()!
-			return err
-		}
-	}
-	stmt.close()!
-}
-
 fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, product_id string, product_id_bin []u8) ! {
 	product_query, product_params := build_query_create_product(product_id, product_id_bin,
 		p)!
@@ -687,6 +659,17 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 	id_bin := id_string_to_bin(id)!
 	query, params := build_query_update_product(id_bin, p)!
 	tx.execute(query, ...params)!
+
+	// TODO
+
+	if image_urls := p.images {
+		do_update_product_images(mut tx, id_bin, image_urls)!
+	}
+
+	// tag_ids
+	// sales_channel_ids
+	// category_ids
+	// translations
 }
 
 fn (mut app App) update_product(id string, p ProductData) ! {

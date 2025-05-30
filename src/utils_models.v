@@ -123,3 +123,11 @@ fn new_id(mut g luuid.Generator) !(string, []u8) {
 fn (mut app App) new_id() !(string, []u8) {
 	return new_id(mut app.luuid_generator)
 }
+
+fn id_strings_to_bins(a []string) ![][]u8 {
+	mut res := [][]u8{len: a.len}
+	for i := 0; i < a.len; i++ {
+		res[i] = id_string_to_bin(a[i])!
+	}
+	return res
+}
