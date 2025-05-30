@@ -437,129 +437,178 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	return products[0]
 }
 
+struct NewTranslationData {
+	locale_code string
+	title       ?string
+	subtitle    ?string
+	description ?string
+}
+
 // TODO use option types
 struct NewProductData {
-	title          string
-	subtitle       string
-	description    string
-	is_giftcard    bool
-	discountable   bool
-	images         []string
-	thumbnail      string
-	handle         string
-	status         string
-	type_id        string
-	collection_id  string
-	tags           []string
-	sales_channels []string
-	categories     []string
-	options        []string
+	handle            ?string
+	is_giftcard       ?bool
+	status            ?string
+	thumbnail         ?string
+	collection_id     ?string
+	type_id           ?string
+	discountable      ?bool
+	images            ?[]string
+	tag_ids           ?[]string
+	sales_channel_ids ?[]string
+	category_ids      ?[]string
+	option_ids        ?[]string
+	translations      ?[]NewTranslationData
 }
 
 fn build_query_create_product(product_id string, product_id_bin []u8, p NewProductData) !(string, []firebird.Value) {
 	mut c := ['id', 'handle']
 	mut params := [firebird.Value(product_id_bin)]
 
-	if p.handle == '' {
-		params = arrays.concat(params, product_id)
+	if handle := p.handle {
+		params = arrays.concat(params, handle)
 	} else {
-		params = arrays.concat(params, p.handle)
+		params = arrays.concat(params, product_id)
 	}
 
-	if p.is_giftcard {
+	if is_giftcard := p.is_giftcard {
 		c = arrays.concat(c, 'is_giftcard')
-		params = arrays.concat(params, p.is_giftcard)
+		params = arrays.concat(params, is_giftcard)
 	}
 
-	if p.status != '' {
+	if status := p.status {
 		c = arrays.concat(c, 'status')
-		params = arrays.concat(params, p.status)
+		params = arrays.concat(params, status)
 	}
 
-	if p.thumbnail != '' {
+	if thumbnail := p.thumbnail {
 		c = arrays.concat(c, 'thumbnail')
-		params = arrays.concat(params, p.thumbnail)
+		params = arrays.concat(params, thumbnail)
 	}
 
-	if p.collection_id != '' {
+	if collection_id := p.collection_id {
 		c = arrays.concat(c, 'collection_id')
-		collection_id_bin := luuid.to_bytes(p.collection_id)!
+		collection_id_bin := luuid.to_bytes(collection_id)!
 		params = arrays.concat(params, collection_id_bin)
 	}
 
-	if p.type_id != '' {
+	if type_id := p.type_id {
 		c = arrays.concat(c, 'type_id')
-		type_id_bin := luuid.to_bytes(p.type_id)!
+		type_id_bin := luuid.to_bytes(type_id)!
 		params = arrays.concat(params, type_id_bin)
 	}
 
-	if p.discountable {
+	if discountable := p.discountable {
 		c = arrays.concat(c, 'discountable')
-		params = arrays.concat(params, p.discountable)
+		params = arrays.concat(params, discountable)
 	}
 
 	q := 'INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )'
 	return q, params
 }
 
-fn build_query_create_product_variant(variant_id string, variant_id_bin []u8, product_id_bin []u8, p NewProductData) !(string, []firebird.Value) {
-	mut c := ['id', 'product_id']
-	mut params := [firebird.Value(variant_id_bin), product_id_bin]
+fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []NewTranslationData) ! {
+	c := [
+		'product_id',
+		'locale_code',
+		'title',
+		'subtitle',
+		'description',
+	]
+	mut stmt := tx.prepare('INSERT INTO product_translations (${get_columns(c)}) 
+		VALUES (${get_placeholders(c)})')!
 
-	q := 'INSERT INTO product_variant ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )'
-	return q, params
-}
+	p := [firebird.Value(product_id_bin)]
+	for i := 0; i < translations.len; i++ {
+		if translations[i].locale_code == '' {
+			stmt.close()!
+			return error('locale_code is required to create new translations')
+		}
+		mut params := arrays.concat(p, translations[i].locale_code)
+		if title := translations[i].title {
+			params = arrays.concat(p, title)
+		} else {
+			params = arrays.concat(p, firebird.Null{})
+		}
 
-fn build_query_create_product_translations(product_id_bin []u8, p NewProductData) !(string, []firebird.Value) {
-	mut c := ['product_id', 'title']
-	mut params := [firebird.Value(product_id_bin), p.title]
+		if subtitle := translations[i].subtitle {
+			params = arrays.concat(p, subtitle)
+		} else {
+			params = arrays.concat(p, firebird.Null{})
+		}
 
-	if p.subtitle != '' {
-		c = arrays.concat(c, 'subtitle')
-		params = arrays.concat(params, p.subtitle)
+		if description := translations[i].description {
+			params = arrays.concat(p, description)
+		} else {
+			params = arrays.concat(p, firebird.Null{})
+		}
+
+		stmt.execute(...params) or {
+			stmt.close()!
+			return err
+		}
 	}
 
-	if p.description != '' {
-		c = arrays.concat(c, 'description')
-		params = arrays.concat(params, p.description)
-	}
-
-	q := 'INSERT INTO product_translations ( locale_code, ${get_columns(c)} ) 
-		SELECT s.locale_code, ${get_placeholders(c)} 
-		FROM store s FETCH NEXT 1 ROWS ONLY'
-	return q, params
+	stmt.close()!
 }
 
-fn build_query_create_product_variant_translations() {}
+fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, images []string) ! {
+	mut c := ['id', 'url']
+	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
+
+	mut ids := []string{len: images.len}
+	mut ids_bin := [][]u8{len: images.len}
+
+	for i := 0; i < images.len; i++ {
+		id, id_bin := app.new_id()!
+		ids[i] = id
+		ids_bin[i] = id_bin
+		stmt.execute(id_bin, images[i]) or {
+			stmt.close()!
+			return err
+		}
+	}
+	stmt.close()!
+
+	c = ['product_id', 'image_id']
+	stmt = tx.prepare('INSERT INTO product_image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
+	for i := 0; i < images.len; i++ {
+		stmt.execute(product_id_bin, ids_bin[i]) or {
+			stmt.close()!
+			return err
+		}
+	}
+	stmt.close()!
+}
+
+fn (mut app App) do_create_product(mut tx firebird.Transaction, p NewProductData, product_id string, product_id_bin []u8) ! {
+	product_query, product_params := build_query_create_product(product_id, product_id_bin,
+		p)!
+	tx.execute(product_query, ...product_params)!
+
+	if translations := p.translations {
+		app.do_create_product_translations(mut tx, product_id_bin, translations)!
+	}
+
+	if images := p.images {
+		app.do_create_product_images(mut tx, product_id_bin, images)!
+	}
+
+	// TODO
+	// tag_ids
+	// sales_channel_ids
+	// category_ids
+	// option_ids
+}
 
 fn (mut app App) create_product(p NewProductData) !string {
 	product_id, product_id_bin := app.new_id()!
-	product_query, product_params := build_query_create_product(product_id, product_id_bin,
-		p)!
-
-	variant_id, variant_id_bin := app.new_id()!
-	product_variant_query, product_variant_params := build_query_create_product_variant(variant_id,
-		variant_id_bin, product_id_bin, p)!
-	product_translations_query, product_translations_params := build_query_create_product_translations(product_id_bin,
-		p)!
-
 	mut tx := app.start_transaction()!
 
-	tx.execute(product_query, ...product_params) or {
+	app.do_create_product(mut tx, p, product_id, product_id_bin) or {
 		tx.rollback()!
 		return err
 	}
-
-	tx.execute(product_variant_query, ...product_variant_params) or {
-		tx.rollback()!
-		return err
-	}
-
-	tx.execute(product_translations_query, ...product_translations_params) or {
-		tx.rollback()!
-		return err
-	}
-
 	tx.commit()!
 	return product_id
 }
