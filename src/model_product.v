@@ -520,10 +520,6 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 
 	p := [firebird.Value(product_id_bin)]
 	for i := 0; i < translations.len; i++ {
-		if translations[i].locale_code == '' {
-			stmt.close()!
-			return error('locale_code is required to create new translations')
-		}
 		mut params := arrays.concat(p, translations[i].locale_code)
 		if title := translations[i].title {
 			params = arrays.concat(p, title)
@@ -594,9 +590,27 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p NewProductData
 		app.do_create_product_images(mut tx, product_id_bin, images)!
 	}
 
+	// TODO tag_ids
+
+	if sales_channel_ids := p.sales_channel_ids {
+		mut stmt := tx.prepare('INSERT INTO product_sales_channel (product_id, sales_channel_id) VALUES (?, ?)')!
+		for i := 0; i < sales_channel_ids.len; i++ {
+			sales_channel_id_bin := id_string_to_bin(sales_channel_ids[i]) or {
+				stmt.close()!
+				return err
+			}
+			stmt.execute(product_id_bin, sales_channel_id_bin) or {
+				stmt.close()!
+				return err
+			}
+		}
+	} else {
+		tx.execute('INSERT INTO product_sales_channel (product_id, sales_channel_id) 
+		VALUES (?, (SELECT default_sales_channel_id FROM store))',
+			product_id_bin)!
+	}
+
 	// TODO
-	// tag_ids
-	// sales_channel_ids
 	// category_ids
 	// option_ids
 }
