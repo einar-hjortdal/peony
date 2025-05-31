@@ -11,17 +11,16 @@ import veb
 // fetch
 @['/admin/currencies/'; get]
 fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
-	if code := ctx.query['code'] {
-		currency := app.retrieve_currency_by_code(code) or {
+	p := extract_retrieve_currencies_params(ctx.query)
+	if p.code.is_set {
+		currency := app.retrieve_currency_by_code(p.code.v) or {
 			ctx.res.set_status(http.Status.internal_server_error)
 			return ctx.json(new_peony_error('Could not retrieve currency by code', err.msg()))
 		}
 		return ctx.json(currency)
 	}
 
-	offset := ctx.query['offset'].i32()
-	fetch := ctx.query['fetch'].i32()
-	currencies := app.retrieve_currencies(offset, fetch) or {
+	currencies := app.retrieve_currencies(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve currencies from database',
 			err.msg()))

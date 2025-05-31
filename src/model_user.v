@@ -57,29 +57,30 @@ fn parse_user_data(v []firebird.Value) !User {
 struct NewUserData {
 	email      string
 	password   string
-	first_name string @[omitempty]
-	last_name  string @[omitempty]
-	role       string @[omitempty]
+	first_name ?string
+	last_name  ?string
+	role       ?string
 }
 
-fn (mut app App) create_user(d NewUserData) !string {
-	id := app.luuid_generator.v1()
+fn (mut app App) create_user(d NewUserData) !(string, []u8) {
+	id, id_bin := app.new_id()!
 	handle := app.luuid_generator.v1()
 	password_hash, password_salt := hash_password(d.password)!
 
-	mut c := ['handle', 'email', 'password_hash', 'password_salt']
-	mut params := [firebird.Value(handle), d.email, password_hash, password_salt]
-	if d.role != '' {
+	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
+	mut params := [firebird.Value(id_bin), handle, d.email, password_hash, password_salt]
+
+	if role := d.role {
 		c = arrays.concat(c, 'role')
-		params = arrays.concat(params, d.role)
+		params = arrays.concat(params, role)
 	}
-	if d.first_name != '' {
+	if first_name := d.first_name {
 		c = arrays.concat(c, 'first_name')
-		params = arrays.concat(params, d.first_name)
+		params = arrays.concat(params, first_name)
 	}
-	if d.last_name != '' {
+	if last_name := d.last_name {
 		c = arrays.concat(c, 'last_name')
-		params = arrays.concat(params, d.last_name)
+		params = arrays.concat(params, last_name)
 	}
 
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
@@ -92,17 +93,17 @@ fn (mut app App) create_user(d NewUserData) !string {
 		role,
 		first_name,
 		last_name
-		)	VALUES (CHAR_TO_UUID(?), ${get_columns(c)})',
+		)	VALUES ${get_columns(c)})',
 		arrays.concat([firebird.Value(id)], params))!
 	tx.commit()!
 
-	return id
+	return id, id_bin
 }
 
-fn (mut app App) retrieve_user_by_id(id string) !User {
+fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	res := tx.execute('SELECT (
-		UUID_TO_CHAR(id),
+		id,
 		handle,
 		email,
 		password_hash,
@@ -110,8 +111,8 @@ fn (mut app App) retrieve_user_by_id(id string) !User {
 		role,
 		first_name,
 		last_name
-		)	FROM user WHERE id = CHAR_TO_UUID(?)',
-		id)!
+		)	FROM user WHERE id = ?',
+		id_bin)!
 	tx.rollback()!
 
 	if res.rows.len == 0 {
@@ -124,7 +125,7 @@ fn (mut app App) retrieve_user_by_id(id string) !User {
 fn (mut app App) retrieve_user_by_email(email string) !User {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	res := tx.execute('SELECT (
-		UUID_TO_CHAR(id),
+		id,
 		handle,
 		email,
 		password_hash,
@@ -144,25 +145,41 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 }
 
 struct UpdateUserData {
-	first_name string
-	last_name  string
-	role       string
+	first_name ?string
+	last_name  ?string
+	role       ?string
 }
 
-fn (mut app App) update_user(id string, data UpdateUserData) ! {
+fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {
+	mut query := 'UPDATE user SET'
+	mut params := []firebird.Value{}
+
+	if first_name := p.first_name {
+		query = appendln(query, 'first_name = ?')
+		params = arrays.concat(params, first_name)
+	}
+
+	if last_name := p.last_name {
+		query = appendln(query, 'last_name = ?')
+		params = arrays.concat(params, last_name)
+	}
+
+	if role := p.role {
+		query = appendln(query, 'role = ?')
+		params = arrays.concat(params, role)
+	}
+
+	conditions := 'WHERE id = ?'
+	query = appendln(query, conditions)
+	params = arrays.concat(params, id_bin)
+
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	tx.execute('UPDATE user SET
-		first_name = ?,
-		last_name = ?,
-		role = ?
-		WHERE id = CHAR_TO_UUID(?)',
-		data.first_name, data.last_name, data.role, id)!
+	tx.execute(query, ...params)!
 	tx.commit()!
 }
 
-fn (mut app App) delete_user(id string) ! {
+fn (mut app App) delete_user(id_bin []u8) ! {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	tx.execute('UPDATE user SET deleted_at = CURRENT_TIMESTAMP WHERE id = CHAR_TO_UUID(?)',
-		id)!
+	tx.execute('UPDATE user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
 }

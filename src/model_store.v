@@ -1,5 +1,6 @@
 module main
 
+import arrays
 import einar_hjortdal.firebird
 
 struct Store {
@@ -42,7 +43,7 @@ fn parse_store(v []firebird.Value) !Store {
 fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 	mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
 	res := tx.execute('SELECT (
-		UUID_TO_CHAR(id),
+		id,
 		created_at,
 		updated_at,
 		name,
@@ -66,15 +67,35 @@ fn (mut app App) store_retrieve() !Store {
 }
 
 struct NewStoreData {
-	name                  string
-	default_locale_code   string
-	default_currency_code string
+	name                  ?string
+	default_locale_code   ?string
+	default_currency_code ?string
 }
 
-fn (mut app App) update_store_data(id string, data NewStoreData) ! {
+fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
+	mut query := 'UPDATE store SET'
+	mut params := []firebird.Value{}
+
+	if name := p.name {
+		query = appendln(query, 'name = ?')
+		params = arrays.concat(params, name)
+	}
+
+	if default_locale_code := p.default_locale_code {
+		query = appendln(query, 'default_locale_code = ?')
+		params = arrays.concat(params, default_locale_code)
+	}
+
+	if default_currency_code := p.default_currency_code {
+		query = appendln(query, 'default_currency_code = ?')
+		params = arrays.concat(params, default_currency_code)
+	}
+
+	conditions := 'WHERE id = ?'
+	query = appendln(query, conditions)
+	params = arrays.concat(params, id_bin)
+
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	tx.execute('UPDATE store SET name = ?, default_locale_code = ?, default_currency_code = ?
-	WHERE id = CHAR_TO_UUID(?)',
-		data.name, data.default_locale_code, data.default_currency_code, id)!
+	tx.execute(query, ...params)!
 	tx.commit()!
 }

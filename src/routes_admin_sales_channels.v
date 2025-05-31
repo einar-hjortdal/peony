@@ -7,14 +7,7 @@ import json
 // lists sales channels
 @['/admin/sales-channels'; get]
 fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
-	p := ListSalesChannelsParams{
-		id:          ctx.query['id'].split(',')
-		name:        ctx.query['name']
-		description: ctx.query['description']
-		offset:      ctx.query['offset'].i32()
-		fetch:       ctx.query['fetch'].i32()
-		order:       ctx.query['order']
-	}
+	p := extract_retrieve_sales_channels_params(ctx.query)
 
 	sc := app.list_sales_channels(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)

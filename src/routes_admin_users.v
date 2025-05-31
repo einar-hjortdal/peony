@@ -1,6 +1,7 @@
 module main
 
 import json
+import net.http
 import veb
 import einar_hjortdal.firebird
 
@@ -40,14 +41,17 @@ fn format_user_response(u User) UserResponse {
 @['/admin/users/'; post]
 fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	body := json.decode(NewUserData, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode NewUserData', err.msg()))
 	}
 
 	// error if email obviously wrong?
-	uid := app.create_user(body) or {
+	_, id_bin := app.create_user(body) or {
+		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to create user', err.msg()))
 	}
-	u := app.retrieve_user_by_id(uid) or {
+	u := app.retrieve_user_by_id(id_bin) or {
+		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve the new user', err.msg()))
 	}
 	return ctx.json(format_user_response(u))
@@ -67,7 +71,13 @@ fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 // retrieves a user details
 @['/admin/users/:id'; get]
 fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
-	user := app.retrieve_user_by_id(id) or {
+	id_bin := id_string_to_bin(id) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Malformed id', err.msg()))
+	}
+
+	user := app.retrieve_user_by_id(id_bin) or {
+		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve user from database', err.msg()))
 	}
 	return ctx.json(format_user_response(user))
@@ -76,15 +86,23 @@ fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
 // updates a user
 @['/admin/users/:id'; post]
 fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
+	id_bin := id_string_to_bin(id) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Malformed id', err.msg()))
+	}
+
 	body := json.decode(UpdateUserData, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode UpdateUserData', err.msg()))
 	}
 
-	app.update_user(id, body) or {
+	app.update_user(id_bin, body) or {
+		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to update user', err.msg()))
 	}
 
-	updated_user := app.retrieve_user_by_id(id) or {
+	updated_user := app.retrieve_user_by_id(id_bin) or {
+		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve the updated user', err.msg()))
 	}
 
@@ -94,7 +112,15 @@ fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 // deleted a user
 @['/admin/users/:id'; post]
 fn (mut app App) admin_users_id_delete(mut ctx Context, id string) veb.Result {
-	app.delete_user(id) or { return ctx.json(new_peony_error('Failed to delete user', err.msg())) }
+	id_bin := id_string_to_bin(id) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Malformed id', err.msg()))
+	}
+
+	app.delete_user(id_bin) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to delete user', err.msg()))
+	}
 	return ctx.text('ok')
 	// {
 	// 	id:      id
