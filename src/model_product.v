@@ -10,29 +10,26 @@ const product_status_published = 'published'
 const product_status_rejected = 'rejected'
 
 struct Product {
-	id            string
-	created_at    firebird.DateTime
-	updated_at    firebird.DateTime
-	deleted_at    firebird.DateTime @[omitempty]
-	handle        string
-	is_giftcard   bool
-	status        string
-	thumbnail     string @[omitempty]
-	collection_id string @[omitempty]
-	type_id       string @[omitempty]
-	discountable  bool
+	id                string
+	id_bin            []u8 @[json: '-']
+	created_at        firebird.DateTime
+	updated_at        firebird.DateTime
+	deleted_at        firebird.DateTime @[omitempty]
+	handle            string
+	is_giftcard       bool
+	status            string
+	thumbnail         string @[omitempty]
+	collection_id     string @[omitempty]
+	collection_id_bin []u8   @[json: '-']
+	type_id           string @[omitempty]
+	type_id_bin       []u8   @[json: '-']
+	discountable      bool
 mut:
 	images       []Image               @[omitempty]
 	options      []ProductOption       @[omitempty]
 	variants     []Variant             @[omitempty]
 	translations []ProductTranslations @[omitempty]
 	// tags         []Tag                 @[omitempty]
-}
-
-struct ProductBins {
-	id            []u8
-	collection_id []u8
-	type_id       []u8
 }
 
 fn parse_product(v []firebird.Value) !Product {
@@ -62,17 +59,20 @@ fn parse_product(v []firebird.Value) !Product {
 	}
 
 	return Product{
-		id:            id
-		created_at:    created_at
-		updated_at:    updated_at
-		deleted_at:    deleted_at
-		handle:        handle
-		is_giftcard:   is_giftcard
-		status:        status
-		thumbnail:     thumbnail
-		collection_id: collection_id
-		type_id:       type_id
-		discountable:  discountable
+		id:                id
+		id_bin:            id_bin
+		created_at:        created_at
+		updated_at:        updated_at
+		deleted_at:        deleted_at
+		handle:            handle
+		is_giftcard:       is_giftcard
+		status:            status
+		thumbnail:         thumbnail
+		collection_id:     collection_id
+		collection_id_bin: collection_id_bin
+		type_id:           type_id
+		type_id_bin:       type_id_bin
+		discountable:      discountable
 	}
 }
 

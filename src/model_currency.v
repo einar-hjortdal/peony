@@ -5,17 +5,21 @@ import einar_hjortdal.firebird
 
 struct Currency {
 	id           string
+	id_bin       []u8 @[json: '-']
 	code         string
 	includes_tax bool
 }
 
 fn parse_currency(v []firebird.Value) !Currency {
-	id, _ := v[0].get_string()!
+	id_bin, _ := v[0].get_array_u8()!
 	code, _ := v[1].get_string()!
 	includes_tax, _ := v[2].get_bool()!
 
+	id := id_bin_to_string(id_bin)!
+
 	return Currency{
 		id:           id
+		id_bin:       id_bin
 		code:         code
 		includes_tax: includes_tax
 	}

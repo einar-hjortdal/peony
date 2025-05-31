@@ -9,8 +9,8 @@ const schema_file = $embed_file('migrations/seed-schema.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_codes_file = $embed_file('migrations/seed-currency-codes.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
-const default_locale_code = 'en'
-const default_currency_code = 'EUR'
+const seed_default_locale_code = 'en'
+const seed_default_currency_code = 'EUR'
 
 fn get_schema_queries() []string {
 	queries := schema_file.to_string().split(';')
@@ -92,19 +92,19 @@ fn (mut app App) insert_default_store(mut tx firebird.Transaction, stock_locatio
 	tx.execute('INSERT INTO store (
 	id, name, default_locale_code, default_currency_code, default_stock_location_id, default_sales_channel_id)
 	VALUES (?, ?, ?, ?, ?, ?)',
-		store_id_bin, store_id, default_locale_code, default_currency_code, stock_location_id_bin,
-		sales_channel_id_bin)!
+		store_id_bin, store_id, seed_default_locale_code, seed_default_currency_code,
+		stock_location_id_bin, sales_channel_id_bin)!
 	return store_id_bin
 }
 
 fn (mut app App) insert_default_store_locale(mut tx firebird.Transaction, store_id_bin []u8) ! {
 	tx.execute('INSERT INTO store_locales (store_id, locale_code) VALUES (?, ?)', store_id_bin,
-		default_locale_code)!
+		seed_default_locale_code)!
 }
 
 fn (mut app App) insert_default_store_currency(mut tx firebird.Transaction, store_id_bin []u8) ! {
 	tx.execute('INSERT INTO store_currencies (store_id, currency_code) VALUES (?, ?)',
-		store_id_bin, default_currency_code)!
+		store_id_bin, seed_default_currency_code)!
 }
 
 fn database_is_ready(mut conn firebird.Connection) bool {

@@ -5,6 +5,7 @@ import einar_hjortdal.firebird
 
 struct SalesChannel {
 	id          string
+	id_bin      []u8 @[json: '-']
 	created_at  firebird.DateTime
 	updated_at  firebird.DateTime
 	deleted_at  firebird.DateTime @[omitempty]
@@ -14,7 +15,7 @@ struct SalesChannel {
 }
 
 fn parse_sales_channel(v []firebird.Value) !SalesChannel {
-	id, _ := v[0].get_string()!
+	id_bin, _ := v[0].get_array_u8()!
 	created_at, _ := v[1].get_date_time()!
 	updated_at, _ := v[2].get_date_time()!
 	deleted_at, _ := v[3].get_date_time()!
@@ -22,8 +23,11 @@ fn parse_sales_channel(v []firebird.Value) !SalesChannel {
 	description, _ := v[5].get_string()!
 	is_disabled, _ := v[6].get_bool()!
 
+	id := id_bin_to_string(id_bin)!
+
 	return SalesChannel{
 		id:          id
+		id_bin:      id_bin
 		created_at:  created_at
 		updated_at:  updated_at
 		deleted_at:  deleted_at

@@ -4,9 +4,10 @@ import arrays
 import einar_hjortdal.firebird
 
 struct ProductOptionValueTranslation {
-	product_option_value_id string
-	locale_code             string
-	name                    string
+	product_option_value_id     string
+	product_option_value_id_bin []u8 @[json: '-']
+	locale_code                 string
+	name                        string
 }
 
 fn parse_product_option_value_translation(v []firebird.Value) !ProductOptionValueTranslation {
@@ -17,9 +18,10 @@ fn parse_product_option_value_translation(v []firebird.Value) !ProductOptionValu
 	product_option_value_id := id_bin_to_string(product_option_value_id_bin)!
 
 	return ProductOptionValueTranslation{
-		product_option_value_id: product_option_value_id
-		locale_code:             locale_code
-		name:                    name
+		product_option_value_id:     product_option_value_id
+		product_option_value_id_bin: product_option_value_id_bin
+		locale_code:                 locale_code
+		name:                        name
 	}
 }
 
@@ -39,12 +41,15 @@ fn do_retrieve_product_option_value_translations(mut tx firebird.Transaction, op
 }
 
 struct ProductOptionValue {
-	id         string
-	created_at firebird.DateTime
-	updated_at firebird.DateTime
-	deleted_at firebird.DateTime @[omitempty]
-	option_id  string
-	variant_id string
+	id             string
+	id_bin         []u8 @[json: '-']
+	created_at     firebird.DateTime
+	updated_at     firebird.DateTime
+	deleted_at     firebird.DateTime @[omitempty]
+	option_id      string
+	option_id_bin  []u8 @[json: '-']
+	variant_id     string
+	variant_id_bin []u8 @[json: '-']
 mut:
 	translations []ProductOptionValueTranslation
 }
@@ -62,12 +67,15 @@ fn parse_product_option_value(v []firebird.Value) !ProductOptionValue {
 	variant_id := id_bin_to_string(variant_id_bin)!
 
 	return ProductOptionValue{
-		id:         id
-		created_at: created_at
-		updated_at: updated_at
-		deleted_at: deleted_at
-		option_id:  option_id
-		variant_id: variant_id
+		id:             id
+		id_bin:         id_bin
+		created_at:     created_at
+		updated_at:     updated_at
+		deleted_at:     deleted_at
+		option_id:      option_id
+		option_id_bin:  option_id_bin
+		variant_id:     variant_id
+		variant_id_bin: variant_id_bin
 	}
 }
 
@@ -87,9 +95,10 @@ fn do_retrieve_product_option_values(mut tx firebird.Transaction, option_ids_bin
 }
 
 struct ProductOptionTranslation {
-	product_option_id string
-	locale_code       string
-	title             string
+	product_option_id     string
+	product_option_id_bin []u8 @[json: '-']
+	locale_code           string
+	title                 string
 }
 
 fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslation {
@@ -100,9 +109,10 @@ fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslatio
 	product_option_id := id_bin_to_string(product_option_id_bin)!
 
 	return ProductOptionTranslation{
-		product_option_id: product_option_id
-		locale_code:       locale_code
-		title:             title
+		product_option_id:     product_option_id
+		product_option_id_bin: product_option_id_bin
+		locale_code:           locale_code
+		title:                 title
 	}
 }
 
@@ -122,11 +132,13 @@ fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_i
 }
 
 struct ProductOption {
-	id         string
-	created_at firebird.DateTime
-	updated_at firebird.DateTime
-	deleted_at firebird.DateTime @[omitempty]
-	product_id string
+	id             string
+	id_bin         []u8 @[json: '-']
+	created_at     firebird.DateTime
+	updated_at     firebird.DateTime
+	deleted_at     firebird.DateTime @[omitempty]
+	product_id     string
+	product_id_bin []u8 @[json: '-']
 mut:
 	values       []ProductOptionValue
 	translations []ProductOptionTranslation
@@ -143,11 +155,13 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 	product_id := id_bin_to_string(product_id_bin)!
 
 	return ProductOption{
-		id:         id
-		created_at: created_at
-		updated_at: updated_at
-		deleted_at: deleted_at
-		product_id: product_id
+		id:             id
+		id_bin:         id_bin
+		created_at:     created_at
+		updated_at:     updated_at
+		deleted_at:     deleted_at
+		product_id:     product_id
+		product_id_bin: product_id_bin
 	}
 }
 

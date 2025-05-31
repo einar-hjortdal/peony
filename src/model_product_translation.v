@@ -4,14 +4,15 @@ import arrays
 import einar_hjortdal.firebird
 
 struct ProductTranslations {
-	product_id  string
-	locale_code string
-	created_at  firebird.DateTime
-	updated_at  firebird.DateTime
-	deleted_at  firebird.DateTime @[omitempty]
-	title       string            @[omitempty]
-	subtitle    string            @[omitempty]
-	description string            @[omitempty]
+	product_id     string
+	product_id_bin []u8 @[json: '-']
+	locale_code    string
+	created_at     firebird.DateTime
+	updated_at     firebird.DateTime
+	deleted_at     firebird.DateTime @[omitempty]
+	title          string            @[omitempty]
+	subtitle       string            @[omitempty]
+	description    string            @[omitempty]
 }
 
 fn parse_product_translation(v []firebird.Value) !ProductTranslations {
@@ -27,14 +28,15 @@ fn parse_product_translation(v []firebird.Value) !ProductTranslations {
 	product_id := id_bin_to_string(product_id_bin)!
 
 	return ProductTranslations{
-		product_id:  product_id
-		locale_code: locale_code
-		created_at:  created_at
-		updated_at:  updated_at
-		deleted_at:  deleted_at
-		title:       title
-		subtitle:    subtitle
-		description: description
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		locale_code:    locale_code
+		created_at:     created_at
+		updated_at:     updated_at
+		deleted_at:     deleted_at
+		title:          title
+		subtitle:       subtitle
+		description:    description
 	}
 }
 

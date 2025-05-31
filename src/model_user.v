@@ -11,6 +11,7 @@ const role_contributor = 'contributor'
 
 struct User {
 	id            string
+	id_bin        []u8 @[json: '-']
 	handle        string
 	email         string
 	password_hash []u8
@@ -24,7 +25,7 @@ struct User {
 }
 
 fn parse_user_data(v []firebird.Value) !User {
-	id, _ := v[0].get_string()!
+	id_bin, _ := v[0].get_array_u8()!
 	handle, _ := v[1].get_string()!
 	email, _ := v[2].get_string()!
 	password_hash, _ := v[3].get_array_u8()!
@@ -35,6 +36,8 @@ fn parse_user_data(v []firebird.Value) !User {
 	deleted_at, _ := v[8].get_date_time()!
 	first_name, _ := v[9].get_string()!
 	last_name, _ := v[10].get_string()!
+
+	id := id_bin_to_string(id_bin)!
 
 	return User{
 		id:            id

@@ -5,6 +5,7 @@ import einar_hjortdal.firebird
 
 struct Region {
 	id                 string
+	id_bin             []u8 @[json: '-']
 	name               string
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
@@ -18,7 +19,7 @@ struct Region {
 }
 
 fn parse_region(v []firebird.Value) !Region {
-	id, _ := v[0].get_string()!
+	id_bin, _ := v[0].get_array_u8()!
 	name, _ := v[1].get_string()!
 	created_at, _ := v[2].get_date_time()!
 	updated_at, _ := v[3].get_date_time()!
@@ -30,8 +31,11 @@ fn parse_region(v []firebird.Value) !Region {
 	gift_cards_taxable, _ := v[9].get_bool()!
 	automatic_taxes, _ := v[10].get_bool()!
 
+	id := id_bin_to_string(id_bin)!
+
 	return Region{
 		id:                 id
+		id_bin:             id_bin
 		name:               name
 		created_at:         created_at
 		updated_at:         updated_at

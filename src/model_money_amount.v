@@ -4,17 +4,21 @@ import einar_hjortdal.firebird
 
 // TODO return price list object?
 struct MoneyAmount {
-	id            string
-	created_at    firebird.DateTime
-	updated_at    firebird.DateTime
-	deleted_at    firebird.DateTime @[omitempty]
-	currency_code string
-	amount        i32
-	min_quantity  i32    @[omitempty]
-	max_quantity  i32    @[omitempty]
-	price_list_id string @[omitempty]
-	region_id     string @[omitempty]
-	variant_id    string @[omitempty] // from product_variant_money_amount
+	id                string
+	id_bin            []u8 @[json: '-']
+	created_at        firebird.DateTime
+	updated_at        firebird.DateTime
+	deleted_at        firebird.DateTime @[omitempty]
+	currency_code     string
+	amount            i32
+	min_quantity      i32    @[omitempty]
+	max_quantity      i32    @[omitempty]
+	price_list_id     string @[omitempty]
+	price_list_id_bin []u8   @[json: '-']
+	region_id         string @[omitempty]
+	region_id_bin     []u8   @[json: '-']
+	variant_id        string @[omitempty] // from product_variant_money_amount
+	variant_id_bin    []u8   @[json: '-']
 }
 
 fn parse_money_amount(v []firebird.Value) !MoneyAmount {
@@ -49,17 +53,21 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 	}
 
 	return MoneyAmount{
-		id:            id
-		created_at:    created_at
-		updated_at:    updated_at
-		deleted_at:    deleted_at
-		currency_code: currency_code
-		amount:        amount
-		min_quantity:  min_quantity
-		max_quantity:  max_quantity
-		price_list_id: price_list_id
-		region_id:     region_id
-		variant_id:    variant_id
+		id:                id
+		id_bin:            id_bin
+		created_at:        created_at
+		updated_at:        updated_at
+		deleted_at:        deleted_at
+		currency_code:     currency_code
+		amount:            amount
+		min_quantity:      min_quantity
+		max_quantity:      max_quantity
+		price_list_id:     price_list_id
+		price_list_id_bin: price_list_id_bin
+		region_id:         region_id
+		region_id_bin:     region_id_bin
+		variant_id:        variant_id
+		variant_id_bin:    variant_id_bin
 	}
 }
 

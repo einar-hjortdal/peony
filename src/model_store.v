@@ -4,6 +4,7 @@ import einar_hjortdal.firebird
 
 struct Store {
 	id                        string
+	id_bin                    []u8 @[json: '-']
 	created_at                firebird.DateTime
 	updated_at                firebird.DateTime
 	name                      string
@@ -14,7 +15,7 @@ struct Store {
 }
 
 fn parse_store(v []firebird.Value) !Store {
-	id, _ := v[0].get_string()!
+	id_bin, _ := v[0].get_array_u8()!
 	created_at, _ := v[1].get_date_time()!
 	updated_at, _ := v[2].get_date_time()!
 	name, _ := v[3].get_string()!
@@ -23,8 +24,11 @@ fn parse_store(v []firebird.Value) !Store {
 	default_stock_location_id, _ := v[6].get_string()!
 	default_sales_channel_id, _ := v[7].get_string()!
 
+	id := id_bin_to_string(id_bin)!
+
 	return Store{
 		id:                        id
+		id_bin:                    id_bin
 		created_at:                created_at
 		updated_at:                updated_at
 		name:                      name

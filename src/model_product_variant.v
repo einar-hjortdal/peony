@@ -5,10 +5,12 @@ import einar_hjortdal.firebird
 
 struct Variant {
 	id                 string
+	id_bin             []u8 @[json: '-']
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
 	deleted_at         firebird.DateTime @[omitempty]
 	product_id         string
+	product_id_bin     []u8   @[json: '-']
 	sku                string @[omitempty]
 	barcode            string @[omitempty]
 	ean                string @[omitempty]
@@ -58,10 +60,12 @@ fn parse_variant(v []firebird.Value) !Variant {
 
 	return Variant{
 		id:                 id
+		id_bin:             id_bin
 		created_at:         created_at
 		updated_at:         updated_at
 		deleted_at:         deleted_at
 		product_id:         product_id
+		product_id_bin:     product_id_bin
 		sku:                sku
 		barcode:            barcode
 		ean:                ean
