@@ -38,9 +38,10 @@ fn parse_sales_channel(v []firebird.Value) !SalesChannel {
 }
 
 fn (mut app App) retrieve_sales_channel_by_id(id string) !SalesChannel {
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	data := tx.execute('SELECT 
-		UUID_TO_CHAR(id),
+		id,
 		created_at,
 		updated_at,
 		deleted_at,
@@ -48,8 +49,8 @@ fn (mut app App) retrieve_sales_channel_by_id(id string) !SalesChannel {
 		description,
 		is_disabled
 		FROM sales_channel
-		WHERE id = CHAR_TO_UUID(?)',
-		id)!
+		WHERE id = ?',
+		id_bin)!
 	tx.rollback()!
 
 	if data.rows.len == 0 {
@@ -59,17 +60,28 @@ fn (mut app App) retrieve_sales_channel_by_id(id string) !SalesChannel {
 }
 
 struct ListSalesChannelsParams {
-	id          []string
-	name        string
-	description string
-	offset      i32
-	fetch       i32
-	order       string
+	ids         ZeroArrayString
+	name        ZeroString
+	description ZeroString
+	offset      ZeroI32
+	fetch       ZeroI32
+	order       ZeroString
 }
 
-fn build_list_sales_channels_query(p ListSalesChannelsParams) (string, []firebird.Value) {
-	base_query := 'SELECT 
-		UUID_TO_CHAR(id),
+fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannelsParams {
+	return ListSalesChannelsParams{
+		ids:         zero_array_string(p, 'ids')
+		name:        zero_string(p, 'name')
+		description: zero_string(p, 'description')
+		offset:      zero_i32(p, 'offset')
+		fetch:       zero_i32(p, 'fetch')
+		order:       zero_string(p, 'order')
+	}
+}
+
+fn build_list_sales_channels_query(p ListSalesChannelsParams) !(string, []firebird.Value) {
+	base_query := 'SELECT
+		id,
 		created_at,
 		updated_at,
 		deleted_at,
@@ -80,39 +92,46 @@ fn build_list_sales_channels_query(p ListSalesChannelsParams) (string, []firebir
 	mut params := []firebird.Value{}
 	mut c := []string{}
 	// Check if id array is not empty (we'll form a SQL IN clause).
-	if p.id.len > 0 {
-		c = arrays.concat(c, 'UUID_TO_CHAR(id) IN (${get_placeholders(p.id)})')
-		params = arrays.concat(params, ...p.id)
+	if p.ids.is_set {
+		mut ids_bin := [][]u8{}
+		for i := 0; i < p.ids.v.len; i++ {
+			id_bin := id_string_to_bin(p.ids.v[i])!
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+		c = arrays.concat(c, 'id IN (${get_placeholders(p.ids.v)})')
+		params = arrays.concat(params, ...ids_bin)
 	}
 
 	// Add condition for name using LIKE with wildcards.
-	if p.name != '' {
+	if p.name.is_set {
 		c = arrays.concat(c, "name LIKE '%' || ? '%'")
-		params = arrays.concat(params, p.name)
+		params = arrays.concat(params, p.name.v)
 	}
 
 	// Add condition for description if provided.
-	if p.description != '' {
+	if p.description.is_set {
 		c = arrays.concat(c, "description LIKE '%' || ? '%'")
-		params = arrays.concat(params, p.description)
+		params = arrays.concat(params, p.description.v)
 	}
 
 	mut sorting := ''
-	if p.offset != 0 {
+	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset)
+		params = arrays.concat(params, p.offset.v)
 	}
-	if p.fetch != 0 {
+
+	if p.fetch.is_set {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch)
+		params = arrays.concat(params, get_fetch_amount(p.fetch))
 	}
-	sorting = appendln(sorting, 'ORDER BY name ${parse_order(p.order)}')
+
+	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
 	return '${base_query}${get_where_conditions(c)}${sorting}', params
 }
 
 fn (mut app App) list_sales_channels(p ListSalesChannelsParams) ![]SalesChannel {
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	query, params := build_list_sales_channels_query(p)
+	query, params := build_list_sales_channels_query(p)!
 	data := tx.execute(query, ...params)!
 	tx.rollback()!
 
@@ -130,9 +149,9 @@ struct NewSalesChannelData {
 	is_disabled bool
 }
 
-fn build_create_sales_channel_query(id string, p NewSalesChannelData) (string, []firebird.Value) {
-	mut col := ['name']
-	mut params := [firebird.Value(id), p.name]
+fn build_create_sales_channel_query(id_bin []u8, p NewSalesChannelData) !(string, []firebird.Value) {
+	mut col := ['id', 'name']
+	mut params := [firebird.Value(id_bin), p.name]
 	if p.description != '' {
 		col = arrays.concat(col, 'description')
 		params = arrays.concat(params, p.description)
@@ -142,48 +161,49 @@ fn build_create_sales_channel_query(id string, p NewSalesChannelData) (string, [
 		params = arrays.concat(params, p.is_disabled)
 	}
 
-	query := 'INSERT INTO sales_channel (
-		id, ${get_columns(col)}) 
-		VALUES (CHAR_TO_UUID(?), ${get_placeholders(col)})'
+	query := 'INSERT INTO sales_channel (${get_columns(col)}) VALUES (${get_placeholders(col)})'
 
 	return query, params
 }
 
-fn (mut app App) create_sales_channel(p NewSalesChannelData) !string {
-	id := app.luuid_generator.v1()
-	query, params := build_create_sales_channel_query(id, p)
+fn (mut app App) create_sales_channel(p NewSalesChannelData) !(string, []u8) {
+	id, id_bin := app.new_id()!
+	query, params := build_create_sales_channel_query(id_bin, p)!
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	tx.execute(query, ...params)!
 	tx.commit()!
-	return id
+	return id, id_bin
 }
 
 fn (mut app App) update_sales_channel(id string, p NewSalesChannelData) ! {
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	tx.execute('UPDATE sales_channel SET 
 		name = ?
 		description = ?
 		is_disabled = ?
-		WHERE id = CHAR_TO_UUID(?)',
-		p.name, p.is_disabled, p.description, id)!
+		WHERE id = ?',
+		p.name, p.is_disabled, p.description, id_bin)!
 	tx.commit()!
 	return
 }
 
 fn (mut app App) delete_sales_channel(id string) ! {
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
-	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = CHAR_TO_UUID(?)',
-		id)!
+	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		id_bin)!
 	tx.commit()!
 }
 
 fn (mut app App) add_products_to_sales_channel(id string, products_ids []string) ! {
+	id_bin := id_string_to_bin(id)!
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	mut stmt := tx.prepare('INSERT INTO product_sales_channel (
-		product_id, sales_channel_id) VALUES (CHAR_TO_UUID(?), CHAR_TO_UUID(?))')!
+		product_id, sales_channel_id) VALUES (?, ?)')!
 	for i := 0; i < products_ids.len; i++ {
-		pid := products_ids[i]
-		stmt.execute(pid, id)!
+		pid_bin := id_string_to_bin(products_ids[i])!
+		stmt.execute(pid_bin, id_bin)!
 	}
 	tx.commit()!
 }

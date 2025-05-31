@@ -125,7 +125,6 @@ CREATE INDEX "0681493b-ad80-1b42-fc00-0503eb38c731" ON money_amount (variant_id)
 CREATE INDEX "0681493b-ad80-1c69-7800-8a18dd634104" ON money_amount (region_id);
 
 CREATE TABLE country (
-  id BINARY(16) NOT NULL,
   code CHAR(2) NOT NULL, -- ISO 3166-1 alpha 2
   region_id BINARY(16),
   CONSTRAINT "0681493b-ad81-13a7-bc00-fa24e898f195" PRIMARY KEY (code),
