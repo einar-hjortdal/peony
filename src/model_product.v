@@ -557,7 +557,8 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, p
 	}
 
 	if images := p.images {
-		app.do_create_product_images(mut tx, product_id_bin, images)!
+		_, ids_bin := app.do_create_images(mut tx, images)!
+		app.do_create_product_images(mut tx, product_id_bin, ids_bin)!
 	}
 
 	// TODO tag_ids
@@ -661,12 +662,12 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 	tx.execute(query, ...params)!
 
 	// TODO
+	// tag_ids
 
 	if image_urls := p.images {
-		do_update_product_images(mut tx, id_bin, image_urls)!
+		app.do_update_product_images(mut tx, id_bin, image_urls)!
 	}
 
-	// tag_ids
 	// sales_channel_ids
 	// category_ids
 	// translations

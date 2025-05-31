@@ -31,6 +31,26 @@ fn parse_image(v []firebird.Value) !Image {
 	}
 }
 
+fn (mut app App) do_create_images(mut tx firebird.Transaction, urls []string) !([]string, [][]u8) {
+	mut c := ['id', 'url']
+	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
+
+	mut ids := []string{len: urls.len}
+	mut ids_bin := [][]u8{len: urls.len}
+
+	for i := 0; i < urls.len; i++ {
+		id, id_bin := app.new_id()!
+		ids[i] = id
+		ids_bin[i] = id_bin
+		stmt.execute(id_bin, urls[i]) or {
+			stmt.close()!
+			return err
+		}
+	}
+	stmt.close()!
+	return ids, ids_bin
+}
+
 fn do_retrieve_images(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]Image {
 	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, url FROM image
 		WHERE id IN ${get_n_placeholders(i32(image_ids_bin.len))}',
@@ -79,33 +99,24 @@ fn parse_product_image(v []firebird.Value) !ProductImage {
 	}
 }
 
-fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ![][]u8 {
-	mut c := ['id', 'url']
-	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
-
-	mut ids_bin := [][]u8{len: urls.len}
-
-	for i := 0; i < urls.len; i++ {
-		_, id_bin := app.new_id()!
-		ids_bin[i] = id_bin
-		stmt.execute(id_bin, urls[i]) or {
+fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
+	c := ['product_id', 'image_id', 'image_rank']
+	mut stmt := tx.prepare('INSERT INTO product_image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
+	for i := 0; i < ids_bin.len; i++ {
+		rank := i
+		stmt.execute(product_id_bin, ids_bin[i], rank) or {
 			stmt.close()!
 			return err
 		}
 	}
 	stmt.close()!
+}
 
-	c = ['product_id', 'image_id']
-	stmt = tx.prepare('INSERT INTO product_image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
-	for i := 0; i < urls.len; i++ {
-		stmt.execute(product_id_bin, ids_bin[i]) or {
-			stmt.close()!
-			return err
-		}
-	}
-	stmt.close()!
-
-	return ids_bin
+fn do_delete_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
+	params := arrays.concat([firebird.Value(product_id_bin)], ...ids_bin)
+	tx.execute('DELETE FROM product_image WHERE product_id = ?
+		AND image_id IN (${get_n_placeholders(i32(ids_bin.len))}));',
+		...params)!
 }
 
 fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
@@ -150,9 +161,7 @@ fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_i
 		}
 	}
 
-	tx.execute('DELETE FROM product_image WHERE product_id = ?
-		AND image_id IN (${get_n_placeholders(i32(ids_bin_to_prune.len))}));',
-		...arrays.concat([firebird.Value(product_id_bin)], ...urls))!
+	do_delete_product_images(mut tx, product_id_bin, ids_bin_to_prune)!
 
 	// create image for urls that don't exist in the image table yet
 	mut images_to_create := []string{}
@@ -169,8 +178,51 @@ fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_i
 		}
 	}
 
-	created_ids_bin := app.do_create_product_images(mut tx, product_id_bin, images_to_create)!
+	_, created_ids_bin := app.do_create_images(mut tx, images_to_create)!
 
-	// create relations for new image rows in product_image and update rank according to order in array
-	// TODO use merge statement
+	// sort id_bins according to urls array to obtain the correct image_rank order
+	mut sorted_id_bins := [][]u8{}
+	for i := 0; i < urls.len; i++ {
+		url := urls[i]
+		mut found := false
+
+		for k := 0; k < pi.len; k++ {
+			if pi[k].url == url {
+				sorted_id_bins = arrays.concat(sorted_id_bins, pi[k].id_bin)
+				found = true
+				break
+			}
+		}
+
+		if found {
+			continue
+		}
+
+		for k := 0; k < images_to_create.len; k++ {
+			if images_to_create[k] == url {
+				sorted_id_bins = arrays.concat(sorted_id_bins, created_ids_bin[k])
+				break
+			}
+		}
+	}
+
+	mut s := ''
+	mut params := []firebird.Value{}
+	for i := 0; i < sorted_id_bins.len; i++ {
+		image_rank := i
+		s = appendln(s, 'SELECT ? AS product_id, ? AS image_id, ? AS image_rank FROM RDB\$DATABASE')
+		params = arrays.concat(params, product_id_bin, sorted_id_bins[i], image_rank)
+		if i < sorted_id_bins.len - 1 {
+			s = appendln(s, 'UNION ALL')
+		}
+	}
+
+	tx.execute('MERGE INTO product_image t
+		USING (${s}) s
+			ON (t.product_id = s.product_id AND t.image_id = s.image_id)
+			WHEN MATCHED THEN UPDATE SET image_rank = s.image_rank
+			WHEN NOT MATCHED THEN
+				INSERT (product_id, image_id, image_rank)
+				VALUES (s.product_id, s.image_id, s.image_rank);',
+		...params)!
 }
