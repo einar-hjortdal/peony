@@ -62,3 +62,60 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 
 	return translations
 }
+
+struct UpdateProductTranslationData {
+	locale_code string
+	title       ?string
+	subtitle    ?string
+	description ?string
+}
+
+fn (mut app App) do_update_product_translations(mut tx firebird.Transaction, product_id_bin []u8, d []UpdateProductTranslationData) ! {
+	mut s := ''
+	mut pa := [firebird.Value(product_id_bin)]
+	for i := 0; i < d.len; i++ {
+		s = appendln(s, 'SELECT
+				? AS product_id,
+				? AS locale_code,
+				? AS title,
+				? AS subtitle,
+				? AS description,
+				FROM RDB\$DATABASE')
+
+		if title := d[i].title {
+			pa = arrays.concat(pa, title)
+		} else {
+			pa = arrays.concat(pa, firebird.Null{})
+		}
+
+		if subtitle := d[i].subtitle {
+			pa = arrays.concat(pa, subtitle)
+		} else {
+			pa = arrays.concat(pa, firebird.Null{})
+		}
+
+		if description := d[i].description {
+			pa = arrays.concat(pa, description)
+		} else {
+			pa = arrays.concat(pa, firebird.Null{})
+		}
+
+		if i != d.len - 1 {
+			s = appendln(s, 'UNION ALL')
+		}
+	}
+
+	tx.execute('MERGE INTO product_translations T
+			USING (${s}) S (product_id, locale_code, title, subtitle, description)
+			ON (T.product_id = S.product_id AND T.locale_code = S.locale_code)
+			WHEN MATCHED THEN UPDATE SET 
+				title = S.title,
+				subtitle = S.subtitle,
+				description = S.description,
+				updated_at = CURRENT_TIMESTAMP
+			WHEN NOT MATCHED THEN
+			INSERT (product_id, locale_code, title, subtitle, description, created_at, updated_at)
+			VALUES (S.product_id, S.locale_code, S.title, S.subtitle, S.description, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+			WHEN NOT MATCHED BY SOURCE THEN DELETE',
+		...pa)!
+}

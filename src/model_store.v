@@ -4,15 +4,17 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Store {
-	id                        string
-	id_bin                    []u8 @[json: '-']
-	created_at                firebird.DateTime
-	updated_at                firebird.DateTime
-	name                      string
-	default_locale_code       string
-	default_currency_code     string
-	default_stock_location_id string @[omitempty]
-	default_sales_channel_id  string @[omitempty]
+	id                            string
+	id_bin                        []u8 @[json: '-']
+	created_at                    firebird.DateTime
+	updated_at                    firebird.DateTime
+	name                          string
+	default_locale_code           string
+	default_currency_code         string
+	default_stock_location_id     string @[omitempty]
+	default_stock_location_id_bin []u8   @[json: '-']
+	default_sales_channel_id      string @[omitempty]
+	default_sales_channel_id_bin  []u8   @[json: '-']
 }
 
 fn parse_store(v []firebird.Value) !Store {
@@ -22,21 +24,34 @@ fn parse_store(v []firebird.Value) !Store {
 	name, _ := v[3].get_string()!
 	default_locale_code, _ := v[4].get_string()!
 	default_currency_code, _ := v[5].get_string()!
-	default_stock_location_id, _ := v[6].get_string()!
-	default_sales_channel_id, _ := v[7].get_string()!
+	default_stock_location_id_bin, default_stock_location_id_bin_is_null := v[6].get_array_u8()!
+	default_sales_channel_id_bin, default_sales_channel_id_bin_is_null := v[7].get_array_u8()!
 
 	id := id_bin_to_string(id_bin)!
 
+	mut default_stock_location_id := ''
+	mut default_sales_channel_id := ''
+
+	if !default_stock_location_id_bin_is_null {
+		default_stock_location_id = id_bin_to_string(default_stock_location_id_bin)!
+	}
+
+	if !default_sales_channel_id_bin_is_null {
+		default_sales_channel_id = id_bin_to_string(default_sales_channel_id_bin)!
+	}
+
 	return Store{
-		id:                        id
-		id_bin:                    id_bin
-		created_at:                created_at
-		updated_at:                updated_at
-		name:                      name
-		default_locale_code:       default_locale_code
-		default_currency_code:     default_currency_code
-		default_stock_location_id: default_stock_location_id
-		default_sales_channel_id:  default_sales_channel_id
+		id:                            id
+		id_bin:                        id_bin
+		created_at:                    created_at
+		updated_at:                    updated_at
+		name:                          name
+		default_locale_code:           default_locale_code
+		default_currency_code:         default_currency_code
+		default_stock_location_id:     default_stock_location_id
+		default_stock_location_id_bin: default_stock_location_id_bin
+		default_sales_channel_id:      default_sales_channel_id
+		default_sales_channel_id_bin:  default_sales_channel_id_bin
 	}
 }
 

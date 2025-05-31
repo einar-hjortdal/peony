@@ -27,6 +27,7 @@ struct Variant {
 	height             i32    @[omitempty]
 	width              i32    @[omitempty]
 	title              string
+	// image              string @[omitempty] // from variant_image TODO
 mut:
 	money_amounts []MoneyAmount        @[omitempty]
 	option_values []ProductOptionValue @[omitempty]

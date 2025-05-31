@@ -438,13 +438,6 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	return products[0]
 }
 
-struct TranslationData {
-	locale_code string
-	title       ?string
-	subtitle    ?string
-	description ?string
-}
-
 struct ProductData {
 	handle            ?string
 	is_giftcard       ?bool
@@ -457,7 +450,7 @@ struct ProductData {
 	tag_ids           ?[]string
 	sales_channel_ids ?[]string
 	category_ids      ?[]string
-	translations      ?[]TranslationData
+	translations      ?[]UpdateProductTranslationData
 }
 
 fn build_query_create_product(product_id string, product_id_bin []u8, p ProductData) !(string, []firebird.Value) {
@@ -506,7 +499,7 @@ fn build_query_create_product(product_id string, product_id_bin []u8, p ProductD
 	return q, params
 }
 
-fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []TranslationData) ! {
+fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []UpdateProductTranslationData) ! {
 	c := [
 		'product_id',
 		'locale_code',
@@ -668,9 +661,47 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 		app.do_update_product_images(mut tx, id_bin, image_urls)!
 	}
 
-	// sales_channel_ids
-	// category_ids
-	// translations
+	if sales_channel_ids := p.sales_channel_ids {
+		mut d := ''
+		mut pa := []firebird.Value{}
+		for i := 0; i < sales_channel_ids.len; i++ {
+			d = appendln(d, 'SELECT ? AS product_id, ? AS sales_channel_id FROM RDB\$DATABASE')
+			sales_channel_id_bin := id_string_to_bin(sales_channel_ids[i])!
+			pa = arrays.concat(pa, id_bin, sales_channel_id_bin)
+			if i != sales_channel_ids.len - 1 {
+				d = appendln(d, 'UNION ALL')
+			}
+		}
+		tx.execute('MERGE INTO product_sales_channel t USING (${d}) s
+			ON (t.product_id = s.product_id AND t.sales_channel_id = s.sales_channel_id)
+			WHEN NOT MATCHED THEN 
+				INSERT (product_id, sales_channel_id) 
+				VALUES (s.product_id, s.sales_channel_id)',
+			...pa)!
+	}
+
+	if category_ids := p.category_ids {
+		mut s := ''
+		mut pa := []firebird.Value{}
+		for i := 0; i < category_ids.len; i++ {
+			s = appendln(s, 'SELECT ? AS product_id, ? AS product_category_id FROM RDB\$DATABASE')
+			category_id_bin := id_string_to_bin(category_ids[i])!
+			pa = arrays.concat(pa, id_bin, category_id_bin)
+			if i != category_id_bin.len - 1 {
+				s = appendln(s, 'UNION ALL')
+			}
+		}
+		tx.execute('MERGE INTO product_category_product t USING (${s}) s
+			ON (t.product_id = s.product_id AND t.product_category_id = s.product_category_id)
+			WHEN NOT MATCHED THEN
+				INSERT (product_id, product_category_id)
+				VALUES (s.product_id, s.product_category_id)',
+			...pa)!
+	}
+
+	if translations := p.translations {
+		app.do_update_product_translations(mut tx, id_bin, translations)!
+	}
 }
 
 fn (mut app App) update_product(id string, p ProductData) ! {
