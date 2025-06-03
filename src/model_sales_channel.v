@@ -219,7 +219,8 @@ fn (mut app App) do_update_product_sales_channels(mut tx firebird.Transaction, p
 		}
 	}
 
-	query := 'MERGE INTO product_sales_channel T USING (${d}) S
+	query := 'MERGE INTO product_sales_channel t
+			USING (${d}) s (product_id, sales_channel_id)
 			ON (t.product_id = s.product_id AND t.sales_channel_id = s.sales_channel_id)
 			WHEN NOT MATCHED THEN 
 				INSERT (product_id, sales_channel_id) 

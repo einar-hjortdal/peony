@@ -14,8 +14,9 @@ fn (mut app App) do_update_product_categories(mut tx firebird.Transaction, produ
 		}
 	}
 
-	query := 'MERGE INTO product_category_product T USING (${s}) S
-			ON (T.product_id = S.product_id AND T.product_category_id = S.product_category_id)
+	query := 'MERGE INTO product_category_product t
+			USING (${s}) s (product_id, product_category_id)
+			ON (t.product_id = s.product_id AND t.product_category_id = s.product_category_id)
 			WHEN NOT MATCHED THEN
 				INSERT (product_id, product_category_id)
 				VALUES (s.product_id, s.product_category_id)

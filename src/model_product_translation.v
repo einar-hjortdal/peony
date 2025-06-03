@@ -105,18 +105,19 @@ fn (mut app App) do_update_product_translations(mut tx firebird.Transaction, pro
 		}
 	}
 
-	query := 'MERGE INTO product_translations T
-			USING (${s}) S (product_id, locale_code, title, subtitle, description)
-			ON (T.product_id = S.product_id AND T.locale_code = S.locale_code)
+	query := 'MERGE INTO product_translations t
+			USING (${s}) s (product_id, locale_code, title, subtitle, description)
+			ON (t.product_id = s.product_id AND t.locale_code = s.locale_code)
 			WHEN MATCHED THEN UPDATE SET 
-				title = S.title,
-				subtitle = S.subtitle,
-				description = S.description,
+				title = s.title,
+				subtitle = s.subtitle,
+				description = s.description,
 				updated_at = CURRENT_TIMESTAMP
 			WHEN NOT MATCHED THEN
-			INSERT (product_id, locale_code, title, subtitle, description, created_at, updated_at)
-			VALUES (S.product_id, S.locale_code, S.title, S.subtitle, S.description, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-			WHEN NOT MATCHED BY SOURCE AND T.product_id = ? THEN DELETE'
+				INSERT (product_id, locale_code, title, subtitle, description)
+				VALUES (s.product_id, s.locale_code, s.title, s.subtitle, s.description)
+			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN
+				UPDATE SET deleted_at = CURRENT_TIMESTAMP'
 	pa = arrays.concat(pa, product_id_bin)
 
 	tx.execute(query, ...pa)!
