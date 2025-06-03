@@ -147,3 +147,49 @@ fn (mut app App) retrieve_collections(p RetrieveCollectionsParams) ![]Collection
 	tx.rollback()!
 	return collections
 }
+
+struct UpdateCollectionTranslationData {
+	locale_code string
+	title       ?string
+}
+
+struct CollectionData {
+	handle       ?string
+	translations ?[]UpdateCollectionTranslationData
+}
+
+fn (mut app App) do_create_collection(mut tx firebird.Transaction, p CollectionData) ! {
+	_, id_bin := app.new_id()!
+	mut c := ['id']
+	mut params := [firebird.Value(id_bin)]
+
+	if handle := p.handle {
+		c = arrays.concat(c, handle)
+		params = arrays.concat(params, handle)
+	}
+
+	tx.execute('INSERT INTO product_collection (${get_columns(c)}) VALUES (${get_n_placeholders(i32(c.len))})',
+		...params)!
+
+	if translations := p.translations {
+		mut stmt := tx.prepare('INSERT INTO product_collection_translations (product_collection_id,
+			locale_code, title) VALUES (?, ?, ?)')!
+
+		for i := 0; i < translations.len; i++ {
+			params = [firebird.Value(id_bin), translations[i].locale_code]
+			if title := translations[i] {
+				params = arrays.concat(params, title)
+				stmt.execute(...params)!
+			}
+		}
+	}
+}
+
+fn (mut app App) create_collection(p CollectionData) ! {
+	mut tx := app.start_transaction()!
+	app.do_create_collection(mut tx, p) or {
+		tx.rollback()!
+		return err
+	}
+	tx.commit()!
+}
