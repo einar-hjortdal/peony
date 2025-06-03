@@ -175,9 +175,8 @@ fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]P
 	mut option_ids_bin := [][]u8{}
 	for i := 0; i < data.rows.len; i++ {
 		option := parse_product_option(data.rows[i].values)!
-		option_id_bin := id_string_to_bin(option.id)!
 		options = arrays.concat(options, option)
-		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
+		option_ids_bin = arrays.concat(option_ids_bin, option.id_bin)
 	}
 
 	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!

@@ -46,6 +46,8 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
 	}
 
 	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
+
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
 		params = arrays.concat(params, p.offset.v)
@@ -53,8 +55,6 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
 
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
-
-	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
 
 	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
 	data := tx.execute('${query}${conditions}${sorting}', ...params)!

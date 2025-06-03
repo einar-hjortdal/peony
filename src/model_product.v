@@ -288,8 +288,7 @@ fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) !
 fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []ProductOption) ![]ProductOptionValue {
 	mut option_ids_bin := [][]u8{}
 	for i := 0; i < po.len; i++ {
-		option_id_bin := id_string_to_bin(po[i].id)!
-		option_ids_bin = arrays.concat(option_ids_bin, option_id_bin)
+		option_ids_bin = arrays.concat(option_ids_bin, po[i].id_bin)
 	}
 
 	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
@@ -351,8 +350,7 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 	product_images := do_retrieve_product_images(mut tx, ids_bin)!
 	mut images_ids_bin := [][]u8{len: product_images.len}
 	for i := 0; i < product_images.len; i++ {
-		images_id_bin := id_string_to_bin(product_images[i].id)!
-		images_ids_bin[i] = images_id_bin
+		images_ids_bin[i] = product_images[i].id_bin
 	}
 
 	images := do_retrieve_images(mut tx, images_ids_bin)!

@@ -87,15 +87,16 @@ fn build_list_regions_query(p ListRegionParams) (string, []firebird.Value) {
 	}
 
 	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
+
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
 		params = arrays.concat(params, p.offset.v)
 	}
 
-	sorting += appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	sorting += appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
 	return '${base_query}${conditions}${sorting}', params
 }
 

@@ -115,6 +115,8 @@ fn build_list_sales_channels_query(p ListSalesChannelsParams) !(string, []firebi
 	}
 
 	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
+
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
 		params = arrays.concat(params, p.offset.v)
@@ -125,7 +127,6 @@ fn build_list_sales_channels_query(p ListSalesChannelsParams) !(string, []firebi
 		params = arrays.concat(params, get_fetch_amount(p.fetch))
 	}
 
-	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
 	return '${base_query}${get_where_conditions(c)}${sorting}', params
 }
 

@@ -198,6 +198,8 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 	}
 
 	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
+
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
 		params = arrays.concat(params, p.offset.v)
@@ -206,8 +208,6 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
-
 	return '${base_query}${get_conditions(c)}${sorting}', params
 }
 
@@ -215,8 +215,7 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 	// extract the ids of the retrieved variants to batch fetch money_amounts
 	mut ids_bin := [][]u8{}
 	for i := 0; i < variants.len; i++ {
-		id_bin := id_string_to_bin(variants[i].id)!
-		ids_bin = arrays.concat(ids_bin, id_bin)
+		ids_bin = arrays.concat(ids_bin, variants[i].id_bin)
 	}
 	ids_bin_n := i32(ids_bin.len)
 
@@ -464,8 +463,6 @@ fn (mut app App) do_update_variant_money_amounts(mut tx firebird.Transaction, va
 			...arrays.concat([variant_id_bin], ...persisting_ids_bin))!
 	}
 
-	// TODO: this is inefficient when many money_amounts are provided
-	// Use a complex merge statement instead (complex SQL but best performance)
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
 		if money_amount_id := ma.id {

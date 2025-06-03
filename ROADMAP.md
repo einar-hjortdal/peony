@@ -37,6 +37,7 @@ Adds features.
 
 - Caching
 - Discounts
+- Product tags
 
 ### v3.3.0
 

@@ -72,15 +72,17 @@ struct UpdateProductTranslationData {
 
 fn (mut app App) do_update_product_translations(mut tx firebird.Transaction, product_id_bin []u8, d []UpdateProductTranslationData) ! {
 	mut s := ''
-	mut pa := [firebird.Value(product_id_bin)]
+	mut pa := []firebird.Value{}
 	for i := 0; i < d.len; i++ {
 		s = appendln(s, 'SELECT
-				? AS product_id,
-				? AS locale_code,
-				? AS title,
-				? AS subtitle,
-				? AS description,
-				FROM RDB\$DATABASE')
+			? AS product_id,
+			? AS locale_code,
+			? AS title,
+			? AS subtitle,
+			? AS description,
+			FROM RDB\$DATABASE')
+
+		pa = arrays.concat(pa, product_id_bin, d[i].locale_code)
 
 		if title := d[i].title {
 			pa = arrays.concat(pa, title)
