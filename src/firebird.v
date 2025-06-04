@@ -138,14 +138,14 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 }
 
 fn (mut app App) prepare_db() ! {
-	if database_is_ready(mut app.fb) {
+	if database_is_ready(mut app.firebird) {
 		return
 	}
 
 	// TODO if error rollback all changes
 	// Can't just do tx.rollback() because each table is created in its own transaction.
 	// Instead a rollback file needs to be created where tables and constrats are dropped in reverse order.
-	create_schema(mut app.fb)!
+	create_schema(mut app.firebird)!
 
 	mut tx := app.start_transaction()!
 	app.add_data(mut tx) or {
