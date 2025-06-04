@@ -39,14 +39,20 @@ fn set_log_level() {
 }
 
 fn new_session_store() !&sessions.Store {
-	mut session_store_options := sessions.JsonWebTokenStoreOptions{
+	mut redict_store_options := sessions.RedictStoreOptions{
+		refresh_expire: parse_bool(os.getenv(env_session_refresh_expire))
+	}
+	mut jwt_options := sessions.JsonWebTokenOptions{
 		app_name:  lib
 		issuer:    os.getenv(env_instance_number)
 		secret:    os.getenv(env_session_secret)
 		prefix:    os.getenv(env_session_admin_prefix)
 		valid_end: strconv.parse_int(os.getenv(env_session_max_age), 10, 64)!
 	}
-	return sessions.new_jwt_store(mut session_store_options)!
+	redict_options := redict.Options{
+		url: os.getenv(env_redict_url)
+	}
+	return sessions.new_redict_store_jwt(mut redict_store_options, mut jwt_options, redict_options)!
 }
 
 fn main() {
