@@ -14,7 +14,7 @@ fn hash_password(pwd string) !([]u8, []u8) {
 	password_salt := rand.bytes(scrypt_salt_length)!
 	password_hash := scrypt.scrypt(pwd.bytes(), password_salt, scrypt_n, scrypt_r, scrypt_p,
 		scrypt_hash_length)!
-	return password_hash, password_salt
+	return password_salt, password_hash
 }
 
 fn verify_password(pwd string, password_hash []u8, password_salt []u8) ! {

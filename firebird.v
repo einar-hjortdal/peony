@@ -6,6 +6,7 @@ import einar_hjortdal.firebird
 import os
 
 const schema_file = $embed_file('migrations/seed-schema.sql')
+const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_codes_file = $embed_file('migrations/seed-currency-codes.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
@@ -14,6 +15,11 @@ const seed_default_currency_code = 'EUR'
 
 fn get_schema_queries() []string {
 	queries := schema_file.to_string().split(';')
+	return queries[..queries.len - 1] // remove last character \n (posix)
+}
+
+fn get_schema_rollback_queries() []string {
+	queries := schema_rollback_file.to_string().split(';')
 	return queries[..queries.len - 1] // remove last character \n (posix)
 }
 
@@ -33,6 +39,7 @@ fn get_locale_codes() []string {
 }
 
 fn (mut app App) insert_country_codes(mut tx firebird.Transaction) ! {
+	log.debug('insert_country_codes')
 	country_codes := get_country_codes()
 	mut stmt := tx.prepare('INSERT INTO country (code) VALUES (?)')!
 	for i := 0; i < country_codes.len; i++ {
@@ -43,6 +50,7 @@ fn (mut app App) insert_country_codes(mut tx firebird.Transaction) ! {
 }
 
 fn (mut app App) insert_currency_codes(mut tx firebird.Transaction) ! {
+	log.debug('insert_currency_codes')
 	currency_codes := get_currency_codes()
 	mut stmt := tx.prepare('INSERT INTO currency (code) VALUES (?)')!
 	for i := 0; i < currency_codes.len; i++ {
@@ -53,6 +61,7 @@ fn (mut app App) insert_currency_codes(mut tx firebird.Transaction) ! {
 }
 
 fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
+	log.debug('insert_locale_codes')
 	locale_codes := get_locale_codes()
 	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
 	for i := 0; i < locale_codes.len; i++ {
@@ -64,6 +73,7 @@ fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
 }
 
 fn (mut app App) insert_default_user(mut tx firebird.Transaction) ! {
+	log.debug('insert_default_user')
 	id, id_bin := app.new_id()!
 	email := os.getenv(env_email)
 	password_salt, password_hash := hash_password(os.getenv(env_password))!
@@ -73,6 +83,7 @@ fn (mut app App) insert_default_user(mut tx firebird.Transaction) ! {
 }
 
 fn (mut app App) insert_default_stock_location(mut tx firebird.Transaction) ![]u8 {
+	log.debug('insert_default_stock_location')
 	stock_location_id, stock_location_id_bin := app.new_id()!
 	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', stock_location_id_bin,
 		stock_location_id)!
@@ -80,6 +91,7 @@ fn (mut app App) insert_default_stock_location(mut tx firebird.Transaction) ![]u
 }
 
 fn (mut app App) insert_default_sales_channel(mut tx firebird.Transaction) ![]u8 {
+	log.debug('insert_default_sales_channel')
 	sales_channel_id, sales_channel_id_bin := app.new_id()!
 	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id_bin,
 		sales_channel_id)!
@@ -88,6 +100,7 @@ fn (mut app App) insert_default_sales_channel(mut tx firebird.Transaction) ![]u8
 
 fn (mut app App) insert_default_store(mut tx firebird.Transaction, stock_location_id_bin []u8,
 	sales_channel_id_bin []u8) ![]u8 {
+	log.debug('insert_default_store')
 	store_id, store_id_bin := app.new_id()!
 	tx.execute('INSERT INTO store (
 	id, name, default_locale_code, default_currency_code, default_stock_location_id, default_sales_channel_id)
@@ -98,11 +111,13 @@ fn (mut app App) insert_default_store(mut tx firebird.Transaction, stock_locatio
 }
 
 fn (mut app App) insert_default_store_locale(mut tx firebird.Transaction, store_id_bin []u8) ! {
+	log.debug('insert_default_store_locale')
 	tx.execute('INSERT INTO store_locales (store_id, locale_code) VALUES (?, ?)', store_id_bin,
 		seed_default_locale_code)!
 }
 
 fn (mut app App) insert_default_store_currency(mut tx firebird.Transaction, store_id_bin []u8) ! {
+	log.debug('insert_default_store_currency')
 	tx.execute('INSERT INTO store_currencies (store_id, currency_code) VALUES (?, ?)',
 		store_id_bin, seed_default_currency_code)!
 }
@@ -128,6 +143,21 @@ fn create_schema(mut conn firebird.Connection) ! {
 	}
 }
 
+fn rollback_schema(mut conn firebird.Connection) {
+	error_message := 'Could not rollback schema, manual intervention may be required.'
+	rollback_queries := get_schema_rollback_queries()
+	for i := 0; i < rollback_queries.len; i++ {
+		q := rollback_queries[i]
+		mut tx := conn.start_transaction(firebird.isolation_level_read_commited) or {
+			log.fatal(error_message)
+		}
+		tx.execute(q) or {
+			// ignore errors
+		}
+		tx.commit() or { log.fatal(error_message) }
+	}
+}
+
 fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	app.insert_country_codes(mut tx)!
 	app.insert_currency_codes(mut tx)!
@@ -145,14 +175,17 @@ fn (mut app App) prepare_db() ! {
 		return
 	}
 
-	// TODO if error rollback all changes
-	// Can't just do tx.rollback() because each table is created in its own transaction.
-	// Instead a rollback file needs to be created where tables and constrats are dropped in reverse order.
-	create_schema(mut app.firebird)!
+	create_schema(mut app.firebird) or {
+		log.error('Failed to create schema')
+		rollback_schema(mut app.firebird)
+		return err
+	}
 
 	mut tx := app.start_transaction()!
 	app.add_data(mut tx) or {
+		log.error('Failed to add default data to database: ${err}')
 		tx.rollback()!
+		rollback_schema(mut app.firebird)
 		return err
 	}
 	tx.commit()!
