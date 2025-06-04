@@ -77,7 +77,7 @@ fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 }
 
 fn (mut app App) store_retrieve() !Store {
-	data := get_store_data(mut app.fb)!
+	data := get_store_data(mut app.firebird)!
 	return parse_store(data)
 }
 
@@ -110,7 +110,7 @@ fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
 	query = appendln(query, conditions)
 	params = arrays.concat(params, id_bin)
 
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute(query, ...params)!
 	tx.commit()!
 }

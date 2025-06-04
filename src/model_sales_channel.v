@@ -39,7 +39,7 @@ fn parse_sales_channel(v []firebird.Value) !SalesChannel {
 
 fn (mut app App) retrieve_sales_channel_by_id(id string) !SalesChannel {
 	id_bin := id_string_to_bin(id)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	data := tx.execute('SELECT 
 		id,
 		created_at,
@@ -131,7 +131,7 @@ fn build_list_sales_channels_query(p ListSalesChannelsParams) !(string, []firebi
 }
 
 fn (mut app App) list_sales_channels(p ListSalesChannelsParams) ![]SalesChannel {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	query, params := build_list_sales_channels_query(p)!
 	data := tx.execute(query, ...params)!
 	tx.rollback()!
@@ -170,7 +170,7 @@ fn build_create_sales_channel_query(id_bin []u8, p NewSalesChannelData) !(string
 fn (mut app App) create_sales_channel(p NewSalesChannelData) !(string, []u8) {
 	id, id_bin := app.new_id()!
 	query, params := build_create_sales_channel_query(id_bin, p)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute(query, ...params)!
 	tx.commit()!
 	return id, id_bin
@@ -178,7 +178,7 @@ fn (mut app App) create_sales_channel(p NewSalesChannelData) !(string, []u8) {
 
 fn (mut app App) update_sales_channel(id string, p NewSalesChannelData) ! {
 	id_bin := id_string_to_bin(id)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('UPDATE sales_channel SET 
 		name = ?
 		description = ?
@@ -191,7 +191,7 @@ fn (mut app App) update_sales_channel(id string, p NewSalesChannelData) ! {
 
 fn (mut app App) delete_sales_channel(id string) ! {
 	id_bin := id_string_to_bin(id)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		id_bin)!
 	tx.commit()!
@@ -199,7 +199,7 @@ fn (mut app App) delete_sales_channel(id string) ! {
 
 fn (mut app App) add_products_to_sales_channel(id string, products_ids []string) ! {
 	id_bin := id_string_to_bin(id)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	mut stmt := tx.prepare('INSERT INTO product_sales_channel (
 		product_id, sales_channel_id) VALUES (?, ?)')!
 	for i := 0; i < products_ids.len; i++ {

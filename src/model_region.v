@@ -101,7 +101,7 @@ fn build_list_regions_query(p ListRegionParams) (string, []firebird.Value) {
 }
 
 fn (mut app App) retrieve_regions(p ListRegionParams) ![]Region {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	query, params := build_list_regions_query(p)
 	data := tx.execute(query, ...params)!
 	tx.rollback()!
@@ -115,7 +115,7 @@ fn (mut app App) retrieve_regions(p ListRegionParams) ![]Region {
 }
 
 fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	data := tx.execute('SELECT 
 		id,
 		name
@@ -144,7 +144,7 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 
 fn (mut app App) add_country(code string, region_id string) ! {
 	region_id_bin := id_string_to_bin(region_id)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('UPDATE country SET region_id = ? WHERE code = ?', region_id_bin, code) or {
 		tx.rollback()!
 		return err
@@ -154,7 +154,7 @@ fn (mut app App) add_country(code string, region_id string) ! {
 
 fn (mut app App) remove_country(code string, region_id string) ! {
 	region_id_bin := id_string_to_bin(region_id)!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('UPDATE country SET region_id = NULL WHERE code = ? AND region_id = ?',
 		code, region_id_bin) or {
 		tx.rollback()!
@@ -189,7 +189,7 @@ fn build_create_region_query(d CreateRegionData, id_bin []u8) (string, []firebir
 
 fn (mut app App) create_region(d CreateRegionData) !(string, []u8) {
 	id, id_bin := app.new_id()!
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 
 	query, params := build_create_region_query(d, id_bin)
 	tx.execute(query, ...params) or {

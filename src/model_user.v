@@ -83,7 +83,7 @@ fn (mut app App) create_user(d NewUserData) !(string, []u8) {
 		params = arrays.concat(params, last_name)
 	}
 
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('INSERT INTO user (
 		id,
 		handle,
@@ -101,7 +101,7 @@ fn (mut app App) create_user(d NewUserData) !(string, []u8) {
 }
 
 fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	res := tx.execute('SELECT (
 		id,
 		handle,
@@ -123,7 +123,7 @@ fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 }
 
 fn (mut app App) retrieve_user_by_email(email string) !User {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	res := tx.execute('SELECT (
 		id,
 		handle,
@@ -173,13 +173,13 @@ fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {
 	query = appendln(query, conditions)
 	params = arrays.concat(params, id_bin)
 
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute(query, ...params)!
 	tx.commit()!
 }
 
 fn (mut app App) delete_user(id_bin []u8) ! {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('UPDATE user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
 }

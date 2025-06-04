@@ -103,7 +103,7 @@ fn get_fetch_amount(zi32 ZeroI32) i32 {
 }
 
 fn (mut app App) start_transaction() !&firebird.Transaction {
-	return app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	return app.firebird.start_transaction(firebird.isolation_level_read_commited)!
 }
 
 fn id_string_to_bin(id_string string) ![]u8 {

@@ -8,6 +8,7 @@ import veb
 // first party
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
+// import einar_hjortdal.redict
 import einar_hjortdal.sessions
 
 @[heap]
@@ -15,8 +16,9 @@ pub struct App {
 	veb.Middleware[Context]
 mut:
 	luuid_generator &luuid.Generator
-	fb              &firebird.Connection
-	session_store   &sessions.Store
+	firebird        &firebird.Connection
+	// redict          &redict.Client
+	session_store &sessions.Store
 }
 
 pub struct Context {
@@ -57,10 +59,17 @@ fn main() {
 
 	mut session_store := new_session_store() or { panic(err) }
 
+	// mut redict_options := redict.Options{
+	// 	url: os.getenv(env_redict_url)
+	// }
+
+	// mut redict_client := redict.new_client(mut redict_options)
+
 	mut app := App{
 		luuid_generator: luuid_generator
-		fb:              firebird_connection
-		session_store:   session_store
+		firebird:        firebird_connection
+		// redict:          redict_client
+		session_store: session_store
 	}
 
 	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)

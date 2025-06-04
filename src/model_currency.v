@@ -56,7 +56,7 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	data := tx.execute('${query}${conditions}${sorting}', ...params)!
 	tx.rollback()!
 
@@ -69,7 +69,7 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
 }
 
 fn (mut app App) retrieve_currency_by_code(code string) !Currency {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	res := tx.execute('SELECT (code, includes_tax)	FROM currency WHERE code = ?', code)!
 	tx.rollback()!
 
@@ -85,7 +85,7 @@ struct NewCurrencyData {
 }
 
 fn (mut app App) update_currency(code string, data NewCurrencyData) ! {
-	mut tx := app.fb.start_transaction(firebird.isolation_level_read_commited)!
+	mut tx := app.start_transaction()!
 	tx.execute('UPDATE currency SET includes_tax = ? WHERE code = ?', data.includes_tax,
 		code)!
 	tx.commit()!
