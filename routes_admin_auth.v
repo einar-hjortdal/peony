@@ -33,7 +33,7 @@ fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 }
 
 // log out user
-@['/admin/auth/'; del]
+@['/admin/auth/'; delete]
 fn (app &App) admin_auth_del(mut ctx Context) veb.Result {
 	ctx.user_session.to_prune = true
 	return ctx.text('ok')

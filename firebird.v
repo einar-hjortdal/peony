@@ -127,10 +127,12 @@ fn database_is_ready(mut conn firebird.Connection) bool {
 	if _ := get_store_data(mut conn) {
 		return true
 	}
+	log.error('No store data found')
 	return false
 }
 
 fn create_schema(mut conn firebird.Connection) ! {
+	log.debug('create_schema')
 	schema_queries := get_schema_queries()
 	for i := 0; i < schema_queries.len; i++ {
 		q := schema_queries[i]
@@ -143,18 +145,24 @@ fn create_schema(mut conn firebird.Connection) ! {
 	}
 }
 
-fn rollback_schema(mut conn firebird.Connection) {
-	error_message := 'Could not rollback schema, manual intervention may be required.'
+fn rollback_schema(mut conn firebird.Connection) ! {
+	log.debug('rollback_schema')
 	rollback_queries := get_schema_rollback_queries()
 	for i := 0; i < rollback_queries.len; i++ {
 		q := rollback_queries[i]
 		mut tx := conn.start_transaction(firebird.isolation_level_read_commited) or {
-			log.fatal(error_message)
+			log.error('Could not rollback schema, manual intervention may be required.')
+			log.debug('Failed to start transaction')
+			return err
 		}
 		tx.execute(q) or {
 			// ignore errors
 		}
-		tx.commit() or { log.fatal(error_message) }
+		tx.commit() or {
+			log.error('Could not rollback schema, manual intervention may be required.')
+			log.debug('Failed to commit changes')
+			return err
+		}
 	}
 }
 
@@ -177,16 +185,24 @@ fn (mut app App) prepare_db() ! {
 
 	create_schema(mut app.firebird) or {
 		log.error('Failed to create schema')
-		rollback_schema(mut app.firebird)
+		rollback_schema(mut app.firebird)!
 		return err
 	}
 
-	mut tx := app.start_transaction()!
-	app.add_data(mut tx) or {
-		log.error('Failed to add default data to database: ${err}')
-		tx.rollback()!
-		rollback_schema(mut app.firebird)
+	mut tx := app.start_transaction() or {
+		log.error('Failed to start transaction')
 		return err
 	}
-	tx.commit()!
+
+	app.add_data(mut tx) or {
+		log.error('Failed to add default data to database')
+		tx.rollback()!
+		rollback_schema(mut app.firebird)!
+		return err
+	}
+
+	tx.commit() or {
+		log.error('Failed to commit')
+		return err
+	}
 }
