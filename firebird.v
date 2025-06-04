@@ -1,7 +1,7 @@
 module main
 
 // import arrays
-// import log
+import log
 import einar_hjortdal.firebird
 import os
 
@@ -64,12 +64,12 @@ fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
 }
 
 fn (mut app App) insert_default_user(mut tx firebird.Transaction) ! {
-	user_id, user_id_bin := app.new_id()!
-	user_email := os.getenv(env_email)
+	id, id_bin := app.new_id()!
+	email := os.getenv(env_email)
 	password_salt, password_hash := hash_password(os.getenv(env_password))!
-	tx.execute('INSERT INTO user (id, handle, email, password_hash, password_salt, role)
+	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, role)
 	VALUES (?, ?, ?, ?, ?, ?)',
-		user_id_bin, user_id, user_email, password_hash, password_salt, role_admin)!
+		id_bin, id, email, password_hash, password_salt, role_admin)!
 }
 
 fn (mut app App) insert_default_stock_location(mut tx firebird.Transaction) ![]u8 {
@@ -120,7 +120,10 @@ fn create_schema(mut conn firebird.Connection) ! {
 	for i := 0; i < schema_queries.len; i++ {
 		q := schema_queries[i]
 		mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
-		tx.execute(q)!
+		tx.execute(q) or {
+			log.debug('Failed to execute query: ${q}')
+			return err
+		}
 		tx.commit()!
 	}
 }

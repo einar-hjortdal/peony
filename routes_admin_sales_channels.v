@@ -36,7 +36,7 @@ fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 		return ctx.json(new_peony_error('Could not decode NewSalesChannelData', err.msg()))
 	}
 
-	id := app.create_sales_channel(data) or {
+	id, _ := app.create_sales_channel(data) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not create sales channel', err.msg()))
 	}

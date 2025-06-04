@@ -84,7 +84,7 @@ fn (mut app App) create_user(d NewUserData) !(string, []u8) {
 	}
 
 	mut tx := app.start_transaction()!
-	tx.execute('INSERT INTO user (
+	tx.execute('INSERT INTO app_user (
 		id,
 		handle,
 		email,
@@ -111,12 +111,12 @@ fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 		role,
 		first_name,
 		last_name
-		)	FROM user WHERE id = ?',
+		)	FROM app_user WHERE id = ?',
 		id_bin)!
 	tx.rollback()!
 
 	if res.rows.len == 0 {
-		return error(format_error_message('No user found'))
+		return error(format_error_message('No app_user found'))
 	}
 
 	return parse_user_data(res.rows[0].values)!
@@ -133,12 +133,12 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 		role,
 		first_name,
 		last_name
-		)	FROM user WHERE email = ?',
+		)	FROM app_user WHERE email = ?',
 		email)!
 	tx.rollback()!
 
 	if res.rows.len == 0 {
-		return error(format_error_message('No user found'))
+		return error(format_error_message('No app_user found'))
 	}
 
 	return parse_user_data(res.rows[0].values)!
@@ -151,7 +151,7 @@ struct UpdateUserData {
 }
 
 fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {
-	mut query := 'UPDATE user SET'
+	mut query := 'UPDATE app_user SET'
 	mut params := []firebird.Value{}
 
 	if first_name := p.first_name {
@@ -180,6 +180,6 @@ fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {
 
 fn (mut app App) delete_user(id_bin []u8) ! {
 	mut tx := app.start_transaction()!
-	tx.execute('UPDATE user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
+	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
 }

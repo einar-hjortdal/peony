@@ -5,13 +5,13 @@ CREATE TABLE migration (
   CONSTRAINT "06828532-0de2-15f4-6c00-263bdaf3d865" PRIMARY KEY (id)
 );
 
-CREATE TABLE user (
+CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,
   email VARCHAR(254), -- IETF RFC 3696 Errata 1690
   password_hash BINARY(64) NOT NULL,
   password_salt BINARY(32) NOT NULL,
-  role VARCHAR(11) NOT NULL DEFAULT 'member',
+  role VARCHAR(11) DEFAULT 'member' NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
@@ -23,8 +23,8 @@ CREATE TABLE user (
   )
 );
 
-CREATE UNIQUE INDEX "0681493b-ad7e-17e0-d000-774707c2de94" ON user (email) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX "0681493b-ad7e-1834-9000-63304927463c" ON user (handle) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX "0681493b-ad7e-17e0-d000-774707c2de94" ON app_user (email) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX "0681493b-ad7e-1834-9000-63304927463c" ON app_user (handle) WHERE deleted_at IS NULL;
 
 CREATE TABLE currency (
   code CHAR(3) NOT NULL, -- ISO 4217
@@ -57,7 +57,7 @@ CREATE TABLE product_tag (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  CONSTRAINT "0681493b-ad7f-1495-c400-531833208d23" PRIMARY KEY (id),
+  CONSTRAINT "0681493b-ad7f-1495-c400-531833208d23" PRIMARY KEY (id)
 );
 
 CREATE TABLE product_type (
@@ -65,7 +65,7 @@ CREATE TABLE product_type (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  CONSTRAINT "0681493b-ad7f-17e9-bc00-194e2c0426e8" PRIMARY KEY (id),
+  CONSTRAINT "0681493b-ad7f-17e9-bc00-194e2c0426e8" PRIMARY KEY (id)
 );
 
 CREATE TABLE price_list (
@@ -121,7 +121,6 @@ CREATE TABLE money_amount (
 );
 
 CREATE INDEX "0681493b-ad80-1af0-3400-b14340ac5e59" ON money_amount (currency_code);
-CREATE INDEX "0681493b-ad80-1b42-fc00-0503eb38c731" ON money_amount (variant_id);
 CREATE INDEX "0681493b-ad80-1c69-7800-8a18dd634104" ON money_amount (region_id);
 
 CREATE TABLE country (
@@ -165,23 +164,6 @@ CREATE TABLE inventory_level (
   reserved_quantity INTEGER DEFAULT 0 NOT NULL,
   incoming_quantity INTEGER DEFAULT 0 NOT NULL,
   CONSTRAINT "06828532-0de1-11fb-5800-aecf67f0cc77" PRIMARY KEY (id)
-);
-
-CREATE INDEX "06828532-0de1-1585-f000-574b161483a2" ON reservation_item (line_item_id) WHERE deleted_at IS NULL;
-CREATE INDEX "06828532-0de1-15d5-b000-1bf0f6ec61a7" ON reservation_item (inventory_item_id) WHERE deleted_at IS NULL;
-CREATE INDEX "06828532-0de1-16b6-0800-7138bd647653" ON reservation_item (location_id) WHERE deleted_at IS NULL;
-
-CREATE TABLE inventory_level (
-  id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  inventory_item_id BINARY(16) NOT NULL,
-  location_id BINARY(16) NOT NULL,
-  stocked_quantity INTEGER NOT NULL DEFAULT 0,
-  reserved_quantity INTEGER NOT NULL DEFAULT 0,
-  incoming_quantity INTEGER NOT NULL DEFAULT 0,
-  CONSTRAINT "06828532-0de1-1706-0400-73c34c41aa55" PRIMARY KEY (id)
 );
 
 CREATE UNIQUE INDEX "06828532-0de1-1ef1-e000-ed029783b4aa" ON inventory_level (inventory_item_id, location_id);
@@ -259,8 +241,8 @@ CREATE TABLE product_variant_inventory_item (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  CONSTRAINT "06828532-0de0-1cd6-3000-96dbe91750c7" PRIMARY KEY (id)
-  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+  CONSTRAINT "06828532-0de0-1cd6-3000-96dbe91750c7" PRIMARY KEY (id),
+  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX "06828532-0de0-1d21-f800-7309e0f7c125" ON product_variant_inventory_item (variant_id, inventory_item_id);
@@ -368,8 +350,8 @@ CREATE TABLE stock_location_address (
   phone VARCHAR(63),
   province VARCHAR(63),
   postal_code VARCHAR(63),
-  CONSTRAINT "068284bc-d749-1f4e-9000-b6c6e237bd23" PRIMARY KEY (id)
-  CONSTRAINT "068284bc-d749-1fa8-4800-72394cfabf1f" FOREIGN KEY ("country_code") REFERENCES "country" ("code")
+  CONSTRAINT "068284bc-d749-1f4e-9000-b6c6e237bd23" PRIMARY KEY (id),
+  CONSTRAINT "068284bc-d749-1fa8-4800-72394cfabf1f" FOREIGN KEY (country_code) REFERENCES country (code)
 );
 
 CREATE INDEX "068284bc-d74a-113a-cc00-7a45c21dc847" ON stock_location_address (country_code);
@@ -404,8 +386,8 @@ CREATE TABLE sales_channel_location (
   deleted_at TIMESTAMP,
   sales_channel_id BINARY(16) NOT NULL,
   stock_location_id BINARY(16) NOT NULL,
-  CONSTRAINT "068284bc-d74a-191b-3000-6dd35ee3e21b" PRIMARY KEY (id)
-  CONSTRAINT "068284bc-d74a-1a0b-c000-9f68490f9d3c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id)
+  CONSTRAINT "068284bc-d74a-191b-3000-6dd35ee3e21b" PRIMARY KEY (id),
+  CONSTRAINT "068284bc-d74a-1a0b-c000-9f68490f9d3c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id),
   CONSTRAINT "068284bc-d74a-1f78-5400-6820c274c28e" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id)
 );
 
@@ -442,7 +424,7 @@ CREATE INDEX "0681493b-ad85-17b5-1c00-77a1a1ff2a8c" ON product_category_product 
 CREATE TABLE product_image (
   product_id BINARY(16) NOT NULL,
   image_id BINARY(16) NOT NULL,
-  image_rank INTEGER DEFAULT 0 NOT NULL
+  image_rank INTEGER DEFAULT 0 NOT NULL,
   CONSTRAINT "0681493b-ad85-1944-1c00-f370c73c0267" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "0681493b-ad85-199a-3c00-5180bc814563" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE CASCADE ON UPDATE CASCADE,
   PRIMARY KEY (product_id, image_id)
@@ -454,7 +436,7 @@ CREATE INDEX "0681493b-ad85-1b2a-cc00-4a77334dc5b6" ON product_image (image_id);
 CREATE TABLE variant_image (
   variant_id BINARY(16) NOT NULL,
   image_id BINARY(16) NOT NULL,
-  CONSTRAINT "06828532-0de3-105a-d400-73d44583098a" FOREIGN KEY (variant_id) REFERENCES variant (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "06828532-0de3-105a-d400-73d44583098a" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT "06828532-0de3-10ad-b400-c1a3196a0c89" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE CASCADE ON UPDATE CASCADE,
   PRIMARY KEY (variant_id, image_id)
 );
@@ -470,8 +452,8 @@ CREATE TABLE product_tag_product (
   PRIMARY KEY (product_id, product_tag_id)
 );
 
-CREATE INDEX "0681493b-ad85-1e2a-6400-f6e07fe1b136" ON product_tags (product_id);
-CREATE INDEX "0681493b-ad85-1e7a-3400-a730f5052e86" ON product_tags (product_tag_id);
+CREATE INDEX "0681493b-ad85-1e2a-6400-f6e07fe1b136" ON product_tag_product (product_id);
+CREATE INDEX "0681493b-ad85-1e7a-3400-a730f5052e86" ON product_tag_product (product_tag_id);
 
 CREATE TABLE product_sales_channel (
   product_id BINARY(16) NOT NULL,

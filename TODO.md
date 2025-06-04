@@ -8,5 +8,3 @@
 - [ ] Iron out error handling
 
 ## Refactor
-
-- include `id_bin` in structs, use `@[json: '-']`.
