@@ -191,8 +191,8 @@ fn (mut app App) is_ready() !bool {
 		Database may be corrupt, manual intervention is required.')
 }
 
-fn (mut app App) prepare_db() ! {
-	is_ready := app.is_ready()!
+fn (mut app App) prepare_db() {
+	is_ready := app.is_ready() or { panic(err) }
 	if is_ready {
 		return
 	}
@@ -201,24 +201,30 @@ fn (mut app App) prepare_db() ! {
 
 	create_schema(mut app.firebird) or {
 		log.error('Failed to create schema, rolling back...')
-		rollback_schema(mut app.firebird)!
-		return err
+		rollback_schema(mut app.firebird) or {
+			log.error('Failed to rollback schema, manual intervention may be required')
+		}
+		panic(err)
 	}
 
 	mut tx := app.start_transaction() or {
-		log.error('Failed to start transaction, manual intervention may bv')
-		return err
+		log.error('Failed to start transaction, manual intervention may be required')
+		panic(err)
 	}
 
 	app.add_data(mut tx) or {
-		log.error('Failed to add default data to database')
-		tx.rollback()!
-		rollback_schema(mut app.firebird)!
-		return err
+		log.error('Failed to add default data to database, rolling back...')
+		tx.rollback() or { log.error('Failed to rollback transaction') }
+		rollback_schema(mut app.firebird) or {
+			log.error('Failed to rollback schema, manual intervention may be required')
+		}
+		panic(err)
 	}
 
 	tx.commit() or {
-		log.error('Failed to commit')
-		return err
+		log.error('Failed to commit changes to database, manual intervention may be required')
+		panic(err)
 	}
+
+	log.info('Database setup complete')
 }

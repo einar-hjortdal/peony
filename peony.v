@@ -81,7 +81,7 @@ fn main() {
 	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)
 	app.route_use('/admin/:path...', handler: app.save_user_session_middleware, after: true)
 
-	app.prepare_db() or { panic(err) }
+	app.prepare_db()
 
 	port := os.getenv(env_port).int()
 	veb.run[App, Context](mut app, port)
