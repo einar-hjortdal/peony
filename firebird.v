@@ -12,6 +12,7 @@ const currency_codes_file = $embed_file('migrations/seed-currency-codes.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
 const seed_default_locale_code = 'en'
 const seed_default_currency_code = 'EUR'
+const seed_migration_name = 'seed'
 
 fn get_schema_queries() []string {
 	queries := schema_file.to_string().split(';')
@@ -122,15 +123,6 @@ fn (mut app App) insert_default_store_currency(mut tx firebird.Transaction, stor
 		store_id_bin, seed_default_currency_code)!
 }
 
-fn database_is_ready(mut conn firebird.Connection) bool {
-	// assume the database is ready if get_store_data does not fail
-	if _ := get_store_data(mut conn) {
-		return true
-	}
-	log.error('No store data found')
-	return false
-}
-
 fn create_schema(mut conn firebird.Connection) ! {
 	log.debug('create_schema')
 	schema_queries := get_schema_queries()
@@ -176,21 +168,45 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	store_id_bin := app.insert_default_store(mut tx, stock_location_id_bin, sales_channel_id_bin)!
 	app.insert_default_store_locale(mut tx, store_id_bin)!
 	app.insert_default_store_currency(mut tx, store_id_bin)!
+	app.do_create_migration(mut tx, seed_migration_name)!
+}
+
+fn (mut app App) is_ready() !bool {
+	migrations := app.retrieve_migrations() or {
+		if err.msg().contains('Table unknown') {
+			log.info('Database needs setup: migration table missing')
+			return false
+		} else {
+			log.error('Could not retrieve migrations')
+			return err
+		}
+	}
+
+	if migration := find_migration(migrations, seed_migration_name) {
+		log.info('Store created at ${migration.created_at.Time}')
+		return true
+	}
+
+	return error('Database contains a migration table, but it lacks a row with name `${seed_migration_name}`.
+		Database may be corrupt, manual intervention is required.')
 }
 
 fn (mut app App) prepare_db() ! {
-	if database_is_ready(mut app.firebird) {
+	is_ready := app.is_ready()!
+	if is_ready {
 		return
 	}
 
+	log.info('Setting up database')
+
 	create_schema(mut app.firebird) or {
-		log.error('Failed to create schema')
+		log.error('Failed to create schema, rolling back...')
 		rollback_schema(mut app.firebird)!
 		return err
 	}
 
 	mut tx := app.start_transaction() or {
-		log.error('Failed to start transaction')
+		log.error('Failed to start transaction, manual intervention may bv')
 		return err
 	}
 

@@ -57,7 +57,7 @@ fn parse_store(v []firebird.Value) !Store {
 
 fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 	mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
-	res := tx.execute('SELECT (
+	res := tx.execute('SELECT
 		id,
 		created_at,
 		updated_at,
@@ -66,7 +66,7 @@ fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 		default_currency_code,
 		default_stock_location_id,
 		default_sales_channel_id
-		) FROM store')!
+		FROM store')!
 	tx.rollback()!
 
 	if res.rows.len == 0 {
