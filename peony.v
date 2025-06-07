@@ -38,44 +38,31 @@ fn set_log_level() {
 	}
 }
 
-fn new_session_store() !&sessions.Store {
-	mut redict_store_options := sessions.RedictStoreOptions{
+fn main() {
+	load_settings()
+	set_log_level()
+
+	firebird_url := os.getenv(env_firebird_url)
+
+	mut rso := sessions.RedictStoreOptions{
 		refresh_expire: parse_bool(os.getenv(env_session_refresh_expire))
 	}
-	mut jwt_options := sessions.JsonWebTokenOptions{
+	mut jwto := sessions.JsonWebTokenOptions{
 		app_name:  lib
 		issuer:    os.getenv(env_instance_number)
 		secret:    os.getenv(env_session_secret)
 		prefix:    os.getenv(env_session_admin_prefix)
 		valid_end: strconv.parse_int(os.getenv(env_session_max_age), 10, 64)!
 	}
-	redict_options := redict.Options{
+	ro := redict.Options{
 		url: os.getenv(env_redict_url)
 	}
-	return sessions.new_redict_store_jwt(mut redict_store_options, mut jwt_options, redict_options)!
-}
-
-fn main() {
-	load_settings()
-	set_log_level()
-
-	firebird_url := os.getenv(env_firebird_url)
-	mut firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
-	mut luuid_generator := luuid.new_generator()
-
-	mut session_store := new_session_store() or { panic(err) }
-
-	redict_options := redict.Options{
-		url: os.getenv(env_redict_url)
-	}
-
-	mut redict_client := redict.new_client(redict_options) or { panic(err) }
 
 	mut app := App{
-		luuid_generator: luuid_generator
-		firebird:        firebird_connection
-		redict:          redict_client
-		session_store:   session_store
+		luuid_generator: luuid.new_generator()
+		firebird:        firebird.new_connection(firebird_url) or { panic(err) }
+		redict:          redict.new_client(ro) or { panic(err) }
+		session_store:   sessions.new_redict_store_jwt(mut rso, mut jwto, ro) or { panic(err) }
 	}
 
 	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)
