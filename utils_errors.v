@@ -1,9 +1,5 @@
 module main
 
-// import veb
-// import net.http
-// import log
-
 const lib = 'peony'
 
 fn format_error_message(message string) string {

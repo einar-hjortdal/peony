@@ -20,9 +20,9 @@ struct User {
 	role          string
 	created_at    firebird.DateTime
 	updated_at    firebird.DateTime
-	deleted_at    firebird.DateTime @[omitempty]
-	first_name    string            @[omitempty]
-	last_name     string            @[omitempty]
+	deleted_at    firebird.DateTime
+	first_name    string
+	last_name     string
 }
 
 fn parse_user_data(v []firebird.Value) !User {
@@ -94,7 +94,7 @@ fn (mut app App) create_user(d NewUserData) !(string, []u8) {
 		role,
 		first_name,
 		last_name
-		)	VALUES ${get_columns(c)})',
+		) VALUES ${get_columns(c)})',
 		arrays.concat([firebird.Value(id)], params))!
 	tx.commit()!
 

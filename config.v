@@ -104,7 +104,7 @@ fn remove_prefix() {
 // settings are validated and default settings are set if missing
 //
 // This function should be called first in the main function
-pub fn load_settings() {
+fn load_settings() {
 	dotenv.load()
 	remove_invalid_settings()
 	add_default_settings()
