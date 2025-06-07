@@ -3,7 +3,7 @@ module main
 import crypto.rand
 import crypto.scrypt
 
-const scrypt_n = 1 << 16 // 2 raised to the power of 16
+const scrypt_n = 16_384
 const scrypt_r = 8
 const scrypt_p = 2
 const scrypt_salt_length = 32
