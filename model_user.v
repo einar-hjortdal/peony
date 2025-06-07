@@ -9,9 +9,10 @@ const role_developer = 'developer'
 const role_author = 'author'
 const role_contributor = 'contributor'
 
+// For internal use only: send UserResponse over the network
 struct User {
 	id            string
-	id_bin        []u8 @[json: '-']
+	id_bin        []u8
 	handle        string
 	email         string
 	password_hash []u8
@@ -102,16 +103,19 @@ fn (mut app App) create_user(d NewUserData) !(string, []u8) {
 
 fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 	mut tx := app.start_transaction()!
-	res := tx.execute('SELECT (
+	res := tx.execute('SELECT
 		id,
 		handle,
 		email,
 		password_hash,
 		password_salt,
 		role,
+		created_at,
+		updated_at,
+		deleted_at,
 		first_name,
 		last_name
-		)	FROM app_user WHERE id = ?',
+		FROM app_user WHERE id = ?',
 		id_bin)!
 	tx.rollback()!
 
@@ -124,16 +128,19 @@ fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 
 fn (mut app App) retrieve_user_by_email(email string) !User {
 	mut tx := app.start_transaction()!
-	res := tx.execute('SELECT (
+	res := tx.execute('SELECT
 		id,
 		handle,
 		email,
 		password_hash,
 		password_salt,
 		role,
+		created_at,
+		updated_at,
+		deleted_at,
 		first_name,
 		last_name
-		)	FROM app_user WHERE email = ?',
+		FROM app_user WHERE email = ?',
 		email)!
 	tx.rollback()!
 

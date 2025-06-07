@@ -4,7 +4,7 @@
 - [x] Write a firebird connector <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a Redict library <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
-- [ ] Seed new database with a schema, constants and defaults
+- [x] Seed new database with a schema, constants and defaults
 - [ ] Iron out error handling
 
 ## Refactor

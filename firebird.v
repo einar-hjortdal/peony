@@ -191,6 +191,7 @@ fn (mut app App) is_ready() !bool {
 		Database may be corrupt, manual intervention is required.')
 }
 
+// panics on errors
 fn (mut app App) prepare_db() {
 	is_ready := app.is_ready() or { panic(err) }
 	if is_ready {
