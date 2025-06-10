@@ -5,6 +5,7 @@ import log
 import os
 import strconv
 import veb
+import time
 // first party
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
@@ -44,15 +45,15 @@ fn main() {
 
 	firebird_url := os.getenv(env_firebird_url)
 
-	mut rso := sessions.RedictStoreOptions{
+	rso := sessions.RedictStoreOptions{
 		refresh_expire: parse_bool(os.getenv(env_session_refresh_expire))
 	}
-	mut jwto := sessions.JsonWebTokenOptions{
-		app_name:  lib
-		issuer:    os.getenv(env_instance_number)
+	co := sessions.CookieOptions{
+		http_only: true
 		secret:    os.getenv(env_session_secret)
-		prefix:    os.getenv(env_session_admin_prefix)
-		valid_end: strconv.parse_int(os.getenv(env_session_max_age), 10, 64)!
+		secure:    true
+		max_age:   time.second * strconv.parse_int(os.getenv(env_session_max_age), 10,
+			64)!
 	}
 	ro := redict.Options{
 		url: os.getenv(env_redict_url)
@@ -62,7 +63,7 @@ fn main() {
 		luuid_generator: luuid.new_generator()
 		firebird:        firebird.new_connection(firebird_url) or { panic(err) }
 		redict:          redict.new_client(ro) or { panic(err) }
-		session_store:   sessions.new_redict_store_jwt(mut rso, mut jwto, ro) or { panic(err) }
+		session_store:   sessions.new_redict_store_cookie(rso, co, ro) or { panic(err) }
 	}
 
 	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)

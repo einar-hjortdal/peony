@@ -5,12 +5,14 @@ import net.http
 import json
 
 fn (mut app App) load_user_session_middleware(mut ctx Context) bool {
+	session_name := '${os.getenv(env_session_admin_prefix)}-${os.getenv(env_session_name)}'
+	ctx.user_session = app.session_store.new(ctx.req, session_name)
+
 	// [/admin/auth; post] must accept unauthorized request to allow logins
 	if ctx.req.url == '/admin/auth' && ctx.req.method == http.Method.post {
 		return true
 	}
 
-	ctx.user_session = app.session_store.new(ctx.req, os.getenv(env_session_name))
 	if ctx.user_session.is_new {
 		ctx.text('Unauthorized')
 		return false

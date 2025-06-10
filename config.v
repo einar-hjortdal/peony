@@ -12,7 +12,6 @@ const env_session_secret = 'SESSION_SECRET'
 const env_firebird_url = 'FIREBIRD_URL'
 const env_redict_url = 'REDICT_URL'
 const env_debug = 'DEBUG'
-const env_instance_number = 'INSTANCE_NUMBER'
 const env_port = 'PORT'
 const env_cache_duration = 'CACHE_DURATION'
 const env_session_max_age = 'SESSION_MAX_AGE'
@@ -30,7 +29,6 @@ const env_required = [
 
 const env_expected = arrays.append(env_required, [
 	env_debug,
-	env_instance_number,
 	env_port,
 	env_cache_duration,
 	env_session_max_age,
@@ -46,7 +44,6 @@ const bool_to_be_parsed = [
 
 const env_defaults = {
 	env_debug:                  'false'
-	env_instance_number:        '0'
 	env_port:                   '8080'
 	env_cache_duration:         '1800' // 30 minutes
 	env_session_max_age:        '86400' // One day
