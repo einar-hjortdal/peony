@@ -2,10 +2,11 @@ module main
 
 // vlib
 import log
+import net.http
 import os
 import strconv
-import veb
 import time
+import veb
 // first party
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
@@ -70,6 +71,12 @@ fn main() {
 	app.route_use('/admin/:path...', handler: app.save_user_session_middleware, after: true)
 
 	app.prepare_db()
+
+	app.use(veb.cors[Context](veb.CorsOptions{
+		origins:           [os.getenv(env_admin_url)]
+		allow_credentials: true
+		allowed_methods:   [http.Method.get, http.Method.post, http.Method.delete]
+	}))
 
 	port := os.getenv(env_port).int()
 	veb.run[App, Context](mut app, port)

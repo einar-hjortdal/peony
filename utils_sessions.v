@@ -1,5 +1,6 @@
 module main
 
 struct UserSessionValues {
-	id string
+	id     string
+	id_bin []u8
 }

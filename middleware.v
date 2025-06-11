@@ -13,11 +13,6 @@ fn (mut app App) load_user_session_middleware(mut ctx Context) bool {
 		return true
 	}
 
-	if ctx.user_session.is_new {
-		ctx.text('Unauthorized')
-		return false
-	}
-
 	ctx.user_session_values = json.decode(UserSessionValues, ctx.user_session.values) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		ctx.json(new_peony_error('Could not decode UserSessionValues', err.msg()))

@@ -4,6 +4,16 @@ import json
 import net.http
 import veb
 
+// returns details about the user that performed the request
+@['/admin/auth/'; get]
+fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
+	user := app.retrieve_user_by_id(ctx.user_session_values.id_bin) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Could not retrieve user data', err.msg()))
+	}
+	return ctx.json(format_user_response(user))
+}
+
 // log in user
 @['/admin/auth/'; post]
 fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
@@ -23,7 +33,8 @@ fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 	}
 
 	ctx.user_session_values = UserSessionValues{
-		id: user.id
+		id:     user.id
+		id_bin: user.id_bin
 	}
 
 	return ctx.json(format_user_response(user))

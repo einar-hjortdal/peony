@@ -18,6 +18,8 @@ const env_session_max_age = 'SESSION_MAX_AGE'
 const env_session_name = 'SESSION_NAME'
 const env_session_refresh_expire = 'SESSION_REFRESH_EXPIRE'
 const env_session_admin_prefix = 'SESSION_ADMIN_PREFIX'
+const env_admin_url = 'ADMIN_URL'
+const env_store_url = 'STORE_URL'
 
 const env_required = [
 	env_email,
@@ -35,6 +37,8 @@ const env_expected = arrays.append(env_required, [
 	env_session_name,
 	env_session_refresh_expire,
 	env_session_admin_prefix,
+	env_admin_url,
+	env_store_url,
 ])
 
 const bool_to_be_parsed = [
@@ -50,6 +54,8 @@ const env_defaults = {
 	env_session_name:           'Session'
 	env_session_refresh_expire: 'false'
 	env_session_admin_prefix:   'Admin'
+	env_admin_url:              'http://localhost:8081'
+	env_store_url:              'http://localhost:8082'
 }
 
 // remove_invalid_settings checks if the settings provided are valid: if the provided settings are invalid,
