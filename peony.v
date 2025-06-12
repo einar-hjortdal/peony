@@ -67,14 +67,14 @@ fn main() {
 		session_store:   sessions.new_redict_store_cookie(rso, co, ro) or { panic(err) }
 	}
 
+	app.use(handler: app.middleware_debug)
 	app.use(veb.cors[Context](veb.CorsOptions{
 		origins:           [os.getenv(env_admin_url)]
 		allow_credentials: true
 		allowed_methods:   [http.Method.get, http.Method.post, http.Method.delete]
 	}))
-
-	app.route_use('/admin/:path...', handler: app.load_user_session_middleware)
-	app.route_use('/admin/:path...', handler: app.save_user_session_middleware, after: true)
+	app.route_use('/admin/:path...', handler: app.middleware_load_user_session)
+	app.route_use('/admin/:path...', handler: app.middleware_save_user_session, after: true)
 
 	app.prepare_db()
 

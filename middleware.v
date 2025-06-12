@@ -3,8 +3,14 @@ module main
 import os
 import net.http
 import json
+import log
 
-fn (mut app App) load_user_session_middleware(mut ctx Context) bool {
+fn (mut app App) middleware_debug(mut ctx Context) bool {
+	log.debug('Received request: ${ctx.req.url} ${ctx.req.method}')
+	return true
+}
+
+fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 	session_name := '${os.getenv(env_session_admin_prefix)}-${os.getenv(env_session_name)}'
 	ctx.user_session = app.session_store.new(ctx.req, session_name)
 
@@ -22,7 +28,7 @@ fn (mut app App) load_user_session_middleware(mut ctx Context) bool {
 	return true
 }
 
-fn (mut app App) save_user_session_middleware(mut ctx Context) bool {
+fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 	ctx.user_session.values = json.encode(ctx.user_session_values)
 
 	app.session_store.save(mut ctx.res.header, mut ctx.user_session) or {
