@@ -27,7 +27,7 @@ fn (mut app App) save_user_session_middleware(mut ctx Context) bool {
 
 	app.session_store.save(mut ctx.res.header, mut ctx.user_session) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(new_peony_error('failed to save session', err.msg()))
+		ctx.json(new_peony_error('Failed to save session', err.msg()))
 		return false
 	}
 

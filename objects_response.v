@@ -2,6 +2,29 @@ module main
 
 import einar_hjortdal.firebird
 
+struct PeonySuccess {
+	success bool
+}
+
+fn new_peony_success() PeonySuccess {
+	return PeonySuccess{
+		success: true
+	}
+}
+
+struct PeonyError {
+	Error
+	message string
+	details string
+}
+
+fn new_peony_error(message string, details string) PeonyError {
+	return PeonyError{
+		message: message
+		details: details
+	}
+}
+
 struct UserResponse {
 	id         string
 	handle     string
