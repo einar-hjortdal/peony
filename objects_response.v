@@ -25,6 +25,10 @@ fn new_peony_error(message string, details string) PeonyError {
 	}
 }
 
+fn login_error() (string, string) {
+	return 'Invalid email or password', 'No further details'
+}
+
 struct UserResponse {
 	id         string
 	handle     string

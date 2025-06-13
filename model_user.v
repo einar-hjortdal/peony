@@ -42,6 +42,7 @@ fn parse_user_data(v []firebird.Value) !User {
 
 	return User{
 		id:            id
+		id_bin:        id_bin
 		handle:        handle
 		email:         email
 		password_hash: password_hash

@@ -1,6 +1,7 @@
 module main
 
 import json
+import log
 import net.http
 import veb
 
@@ -24,12 +25,14 @@ fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 
 	user := app.retrieve_user_by_email(body.email) or {
 		ctx.res.set_status(http.Status.unauthorized)
-		return ctx.json(new_peony_error('Invalid email or password', err.msg()))
+		log.debug(err.msg())
+		return ctx.json(new_peony_error(login_error()))
 	}
 
 	verify_password(body.password, user.password_hash, user.password_salt) or {
 		ctx.res.set_status(http.Status.unauthorized)
-		return ctx.json(new_peony_error('Invalid email or password', err.msg()))
+		log.debug(err.msg())
+		return ctx.json(new_peony_error(login_error()))
 	}
 
 	ctx.user_session_values = UserSessionValues{
