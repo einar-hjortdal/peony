@@ -6,6 +6,7 @@
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
 - [x] Seed new database with a schema, constants and defaults
 - [ ] Always return json
+- [ ] Return count, offset and fetch values with lists
 - [ ] Iron out error handling
 
 ## Refactor

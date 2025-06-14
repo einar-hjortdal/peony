@@ -127,7 +127,7 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	joins = appendln(joins, 'LEFT JOIN product_variant pv ON pv.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_variant_money_amount pvm ON pvm.variant_id = pv.id')
 	joins = appendln(joins, 'LEFT JOIN money_amount ma ON ma.id = pvm.money_amount_id')
-	joins = appendln(joins, 'LEFT JOIN product_tags pt ON pt.product_id = p.id')
+	joins = appendln(joins, 'LEFT JOIN product_tag_product pt ON pt.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_category_product pcp ON pcp.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_sales_channel psc ON psc.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_translations ptr ON ptr.product_id = p.id')
