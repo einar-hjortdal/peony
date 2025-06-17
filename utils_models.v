@@ -6,6 +6,7 @@ import einar_hjortdal.firebird
 
 const order_asc = 'ASC'
 const order_desc = 'DESC'
+const default_offset = 0
 const default_fetch = 15
 
 fn newln(ln string) string {
@@ -86,6 +87,13 @@ fn get_sorting_order(zs ZeroString) string {
 		return order_desc
 	}
 	return order_asc
+}
+
+fn get_offset_amount(zi32 ZeroI32) i32 {
+	if zi32.is_set {
+		return zi32.v
+	}
+	return default_offset
 }
 
 fn get_fetch_amount(zi32 ZeroI32) i32 {

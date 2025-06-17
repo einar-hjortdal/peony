@@ -9,12 +9,19 @@ import veb
 fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_products_params(ctx.query)
 
-	products := app.retrieve_products(p) or {
+	products, count := app.retrieve_products(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve products data', err.msg()))
 	}
 
-	return ctx.json(products)
+	r := ListResponse{
+		items:  products
+		count:  count
+		offset: get_offset_amount(p.offset)
+		fetch:  get_fetch_amount(p.fetch)
+	}
+
+	return ctx.json(r)
 }
 
 // create a product

@@ -332,10 +332,11 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 	return variants
 }
 
-fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![]Product {
+fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !([]Product, i32) {
 	ids_bin := do_retrieve_products__ids(mut tx, p)!
-	if ids_bin.len == 0 {
-		return []Product{}
+	len := i32(ids_bin.len)
+	if len == 0 {
+		return []Product{}, len
 	}
 
 	unsorted_products := do_retrieve_products__products(mut tx, ids_bin)!
@@ -404,22 +405,22 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) ![
 
 	// sort products according to ids array
 	mut products := []Product{len: ids_bin.len}
-	for i := 0; i < ids_bin.len; i++ {
+	for i := 0; i < len; i++ {
 		id := id_bin_to_string(ids_bin[i])!
 		products[i] = product_map[id]
 	}
 
-	return products
+	return products, len
 }
 
-fn (mut app App) retrieve_products(p RetrieveProductParams) ![]Product {
+fn (mut app App) retrieve_products(p RetrieveProductParams) !([]Product, i32) {
 	mut tx := app.start_transaction()!
-	products := do_retrieve_products(mut tx, p) or {
+	products, count := do_retrieve_products(mut tx, p) or {
 		tx.rollback()!
 		return err
 	}
 	tx.rollback()!
-	return products
+	return products, count
 }
 
 fn (mut app App) retrieve_product_by_id(id string) !Product {
@@ -428,8 +429,8 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	}
 	p := extract_retrieve_products_params(m)
 
-	products := app.retrieve_products(p)!
-	if products.len == 0 {
+	products, count := app.retrieve_products(p)!
+	if count == 0 {
 		return error(format_error_message('No product found with the given id'))
 	}
 

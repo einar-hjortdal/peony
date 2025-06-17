@@ -29,6 +29,16 @@ fn login_error() (string, string) {
 	return 'Invalid email or password', 'No further details'
 }
 
+// count is the number of items in the database
+// offset is the number of items skipped
+// fetch is the number of items requested
+struct ListResponse[T] {
+	items  []T
+	count  i32
+	offset i32
+	fetch  i32
+}
+
 struct UserResponse {
 	id         string
 	handle     string
