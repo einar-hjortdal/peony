@@ -40,10 +40,10 @@ fn parse_product(v []firebird.Value) !Product {
 	handle, _ := v[4].get_string()!
 	is_giftcard, _ := v[5].get_bool()!
 	status, _ := v[6].get_string()!
-	thumbnail, _ := v[8].get_string()!
-	collection_id_bin, collection_id_bin_is_null := v[9].get_array_u8()!
-	type_id_bin, type_id_bin_is_null := v[10].get_array_u8()!
-	discountable, _ := v[11].get_bool()!
+	thumbnail, _ := v[7].get_string()!
+	collection_id_bin, collection_id_bin_is_null := v[8].get_array_u8()!
+	type_id_bin, type_id_bin_is_null := v[9].get_array_u8()!
+	discountable, _ := v[10].get_bool()!
 
 	id := id_bin_to_string(id_bin)!
 
@@ -273,14 +273,16 @@ fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) !
 		type_id,
 		discountable
 		FROM product
-		WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...ids_bin)!
 
 	mut products := []Product{}
 	for i := 0; i < data.rows.len; i++ {
+		println(data.rows[i].values)
 		product := parse_product(data.rows[i].values)!
 		products = arrays.concat(products, product)
 	}
+	println(products)
 
 	return products
 }
