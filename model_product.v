@@ -11,17 +11,17 @@ const product_status_rejected = 'rejected'
 
 struct Product {
 	id                string
-	id_bin            []u8 @[json: '-']
-	created_at        firebird.DateTime
-	updated_at        firebird.DateTime
-	deleted_at        firebird.DateTime @[omitempty]
+	id_bin            []u8              @[json: '-']
+	created_at        firebird.DateTime @[json: 'createdAt']
+	updated_at        firebird.DateTime @[json: 'updatedAt']
+	deleted_at        firebird.DateTime @[json: 'deletedAt'; omitempty]
 	handle            string
-	is_giftcard       bool
+	is_giftcard       bool @[json: 'isGiftcard']
 	status            string
 	thumbnail         string @[omitempty]
-	collection_id     string @[omitempty]
+	collection_id     string @[json: 'collectionId'; omitempty]
 	collection_id_bin []u8   @[json: '-']
-	type_id           string @[omitempty]
+	type_id           string @[json: 'typeId'; omitempty]
 	type_id_bin       []u8   @[json: '-']
 	discountable      bool
 mut:
@@ -513,21 +513,21 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 	for i := 0; i < translations.len; i++ {
 		mut params := arrays.concat(p, translations[i].locale_code)
 		if title := translations[i].title {
-			params = arrays.concat(p, title)
+			params = arrays.concat(params, title)
 		} else {
-			params = arrays.concat(p, firebird.Null{})
+			params = arrays.concat(params, firebird.Null{})
 		}
 
 		if subtitle := translations[i].subtitle {
-			params = arrays.concat(p, subtitle)
+			params = arrays.concat(params, subtitle)
 		} else {
-			params = arrays.concat(p, firebird.Null{})
+			params = arrays.concat(params, firebird.Null{})
 		}
 
 		if description := translations[i].description {
-			params = arrays.concat(p, description)
+			params = arrays.concat(params, description)
 		} else {
-			params = arrays.concat(p, firebird.Null{})
+			params = arrays.concat(params, firebird.Null{})
 		}
 
 		stmt.execute(...params) or {

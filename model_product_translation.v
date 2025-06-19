@@ -4,9 +4,9 @@ import arrays
 import einar_hjortdal.firebird
 
 struct ProductTranslations {
-	product_id     string
-	product_id_bin []u8 @[json: '-']
-	locale_code    string
+	product_id     string            @[json: 'productId']
+	product_id_bin []u8              @[json: '-']
+	locale_code    string            @[json: 'localeCode']
 	created_at     firebird.DateTime @[json: 'createdAt']
 	updated_at     firebird.DateTime @[json: 'updatedAt']
 	deleted_at     firebird.DateTime @[json: 'deletedAt'; omitempty]
@@ -64,7 +64,7 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 }
 
 struct UpdateProductTranslationData {
-	locale_code string
+	locale_code string @[json: 'localeCode']
 	title       ?string
 	subtitle    ?string
 	description ?string
