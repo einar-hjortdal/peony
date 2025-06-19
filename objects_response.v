@@ -44,11 +44,11 @@ struct UserResponse {
 	handle     string
 	email      string
 	role       string
-	created_at firebird.DateTime
-	updated_at firebird.DateTime
-	deleted_at firebird.DateTime @[omitempty]
-	first_name string            @[omitempty]
-	last_name  string            @[omitempty]
+	created_at firebird.DateTime @[json: 'createdAt']
+	updated_at firebird.DateTime @[json: 'updatedAt']
+	deleted_at firebird.DateTime @[json: 'deletedAt'; omitempty]
+	first_name string            @[json: 'firstName'; omitempty]
+	last_name  string            @[json: 'lastName'; omitempty]
 }
 
 fn format_user_response(u User) UserResponse {

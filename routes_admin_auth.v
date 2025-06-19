@@ -23,6 +23,9 @@ fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 		return ctx.json(new_peony_error('Could not decode AuthRequest', err.msg()))
 	}
 
+	// TODO quick validate email: min/max char length, shape and presence of @ and .
+	// return malformed request if bad
+
 	user := app.retrieve_user_by_email(body.email) or {
 		ctx.res.set_status(http.Status.unauthorized)
 		log.debug(err.msg())

@@ -59,8 +59,8 @@ fn parse_user_data(v []firebird.Value) !User {
 struct NewUserData {
 	email      string
 	password   string
-	first_name ?string
-	last_name  ?string
+	first_name ?string @[json: 'firstName']
+	last_name  ?string @[json: 'lastName']
 	role       ?string
 }
 
@@ -153,8 +153,8 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 }
 
 struct UpdateUserData {
-	first_name ?string
-	last_name  ?string
+	first_name ?string @[json: 'firstName']
+	last_name  ?string @[json: 'lastName']
 	role       ?string
 }
 
