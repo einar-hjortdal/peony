@@ -7,9 +7,9 @@ struct ProductTranslations {
 	product_id     string
 	product_id_bin []u8 @[json: '-']
 	locale_code    string
-	created_at     firebird.DateTime
-	updated_at     firebird.DateTime
-	deleted_at     firebird.DateTime @[omitempty]
+	created_at     firebird.DateTime @[json: 'createdAt']
+	updated_at     firebird.DateTime @[json: 'updatedAt']
+	deleted_at     firebird.DateTime @[json: 'deletedAt'; omitempty]
 	title          string            @[omitempty]
 	subtitle       string            @[omitempty]
 	description    string            @[omitempty]

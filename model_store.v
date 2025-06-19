@@ -13,7 +13,7 @@ struct Store {
 	default_currency_code         string @[json: 'defaultCurrencyCode']
 	default_stock_location_id     string @[json: 'defaultStockLocationId'; omitempty]
 	default_stock_location_id_bin []u8   @[json: '-']
-	default_sales_channel_id      string @[json: 'default_sales_channel_id'; omitempty]
+	default_sales_channel_id      string @[json: 'defaultSalesChannelId'; omitempty]
 	default_sales_channel_id_bin  []u8   @[json: '-']
 }
 
