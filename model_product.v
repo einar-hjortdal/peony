@@ -441,16 +441,16 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 
 struct ProductData {
 	handle            ?string
-	is_giftcard       ?bool
+	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
 	thumbnail         ?string
-	collection_id     ?string
-	type_id           ?string
+	collection_id     ?string @[json: 'collectionId']
+	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
 	images            ?[]string
-	tag_ids           ?[]string
-	sales_channel_ids ?[]string
-	category_ids      ?[]string
+	tag_ids           ?[]string @[json: 'tagIds']
+	sales_channel_ids ?[]string @[json: 'salesChannelIds']
+	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?[]UpdateProductTranslationData
 }
 
@@ -738,7 +738,7 @@ fn (mut app App) update_product_option(id string, p UpdateProductOptionData) !st
 
 struct ProductOptionTranslationData {
 	title       string
-	locale_code string
+	locale_code string @[json: 'localeCode']
 }
 
 fn (mut app App) update_product_option_translation(id string, p ProductOptionTranslationData) ! {
