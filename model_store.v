@@ -5,16 +5,16 @@ import einar_hjortdal.firebird
 
 struct Store {
 	id                            string
-	id_bin                        []u8              @[json: '-']
-	created_at                    firebird.DateTime @[json: 'createdAt']
-	updated_at                    firebird.DateTime @[json: 'updatedAt']
+	id_bin                        []u8
+	created_at                    firebird.DateTime
+	updated_at                    firebird.DateTime
 	name                          string
-	default_locale_code           string @[json: 'defaultLocaleCode']
-	default_currency_code         string @[json: 'defaultCurrencyCode']
-	default_stock_location_id     string @[json: 'defaultStockLocationId'; omitempty]
-	default_stock_location_id_bin []u8   @[json: '-']
-	default_sales_channel_id      string @[json: 'defaultSalesChannelId'; omitempty]
-	default_sales_channel_id_bin  []u8   @[json: '-']
+	default_locale_code           string
+	default_currency_code         string
+	default_stock_location_id     string
+	default_stock_location_id_bin []u8
+	default_sales_channel_id      string
+	default_sales_channel_id_bin  []u8
 }
 
 fn parse_store(v []firebird.Value) !Store {
@@ -79,12 +79,6 @@ fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 fn (mut app App) store_retrieve() !Store {
 	data := get_store_data(mut app.firebird)!
 	return parse_store(data)
-}
-
-struct NewStoreData {
-	name                  ?string
-	default_locale_code   ?string @[json: 'defaultLocaleCode']
-	default_currency_code ?string @[json: 'defaultCurrencyCode']
 }
 
 fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {

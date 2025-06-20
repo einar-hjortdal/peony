@@ -7,11 +7,14 @@ import json
 // gets store details
 @['/admin/store/'; get]
 fn (mut app App) admin_store_get(mut ctx Context) veb.Result {
-	store := app.store_retrieve() or {
+	internal_store := app.store_retrieve() or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
 	}
-	return ctx.json(store)
+
+	external_store := format_store_response(internal_store)
+
+	return ctx.json(external_store)
 }
 
 // updates store details
@@ -32,12 +35,7 @@ fn (mut app App) admin_store_post(mut ctx Context, id string) veb.Result {
 		return ctx.json(new_peony_error('Could not update store data', err.msg()))
 	}
 
-	updated_data := app.store_retrieve() or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not retrieve updated store data', err.msg()))
-	}
-
-	return ctx.json(updated_data)
+	return app.admin_store_get(mut ctx)
 }
 
 // adds a currency code

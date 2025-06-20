@@ -1,7 +1,6 @@
 module main
 
 import time
-import einar_hjortdal.firebird
 
 struct PeonySuccess {
 	success bool
@@ -45,11 +44,11 @@ struct UserResponse {
 	handle     string
 	email      string
 	role       string
-	created_at firebird.DateTime @[json: 'createdAt']
-	updated_at firebird.DateTime @[json: 'updatedAt']
-	deleted_at firebird.DateTime @[json: 'deletedAt'; omitempty]
-	first_name string            @[json: 'firstName'; omitempty]
-	last_name  string            @[json: 'lastName'; omitempty]
+	created_at time.Time @[json: 'createdAt']
+	updated_at time.Time @[json: 'updatedAt']
+	deleted_at time.Time @[json: 'deletedAt'; omitempty]
+	first_name string    @[json: 'firstName'; omitempty]
+	last_name  string    @[json: 'lastName'; omitempty]
 }
 
 fn format_user_response(u User) UserResponse {
@@ -58,11 +57,35 @@ fn format_user_response(u User) UserResponse {
 		handle:     u.handle
 		email:      u.email
 		role:       u.role
-		created_at: u.created_at
-		updated_at: u.updated_at
-		deleted_at: u.deleted_at
+		created_at: u.created_at.Time
+		updated_at: u.updated_at.Time
+		deleted_at: u.deleted_at.Time
 		first_name: u.first_name
 		last_name:  u.last_name
+	}
+}
+
+struct StoreResponse {
+	id                        string
+	created_at                time.Time @[json: 'createdAt']
+	updated_at                time.Time @[json: 'updatedAt']
+	name                      string
+	default_locale_code       string @[json: 'defaultLocaleCode']
+	default_currency_code     string @[json: 'defaultCurrencyCode']
+	default_stock_location_id string @[json: 'defaultStockLocationId'; omitempty]
+	default_sales_channel_id  string @[json: 'defaultSalesChannelId'; omitempty]
+}
+
+fn format_store_response(s Store) StoreResponse {
+	return StoreResponse{
+		id:                        s.id
+		created_at:                s.created_at.Time
+		updated_at:                s.updated_at.Time
+		name:                      s.name
+		default_locale_code:       s.default_locale_code
+		default_currency_code:     s.default_currency_code
+		default_stock_location_id: s.default_stock_location_id
+		default_sales_channel_id:  s.default_sales_channel_id
 	}
 }
 

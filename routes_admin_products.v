@@ -54,11 +54,14 @@ fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 // get a product
 @['/admin/products/:id'; get]
 fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	p := app.retrieve_product_by_id(id) or {
+	internal_product := app.retrieve_product_by_id(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
 	}
-	return ctx.json(p)
+
+	external_product := format_product_response(internal_product)
+
+	return ctx.json(external_product)
 }
 
 // updates a product
@@ -84,7 +87,7 @@ fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to delete product', err.msg()))
 	}
-	return ctx.text('ok') // TODO better response
+	return ctx.json(new_peony_success())
 }
 
 // adds a product option
@@ -102,7 +105,7 @@ fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) veb.
 		return ctx.json(new_peony_error('Failed to create product option', err.msg()))
 	}
 
-	return ctx.text('ok') // TODO return option?
+	return ctx.json(new_peony_success()) // TODO return option?
 }
 
 // lists a products variants
