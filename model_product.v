@@ -11,25 +11,25 @@ const product_status_rejected = 'rejected'
 
 struct Product {
 	id                string
-	id_bin            []u8              @[json: '-']
-	created_at        firebird.DateTime @[json: 'createdAt']
-	updated_at        firebird.DateTime @[json: 'updatedAt']
-	deleted_at        firebird.DateTime @[json: 'deletedAt'; omitempty]
+	id_bin            []u8
+	created_at        firebird.DateTime
+	updated_at        firebird.DateTime
+	deleted_at        firebird.DateTime
 	handle            string
-	is_giftcard       bool @[json: 'isGiftcard']
+	is_giftcard       bool
 	status            string
-	thumbnail         string @[omitempty]
-	collection_id     string @[json: 'collectionId'; omitempty]
-	collection_id_bin []u8   @[json: '-']
-	type_id           string @[json: 'typeId'; omitempty]
-	type_id_bin       []u8   @[json: '-']
+	thumbnail         string
+	collection_id     string
+	collection_id_bin []u8
+	type_id           string
+	type_id_bin       []u8
 	discountable      bool
 mut:
-	images       []Image               @[omitempty]
-	options      []ProductOption       @[omitempty]
-	variants     []Variant             @[omitempty]
-	translations []ProductTranslations @[omitempty]
-	// tags         []Tag                 @[omitempty]
+	images       []Image
+	options      []ProductOption
+	variants     []Variant
+	translations []ProductTranslations
+	// tags         []Tag
 }
 
 fn parse_product(v []firebird.Value) !Product {
@@ -437,21 +437,6 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	}
 
 	return products[0]
-}
-
-struct ProductData {
-	handle            ?string
-	is_giftcard       ?bool @[json: 'isGiftcard']
-	status            ?string
-	thumbnail         ?string
-	collection_id     ?string @[json: 'collectionId']
-	type_id           ?string @[json: 'typeId']
-	discountable      ?bool
-	images            ?[]string
-	tag_ids           ?[]string @[json: 'tagIds']
-	sales_channel_ids ?[]string @[json: 'salesChannelIds']
-	category_ids      ?[]string @[json: 'categoryIds']
-	translations      ?[]UpdateProductTranslationData
 }
 
 fn build_query_create_product(product_id string, product_id_bin []u8, p ProductData) !(string, []firebird.Value) {

@@ -1,5 +1,6 @@
 module main
 
+import time
 import einar_hjortdal.firebird
 
 struct PeonySuccess {
@@ -62,5 +63,45 @@ fn format_user_response(u User) UserResponse {
 		deleted_at: u.deleted_at
 		first_name: u.first_name
 		last_name:  u.last_name
+	}
+}
+
+struct ProductResponse {
+	id            string
+	created_at    time.Time @[json: 'createdAt']
+	updated_at    time.Time @[json: 'updatedAt']
+	deleted_at    time.Time @[json: 'deletedAt'; omitempty]
+	handle        string
+	is_giftcard   bool @[json: 'isGiftcard']
+	status        string
+	thumbnail     string @[omitempty]
+	collection_id string @[json: 'collectionId'; omitempty]
+	type_id       string @[json: 'typeId'; omitempty]
+	discountable  bool
+	images        []Image               @[omitempty]
+	options       []ProductOption       @[omitempty]
+	variants      []Variant             @[omitempty]
+	translations  []ProductTranslations @[omitempty]
+	// tags         []Tag                 @[omitempty]
+}
+
+fn format_product_response(p Product) ProductResponse {
+	return ProductResponse{
+		id:            p.id
+		created_at:    p.created_at.Time
+		updated_at:    p.updated_at.Time
+		deleted_at:    p.deleted_at.Time
+		handle:        p.handle
+		is_giftcard:   p.is_giftcard
+		status:        p.status
+		thumbnail:     p.thumbnail
+		collection_id: p.collection_id
+		type_id:       p.type_id
+		discountable:  p.discountable
+		images:        p.images
+		options:       p.options
+		variants:      p.variants
+		translations:  p.translations
+		// tags:          p.tags
 	}
 }
