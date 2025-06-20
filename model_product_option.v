@@ -119,8 +119,8 @@ fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslatio
 fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_code, title
 		FROM product_option_translations
-		WHERE id IN ${get_n_placeholders(i32(option_ids_bin.len))}',
-		...option_ids_bin)!
+		WHERE id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
+		...workaround_24757(option_ids_bin))!
 
 	mut translations := []ProductOptionTranslation{}
 	for i := 0; i < data.rows.len; i++ {
@@ -168,15 +168,18 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
 	mut data := tx.execute('SELECT id, created_at, updated_at, deleted_at, product_id
 			FROM product_option
-			WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
-		...ids_bin)!
+			WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		...workaround_24757(ids_bin))!
 
-	mut options := []ProductOption{}
-	mut option_ids_bin := [][]u8{}
+	if data.rows.len == 0 {
+		return []ProductOption{}
+	}
+
+	mut options := []ProductOption{len: data.rows.len}
+	mut option_ids_bin := [][]u8{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
-		option := parse_product_option(data.rows[i].values)!
-		options = arrays.concat(options, option)
-		option_ids_bin = arrays.concat(option_ids_bin, option.id_bin)
+		options[i] = parse_product_option(data.rows[i].values)!
+		option_ids_bin[i] = options[i].id_bin
 	}
 
 	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!

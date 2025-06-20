@@ -132,7 +132,7 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 		LEFT JOIN image i ON id = image_id
 		WHERE pi.product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})
 		ORDER BY pi.image_rank',
-		...product_ids_bin)!
+		...workaround_24757(product_ids_bin))!
 
 	mut product_images := []ProductImage{}
 	for i := 0; i < data.rows.len; i++ {

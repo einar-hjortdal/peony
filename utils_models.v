@@ -132,3 +132,12 @@ fn id_strings_to_bins(a []string) ![][]u8 {
 	}
 	return res
 }
+
+// https://github.com/vlang/v/issues/24757
+fn workaround_24757(bins [][]u8) []firebird.Value {
+	mut r := []firebird.Value{len: bins.len, init: firebird.Value(0)}
+	for i := 0; i < bins.len; i++ {
+		r[i] = bins[i]
+	}
+	return r
+}

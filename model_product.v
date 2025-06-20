@@ -232,7 +232,7 @@ fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) !
 		discountable
 		FROM product
 		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
-		...ids_bin)!
+		...workaround_24757(ids_bin))!
 
 	mut products := []Product{}
 	for i := 0; i < data.rows.len; i++ {
@@ -276,13 +276,16 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		width,
 		title
 		FROM product_variant
-		WHERE product_id IN ${get_n_placeholders(i32(ids_bin.len))}',
-		...ids_bin)!
+		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		...workaround_24757(ids_bin))!
 
-	mut variants := []Variant{}
+	if data.rows.len == 0 {
+		return []Variant{}
+	}
+
+	mut variants := []Variant{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
-		variant := parse_variant(data.rows[i].values)!
-		variants = arrays.concat(variants, variant)
+		variants[i] = parse_variant(data.rows[i].values)!
 	}
 
 	variants = do_retrieve_product_variant_money_amount(mut tx, variants)!
