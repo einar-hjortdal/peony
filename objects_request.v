@@ -25,3 +25,21 @@ struct ProductData {
 	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?[]UpdateProductTranslationData
 }
+
+struct UpdateProductTranslationData {
+	locale_code string @[json: 'localeCode']
+	title       ?string
+	subtitle    ?string
+	description ?string
+}
+
+struct UpdateMoneyAmountData {
+	id            ?string
+	currency_code string @[json: 'currencyCode']
+	amount        i32
+	min_quantity  ?i32    @[json: 'minQuantity']
+	max_quantity  ?i32    @[json: 'maxQuantity']
+	price_list_id ?string @[json: 'priceListId']
+	region_id     ?string @[json: 'regionId']
+	variant_id    ?string @[json: 'variantId']
+}

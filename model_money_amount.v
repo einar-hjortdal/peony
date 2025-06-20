@@ -70,14 +70,3 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 		variant_id_bin:    variant_id_bin
 	}
 }
-
-struct UpdateMoneyAmountData {
-	id            ?string
-	currency_code string
-	amount        i32
-	min_quantity  ?i32
-	max_quantity  ?i32
-	price_list_id ?string
-	region_id     ?string
-	variant_id    ?string
-}
