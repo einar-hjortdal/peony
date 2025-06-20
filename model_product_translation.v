@@ -41,7 +41,7 @@ fn parse_product_translation(v []firebird.Value) !ProductTranslation {
 }
 
 fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslation {
-	data := tx.execute('SELECT 
+	data := tx.execute('SELECT
 		product_id,
 		locale_code,
 		created_at,
@@ -51,7 +51,7 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 		subtitle,
 		description
 		FROM product_translations
-		WHERE product_id IN ${get_n_placeholders(i32(product_ids_bin.len))}',
+		WHERE product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})',
 		...product_ids_bin)!
 
 	mut translations := []ProductTranslation{}

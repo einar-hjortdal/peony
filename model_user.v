@@ -9,7 +9,6 @@ const role_developer = 'developer'
 const role_author = 'author'
 const role_contributor = 'contributor'
 
-// For internal use only: send UserResponse over the network
 struct User {
 	id            string
 	id_bin        []u8
@@ -54,14 +53,6 @@ fn parse_user_data(v []firebird.Value) !User {
 		first_name:    first_name
 		last_name:     last_name
 	}
-}
-
-struct NewUserData {
-	email      string
-	password   string
-	first_name ?string @[json: 'firstName']
-	last_name  ?string @[json: 'lastName']
-	role       ?string
 }
 
 fn (mut app App) create_user(d NewUserData) !(string, []u8) {
@@ -150,12 +141,6 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 	}
 
 	return parse_user_data(res.rows[0].values)!
-}
-
-struct UpdateUserData {
-	first_name ?string @[json: 'firstName']
-	last_name  ?string @[json: 'lastName']
-	role       ?string
 }
 
 fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {

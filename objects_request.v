@@ -11,6 +11,20 @@ struct NewStoreData {
 	default_currency_code ?string @[json: 'defaultCurrencyCode']
 }
 
+struct NewUserData {
+	email      string
+	password   string
+	first_name ?string @[json: 'firstName']
+	last_name  ?string @[json: 'lastName']
+	role       ?string
+}
+
+struct UpdateUserData {
+	first_name ?string @[json: 'firstName']
+	last_name  ?string @[json: 'lastName']
+	role       ?string
+}
+
 struct ProductData {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
