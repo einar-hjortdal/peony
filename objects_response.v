@@ -89,6 +89,24 @@ fn format_store_response(s Store) StoreResponse {
 	}
 }
 
+struct ImageResponse {
+	id         string
+	created_at time.Time
+	updated_at time.Time
+	deleted_at time.Time @[omitempty]
+	url        string
+}
+
+fn format_image_response(i Image) ImageResponse {
+	return ImageResponse{
+		id:         i.id
+		created_at: i.created_at.Time
+		updated_at: i.updated_at.Time
+		deleted_at: i.deleted_at.Time
+		url:        i.url
+	}
+}
+
 struct ProductResponse {
 	id            string
 	created_at    time.Time @[json: 'createdAt']
@@ -101,7 +119,7 @@ struct ProductResponse {
 	collection_id string @[json: 'collectionId'; omitempty]
 	type_id       string @[json: 'typeId'; omitempty]
 	discountable  bool
-	images        []Image               @[omitempty]
+	images        []ImageResponse       @[omitempty]
 	options       []ProductOption       @[omitempty]
 	variants      []Variant             @[omitempty]
 	translations  []ProductTranslations @[omitempty]
@@ -109,6 +127,16 @@ struct ProductResponse {
 }
 
 fn format_product_response(p Product) ProductResponse {
+	mut images := []ImageResponse{len: p.images.len}
+	for i := 0; i < p.images.len; i++ {
+		images[i] = format_image_response(p.images[i])
+	}
+
+	// TODO options
+	// TODO variants
+	// TODO translations
+	// TODO tags
+
 	return ProductResponse{
 		id:            p.id
 		created_at:    p.created_at.Time
@@ -121,7 +149,7 @@ fn format_product_response(p Product) ProductResponse {
 		collection_id: p.collection_id
 		type_id:       p.type_id
 		discountable:  p.discountable
-		images:        p.images
+		images:        images
 		options:       p.options
 		variants:      p.variants
 		translations:  p.translations

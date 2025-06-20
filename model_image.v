@@ -5,10 +5,10 @@ import einar_hjortdal.firebird
 
 struct Image {
 	id         string
-	id_bin     []u8 @[json: '-']
+	id_bin     []u8
 	created_at firebird.DateTime
 	updated_at firebird.DateTime
-	deleted_at firebird.DateTime @[omitempty]
+	deleted_at firebird.DateTime
 	url        string
 }
 
