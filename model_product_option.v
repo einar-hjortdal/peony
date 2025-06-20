@@ -5,7 +5,7 @@ import einar_hjortdal.firebird
 
 struct ProductOptionValueTranslation {
 	product_option_value_id     string
-	product_option_value_id_bin []u8 @[json: '-']
+	product_option_value_id_bin []u8
 	locale_code                 string
 	name                        string
 }
@@ -42,14 +42,14 @@ fn do_retrieve_product_option_value_translations(mut tx firebird.Transaction, op
 
 struct ProductOptionValue {
 	id             string
-	id_bin         []u8 @[json: '-']
+	id_bin         []u8
 	created_at     firebird.DateTime
 	updated_at     firebird.DateTime
-	deleted_at     firebird.DateTime @[omitempty]
+	deleted_at     firebird.DateTime
 	option_id      string
-	option_id_bin  []u8 @[json: '-']
+	option_id_bin  []u8
 	variant_id     string
-	variant_id_bin []u8 @[json: '-']
+	variant_id_bin []u8
 mut:
 	translations []ProductOptionValueTranslation
 }
@@ -96,7 +96,7 @@ fn do_retrieve_product_option_values(mut tx firebird.Transaction, option_ids_bin
 
 struct ProductOptionTranslation {
 	product_option_id     string
-	product_option_id_bin []u8 @[json: '-']
+	product_option_id_bin []u8
 	locale_code           string
 	title                 string
 }
@@ -133,12 +133,12 @@ fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_i
 
 struct ProductOption {
 	id             string
-	id_bin         []u8 @[json: '-']
+	id_bin         []u8
 	created_at     firebird.DateTime
 	updated_at     firebird.DateTime
-	deleted_at     firebird.DateTime @[omitempty]
+	deleted_at     firebird.DateTime
 	product_id     string
-	product_id_bin []u8 @[json: '-']
+	product_id_bin []u8
 mut:
 	values       []ProductOptionValue
 	translations []ProductOptionTranslation

@@ -5,20 +5,20 @@ import einar_hjortdal.firebird
 // TODO return price list object?
 struct MoneyAmount {
 	id                string
-	id_bin            []u8 @[json: '-']
+	id_bin            []u8
 	created_at        firebird.DateTime
 	updated_at        firebird.DateTime
-	deleted_at        firebird.DateTime @[omitempty]
+	deleted_at        firebird.DateTime
 	currency_code     string
 	amount            i32
-	min_quantity      i32    @[omitempty]
-	max_quantity      i32    @[omitempty]
-	price_list_id     string @[omitempty]
-	price_list_id_bin []u8   @[json: '-']
-	region_id         string @[omitempty]
-	region_id_bin     []u8   @[json: '-']
-	variant_id        string @[omitempty] // from product_variant_money_amount
-	variant_id_bin    []u8   @[json: '-']
+	min_quantity      i32
+	max_quantity      i32
+	price_list_id     string
+	price_list_id_bin []u8
+	region_id         string
+	region_id_bin     []u8
+	variant_id        string
+	variant_id_bin    []u8
 }
 
 fn parse_money_amount(v []firebird.Value) !MoneyAmount {

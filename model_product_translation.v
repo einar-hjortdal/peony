@@ -3,19 +3,19 @@ module main
 import arrays
 import einar_hjortdal.firebird
 
-struct ProductTranslations {
-	product_id     string            @[json: 'productId']
-	product_id_bin []u8              @[json: '-']
-	locale_code    string            @[json: 'localeCode']
-	created_at     firebird.DateTime @[json: 'createdAt']
-	updated_at     firebird.DateTime @[json: 'updatedAt']
-	deleted_at     firebird.DateTime @[json: 'deletedAt'; omitempty]
-	title          string            @[omitempty]
-	subtitle       string            @[omitempty]
-	description    string            @[omitempty]
+struct ProductTranslation {
+	product_id     string
+	product_id_bin []u8
+	locale_code    string
+	created_at     firebird.DateTime
+	updated_at     firebird.DateTime
+	deleted_at     firebird.DateTime
+	title          string
+	subtitle       string
+	description    string
 }
 
-fn parse_product_translation(v []firebird.Value) !ProductTranslations {
+fn parse_product_translation(v []firebird.Value) !ProductTranslation {
 	product_id_bin, _ := v[0].get_array_u8()!
 	locale_code, _ := v[1].get_string()!
 	created_at, _ := v[2].get_date_time()!
@@ -27,7 +27,7 @@ fn parse_product_translation(v []firebird.Value) !ProductTranslations {
 
 	product_id := id_bin_to_string(product_id_bin)!
 
-	return ProductTranslations{
+	return ProductTranslation{
 		product_id:     product_id
 		product_id_bin: product_id_bin
 		locale_code:    locale_code
@@ -40,7 +40,7 @@ fn parse_product_translation(v []firebird.Value) !ProductTranslations {
 	}
 }
 
-fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslations {
+fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslation {
 	data := tx.execute('SELECT 
 		product_id,
 		locale_code,
@@ -54,7 +54,7 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 		WHERE product_id IN ${get_n_placeholders(i32(product_ids_bin.len))}',
 		...product_ids_bin)!
 
-	mut translations := []ProductTranslations{}
+	mut translations := []ProductTranslation{}
 	for i := 0; i < data.rows.len; i++ {
 		translation := parse_product_translation(data.rows[i].values)!
 		translations = arrays.concat(translations, translation)

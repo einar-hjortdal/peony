@@ -28,7 +28,7 @@ mut:
 	images       []Image
 	options      []ProductOption
 	variants     []Variant
-	translations []ProductTranslations
+	translations []ProductTranslation
 	// tags         []Tag
 }
 

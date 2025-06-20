@@ -5,32 +5,32 @@ import einar_hjortdal.firebird
 
 struct Variant {
 	id                 string
-	id_bin             []u8 @[json: '-']
+	id_bin             []u8
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
-	deleted_at         firebird.DateTime @[omitempty]
+	deleted_at         firebird.DateTime
 	product_id         string
-	product_id_bin     []u8   @[json: '-']
-	sku                string @[omitempty]
-	barcode            string @[omitempty]
-	ean                string @[omitempty]
-	upc                string @[omitempty]
+	product_id_bin     []u8
+	sku                string
+	barcode            string
+	ean                string
+	upc                string
 	variant_rank       i32
 	inventory_quantity i32
 	allow_backorder    bool
 	manage_inventory   bool
-	hs_code            string @[omitempty]
-	origin_country     string @[omitempty]
-	mid_code           string @[omitempty]
-	weight             i32    @[omitempty]
-	length             i32    @[omitempty]
-	height             i32    @[omitempty]
-	width              i32    @[omitempty]
+	hs_code            string
+	origin_country     string
+	mid_code           string
+	weight             i32
+	length             i32
+	height             i32
+	width              i32
 	title              string
-	// image              string @[omitempty] // from variant_image TODO
+	// image              string // from variant_image TODO
 mut:
-	money_amounts []MoneyAmount        @[omitempty]
-	option_values []ProductOptionValue @[omitempty]
+	money_amounts []MoneyAmount
+	option_values []ProductOptionValue
 }
 
 fn parse_variant(v []firebird.Value) !Variant {
