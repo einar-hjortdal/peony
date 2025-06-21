@@ -13,3 +13,9 @@
 
 - [x] Keep response struct separate from internal structs
 - [ ] Return count, offset and fetch values with lists
+
+## Considerations
+
+- Currently select queries must respect the order of the variables in `parse_` functions, instead consider 
+  rewriting `parse_` functions to check and match column names. This introduces string normalization 
+  and comparison but prevents order-related errors when select queries are modified.
