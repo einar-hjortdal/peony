@@ -15,6 +15,9 @@ struct Store {
 	default_stock_location_id_bin []u8
 	default_sales_channel_id      string
 	default_sales_channel_id_bin  []u8
+mut:
+	locales    []Locale
+	currencies []Currency
 }
 
 fn parse_store(v []firebird.Value) !Store {
@@ -55,9 +58,8 @@ fn parse_store(v []firebird.Value) !Store {
 	}
 }
 
-fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
-	mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
-	res := tx.execute('SELECT
+fn do_retrieve_store(mut tx firebird.Transaction) !Store {
+	store_data := tx.execute('SELECT
 		id,
 		created_at,
 		updated_at,
@@ -67,18 +69,47 @@ fn get_store_data(mut conn firebird.Connection) ![]firebird.Value {
 		default_stock_location_id,
 		default_sales_channel_id
 		FROM store')!
-	tx.rollback()!
 
-	if res.rows.len == 0 {
+	if store_data.rows.len == 0 {
 		return error(format_error_message('No entries in table store'))
 	}
 
-	return res.rows[0].values
+	mut store := parse_store(store_data.rows[0].values)!
+
+	locale_data := tx.execute('SELECT locale_code FROM store_locales WHERE store_id = ?',
+		store.id_bin)!
+
+	mut locales := []Locale{len: locale_data.rows.len}
+	for i := 0; i < locale_data.rows.len; i++ {
+		locales[i] = parse_locale(locale_data.rows[i].values)!
+	}
+
+	store.locales = locales
+
+	currency_data := tx.execute('SELECT currency_code, c.includes_tax 
+		FROM store_currencies
+		LEFT JOIN currency c ON currency_code = c.code
+		WHERE store_id = ?',
+		store.id_bin)!
+
+	mut currencies := []Currency{len: currency_data.rows.len}
+	for i := 0; i < currency_data.rows.len; i++ {
+		currencies[i] = parse_currency(currency_data.rows[i].values)!
+	}
+
+	store.currencies = currencies
+
+	return store
 }
 
 fn (mut app App) store_retrieve() !Store {
-	data := get_store_data(mut app.firebird)!
-	return parse_store(data)
+	mut tx := app.start_transaction()!
+	store := do_retrieve_store(mut tx) or {
+		tx.rollback()!
+		return err
+	}
+	tx.rollback()!
+	return store
 }
 
 fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {

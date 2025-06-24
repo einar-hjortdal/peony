@@ -9,8 +9,8 @@ struct Currency {
 }
 
 fn parse_currency(v []firebird.Value) !Currency {
-	code, _ := v[1].get_string()!
-	includes_tax, _ := v[2].get_bool()!
+	code, _ := v[0].get_string()!
+	includes_tax, _ := v[1].get_bool()!
 
 	return Currency{
 		code:         code

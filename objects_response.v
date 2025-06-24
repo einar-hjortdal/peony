@@ -74,6 +74,8 @@ struct StoreResponse {
 	default_currency_code     string @[json: 'defaultCurrencyCode']
 	default_stock_location_id string @[json: 'defaultStockLocationId'; omitempty]
 	default_sales_channel_id  string @[json: 'defaultSalesChannelId'; omitempty]
+	locales                   []Locale
+	currencies                []Currency
 }
 
 fn format_store_response(s Store) StoreResponse {
@@ -86,6 +88,8 @@ fn format_store_response(s Store) StoreResponse {
 		default_currency_code:     s.default_currency_code
 		default_stock_location_id: s.default_stock_location_id
 		default_sales_channel_id:  s.default_sales_channel_id
+		locales:                   s.locales
+		currencies:                s.currencies
 	}
 }
 
