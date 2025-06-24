@@ -22,11 +22,11 @@ fn get_columns(c []string) string {
 }
 
 fn get_set_columns(c []string) string {
-	mut res := ''
+	mut res := []string{len: c.len}
 	for i := 0; i < c.len; i++ {
-		res = appendln(res, 'WHERE ${c[i]} = ?')
+		res[i] = '${c[i]} = ?'
 	}
-	return res
+	return res.join(', ')
 }
 
 fn get_n_placeholders(n i32) string {

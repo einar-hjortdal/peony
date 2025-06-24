@@ -68,11 +68,11 @@ fn (mut app App) do_update_product_translations(mut tx firebird.Transaction, pro
 	mut pa := []firebird.Value{}
 	for i := 0; i < d.len; i++ {
 		s = appendln(s, 'SELECT
-			? AS product_id,
-			? AS locale_code,
-			? AS title,
-			? AS subtitle,
-			? AS description,
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS VARCHAR(63)) AS locale_code,
+			CAST(? AS VARCHAR(63)) AS title,
+			CAST(? AS VARCHAR(191)) AS subtitle,
+			CAST(? AS BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE')
 
 		pa = arrays.concat(pa, product_id_bin, d[i].locale_code)

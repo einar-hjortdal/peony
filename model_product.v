@@ -552,7 +552,8 @@ fn (mut app App) create_product(p ProductData) !string {
 	return product_id
 }
 
-fn build_query_update_product(id_bin []u8, p ProductData) !(string, []firebird.Value) {
+fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p ProductData) ! {
+	id_bin := id_string_to_bin(id)!
 	mut c := []string{}
 	mut params := []firebird.Value{}
 
@@ -593,15 +594,8 @@ fn build_query_update_product(id_bin []u8, p ProductData) !(string, []firebird.V
 		params = arrays.concat(params, discountable)
 	}
 
-	params = arrays.concat(params, id_bin)
 	query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
-
-	return query, params
-}
-
-fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p ProductData) ! {
-	id_bin := id_string_to_bin(id)!
-	query, params := build_query_update_product(id_bin, p)!
+	params = arrays.concat(params, firebird.Value(id_bin))
 	tx.execute(query, ...params)!
 
 	// TODO

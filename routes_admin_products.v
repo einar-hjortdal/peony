@@ -64,7 +64,6 @@ fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 	return ctx.json(external_product)
 }
 
-// updates a product
 @['/admin/products/:id'; post]
 fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
 	body := json.decode(ProductData, ctx.req.data) or {
@@ -77,7 +76,7 @@ fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
 		return ctx.json(new_peony_error('Failed to update product data', err.msg()))
 	}
 
-	return ctx.no_content()
+	return ctx.json(new_peony_success())
 }
 
 // deletes a product
