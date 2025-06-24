@@ -197,6 +197,8 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	}
 
 	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY p.created_at ${get_sorting_order(p.order)}')
+
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
 		params = arrays.concat(params, p.offset.v)
