@@ -65,6 +65,28 @@ fn format_user_response(u User) UserResponse {
 	}
 }
 
+struct LocaleResponse {
+	code string
+}
+
+fn format_locale_response(l Locale) LocaleResponse {
+	return LocaleResponse{
+		code: l.code
+	}
+}
+
+struct CurrencyResponse {
+	code         string
+	includes_tax bool @[json: 'includesTax']
+}
+
+fn format_currency_response(c Currency) CurrencyResponse {
+	return CurrencyResponse{
+		code:         c.code
+		includes_tax: c.includes_tax
+	}
+}
+
 struct StoreResponse {
 	id                        string
 	created_at                time.Time @[json: 'createdAt']
@@ -74,11 +96,21 @@ struct StoreResponse {
 	default_currency_code     string @[json: 'defaultCurrencyCode']
 	default_stock_location_id string @[json: 'defaultStockLocationId'; omitempty]
 	default_sales_channel_id  string @[json: 'defaultSalesChannelId'; omitempty]
-	locales                   []Locale
-	currencies                []Currency
+	locales                   []LocaleResponse
+	currencies                []CurrencyResponse
 }
 
 fn format_store_response(s Store) StoreResponse {
+	mut locales := []LocaleResponse{len: s.locales.len}
+	for i := 0; i < s.locales.len; i++ {
+		locales[i] = format_locale_response(s.locales[i])
+	}
+
+	mut currencies := []CurrencyResponse{len: s.currencies.len}
+	for i := 0; i < s.currencies.len; i++ {
+		currencies[i] = format_currency_response(s.currencies[i])
+	}
+
 	return StoreResponse{
 		id:                        s.id
 		created_at:                s.created_at.Time
@@ -88,8 +120,8 @@ fn format_store_response(s Store) StoreResponse {
 		default_currency_code:     s.default_currency_code
 		default_stock_location_id: s.default_stock_location_id
 		default_sales_channel_id:  s.default_sales_channel_id
-		locales:                   s.locales
-		currencies:                s.currencies
+		locales:                   locales
+		currencies:                currencies
 	}
 }
 
