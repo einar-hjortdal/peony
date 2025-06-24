@@ -1,6 +1,10 @@
 # TODO
 
+## Basics
+
 - [x] Read settings from environment and validate~~ <!-- Always panic right away on startup, never on runtime -->
+- [x] Write a database-friendly uuid library <!-- https://github.com/einar-hjortdal/lexical_uuid -->
+- [x] Write a sessions management library <!-- https://github.com/einar-hjortdal/sessions -->
 - [x] Write a firebird connector <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a Redict library <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
@@ -8,6 +12,30 @@
 - [ ] Always return json
 - [ ] Iron out error handling
 - [ ] Cache and invalidation
+
+## Features
+
+- [ ] Multilanguage
+- [ ] Multicurrency
+- [ ] Multiregion
+- [ ] Multichannel
+- [ ] Multiwarehouse
+- [ ] Multistore
+- [ ] Caching
+- [ ] Discounts
+- [ ] Product tags
+- [ ] Posts
+- [ ] Pages
+- [ ] Tags
+- [ ] Customer
+- [ ] Cart
+- [ ] Orders
+- [ ] Payments
+- [ ] User permissions
+- [ ] Variant images
+- [ ] API keys
+- [ ] User-defined data
+- [ ] API keys management
 
 ## Refactor
 

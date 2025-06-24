@@ -18,6 +18,8 @@ struct Store {
 mut:
 	locales    []Locale
 	currencies []Currency
+	// stock locations
+	// sales_channels
 }
 
 fn parse_store(v []firebird.Value) !Store {
