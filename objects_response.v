@@ -66,11 +66,13 @@ fn format_user_response(u User) UserResponse {
 }
 
 struct LocaleResponse {
+	id   string
 	code string
 }
 
 fn format_locale_response(l Locale) LocaleResponse {
 	return LocaleResponse{
+		id:   l.id
 		code: l.code
 	}
 }
