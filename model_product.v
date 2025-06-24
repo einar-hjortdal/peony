@@ -94,14 +94,13 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
 
 	if p.id.is_set {
-		len := p.id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
+		mut ids_bin := [][]u8{len: p.id.v.len}
+		for i := 0; i < p.id.v.len; i++ {
 			id_bin := id_string_to_bin(p.id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
+			ids_bin[i] = id_bin
 		}
-		conditions = appendln(conditions, 'AND p.id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+		conditions = appendln(conditions, 'AND p.id IN (${get_n_placeholders(i32(p.id.v.len))})')
+		params = arrays.concat(params, ...workaround_24757(ids_bin))
 	}
 
 	if p.handle.is_set {
@@ -392,7 +391,7 @@ fn (mut app App) retrieve_products(p RetrieveProductParams) !([]Product, i32) {
 
 fn (mut app App) retrieve_product_by_id(id string) !Product {
 	m := {
-		id: id
+		'id': id
 	}
 	p := extract_retrieve_products_params(m)
 
