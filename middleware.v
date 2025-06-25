@@ -20,8 +20,8 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 	}
 
 	ctx.user_session_values = json.decode(UserSessionValues, ctx.user_session.values) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(new_peony_error('Could not decode UserSessionValues', err.msg()))
+		ctx.res.set_status(http.Status.unauthorized)
+		ctx.json(new_peony_error('Invalid session', err.msg()))
 		return false
 	}
 
