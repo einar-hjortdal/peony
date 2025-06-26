@@ -34,7 +34,7 @@ fn login_error() (string, string) {
 // fetch is the number of items requested
 struct ListResponse[T] {
 	items  []T
-	count  i32
+	count  i64
 	offset i32
 	fetch  i32
 }

@@ -18,8 +18,8 @@ fn parse_currency(v []firebird.Value) !Currency {
 	}
 }
 
-fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
-	query := 'SELECT code, includes_tax FROM currency'
+fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) !([]Currency, i64) {
+	query := 'SELECT code, includes_tax, COUNT(*) OVER() FROM currency'
 	mut params := []firebird.Value{}
 	mut conditions := ''
 	if p.code.is_set {
@@ -59,7 +59,14 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
 	for i := 0; i < data.rows.len; i++ {
 		res[i] = parse_currency(data.rows[i].values)!
 	}
-	return res
+
+	mut count := i64(0)
+	if res.len > 0 {
+		c, _ := data.rows[0].values[2].get_i64()!
+		count = c
+	}
+
+	return res, count
 }
 
 fn (mut app App) update_currency(code string, data NewCurrencyData) ! {
