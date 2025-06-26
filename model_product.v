@@ -77,8 +77,8 @@ fn parse_product(v []firebird.Value) !Product {
 }
 
 // gather filtered and sorted id
-fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParams) ![][]u8 {
-	query := 'SELECT p.id FROM product p'
+fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParams) !([][]u8, i64) {
+	query := 'SELECT p.id, COUNT(*) OVER() FROM product p'
 	mut params := []firebird.Value{}
 
 	mut joins := ''
@@ -208,13 +208,19 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 
 	data := tx.execute('${query}${joins}${conditions}${sorting}', ...params)!
 
-	mut ids := [][]u8{}
+	mut ids := [][]u8{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
 		id, _ := data.rows[i].values[0].get_array_u8()!
-		ids = arrays.concat(ids, id)
+		ids[i] = id
 	}
 
-	return ids
+	mut count := i64(0)
+	if ids.len > 0 {
+		c, _ := data.rows[0].values[1].get_i64()!
+		count = c
+	}
+
+	return ids, count
 }
 
 // retrieve all products using list of id, returns unsorted list
@@ -294,8 +300,8 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 	return variants
 }
 
-fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !([]Product, i32) {
-	ids_bin := do_retrieve_products__ids(mut tx, p)!
+fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !([]Product, i64) {
+	ids_bin, count := do_retrieve_products__ids(mut tx, p)!
 	len := i32(ids_bin.len)
 	if len == 0 {
 		return []Product{}, len
@@ -376,10 +382,10 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !(
 		products[i] = product_map[id]
 	}
 
-	return products, len
+	return products, count
 }
 
-fn (mut app App) retrieve_products(p RetrieveProductParams) !([]Product, i32) {
+fn (mut app App) retrieve_products(p RetrieveProductParams) !([]Product, i64) {
 	mut tx := app.start_transaction()!
 	products, count := do_retrieve_products(mut tx, p) or {
 		tx.rollback()!
