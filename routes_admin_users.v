@@ -82,7 +82,7 @@ fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 	return ctx.json(format_user_response(updated_user))
 }
 
-// deleted a user
+// deletes a user
 @['/admin/users/:id'; post]
 fn (mut app App) admin_users_id_delete(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {

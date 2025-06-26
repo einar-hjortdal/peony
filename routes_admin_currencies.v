@@ -12,14 +12,6 @@ import veb
 @['/admin/currencies/'; get]
 fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_currencies_params(ctx.query)
-	if p.code.is_set {
-		currency := app.retrieve_currency_by_code(p.code.v) or {
-			ctx.res.set_status(http.Status.internal_server_error)
-			return ctx.json(new_peony_error('Could not retrieve currency by code', err.msg()))
-		}
-		return ctx.json(currency)
-	}
-
 	currencies := app.retrieve_currencies(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve currencies from database',
@@ -41,10 +33,14 @@ fn (mut app App) admin_currencies_post(mut ctx Context, code string) veb.Result 
 		return ctx.json(new_peony_error('Could not update currency data', err.msg()))
 	}
 
-	updated_data := app.retrieve_currency_by_code(code) or {
+	m := {
+		'code': code
+	}
+	p := extract_retrieve_currencies_params(m)
+	updated_data := app.retrieve_currencies(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve updated currency data', err.msg()))
 	}
 
-	return ctx.json(updated_data)
+	return ctx.json(updated_data[0])
 }

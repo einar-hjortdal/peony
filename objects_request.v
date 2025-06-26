@@ -57,3 +57,25 @@ struct UpdateMoneyAmountData {
 	region_id     ?string @[json: 'regionId']
 	variant_id    ?string @[json: 'variantId']
 }
+
+struct RetrieveCurrenciesParams {
+	code         ZeroArrayString
+	includes_tax ZeroBool
+	offset       ZeroI32
+	fetch        ZeroI32
+	order        ZeroString
+}
+
+fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesParams {
+	return RetrieveCurrenciesParams{
+		code:         zero_array_string(m, 'code')
+		includes_tax: zero_bool(m, 'includes_tax')
+		offset:       zero_i32(m, 'offset')
+		fetch:        zero_i32(m, 'fetch')
+		order:        zero_string(m, 'order')
+	}
+}
+
+struct NewCurrencyData {
+	includes_tax bool @[json: 'includesTax']
+}

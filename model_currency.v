@@ -18,35 +18,30 @@ fn parse_currency(v []firebird.Value) !Currency {
 	}
 }
 
-struct RetrieveCurrenciesParams {
-	code         ZeroString
-	includes_tax ZeroBool
-	offset       ZeroI32
-	fetch        ZeroI32
-	order        ZeroString
-}
-
-fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesParams {
-	return RetrieveCurrenciesParams{
-		code:         zero_string(m, 'code')
-		includes_tax: zero_bool(m, 'includes_tax')
-		offset:       zero_i32(m, 'offset')
-		fetch:        zero_i32(m, 'fetch')
-		order:        zero_string(m, 'order')
-	}
-}
-
 fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
-	query := 'SELECT (code, includes_tax) FROM currency'
+	query := 'SELECT code, includes_tax FROM currency'
 	mut params := []firebird.Value{}
 	mut conditions := ''
+	if p.code.is_set {
+		// workaround_24757() but for strings
+		mut c := []firebird.Value{len: p.code.v.len, init: firebird.Value(0)}
+		for i := 0; i < p.code.v.len; i++ {
+			c[i] = firebird.Value(p.code.v[i])
+		}
+		conditions = appendln(conditions, 'WHERE code IN (${get_n_placeholders(i32(p.code.v.len))})')
+		// v: ['EUR']
+		// firebird.Value(5395781)
+		// params = arrays.concat(params, ...p.code.v)
+		params = arrays.concat(params, ...c)
+	}
+
 	if p.includes_tax.is_set {
 		conditions = appendln(conditions, 'WHERE includes_tax = ?')
 		params = arrays.concat(params, p.includes_tax.v)
 	}
 
 	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
+	sorting = appendln(sorting, 'ORDER BY code ${get_sorting_order(p.order)}')
 
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
@@ -60,28 +55,11 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) ![]Currency {
 	data := tx.execute('${query}${conditions}${sorting}', ...params)!
 	tx.rollback()!
 
-	mut res := []Currency{}
+	mut res := []Currency{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
-		currency := parse_currency(data.rows[i].values)!
-		res = arrays.concat(res, currency)
+		res[i] = parse_currency(data.rows[i].values)!
 	}
 	return res
-}
-
-fn (mut app App) retrieve_currency_by_code(code string) !Currency {
-	mut tx := app.start_transaction()!
-	res := tx.execute('SELECT (code, includes_tax)	FROM currency WHERE code = ?', code)!
-	tx.rollback()!
-
-	if res.rows.len == 0 {
-		return error(format_error_message('No currency found'))
-	}
-
-	return parse_currency(res.rows[0].values)!
-}
-
-struct NewCurrencyData {
-	includes_tax bool
 }
 
 fn (mut app App) update_currency(code string, data NewCurrencyData) ! {
