@@ -66,7 +66,6 @@ fn format_user_response(u User) UserResponse {
 }
 
 struct LocaleResponse {
-	id   string
 	code string
 }
 
