@@ -117,6 +117,40 @@ fn (mut app App) store_retrieve() !Store {
 	return store
 }
 
+fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_codes []string) ! {
+	s := 'SELECT
+		CAST(? AS BINARY(16)) AS store_id,
+		CAST(? AS VARCHAR(63)) AS locale_code
+		FROM RDB\$DATABASE'
+	mut src := ''
+	mut params := []firebird.Value{len: locale_codes.len * 2 + 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < locale_codes.len; i++ {
+		src = appendln(src, s)
+		params[i * 2] = id_bin
+		params[i * 2 + 1] = locale_codes[i]
+		if i != locale_codes.len - 1 {
+			src = appendln(src, 'UNION ALL')
+		}
+	}
+
+	query := 'MERGE INTO store_locales t
+		USING (${src}) s (store_id, locale_code)
+		ON (t.store_id = s.store_id AND t.locale_code = s.locale_code)
+		WHEN NOT MATCHED THEN
+			INSERT (store_id, locale_code)
+			VALUES (s.store_id, s.locale_code)
+		WHEN NOT MATCHED BY SOURCE
+			AND t.store_id = ?
+			AND t.locale_code <> (
+				SELECT default_locale_code
+				FROM store
+				WHERE id = ?)
+			THEN DELETE'
+	params[params.len - 2] = id_bin
+	params[params.len - 1] = id_bin
+	tx.execute(query, ...params)!
+}
+
 fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
@@ -139,11 +173,11 @@ fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin 
 		WHEN NOT MATCHED THEN
 			INSERT (store_id, currency_code)
 			VALUES (s.store_id, s.currency_code)
-		WHEN NOT MATCHED BY SOURCE 
+		WHEN NOT MATCHED BY SOURCE
 			AND t.store_id = ?
 			AND t.currency_code <> (
-				SELECT default_currency_code 
-				FROM store 
+				SELECT default_currency_code
+				FROM store
 				WHERE id = ?)
 			THEN DELETE'
 	params[params.len - 2] = id_bin
@@ -181,6 +215,13 @@ fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
 
 	if p.name != none || p.default_locale_code != none || p.default_currency_code != none {
 		app.do_update_store_data(mut tx, id_bin, p) or {
+			tx.rollback()!
+			return err
+		}
+	}
+
+	if locale_codes := p.locales {
+		app.do_update_store_locales(mut tx, id_bin, locale_codes) or {
 			tx.rollback()!
 			return err
 		}
