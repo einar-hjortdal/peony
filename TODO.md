@@ -2,25 +2,35 @@
 
 ## Basics
 
-- [x] Read settings from environment and validate~~ <!-- Always panic right away on startup, never on runtime -->
+- [x] Read and validate settings~~ <!-- Always panic right away on startup, never on runtime -->
 - [x] Write a database-friendly uuid library <!-- https://github.com/einar-hjortdal/lexical_uuid -->
 - [x] Write a sessions management library <!-- https://github.com/einar-hjortdal/sessions -->
-- [x] Write a firebird connector <!-- https://github.com/einar-hjortdal/redict -->
+- [x] Write a FirebirdSQL connector <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a Redict library <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
 - [x] Seed new database with a schema, constants and defaults
 - [ ] Always return json
 - [ ] Iron out error handling
-- [ ] Cache and invalidation
 
 ## Features
 
+### 3.3.0
+
+- [ ] Products
+- [ ] Variants
+- [ ] Images
+- [ ] Prices
 - [ ] Multilanguage
 - [ ] Multicurrency
+
+### Next
+
+- [ ] Redict cache
 - [ ] Multiregion
 - [ ] Multichannel
 - [ ] Multiwarehouse
 - [ ] Multistore
+- [ ] Taxes
 - [ ] Caching
 - [ ] Discounts
 - [ ] Product tags
@@ -42,6 +52,9 @@
 - [x] Keep response struct separate from internal structs
 - [ ] Return count, offset and fetch values with lists
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
+- [ ] Change from `module main` to `module peony` to allow modules and extensions
+- [ ] Namespace functions that orchestrate database operations to separate them from functions that 
+        actually perform database operations
 
 ## Considerations
 
