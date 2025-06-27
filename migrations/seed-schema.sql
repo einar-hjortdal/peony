@@ -332,7 +332,7 @@ CREATE INDEX "0681493b-ad84-1975-5c00-bbeb84274ac6" ON product_type_tax_rate (pr
 
 CREATE TABLE locale (
   code VARCHAR(63) NOT NULL, -- IETF BCP 47 (arbitrary limit of 63 characters)
-  CONSTRAINT "0681493b-ad84-1afe-8400-e4f8990e0744" PRIMARY KEY (code),
+  CONSTRAINT "0681493b-ad84-1afe-8400-e4f8990e0744" PRIMARY KEY (code)
 );
 
 CREATE TABLE stock_location_address (
