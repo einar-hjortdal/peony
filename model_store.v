@@ -118,10 +118,6 @@ fn (mut app App) store_retrieve() !Store {
 }
 
 fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
-	if currency_codes.len == 0 {
-		return error('currency_codes cannot be empty')
-	}
-
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
 		CAST(? AS CHAR(3)) AS currency_code

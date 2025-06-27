@@ -25,12 +25,12 @@ fn (mut app App) admin_store_post(mut ctx Context, id string) veb.Result {
 		return ctx.json(new_peony_error('Malformed id', err.msg()))
 	}
 
-	data := json.decode(NewStoreData, ctx.req.data) or {
+	p := json.decode(NewStoreData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode NewStoreData', err.msg()))
 	}
 
-	app.update_store_data(id_bin, data) or {
+	app.update_store_data(id_bin, p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not update store data', err.msg()))
 	}
