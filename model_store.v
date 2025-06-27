@@ -118,6 +118,10 @@ fn (mut app App) store_retrieve() !Store {
 }
 
 fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
+	if currency_codes.len == 0 {
+		return error('currency_codes cannot be empty')
+	}
+
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
 		CAST(? AS CHAR(3)) AS currency_code
@@ -146,8 +150,8 @@ fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin 
 				FROM store 
 				WHERE id = ?)
 			THEN DELETE'
-	params[currency_codes.len * 2 + 1] = id_bin
-	params[currency_codes.len * 2 + 2] = id_bin
+	params[params.len - 2] = id_bin
+	params[params.len - 1] = id_bin
 	tx.execute(query, ...params)!
 }
 
@@ -174,17 +178,24 @@ fn (mut app App) do_update_store_data(mut tx firebird.Transaction, id_bin []u8, 
 	query = appendln(query, conditions)
 	params = arrays.concat(params, id_bin)
 	tx.execute(query, ...params)!
-
-	if currency_codes := p.currencies {
-		app.do_update_store_currencies(mut tx, id_bin, currency_codes)!
-	}
 }
 
 fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
 	mut tx := app.start_transaction()!
-	app.do_update_store_data(mut tx, id_bin, p) or {
-		tx.rollback()!
-		return err
+
+	if p.name != none || p.default_locale_code != none || p.default_currency_code != none {
+		app.do_update_store_data(mut tx, id_bin, p) or {
+			tx.rollback()!
+			return err
+		}
 	}
+
+	if currency_codes := p.currencies {
+		app.do_update_store_currencies(mut tx, id_bin, currency_codes) or {
+			tx.rollback()!
+			return err
+		}
+	}
+
 	tx.commit()!
 }
