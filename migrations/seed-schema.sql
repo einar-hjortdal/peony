@@ -331,10 +331,8 @@ CREATE INDEX "0681493b-ad84-1922-2000-80d2d3e5ac26" ON product_type_tax_rate (ra
 CREATE INDEX "0681493b-ad84-1975-5c00-bbeb84274ac6" ON product_type_tax_rate (product_type_id);
 
 CREATE TABLE locale (
-  id BINARY(16) NOT NULL,
-  code VARCHAR(63) NOT NULL,
-  CONSTRAINT "0681493b-ad84-1afe-8400-e4f8990e0744" PRIMARY KEY (id),
-  CONSTRAINT "0681493b-ad84-1b4d-ac00-955f9befd9c9" UNIQUE (code)
+  code VARCHAR(63) NOT NULL, -- IETF BCP 47 (arbitrary limit of 63 characters)
+  CONSTRAINT "0681493b-ad84-1afe-8400-e4f8990e0744" PRIMARY KEY (code),
 );
 
 CREATE TABLE stock_location_address (

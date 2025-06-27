@@ -72,7 +72,6 @@ struct LocaleResponse {
 
 fn format_locale_response(l Locale) LocaleResponse {
 	return LocaleResponse{
-		id:   l.id
 		code: l.code
 	}
 }

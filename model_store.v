@@ -78,10 +78,7 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 
 	mut store := parse_store(store_data.rows[0].values)!
 
-	locale_data := tx.execute('SELECT l.id, locale_code 
-	FROM store_locales
-	LEFT JOIN locale l ON locale_code = l.code
-	WHERE store_id = ?',
+	locale_data := tx.execute('SELECT locale_code FROM store_locales WHERE store_id = ?',
 		store.id_bin)!
 
 	mut locales := []Locale{len: locale_data.rows.len}

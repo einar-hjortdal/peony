@@ -64,11 +64,10 @@ fn (mut app App) insert_currency_codes(mut tx firebird.Transaction) ! {
 fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
 	log.debug('insert_locale_codes')
 	locale_codes := get_locale_codes()
-	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
+	mut stmt := tx.prepare('INSERT INTO locale (code) VALUES (?)')!
 	for i := 0; i < locale_codes.len; i++ {
-		_, id_bin := app.new_id()!
 		code := locale_codes[i]
-		stmt.execute(id_bin, code)!
+		stmt.execute(code)!
 	}
 	stmt.close()!
 }

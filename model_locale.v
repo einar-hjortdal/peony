@@ -4,26 +4,19 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Locale {
-	id     string
-	id_bin []u8
-	code   string
+	code string
 }
 
 fn parse_locale(v []firebird.Value) !Locale {
-	id_bin, _ := v[0].get_array_u8()!
-	code, _ := v[1].get_string()!
-
-	id := id_bin_to_string(id_bin)!
+	code, _ := v[0].get_string()!
 
 	return Locale{
-		id:     id
-		id_bin: id_bin
-		code:   code
+		code: code
 	}
 }
 
 fn (mut app App) retrieve_locales(p RetrieveLocalesParams) !([]Locale, i64) {
-	query := 'SELECT id, code, COUNT(*) OVER() FROM locale'
+	query := 'SELECT code, COUNT(*) OVER() FROM locale'
 	mut params := []firebird.Value{}
 	mut sorting := ''
 	sorting = appendln(sorting, 'ORDER BY code ${get_sorting_order(p.order)}')
@@ -47,7 +40,7 @@ fn (mut app App) retrieve_locales(p RetrieveLocalesParams) !([]Locale, i64) {
 
 	mut count := i64(0)
 	if res.len > 0 {
-		c, _ := data.rows[0].values[2].get_i64()!
+		c, _ := data.rows[0].values[1].get_i64()!
 		count = c
 	}
 
