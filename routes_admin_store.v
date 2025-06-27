@@ -37,27 +37,3 @@ fn (mut app App) admin_store_post(mut ctx Context, id string) veb.Result {
 
 	return app.admin_store_get(mut ctx)
 }
-
-// adds a currency code
-@['/admin/store/currencies/:code'; post]
-fn (mut app App) admin_store_currencies_code_post(mut ctx Context) veb.Result {
-	return ctx.text('ok')
-}
-
-// deletes a currency code
-@['/admin/store/currencies/:code'; delete]
-fn (mut app App) admin_store_currencies_code_delete(mut ctx Context) veb.Result {
-	return ctx.text('ok')
-}
-
-// adds a locale code
-@['/admin/store/locale/:code'; post]
-fn (mut app App) admin_store_locale_code_post(mut ctx Context) veb.Result {
-	return ctx.text('ok')
-}
-
-// deletes a locale code
-@['/admin/store/locale/:code'; delete]
-fn (mut app App) admin_store_locale_code_delete(mut ctx Context) veb.Result {
-	return ctx.text('ok')
-}

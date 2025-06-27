@@ -117,7 +117,34 @@ fn (mut app App) store_retrieve() !Store {
 	return store
 }
 
-fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
+fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
+	s := 'SELECT
+		CAST(? AS BINARY(16)) AS store_id,
+		CAST(? AS CHAR(3)) AS currency_code
+		FROM RDB\$DATABASE'
+	mut src := ''
+	mut params := []firebird.Value{len: currency_codes.len * 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < currency_codes.len; i++ {
+		src = appendln(src, s)
+		params[i * 2] = id_bin
+		params[i * 2 + 1] = currency_codes[i]
+		if i != currency_codes.len - 1 {
+			src = appendln(src, 'UNION ALL')
+		}
+	}
+
+	query := 'MERGE INTO store_currencies t
+		USING (${src}) s (store_id, currency_code)
+		ON (t.store_id = s.store_id AND t.currency_code = s.currency_code)
+		WHEN NOT MATCHED THEN
+			INSERT (store_id, currency_code)
+			VALUES (s.store_id, s.currency_code)
+		WHEN NOT MATCHED BY SOURCE THEN
+			DELETE'
+	tx.execute(query, ...params)!
+}
+
+fn (mut app App) do_update_store_data(mut tx firebird.Transaction, id_bin []u8, p NewStoreData) ! {
 	mut query := 'UPDATE store SET'
 	mut params := []firebird.Value{}
 
@@ -139,8 +166,18 @@ fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
 	conditions := 'WHERE id = ?'
 	query = appendln(query, conditions)
 	params = arrays.concat(params, id_bin)
-
-	mut tx := app.start_transaction()!
 	tx.execute(query, ...params)!
+
+	if currency_codes := p.currencies {
+		app.do_update_store_currencies(mut tx, id_bin, currency_codes)!
+	}
+}
+
+fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
+	mut tx := app.start_transaction()!
+	app.do_update_store_data(mut tx, id_bin, p) or {
+		tx.rollback()!
+		return err
+	}
 	tx.commit()!
 }

@@ -9,6 +9,8 @@ struct NewStoreData {
 	name                  ?string
 	default_locale_code   ?string @[json: 'defaultLocaleCode']
 	default_currency_code ?string @[json: 'defaultCurrencyCode']
+	locales               ?[]string
+	currencies            ?[]string
 }
 
 struct NewUserData {
