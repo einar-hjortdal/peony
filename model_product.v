@@ -88,7 +88,6 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	joins = appendln(joins, 'LEFT JOIN product_tag_product pt ON pt.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_category_product pcp ON pcp.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_sales_channel psc ON psc.product_id = p.id')
-	joins = appendln(joins, 'LEFT JOIN product_translations ptr ON ptr.product_id = p.id')
 
 	mut conditions := ''
 	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
@@ -137,7 +136,7 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 			ids_bin = arrays.concat(ids_bin, id_bin)
 		}
 
-		conditions = appendln(conditions, 'AND IN ${get_n_placeholders(i32(len))}')
+		conditions = appendln(conditions, 'AND p.type_id IN ${get_n_placeholders(i32(len))}')
 		params = arrays.concat(params, ...ids_bin)
 	}
 
@@ -153,12 +152,22 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	}
 
 	if p.title.is_set {
-		conditions = appendln(conditions, "AND UPPER(ptr.title) LIKE UPPER('%' || ? || '%')")
+		conditions = appendln(conditions, "AND EXISTS (
+			SELECT 1
+			FROM product_translations ptr
+			WHERE ptr.product_id = p.id
+				AND UPPER(ptr.title) LIKE UPPER('%' || ? || '%')
+			)")
 		params = arrays.concat(params, p.title.v)
 	}
 
 	if p.description.is_set {
-		conditions = appendln(conditions, "AND UPPER(ptr.description) LIKE UPPER('%' || ? || '%')")
+		conditions = appendln(conditions, "AND EXISTS (
+			SELECT 1
+			FROM product_translations ptr
+			WHERE ptr.product_id = p.id
+				AND UPPER(ptr.description) LIKE UPPER('%' || ? || '%')
+			)")
 		params = arrays.concat(params, p.description.v)
 	}
 
