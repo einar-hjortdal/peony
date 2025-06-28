@@ -66,11 +66,13 @@ fn format_user_response(u User) UserResponse {
 }
 
 struct LocaleResponse {
+	id   string
 	code string
 }
 
 fn format_locale_response(l Locale) LocaleResponse {
 	return LocaleResponse{
+		id:   l.id
 		code: l.code
 	}
 }
@@ -92,7 +94,7 @@ struct StoreResponse {
 	created_at                time.Time @[json: 'createdAt']
 	updated_at                time.Time @[json: 'updatedAt']
 	name                      string
-	default_locale_code       string @[json: 'defaultLocaleCode']
+	default_locale_id         string @[json: 'defaultLocaleId']
 	default_currency_code     string @[json: 'defaultCurrencyCode']
 	default_stock_location_id string @[json: 'defaultStockLocationId'; omitempty]
 	default_sales_channel_id  string @[json: 'defaultSalesChannelId'; omitempty]
@@ -116,7 +118,7 @@ fn format_store_response(s Store) StoreResponse {
 		created_at:                s.created_at.Time
 		updated_at:                s.updated_at.Time
 		name:                      s.name
-		default_locale_code:       s.default_locale_code
+		default_locale_id:         s.default_locale_id
 		default_currency_code:     s.default_currency_code
 		default_stock_location_id: s.default_stock_location_id
 		default_sales_channel_id:  s.default_sales_channel_id
@@ -145,7 +147,7 @@ fn format_image_response(i Image) ImageResponse {
 
 struct ProductTranslationResponse {
 	product_id  string    @[json: 'productId']
-	locale_code string    @[json: 'localeCode']
+	locale_id   string    @[json: 'localeId']
 	created_at  time.Time @[json: 'createdAt']
 	updated_at  time.Time @[json: 'updatedAt']
 	deleted_at  time.Time @[json: 'deletedAt'; omitempty]
@@ -157,7 +159,7 @@ struct ProductTranslationResponse {
 fn format_product_translation_response(p ProductTranslation) ProductTranslationResponse {
 	return ProductTranslationResponse{
 		product_id:  p.product_id
-		locale_code: p.locale_code
+		locale_id:   p.locale_id
 		created_at:  p.created_at.Time
 		updated_at:  p.updated_at.Time
 		deleted_at:  p.deleted_at.Time
@@ -169,14 +171,14 @@ fn format_product_translation_response(p ProductTranslation) ProductTranslationR
 
 struct ProductOptionValueTranslationResponse {
 	product_option_value_id string @[json: 'productOptionValueId']
-	locale_code             string @[json: 'localeCode']
+	locale_id               string @[json: 'localeId']
 	name                    string
 }
 
 fn format_product_option_value_translation_response(p ProductOptionValueTranslation) ProductOptionValueTranslationResponse {
 	return ProductOptionValueTranslationResponse{
 		product_option_value_id: p.product_option_value_id
-		locale_code:             p.locale_code
+		locale_id:               p.locale_id
 		name:                    p.name
 	}
 }
@@ -210,14 +212,14 @@ fn format_product_option_value_response(p ProductOptionValue) ProductOptionValue
 
 struct ProductOptionTranslationResponse {
 	product_option_id string @[json: 'productOptionId']
-	locale_code       string @[json: 'localeCode']
+	locale_id         string @[json: 'localeId']
 	title             string
 }
 
 fn format_product_option_translation_response(p ProductOptionTranslation) ProductOptionTranslationResponse {
 	return ProductOptionTranslationResponse{
 		product_option_id: p.product_option_id
-		locale_code:       p.locale_code
+		locale_id:         p.locale_id
 		title:             p.title
 	}
 }

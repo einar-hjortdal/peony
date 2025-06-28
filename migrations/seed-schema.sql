@@ -331,8 +331,10 @@ CREATE INDEX "0681493b-ad84-1922-2000-80d2d3e5ac26" ON product_type_tax_rate (ra
 CREATE INDEX "0681493b-ad84-1975-5c00-bbeb84274ac6" ON product_type_tax_rate (product_type_id);
 
 CREATE TABLE locale (
-  code VARCHAR(63) NOT NULL, -- IETF BCP 47 (arbitrary limit of 63 characters)
-  CONSTRAINT "0681493b-ad84-1afe-8400-e4f8990e0744" PRIMARY KEY (code)
+  id BINARY(16) NOT NULL,
+  code VARCHAR(63) NOT NULL,
+  CONSTRAINT "0681493b-ad84-1afe-8400-e4f8990e0744" PRIMARY KEY (id),
+  CONSTRAINT "0681493b-ad84-1b4d-ac00-955f9befd9c9" UNIQUE (code)
 );
 
 CREATE TABLE stock_location_address (
@@ -396,14 +398,14 @@ CREATE TABLE store (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  name VARCHAR(63) DEFAULT 'peony store' NOT NULL,
-  default_locale_code VARCHAR(63) DEFAULT 'en' NOT NULL,
-  default_currency_code CHAR(3) DEFAULT 'EUR' NOT NULL,
+  name VARCHAR(63) NOT NULL,
+  default_locale_id BINARY(16) NOT NULL,
+  default_currency_code CHAR(3) NOT NULL,
   default_stock_location_id BINARY(16),
   default_sales_channel_id BINARY(16),
   CONSTRAINT "0681493b-ad85-127e-3400-14796fb97f61" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad85-12d1-5000-235e3c958344" UNIQUE (default_sales_channel_id),
-  CONSTRAINT "0681493b-ad85-1328-8400-e0abfb402420" FOREIGN KEY (default_locale_code) REFERENCES locale (code),
+  CONSTRAINT "0681493b-ad85-1328-8400-e0abfb402420" FOREIGN KEY (default_locale_id) REFERENCES locale (id),
   CONSTRAINT "0681493b-ad85-1380-5800-df5849d73408" FOREIGN KEY (default_currency_code) REFERENCES currency (code),
   CONSTRAINT "0681493b-ad85-13d4-e400-43e4b8fcbb08" FOREIGN KEY (default_sales_channel_id) REFERENCES sales_channel (id)
 );
@@ -477,60 +479,60 @@ CREATE INDEX "0681493b-ad86-159d-b800-173af620b0b4" ON store_currencies (currenc
 
 CREATE TABLE store_locales (
   store_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
-  PRIMARY KEY (store_id, locale_code),
+  locale_id BINARY(16) NOT NULL,
+  PRIMARY KEY (store_id, locale_id),
   CONSTRAINT "0681493b-ad86-1a25-4800-5fd5f3b6a3f6" FOREIGN KEY (store_id) REFERENCES store (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad86-1a76-bc00-e0ca8031b6d2" FOREIGN KEY (locale_code) REFERENCES locale (code)
+  CONSTRAINT "0681493b-ad86-1a76-bc00-e0ca8031b6d2" FOREIGN KEY (locale_id) REFERENCES locale (id)
 );
 
 CREATE TABLE product_tag_translations (
   product_tag_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
-  CONSTRAINT "0681493b-ad86-1e1d-4800-e5012b6bb650" FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT "0681493b-ad86-1e1d-4800-e5012b6bb650" FOREIGN KEY (locale_id) REFERENCES locale (id),
   CONSTRAINT "0681493b-ad86-1e82-8c00-c285061f83d0" FOREIGN KEY (product_tag_id) REFERENCES product_tag (id) ON DELETE CASCADE,
-  PRIMARY KEY (product_tag_id, locale_code)
+  PRIMARY KEY (product_tag_id, locale_id)
 );
 
 CREATE TABLE product_type_translations (
   product_type_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
-  CONSTRAINT "0681493b-ad87-120a-a800-56399e88f404" FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT "0681493b-ad87-120a-a800-56399e88f404" FOREIGN KEY (locale_id) REFERENCES locale (id),
   CONSTRAINT "0681493b-ad87-125c-c000-ecfcbc02751b" FOREIGN KEY (product_type_id) REFERENCES product_type (id) ON DELETE CASCADE,
-  PRIMARY KEY (product_type_id, locale_code)
+  PRIMARY KEY (product_type_id, locale_id)
 );
 
 CREATE TABLE product_option_value_translations (
   product_option_value_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
-  CONSTRAINT "0681493b-ad87-1e15-1800-d2de50642886" FOREIGN KEY (locale_code) REFERENCES locale (code),
+  CONSTRAINT "0681493b-ad87-1e15-1800-d2de50642886" FOREIGN KEY (locale_id) REFERENCES locale (id),
   CONSTRAINT "0681493b-ad87-1e60-d800-84711ff8403b" FOREIGN KEY (product_option_value_id) REFERENCES product_option_value (id) ON DELETE CASCADE,
-  PRIMARY KEY (product_option_value_id, locale_code)
+  PRIMARY KEY (product_option_value_id, locale_id)
 );
 
 CREATE TABLE product_option_translations (
   product_option_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   title VARCHAR(63) NOT NULL,
   CONSTRAINT "0681493b-ad88-11a3-b800-2b712f3e3d31" FOREIGN KEY (product_option_id) REFERENCES product_option (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad88-11fd-6c00-e849d9a12128" FOREIGN KEY (locale_code) REFERENCES locale (code),
-  PRIMARY KEY (product_option_id, locale_code)
+  CONSTRAINT "0681493b-ad88-11fd-6c00-e849d9a12128" FOREIGN KEY (locale_id) REFERENCES locale (id),
+  PRIMARY KEY (product_option_id, locale_id)
 );
 
 CREATE TABLE product_category_translations (
   product_category_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
   CONSTRAINT "0681493b-ad88-154d-8c00-37a1528f2b37" FOREIGN KEY (product_category_id) REFERENCES product_category (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad88-159c-1000-e7761236ae70" FOREIGN KEY (locale_code) REFERENCES locale (code),
-  PRIMARY KEY (product_category_id, locale_code)
+  CONSTRAINT "0681493b-ad88-159c-1000-e7761236ae70" FOREIGN KEY (locale_id) REFERENCES locale (id),
+  PRIMARY KEY (product_category_id, locale_id)
 );
 
 CREATE TABLE product_translations (
   product_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
@@ -538,15 +540,15 @@ CREATE TABLE product_translations (
   subtitle VARCHAR(191),
   description BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad88-1976-f800-fa9ffcccbf8c" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad88-19ce-8800-37968a334b2f" FOREIGN KEY (locale_code) REFERENCES locale (code),
-  PRIMARY KEY (product_id, locale_code)
+  CONSTRAINT "0681493b-ad88-19ce-8800-37968a334b2f" FOREIGN KEY (locale_id) REFERENCES locale (id),
+  PRIMARY KEY (product_id, locale_id)
 );
 
 CREATE TABLE product_collection_translations (
   product_collection_id BINARY(16) NOT NULL,
-  locale_code VARCHAR(63) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
   title VARCHAR(63) NOT NULL,
   CONSTRAINT "0681493b-ad88-1d0b-9400-99972b894202" FOREIGN KEY (product_collection_id) REFERENCES product_collection (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad88-1d59-0800-759be0f51dae" FOREIGN KEY (locale_code) REFERENCES locale (code),
-  PRIMARY KEY (product_collection_id, locale_code)
+  CONSTRAINT "0681493b-ad88-1d59-0800-759be0f51dae" FOREIGN KEY (locale_id) REFERENCES locale (id),
+  PRIMARY KEY (product_collection_id, locale_id)
 );

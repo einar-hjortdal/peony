@@ -6,21 +6,24 @@ import einar_hjortdal.firebird
 struct CollectionTranslation {
 	product_collection_id     string
 	product_collection_id_bin []u8 @[json: '-']
-	locale_code               string
+	locale_id                 string
+	locale_id_bin             []u8
 	title                     string
 }
 
 fn parse_collection_translation(v []firebird.Value) !CollectionTranslation {
 	product_collection_id_bin, _ := v[0].get_array_u8()!
-	locale_code, _ := v[1].get_string()!
+	locale_id_bin, _ := v[1].get_array_u8()!
 	title, _ := v[2].get_string()!
 
 	product_collection_id := id_bin_to_string(product_collection_id_bin)!
+	locale_id := id_bin_to_string(locale_id_bin)!
 
 	return CollectionTranslation{
 		product_collection_id:     product_collection_id
 		product_collection_id_bin: product_collection_id_bin
-		locale_code:               locale_code
+		locale_id:                 locale_id
+		locale_id_bin:             locale_id_bin
 		title:                     title
 	}
 }
@@ -120,7 +123,7 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 		ids[i] = collection.id
 	}
 
-	data = tx.execute('SELECT product_collection_id, locale_code, title FROM product_collection_translations
+	data = tx.execute('SELECT product_collection_id, locale_id, title FROM product_collection_translations
 		WHERE product_collection_id IN ${get_n_placeholders(i32(ids_bin.len))}',
 		...ids_bin)!
 
@@ -149,8 +152,8 @@ fn (mut app App) retrieve_collections(p RetrieveCollectionsParams) ![]Collection
 }
 
 struct UpdateCollectionTranslationData {
-	locale_code string
-	title       ?string
+	locale_id string
+	title     ?string
 }
 
 struct CollectionData {
@@ -173,10 +176,11 @@ fn (mut app App) do_create_collection(mut tx firebird.Transaction, p CollectionD
 
 	if translations := p.translations {
 		mut stmt := tx.prepare('INSERT INTO product_collection_translations (product_collection_id,
-			locale_code, title) VALUES (?, ?, ?)')!
+			locale_id, title) VALUES (?, ?, ?)')!
 
 		for i := 0; i < translations.len; i++ {
-			params = [firebird.Value(id_bin), translations[i].locale_code]
+			locale_id_bin := id_string_to_bin(translations[i].locale_id)!
+			params = [firebird.Value(id_bin), locale_id_bin]
 			if title := translations[i] {
 				params = arrays.concat(params, title)
 				stmt.execute(...params)!

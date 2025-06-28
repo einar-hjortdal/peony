@@ -9,7 +9,8 @@ struct Store {
 	created_at                    firebird.DateTime
 	updated_at                    firebird.DateTime
 	name                          string
-	default_locale_code           string
+	default_locale_id             string
+	default_locale_id_bin         []u8
 	default_currency_code         string
 	default_stock_location_id     string
 	default_stock_location_id_bin []u8
@@ -27,12 +28,13 @@ fn parse_store(v []firebird.Value) !Store {
 	created_at, _ := v[1].get_date_time()!
 	updated_at, _ := v[2].get_date_time()!
 	name, _ := v[3].get_string()!
-	default_locale_code, _ := v[4].get_string()!
+	default_locale_id_bin, _ := v[4].get_array_u8()!
 	default_currency_code, _ := v[5].get_string()!
 	default_stock_location_id_bin, default_stock_location_id_bin_is_null := v[6].get_array_u8()!
 	default_sales_channel_id_bin, default_sales_channel_id_bin_is_null := v[7].get_array_u8()!
 
 	id := id_bin_to_string(id_bin)!
+	default_locale_id := id_bin_to_string(default_locale_id_bin)!
 
 	mut default_stock_location_id := ''
 	mut default_sales_channel_id := ''
@@ -51,7 +53,8 @@ fn parse_store(v []firebird.Value) !Store {
 		created_at:                    created_at
 		updated_at:                    updated_at
 		name:                          name
-		default_locale_code:           default_locale_code
+		default_locale_id:             default_locale_id
+		default_locale_id_bin:         default_locale_id_bin
 		default_currency_code:         default_currency_code
 		default_stock_location_id:     default_stock_location_id
 		default_stock_location_id_bin: default_stock_location_id_bin
@@ -66,7 +69,7 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 		created_at,
 		updated_at,
 		name,
-		default_locale_code,
+		default_locale_id,
 		default_currency_code,
 		default_stock_location_id,
 		default_sales_channel_id
@@ -78,7 +81,10 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 
 	mut store := parse_store(store_data.rows[0].values)!
 
-	locale_data := tx.execute('SELECT locale_code FROM store_locales WHERE store_id = ?',
+	locale_data := tx.execute('SELECT locale_id, l.code
+	FROM store_locales
+	LEFT JOIN locale l ON locale_id = l.id
+	WHERE store_id = ?',
 		store.id_bin)!
 
 	mut locales := []Locale{len: locale_data.rows.len}
@@ -114,32 +120,33 @@ fn (mut app App) store_retrieve() !Store {
 	return store
 }
 
-fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_codes []string) ! {
+fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_ids []string) ! {
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
-		CAST(? AS VARCHAR(63)) AS locale_code
+		CAST(? AS BINARY(16)) AS locale_id
 		FROM RDB\$DATABASE'
 	mut src := ''
-	mut params := []firebird.Value{len: locale_codes.len * 2 + 2, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < locale_codes.len; i++ {
+	mut params := []firebird.Value{len: locale_ids.len * 2 + 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < locale_ids.len; i++ {
 		src = appendln(src, s)
+		locale_id_bin := id_string_to_bin(locale_ids[i])! // TODO validate in controller
 		params[i * 2] = id_bin
-		params[i * 2 + 1] = locale_codes[i]
-		if i != locale_codes.len - 1 {
+		params[i * 2 + 1] = locale_id_bin
+		if i != locale_ids.len - 1 {
 			src = appendln(src, 'UNION ALL')
 		}
 	}
 
 	query := 'MERGE INTO store_locales t
-		USING (${src}) s (store_id, locale_code)
-		ON (t.store_id = s.store_id AND t.locale_code = s.locale_code)
+		USING (${src}) s (store_id, locale_id)
+		ON (t.store_id = s.store_id AND t.locale_id = s.locale_id)
 		WHEN NOT MATCHED THEN
-			INSERT (store_id, locale_code)
-			VALUES (s.store_id, s.locale_code)
+			INSERT (store_id, locale_id)
+			VALUES (s.store_id, s.locale_id)
 		WHEN NOT MATCHED BY SOURCE
 			AND t.store_id = ?
-			AND t.locale_code <> (
-				SELECT default_locale_code
+			AND t.locale_id <> (
+				SELECT default_locale_id
 				FROM store
 				WHERE id = ?)
 			THEN DELETE'
@@ -191,9 +198,10 @@ fn (mut app App) do_update_store_data(mut tx firebird.Transaction, id_bin []u8, 
 		params = arrays.concat(params, name)
 	}
 
-	if default_locale_code := p.default_locale_code {
-		query = appendln(query, 'default_locale_code = ?')
-		params = arrays.concat(params, default_locale_code)
+	if default_locale_id := p.default_locale_id {
+		query = appendln(query, 'default_locale_id = ?')
+		default_locale_id_bin := id_string_to_bin(default_locale_id)! // TODO validate in controller
+		params = arrays.concat(params, default_locale_id_bin)
 	}
 
 	if default_currency_code := p.default_currency_code {
@@ -210,15 +218,15 @@ fn (mut app App) do_update_store_data(mut tx firebird.Transaction, id_bin []u8, 
 fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
 	mut tx := app.start_transaction()!
 
-	if p.name != none || p.default_locale_code != none || p.default_currency_code != none {
+	if p.name != none || p.default_locale_id != none || p.default_currency_code != none {
 		app.do_update_store_data(mut tx, id_bin, p) or {
 			tx.rollback()!
 			return err
 		}
 	}
 
-	if locale_codes := p.locales {
-		app.do_update_store_locales(mut tx, id_bin, locale_codes) or {
+	if locale_ids := p.locales {
+		app.do_update_store_locales(mut tx, id_bin, locale_ids) or {
 			tx.rollback()!
 			return err
 		}

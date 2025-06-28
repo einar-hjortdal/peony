@@ -50,13 +50,13 @@ fn (mut app App) admin_products_id_options_option_id_translations_post(mut ctx C
 // deletes a product option translation
 fn (mut app App) admin_products_id_options_option_id_translations_delete(mut ctx Context, id string) veb.Result {
 	data := json.decode(struct {
-		locale_code string
+		locale_id string
 	}, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode body', err.msg()))
 	}
 
-	app.delete_product_option_translation(id, data.locale_code) or {
+	app.delete_product_option_translation(id, data.locale_id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to delete product option', err.msg()))
 	}

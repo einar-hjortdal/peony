@@ -10,6 +10,7 @@ const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_codes_file = $embed_file('migrations/seed-currency-codes.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
+const seed_default_store_name = 'peony store'
 const seed_default_locale_code = 'en'
 const seed_default_currency_code = 'EUR'
 const seed_migration_name = 'seed'
@@ -64,10 +65,11 @@ fn (mut app App) insert_currency_codes(mut tx firebird.Transaction) ! {
 fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
 	log.debug('insert_locale_codes')
 	locale_codes := get_locale_codes()
-	mut stmt := tx.prepare('INSERT INTO locale (code) VALUES (?)')!
+	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
 	for i := 0; i < locale_codes.len; i++ {
+		_, id_bin := app.new_id()!
 		code := locale_codes[i]
-		stmt.execute(code)!
+		stmt.execute(id_bin, code)!
 	}
 	stmt.close()!
 }
@@ -101,19 +103,20 @@ fn (mut app App) insert_default_sales_channel(mut tx firebird.Transaction) ![]u8
 fn (mut app App) insert_default_store(mut tx firebird.Transaction, stock_location_id_bin []u8,
 	sales_channel_id_bin []u8) ![]u8 {
 	log.debug('insert_default_store')
-	store_id, store_id_bin := app.new_id()!
+	_, store_id_bin := app.new_id()!
 	tx.execute('INSERT INTO store (
-	id, name, default_locale_code, default_currency_code, default_stock_location_id, default_sales_channel_id)
-	VALUES (?, ?, ?, ?, ?, ?)',
-		store_id_bin, store_id, seed_default_locale_code, seed_default_currency_code,
+	id, name, default_locale_id, default_currency_code, default_stock_location_id, default_sales_channel_id)
+	VALUES (?, ?, (SELECT id FROM locale WHERE code = ?), ?, ?, ?)',
+		store_id_bin, seed_default_store_name, seed_default_locale_code, seed_default_currency_code,
 		stock_location_id_bin, sales_channel_id_bin)!
 	return store_id_bin
 }
 
 fn (mut app App) insert_default_store_locale(mut tx firebird.Transaction, store_id_bin []u8) ! {
 	log.debug('insert_default_store_locale')
-	tx.execute('INSERT INTO store_locales (store_id, locale_code) VALUES (?, ?)', store_id_bin,
-		seed_default_locale_code)!
+	tx.execute('INSERT INTO store_locales (store_id, locale_id)
+		VALUES (?, (SELECT id FROM locale WHERE code = ?))',
+		store_id_bin, seed_default_locale_code)!
 }
 
 fn (mut app App) insert_default_store_currency(mut tx firebird.Transaction, store_id_bin []u8) ! {

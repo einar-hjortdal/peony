@@ -6,27 +6,30 @@ import einar_hjortdal.firebird
 struct ProductOptionValueTranslation {
 	product_option_value_id     string
 	product_option_value_id_bin []u8
-	locale_code                 string
+	locale_id                   string
+	locale_id_bin               []u8
 	name                        string
 }
 
 fn parse_product_option_value_translation(v []firebird.Value) !ProductOptionValueTranslation {
 	product_option_value_id_bin, _ := v[0].get_array_u8()!
-	locale_code, _ := v[1].get_string()!
+	locale_id_bin, _ := v[1].get_array_u8()!
 	name, _ := v[2].get_string()!
 
 	product_option_value_id := id_bin_to_string(product_option_value_id_bin)!
+	locale_id := id_bin_to_string(locale_id_bin)!
 
 	return ProductOptionValueTranslation{
 		product_option_value_id:     product_option_value_id
 		product_option_value_id_bin: product_option_value_id_bin
-		locale_code:                 locale_code
+		locale_id:                   locale_id
+		locale_id_bin:               locale_id_bin
 		name:                        name
 	}
 }
 
 fn do_retrieve_product_option_value_translations(mut tx firebird.Transaction, option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
-	data := tx.execute('SELECT product_option_value_id, locale_code, name
+	data := tx.execute('SELECT product_option_value_id, locale_id, name
 	FROM product_option_value_translations
 	WHERE product_option_value_id IN ${get_n_placeholders(i32(option_value_ids_bin.len))}',
 		...option_value_ids_bin)!
@@ -97,27 +100,30 @@ fn do_retrieve_product_option_values(mut tx firebird.Transaction, option_ids_bin
 struct ProductOptionTranslation {
 	product_option_id     string
 	product_option_id_bin []u8
-	locale_code           string
+	locale_id             string
+	locale_id_bin         []u8
 	title                 string
 }
 
 fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslation {
 	product_option_id_bin, _ := v[0].get_array_u8()!
-	locale_code, _ := v[1].get_string()!
+	locale_id_bin, _ := v[1].get_array_u8()!
 	title, _ := v[2].get_string()!
 
 	product_option_id := id_bin_to_string(product_option_id_bin)!
+	locale_id := id_bin_to_string(locale_id_bin)!
 
 	return ProductOptionTranslation{
 		product_option_id:     product_option_id
 		product_option_id_bin: product_option_id_bin
-		locale_code:           locale_code
+		locale_id:             locale_id
+		locale_id_bin:         locale_id_bin
 		title:                 title
 	}
 }
 
 fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
-	data := tx.execute('SELECT product_option_id, locale_code, title
+	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
 		WHERE id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
 		...workaround_24757(option_ids_bin))!

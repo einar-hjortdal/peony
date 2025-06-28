@@ -458,7 +458,7 @@ fn build_query_create_product(product_id string, product_id_bin []u8, p ProductD
 fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []UpdateProductTranslationData) ! {
 	c := [
 		'product_id',
-		'locale_code',
+		'locale_id',
 		'title',
 		'subtitle',
 		'description',
@@ -468,7 +468,8 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 
 	p := [firebird.Value(product_id_bin)]
 	for i := 0; i < translations.len; i++ {
-		mut params := arrays.concat(p, translations[i].locale_code)
+		locale_id_bin := id_string_to_bin(translations[i].locale_id)! // TODO validate in controller
+		mut params := arrays.concat(p, locale_id_bin)
 		if title := translations[i].title {
 			params = arrays.concat(params, title)
 		} else {
@@ -656,8 +657,8 @@ fn (mut app App) create_product_option(product_id string, title string) !string 
 	product_id_bin := id_string_to_bin(product_id)!
 	mut tx := app.start_transaction()!
 	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
-	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_code, title) 
-		SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
+	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title) 
+		SELECT ?, default_locale_id, ? FROM store FETCH NEXT 1 ROWS ONLY',
 		id_bin, title)!
 	tx.commit()!
 	return id
@@ -678,32 +679,27 @@ struct UpdateProductOptionData {
 fn (mut app App) update_product_option(id string, p UpdateProductOptionData) !string {
 	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
-	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
-			SELECT ?, default_locale_code, ? FROM store FETCH NEXT 1 ROWS ONLY',
+	tx.execute('UPDATE product_option_translations (product_option_id, locale_id, title) 
+			SELECT ?, default_locale_id, ? FROM store FETCH NEXT 1 ROWS ONLY',
 		id_bin, p.title)!
 	tx.commit()!
 	return id
 }
 
-struct ProductOptionTranslationData {
-	title       string
-	locale_code string @[json: 'localeCode']
-}
-
 fn (mut app App) update_product_option_translation(id string, p ProductOptionTranslationData) ! {
 	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
-	tx.execute('UPDATE product_option_translations (product_option_id, locale_code, title) 
+	tx.execute('UPDATE product_option_translations (product_option_id, locale_id, title) 
 		Values(?, ?, ?)',
-		id_bin, p.locale_code, p.title)!
+		id_bin, p.locale_id, p.title)!
 	tx.commit()!
 }
 
-fn (mut app App) delete_product_option_translation(id string, locale_code string) ! {
+fn (mut app App) delete_product_option_translation(id string, locale_id string) ! {
 	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
 	tx.execute('UPDATE product_option_translations SET deleted_at = CURRENT_TIMESTAMP 
-		WHERE product_option_id = ? AND locale_code = ?',
-		id_bin, locale_code)!
+		WHERE product_option_id = ? AND locale_id = ?',
+		id_bin, locale_id)!
 	tx.commit()!
 }

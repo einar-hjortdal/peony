@@ -7,7 +7,7 @@ struct AuthRequest {
 
 struct NewStoreData {
 	name                  ?string
-	default_locale_code   ?string @[json: 'defaultLocaleCode']
+	default_locale_id     ?string @[json: 'defaultLocaleId']
 	default_currency_code ?string @[json: 'defaultCurrencyCode']
 	locales               ?[]string
 	currencies            ?[]string
@@ -43,10 +43,15 @@ struct ProductData {
 }
 
 struct UpdateProductTranslationData {
-	locale_code string @[json: 'localeCode']
+	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
 	description ?string
+}
+
+struct ProductOptionTranslationData {
+	title     string
+	locale_id string @[json: 'localeId']
 }
 
 struct UpdateMoneyAmountData {
