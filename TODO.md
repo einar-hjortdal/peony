@@ -53,7 +53,6 @@
 - [x] Keep response struct separate from internal structs
 - [ ] Return count, offset and fetch values with lists
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
-- [ ] Change from `module main` to `module peony` to allow modules and extensions
 - [ ] Namespace functions that orchestrate database operations to separate them from functions that 
         actually perform database operations
 

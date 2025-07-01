@@ -25,10 +25,11 @@ struct Product {
 	type_id_bin       []u8
 	discountable      bool
 mut:
-	images       []Image
-	options      []ProductOption
-	variants     []Variant
-	translations []ProductTranslation
+	images         []Image
+	options        []ProductOption
+	variants       []Variant
+	translations   []ProductTranslation
+	sales_channels []SalesChannel
 	// tags         []Tag
 }
 
@@ -81,6 +82,7 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	query := 'SELECT p.id, COUNT(*) OVER() FROM product p'
 	mut params := []firebird.Value{}
 
+	// TODO change these joins into EXISTS
 	mut joins := ''
 	joins = appendln(joins, 'LEFT JOIN product_variant pv ON pv.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_variant_money_amount pvm ON pvm.variant_id = pv.id')

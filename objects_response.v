@@ -368,6 +368,7 @@ struct ProductResponse {
 	options       []ProductOptionResponse      @[omitempty]
 	variants      []VariantResponse            @[omitempty]
 	translations  []ProductTranslationResponse @[omitempty]
+	// sales_channels
 	// tags         []Tag                 @[omitempty]
 }
 
