@@ -4,8 +4,7 @@ A content management system and shoping cart API.
 
 ## Goals
 
-peony aims to provide the tools to publish content, market and monetize it. These tools should also 
-be able to satisfy merchants and service providers.
+peony is a headless ecommerce software designed to satisfy publishers, merchants and service providers.
 
 peony aims to support multi-language, multi-channel, multi-currency, multi-stock locations, physical, 
 virtual products and services.
@@ -29,15 +28,15 @@ by deploying each box on its own independent server.
        │                   │     │            │     │                       │     │                      │    │                │        
        │ Admin browser app ◄─────►            ◄─────► Admin frontend server ◄─────►       /admin/        │    └────────────────┘        
        │                   │     │            │     │                       │     │                      │                              
-       └───────────────────┘     │            │     └───────────────────────┘     │                      │        ┌────────┐            
-                                 │ freenginx  │                                   │                      │        │        │            
-                                 │            │                                   │                      ┼────────► Redict ┼──────┐     
-                                 │            │                                   │                      │        │        │      │     
-       ┌───────────────────┐     │            │     ┌───────────────────────┐     │                      │        └────────┘      │     
-       │                   │     │            │     │                       │     │                      │                        │     
-       │ Store browser app ◄─────►            ◄─────► Store frontend server ◄─────►       /store/        │   ┌────────────────┐   │     
-       │                   │     │            │     │                       │     │                      │   │                │   │     
-       └───────────────────┘     │            │     └───────────────────────┘     │                      ┼───►    Firebird    ◄───┘     
+       └───────────────────┘     │            │     └───────────────────────┘     │                      │      ┌────────────┐          
+                                 │ freenginx  │                                   │                      │      │            │          
+                                 │            │                                   │                      ┼──────►   Redict   │          
+                                 │            │                                   │                      │      │            │          
+       ┌───────────────────┐     │            │     ┌───────────────────────┐     │                      │      └────────────┘          
+       │                   │     │            │     │                       │     │                      │                              
+       │ Store browser app ◄─────►            ◄─────► Store frontend server ◄─────►       /store/        │   ┌────────────────┐         
+       │                   │     │            │     │                       │     │                      │   │                │         
+       └───────────────────┘     │            │     └───────────────────────┘     │                      ┼───►    Firebird    │         
                                  │            │                                   │                      │   │                │         
                                  │            │                                   │                      │   └────────────────┘         
                                  │            │                                   └──────────────────────┘                              
@@ -46,8 +45,6 @@ by deploying each box on its own independent server.
                                  └────────────┘                                                                                         
                                                                                                                                         
 ```
-
-peony is meant to work behind a web server set up as reverse proxy.
 
 peony uses a cloud architecture. It can run on several backend servers sharing a connection to the database 
 servers. BLOBs are uploaded from the Admin frontend (such as images and documents) are stored on a central 
