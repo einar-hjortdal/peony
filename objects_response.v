@@ -368,7 +368,7 @@ struct ProductResponse {
 	options       []ProductOptionResponse      @[omitempty]
 	variants      []VariantResponse            @[omitempty]
 	translations  []ProductTranslationResponse @[omitempty]
-	// sales_channels
+	// sales_channels []SalesChannelResponse
 	// tags         []Tag                 @[omitempty]
 }
 
@@ -393,6 +393,7 @@ fn format_product_response(p Product) ProductResponse {
 		translations[i] = format_product_translation_response(p.translations[i])
 	}
 
+	// TODO sales_channels
 	// TODO tags
 
 	return ProductResponse{
@@ -411,6 +412,7 @@ fn format_product_response(p Product) ProductResponse {
 		options:       options
 		variants:      variants
 		translations:  translations
+		// sales_channels sales_channels
 		// tags:          tags
 	}
 }

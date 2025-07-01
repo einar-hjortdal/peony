@@ -92,25 +92,22 @@ fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result
 // adds a product option
 @['/admin/products/:id/options'; post]
 fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) veb.Result {
-	data := json.decode(struct {
-		title string
-	}, ctx.req.data) or {
+	id_bin := id_string_to_bin(id) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Invalid product id', err.msg()))
+	}
+
+	p := json.decode(ProductOptionData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode body', err.msg()))
 	}
 
-	_ := app.create_product_option(id, data.title) or {
+	_ := app.create_product_option(id_bin, p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to create product option', err.msg()))
 	}
 
 	return ctx.json(new_peony_success()) // TODO return option?
-}
-
-// lists a products variants
-@['/admin/products/:id/variants'; get]
-fn (mut app App) admin_products_id_variants_get(mut ctx Context, id string) veb.Result {
-	return ctx.text('TODO')
 }
 
 // creates a product variant

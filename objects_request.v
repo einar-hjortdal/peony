@@ -54,6 +54,10 @@ struct ProductOptionTranslationData {
 	locale_id string @[json: 'localeId']
 }
 
+struct ProductOptionData {
+	translations ?[]ProductOptionTranslationData
+}
+
 struct UpdateMoneyAmountData {
 	id            ?string
 	currency_code string @[json: 'currencyCode']
