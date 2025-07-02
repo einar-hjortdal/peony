@@ -466,7 +466,7 @@ fn build_query_create_product(product_id string, product_id_bin []u8, p ProductD
 	return q, params
 }
 
-fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []UpdateProductTranslationData) ! {
+fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []ProductTranslationData) ! {
 	c := [
 		'product_id',
 		'locale_id',
@@ -644,6 +644,10 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 
 	if translations := p.translations {
 		app.do_update_product_translations(mut tx, id_bin, translations)!
+	}
+
+	if options := p.options {
+		app.do_update_product_options(mut tx, id_bin, options)!
 	}
 }
 

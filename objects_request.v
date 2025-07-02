@@ -27,22 +27,7 @@ struct UpdateUserData {
 	role       ?string
 }
 
-struct ProductData {
-	handle            ?string
-	is_giftcard       ?bool @[json: 'isGiftcard']
-	status            ?string
-	thumbnail         ?string
-	collection_id     ?string @[json: 'collectionId']
-	type_id           ?string @[json: 'typeId']
-	discountable      ?bool
-	images            ?[]string
-	tag_ids           ?[]string @[json: 'tagIds']
-	sales_channel_ids ?[]string @[json: 'salesChannelIds']
-	category_ids      ?[]string @[json: 'categoryIds']
-	translations      ?[]UpdateProductTranslationData
-}
-
-struct UpdateProductTranslationData {
+struct ProductTranslationData {
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
@@ -55,7 +40,24 @@ struct ProductOptionTranslationData {
 }
 
 struct ProductOptionData {
+	id           ?string
 	translations ?[]ProductOptionTranslationData
+}
+
+struct ProductData {
+	handle            ?string
+	is_giftcard       ?bool @[json: 'isGiftcard']
+	status            ?string
+	thumbnail         ?string
+	collection_id     ?string @[json: 'collectionId']
+	type_id           ?string @[json: 'typeId']
+	discountable      ?bool
+	images            ?[]string
+	tag_ids           ?[]string @[json: 'tagIds']
+	sales_channel_ids ?[]string @[json: 'salesChannelIds']
+	category_ids      ?[]string @[json: 'categoryIds']
+	translations      ?[]ProductTranslationData
+	options           ?[]ProductOptionData
 }
 
 struct UpdateMoneyAmountData {

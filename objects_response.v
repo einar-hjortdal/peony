@@ -201,9 +201,6 @@ fn format_product_option_value_response(p ProductOptionValue) ProductOptionValue
 
 	return ProductOptionValueResponse{
 		id:           p.id
-		created_at:   p.created_at.Time
-		updated_at:   p.updated_at.Time
-		deleted_at:   p.deleted_at.Time
 		option_id:    p.option_id
 		variant_id:   p.variant_id
 		translations: translations
@@ -247,9 +244,6 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 
 	return ProductOptionResponse{
 		id:           p.id
-		created_at:   p.created_at.Time
-		updated_at:   p.updated_at.Time
-		deleted_at:   p.deleted_at.Time
 		product_id:   p.product_id
 		values:       values
 		translations: translations
