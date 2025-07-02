@@ -184,7 +184,9 @@ fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]P
 fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_id_bin []u8, o []ProductOptionData) ! {
 	mut s := []string{len: o.len}
 	mut params := []firebird.Value{len: o.len * 2 + 1, init: firebird.Value(firebird.Null{})}
-
+	mut created_options := []ProductOptionData{}
+	mut updated_id_bins := [][]u8{}
+	mut created_id_bins := [][]u8{}
 	for i := 0; i < o.len; i++ {
 		s[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS id,
@@ -192,12 +194,15 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 			FROM RDB\$DATABASE'
 		if id := o[i].id {
 			id_bin := id_string_to_bin(id)!
-			params[2 * i] = id_bin
+			params[i * 2] = id_bin
+			updated_id_bins = arrays.concat(updated_id_bins, id_bin)
 		} else {
 			_, id_bin := app.new_id()!
-			params[2 * i] = id_bin
+			params[i * 2] = id_bin
+			created_options = arrays.concat(created_options, o[i])
+			created_id_bins = arrays.concat(created_id_bins, id_bin)
 		}
-		params[2 * i + 1] = product_id_bin
+		params[i * 2 + 1] = product_id_bin
 	}
 
 	mut query := 'MERGE INTO product_option t
@@ -208,5 +213,38 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 			VALUES (s.id, s.product_id)
 		WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE'
 	params[o.len * 2] = product_id_bin
+	tx.execute(query, ...params)!
+
+	r := 'SELECT
+			CAST(? AS BINARY(16)) AS product_option_id,
+			CAST(? AS BINARY(16)) AS locale_id,
+			CAST(? AS VARCHAR(63)) AS title
+			FROM RDB\$DATABASE'
+	params = []firebird.Value{}
+	for i, f, n := 0, 0, 0; i < o.len; i++ {
+		if _ := o[i].id {
+			for k := 0; k < o[i].translations.len; k++ {
+				locale_id_bin := id_string_to_bin(o[i].translations[k].locale_id)!
+				params = arrays.concat(params, updated_id_bins[f], locale_id_bin, o[i].translations[k].title)
+			}
+			f++
+		} else {
+			for k := 0; k < o[i].translations.len; k++ {
+				locale_id_bin := id_string_to_bin(o[i].translations[k].locale_id)!
+				params = arrays.concat(params, created_id_bins[n], locale_id_bin, o[i].translations[k].title)
+			}
+			n++
+		}
+	}
+	s = []string{len: params.len / 3, init: r}
+
+	query = 'MERGE INTO product_option_translations t
+		USING (${s.join('\nUNION ALL\n')}) s (product_option_id, locale_id, title)
+		ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
+		WHEN NOT MATCHED THEN
+			INSERT (product_option_id, locale_id, title)
+			VALUES (s.product_option_id, s.locale_id, s.title)
+		WHEN NOT MATCHED BY SOURCE AND t.product_option_id IN (${get_n_placeholders(i32(o.len))}) THEN DELETE'
+	params = arrays.concat(params, ...arrays.append(created_id_bins, updated_id_bins))
 	tx.execute(query, ...params)!
 }

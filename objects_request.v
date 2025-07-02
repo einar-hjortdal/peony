@@ -41,7 +41,7 @@ struct ProductOptionTranslationData {
 
 struct ProductOptionData {
 	id           ?string
-	translations ?[]ProductOptionTranslationData
+	translations []ProductOptionTranslationData
 }
 
 struct ProductData {
