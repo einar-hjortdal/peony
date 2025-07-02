@@ -196,29 +196,25 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 
 	mut ids_bin := [][]u8{len: to_create.len}
 	mut params := []firebird.Value{len: to_create.len * 2, init: firebird.Value(firebird.Null{})}
-	mut cte_table := ''
+	mut cte_lines := []string{len: to_create.len}
 	for i := 0; i < to_create.len; i++ {
 		_, id_bin := app.new_id()!
 		ids_bin[i] = id_bin
 
-		cte_table = appendln(cte_table, 'SELECT
+		cte_lines[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS o_id,
 			CAST(? AS BINARY(16)) AS p_id
-			FROM RDB\$DATABASE')
+			FROM RDB\$DATABASE'
 
 		params[2 * i] = id_bin
 		params[2 * i + 1] = product_id_bin
-
-		if i < to_create.len - 1 {
-			cte_table = appendln(cte_table, 'UNION ALL')
-		}
 	}
 
-	tx.execute('WITH new_options AS (${cte_table})
+	tx.execute('WITH new_options AS (${cte_lines.join('\nUNION ALL\n')})
 		INSERT INTO product_option (id, product_id) SELECT o_id, p_id FROM new_options',
 		...params)!
 
-	mut cte_lines := []string{}
+	cte_lines = []string{}
 	params = []firebird.Value{}
 	for i := 0; i < to_create.len; i++ {
 		id_bin := ids_bin[i]
