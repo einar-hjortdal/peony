@@ -181,6 +181,8 @@ fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]P
 	return options
 }
 
+// updates, inserts and deletes product_option and product_option_translations rows.
+// does not delete rows when a product_option exists in product_option_value.
 fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_id_bin []u8, o []ProductOptionData) ! {
 	mut s := []string{len: o.len}
 	mut params := []firebird.Value{len: o.len * 2 + 1, init: firebird.Value(firebird.Null{})}
@@ -211,7 +213,14 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 		WHEN NOT MATCHED THEN
 			INSERT (id, product_id)
 			VALUES (s.id, s.product_id)
-		WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE'
+		WHEN NOT MATCHED BY SOURCE
+			AND t.product_id = ?
+			AND NOT EXISTS (
+				SELECT 1 
+				FROM product_option_value pov 
+				WHERE pov.option_id = t.id
+			)
+			THEN DELETE'
 	params[o.len * 2] = product_id_bin
 	tx.execute(query, ...params)!
 
@@ -244,7 +253,14 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 		WHEN NOT MATCHED THEN
 			INSERT (product_option_id, locale_id, title)
 			VALUES (s.product_option_id, s.locale_id, s.title)
-		WHEN NOT MATCHED BY SOURCE AND t.product_option_id IN (${get_n_placeholders(i32(o.len))}) THEN DELETE'
+		WHEN NOT MATCHED BY SOURCE
+			AND t.product_option_id IN (${get_n_placeholders(i32(o.len))})
+			AND NOT EXISTS (
+				SELECT 1
+				FROM product_option_value pov
+				WHERE pov.option_id = t.product_option_id
+			)
+			THEN DELETE'
 	params = arrays.concat(params, ...arrays.append(created_id_bins, updated_id_bins))
 	tx.execute(query, ...params)!
 }
