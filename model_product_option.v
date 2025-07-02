@@ -182,60 +182,31 @@ fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]P
 }
 
 fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_id_bin []u8, o []ProductOptionData) ! {
-	mut to_update := []ProductOptionData{}
-	mut to_create := []ProductOptionData{}
+	mut s := []string{len: o.len}
+	mut params := []firebird.Value{len: o.len * 2 + 1, init: firebird.Value(firebird.Null{})}
+
 	for i := 0; i < o.len; i++ {
-		if _ := o[i].id {
-			to_update = arrays.concat(to_update, o[i])
-		} else {
-			to_create = arrays.concat(to_create, o[i])
-		}
-	}
-
-	// TODO merge for to_update
-
-	mut ids_bin := [][]u8{len: to_create.len}
-	mut params := []firebird.Value{len: to_create.len * 2, init: firebird.Value(firebird.Null{})}
-	mut cte_lines := []string{len: to_create.len}
-	for i := 0; i < to_create.len; i++ {
-		_, id_bin := app.new_id()!
-		ids_bin[i] = id_bin
-
-		cte_lines[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS o_id,
-			CAST(? AS BINARY(16)) AS p_id
+		s[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS product_id
 			FROM RDB\$DATABASE'
-
-		params[2 * i] = id_bin
+		if id := o[i].id {
+			id_bin := id_string_to_bin(id)!
+			params[2 * i] = id_bin
+		} else {
+			_, id_bin := app.new_id()!
+			params[2 * i] = id_bin
+		}
 		params[2 * i + 1] = product_id_bin
 	}
 
-	tx.execute('WITH new_options AS (${cte_lines.join('\nUNION ALL\n')})
-		INSERT INTO product_option (id, product_id) SELECT o_id, p_id FROM new_options',
-		...params)!
-
-	cte_lines = []string{}
-	params = []firebird.Value{}
-	for i := 0; i < to_create.len; i++ {
-		id_bin := ids_bin[i]
-		if translations := to_create[i].translations {
-			for t := 0; t < translations.len; t++ {
-				cte_lines = arrays.concat(cte_lines, 'SELECT
-					CAST(? AS BINARY(16)) AS o_id,
-					CAST(? AS BINARY(16)) AS l_id,
-					CAST(? AS VARCHAR(63)) AS t
-					FROM RDB\$DATABASE')
-
-				locale_id_bin := id_string_to_bin(translations[t].locale_id)!
-				params = arrays.concat(params, id_bin, locale_id_bin, translations[t].title)
-			}
-		}
-	}
-
-	tx.execute('WITH new_translations AS (${cte_lines.join('\nUNION ALL\n')})
-		INSERT INTO product_option_translations (product_option_id, locale_id, title)
-		SELECT o_id, l_id, t FROM new_translations',
-		...params)!
-
-	// TODO handle product_option_value and product_option_value_translations
+	mut query := 'MERGE INTO product_option t
+		USING (${s.join('\nUNION ALL\n')}) s (id, product_id)
+		ON t.id = s.id AND t.product_id = s.product_id
+		WHEN NOT MATCHED THEN
+			INSERT (id, product_id)
+			VALUES (s.id, s.product_id)
+		WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE'
+	params[o.len * 2] = product_id_bin
+	tx.execute(query, ...params)!
 }
