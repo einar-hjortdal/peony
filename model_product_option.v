@@ -185,11 +185,11 @@ fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]P
 // to delete a product_option first remove it from all variants.
 // ideally: send an error to the client when a product_option that should be deleted is in use.
 fn (mut app App) do_delete_product_options(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('DELETE FROM product_option
-		WHERE id = ? AND NOT EXISTS (
+	tx.execute('DELETE FROM product_option po
+		WHERE product_id = ? AND NOT EXISTS (
 			SELECT 1 
 			FROM product_option_value pov
-			WHERE pov.option_id = id
+			WHERE pov.option_id = po.id
 		)',
 		product_id_bin)!
 }
