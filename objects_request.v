@@ -60,6 +60,37 @@ struct ProductData {
 	options           ?[]ProductOptionData
 }
 
+struct ProductOptionValueTranslationRequest {
+	title     string
+	locale_id string @[json: 'localeId']
+}
+
+struct ProductOptionValueRequest {
+	option_id    string @[json: 'optionId']
+	translations []ProductOptionValueTranslationRequest
+}
+
+struct VariantRequest {
+	title ?string
+	// prices             ?[]Price
+	options            ?[]ProductOptionValueRequest
+	sku                ?string
+	ean                ?string
+	upc                ?string
+	barcode            ?string
+	hs_code            ?string @[json: 'hsCode']
+	variant_rank       ?i32    @[json: 'variantRank']
+	inventory_quantity ?i32    @[json: 'inventoryQuantity']
+	allow_backorder    ?bool   @[json: 'allowBackorder']
+	manage_inventory   ?bool   @[json: 'manageInventory']
+	origin_country     ?string @[json: 'originCountry']
+	mid_code           ?string @[json: 'midCode']
+	weight             ?i32
+	length             ?i32
+	height             ?i32
+	width              ?i32
+}
+
 struct UpdateMoneyAmountData {
 	id            ?string
 	currency_code string @[json: 'currencyCode']

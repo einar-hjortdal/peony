@@ -280,6 +280,7 @@ struct VariantResponse {
 	updated_at         time.Time @[json: 'updatedAt']
 	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
 	product_id         string    @[json: 'productId']
+	title              string    @[omitempty]
 	sku                string    @[omitempty]
 	barcode            string    @[omitempty]
 	ean                string    @[omitempty]
@@ -295,7 +296,6 @@ struct VariantResponse {
 	length             i32       @[omitempty]
 	height             i32       @[omitempty]
 	width              i32       @[omitempty]
-	title              string
 	// image              string @[omitempty] // from variant_image TODO
 	money_amounts []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
 	option_values []ProductOptionValueResponse @[json: 'optionValues'; omitempty]

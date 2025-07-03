@@ -11,6 +11,7 @@ struct Variant {
 	deleted_at         firebird.DateTime
 	product_id         string
 	product_id_bin     []u8
+	title              string
 	sku                string
 	barcode            string
 	ean                string
@@ -26,7 +27,6 @@ struct Variant {
 	length             i32
 	height             i32
 	width              i32
-	title              string
 	// image              string // from variant_image TODO
 mut:
 	money_amounts []MoneyAmount
@@ -39,22 +39,22 @@ fn parse_variant(v []firebird.Value) !Variant {
 	updated_at, _ := v[2].get_date_time()!
 	deleted_at, _ := v[3].get_date_time()!
 	product_id_bin, _ := v[4].get_array_u8()!
-	sku, _ := v[5].get_string()!
-	barcode, _ := v[6].get_string()!
-	ean, _ := v[7].get_string()!
-	upc, _ := v[8].get_string()!
-	variant_rank, _ := v[9].get_i32()!
-	inventory_quantity, _ := v[10].get_i32()!
-	allow_backorder, _ := v[11].get_bool()!
-	manage_inventory, _ := v[12].get_bool()!
-	hs_code, _ := v[13].get_string()!
-	origin_country, _ := v[14].get_string()!
-	mid_code, _ := v[15].get_string()!
-	weight, _ := v[16].get_i32()!
-	length, _ := v[17].get_i32()!
-	height, _ := v[18].get_i32()!
-	width, _ := v[19].get_i32()!
-	title, _ := v[20].get_string()!
+	title, _ := v[5].get_string()!
+	sku, _ := v[6].get_string()!
+	barcode, _ := v[7].get_string()!
+	ean, _ := v[8].get_string()!
+	upc, _ := v[9].get_string()!
+	variant_rank, _ := v[10].get_i32()!
+	inventory_quantity, _ := v[11].get_i32()!
+	allow_backorder, _ := v[12].get_bool()!
+	manage_inventory, _ := v[13].get_bool()!
+	hs_code, _ := v[14].get_string()!
+	origin_country, _ := v[15].get_string()!
+	mid_code, _ := v[16].get_string()!
+	weight, _ := v[17].get_i32()!
+	length, _ := v[18].get_i32()!
+	height, _ := v[19].get_i32()!
+	width, _ := v[20].get_i32()!
 
 	id := id_bin_to_string(id_bin)!
 	product_id := id_bin_to_string(product_id_bin)!
@@ -67,6 +67,7 @@ fn parse_variant(v []firebird.Value) !Variant {
 		deleted_at:         deleted_at
 		product_id:         product_id
 		product_id_bin:     product_id_bin
+		title:              title
 		sku:                sku
 		barcode:            barcode
 		ean:                ean
@@ -82,28 +83,7 @@ fn parse_variant(v []firebird.Value) !Variant {
 		length:             length
 		height:             height
 		width:              width
-		title:              title
 	}
-}
-
-struct NewVariantData {
-	product_id         string
-	sku                string
-	barcode            string
-	ean                string
-	upc                string
-	variant_rank       i32
-	inventory_quantity i32
-	allow_backorder    bool
-	manage_inventory   bool
-	hs_code            string
-	origin_country     string
-	mid_code           string
-	weight             i32
-	length             i32
-	height             i32
-	width              i32
-	title              string
 }
 
 struct RetrieveVariantParams {
@@ -304,31 +284,115 @@ fn (mut app App) retrieve_product_variant_by_id(variant_id string) !Variant {
 	return variants[0]
 }
 
-struct UpdateVariantData {
-	sku                ?string
-	barcode            ?string
-	ean                ?string
-	upc                ?string
-	variant_rank       ?i32
-	inventory_quantity ?i32
-	allow_backorder    ?bool
-	manage_inventory   ?bool
-	hs_code            ?string
-	origin_country     ?string
-	mid_code           ?string
-	weight             ?i32
-	length             ?i32
-	height             ?i32
-	width              ?i32
-	title              ?string
-	// options []
+fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, id_bin []u8, p VariantRequest) ! {
+	mut columns := ['id']
+	mut params := [firebird.Value(id_bin)]
+	if title := p.title {
+		columns = arrays.concat(columns, 'title')
+		params = arrays.concat(params, title)
+	}
+
+	if sku := p.sku {
+		columns = arrays.concat(columns, 'sku')
+		params = arrays.concat(params, sku)
+	}
+
+	if barcode := p.barcode {
+		columns = arrays.concat(columns, 'barcode')
+		params = arrays.concat(params, barcode)
+	}
+
+	if ean := p.ean {
+		columns = arrays.concat(columns, 'ean')
+		params = arrays.concat(params, ean)
+	}
+
+	if upc := p.upc {
+		columns = arrays.concat(columns, 'upc')
+		params = arrays.concat(params, upc)
+	}
+
+	if variant_rank := p.variant_rank {
+		columns = arrays.concat(columns, 'variant_rank')
+		params = arrays.concat(params, variant_rank)
+	}
+
+	if inventory_quantity := p.inventory_quantity {
+		columns = arrays.concat(columns, 'inventory_quantity')
+		params = arrays.concat(params, inventory_quantity)
+	}
+
+	if allow_backorder := p.allow_backorder {
+		columns = arrays.concat(columns, 'allow_backorder')
+		params = arrays.concat(params, allow_backorder)
+	}
+
+	if manage_inventory := p.manage_inventory {
+		columns = arrays.concat(columns, 'manage_inventory')
+		params = arrays.concat(params, manage_inventory)
+	}
+
+	if hs_code := p.hs_code {
+		columns = arrays.concat(columns, 'hs_code')
+		params = arrays.concat(params, hs_code)
+	}
+
+	if origin_country := p.origin_country {
+		columns = arrays.concat(columns, 'origin_country')
+		params = arrays.concat(params, origin_country)
+	}
+
+	if mid_code := p.mid_code {
+		columns = arrays.concat(columns, 'mid_code')
+		params = arrays.concat(params, mid_code)
+	}
+
+	if weight := p.weight {
+		columns = arrays.concat(columns, 'weight')
+		params = arrays.concat(params, weight)
+	}
+
+	if length := p.length {
+		columns = arrays.concat(columns, 'length')
+		params = arrays.concat(params, length)
+	}
+
+	if height := p.height {
+		columns = arrays.concat(columns, 'height')
+		params = arrays.concat(params, height)
+	}
+
+	if width := p.width {
+		columns = arrays.concat(columns, 'width')
+		params = arrays.concat(params, width)
+	}
+
+	tx.execute('INSERT INTO product_variant (${get_columns(columns)}) 
+		VALUES (${get_n_placeholders(i32(columns.len))})',
+		...params)!
+}
+
+fn (mut app App) create_product_variant(p VariantRequest) ! {
+	_, id_bin := app.new_id()!
+	mut tx := app.start_transaction()!
+	app.do_create_product_variant(mut tx, id_bin, p) or {
+		tx.rollback()!
+		return err
+	}
+	// TODO handle p.options
+	tx.commit()!
 }
 
 // TODO create utility function and refactor
-fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(string, []firebird.Value) {
+fn build_query_update_product_variant(variant_id string, p VariantRequest) !(string, []firebird.Value) {
 	variant_id_bin := id_string_to_bin(variant_id)!
 	mut query := 'UPDATE product_variant SET'
 	mut params := []firebird.Value{}
+
+	if title := p.title {
+		query = appendln(query, 'title = ?')
+		params = arrays.concat(params, title)
+	}
 
 	if sku := p.sku {
 		query = appendln(query, 'sku = ?')
@@ -405,17 +469,12 @@ fn build_query_update_product_variant(variant_id string, p UpdateVariantData) !(
 		params = arrays.concat(params, width)
 	}
 
-	if title := p.title {
-		query = appendln(query, 'title = ?')
-		params = arrays.concat(params, title)
-	}
-
 	query = appendln(query, 'WHERE id = ?')
 	params = arrays.concat(params, variant_id_bin)
 	return query, params
 }
 
-fn (mut app App) update_product_variant(id string, p UpdateVariantData) ! {
+fn (mut app App) update_product_variant(id string, p VariantRequest) ! {
 	query, params := build_query_update_product_variant(id, p)!
 	mut tx := app.start_transaction()!
 	tx.execute(query, ...params) or {
