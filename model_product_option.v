@@ -74,9 +74,9 @@ fn parse_product_option_value(v []firebird.Value) !ProductOptionValue {
 }
 
 fn do_retrieve_product_option_values(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionValue {
-	data := tx.execute('SELECT id, product_id, variant_id FROM product_option_value
-	WHERE option_id IN ${get_n_placeholders(i32(option_ids_bin.len))}',
-		...option_ids_bin)!
+	data := tx.execute('SELECT id, option_id, variant_id FROM product_option_value
+	WHERE option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
+		...workaround_24757(option_ids_bin))!
 
 	mut values := []ProductOptionValue{}
 	for i := 0; i < data.rows.len; i++ {
@@ -115,7 +115,7 @@ fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslatio
 fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
-		WHERE id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
+		WHERE product_option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
 		...workaround_24757(option_ids_bin))!
 
 	mut translations := []ProductOptionTranslation{}
@@ -154,7 +154,7 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 
 fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
 	mut data := tx.execute('SELECT id, product_id FROM product_option
-			WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
+			WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
 	if data.rows.len == 0 {
@@ -276,6 +276,7 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 				WHERE pov.option_id = t.product_option_id
 			)
 			THEN DELETE'
-	params = arrays.concat(params, ...arrays.append(created_id_bins, updated_id_bins))
+	params = arrays.concat(params, ...workaround_24757(arrays.append(created_id_bins,
+		updated_id_bins)))
 	tx.execute(query, ...params)!
 }

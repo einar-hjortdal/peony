@@ -379,6 +379,13 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !(
 		}
 	}
 
+	// assign options to products
+	for i := 0; i < options.len; i++ {
+		product_id := options[i].product_id
+		product_map[product_id].options = arrays.concat(product_map[product_id].options,
+			options[i])
+	}
+
 	// assign variants to products
 	for i := 0; i < variants.len; i++ {
 		product_id := variants[i].product_id
@@ -612,9 +619,11 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 		params = arrays.concat(params, discountable)
 	}
 
-	query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
-	params = arrays.concat(params, firebird.Value(id_bin))
-	tx.execute(query, ...params)!
+	if c.len != 0 {
+		query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
+		params = arrays.concat(params, firebird.Value(id_bin))
+		tx.execute(query, ...params)!
+	}
 
 	// TODO
 	// tag_ids
