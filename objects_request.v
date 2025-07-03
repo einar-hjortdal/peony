@@ -60,6 +60,14 @@ struct ProductData {
 	options           ?[]ProductOptionData
 }
 
+struct PriceRequest {
+	amount        i32
+	region_id     ?string @[json: 'regionId']
+	currency_code ?string @[json: 'currencyCode']
+	min_quantity  ?i32    @[json: 'minQuantity']
+	max_quantity  ?i32    @[json: 'maxQuantity']
+}
+
 struct ProductOptionValueTranslationRequest {
 	title     string
 	locale_id string @[json: 'localeId']
@@ -71,8 +79,8 @@ struct ProductOptionValueRequest {
 }
 
 struct VariantRequest {
-	title ?string
-	// prices             ?[]Price
+	title              ?string
+	prices             ?[]PriceRequest
 	options            ?[]ProductOptionValueRequest
 	sku                ?string
 	ean                ?string
