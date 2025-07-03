@@ -72,7 +72,7 @@ fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
 	}
 
 	// TODO validate ids
-
+	// TODO return error when attempting to delete options that are used by some variant
 	app.update_product(id, body) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to update product data', err.msg()))
@@ -99,6 +99,7 @@ fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb
 		return ctx.json(new_peony_error('Could not decode VariantRequest ', err.msg()))
 	}
 
+	// TODO require p.options if options exist for this product
 	app.create_product_variant(data) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not create variant ', err.msg()))
