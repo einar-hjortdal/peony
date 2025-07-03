@@ -647,7 +647,11 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 	}
 
 	if options := p.options {
-		app.do_update_product_options(mut tx, id_bin, options)!
+		if options.len == 0 {
+			app.do_delete_product_options(mut tx, id_bin)!
+		} else {
+			app.do_update_product_options(mut tx, id_bin, options)!
+		}
 	}
 }
 

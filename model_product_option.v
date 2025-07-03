@@ -181,8 +181,23 @@ fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]P
 	return options
 }
 
+// does not delete rows when a product_option exists in product_option_value.
+// to delete a product_option first remove it from all variants.
+// ideally: send an error to the client when a product_option that should be deleted is in use.
+fn (mut app App) do_delete_product_options(mut tx firebird.Transaction, product_id_bin []u8) ! {
+	tx.execute('DELETE FROM product_option
+		WHERE id = ? AND NOT EXISTS (
+			SELECT 1 
+			FROM product_option_value pov
+			WHERE pov.option_id = id
+		)',
+		product_id_bin)!
+}
+
 // updates, inserts and deletes product_option and product_option_translations rows.
 // does not delete rows when a product_option exists in product_option_value.
+// to delete a product_option first remove it from all variants.
+// ideally: send an error to the client when a product_option that should be deleted is in use.
 fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_id_bin []u8, o []ProductOptionData) ! {
 	mut s := []string{len: o.len}
 	mut params := []firebird.Value{len: o.len * 2 + 1, init: firebird.Value(firebird.Null{})}
@@ -217,7 +232,7 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 			AND t.product_id = ?
 			AND NOT EXISTS (
 				SELECT 1 
-				FROM product_option_value pov 
+				FROM product_option_value pov
 				WHERE pov.option_id = t.id
 			)
 			THEN DELETE'

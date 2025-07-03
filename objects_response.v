@@ -185,11 +185,8 @@ fn format_product_option_value_translation_response(p ProductOptionValueTranslat
 
 struct ProductOptionValueResponse {
 	id           string
-	created_at   time.Time @[json: 'createdAt']
-	updated_at   time.Time @[json: 'updatedAt']
-	deleted_at   time.Time @[json: 'deletedAt'; omitempty]
-	option_id    string    @[json: 'optionId']
-	variant_id   string    @[json: 'variantId']
+	option_id    string @[json: 'optionId']
+	variant_id   string @[json: 'variantId']
 	translations []ProductOptionValueTranslationResponse
 }
 
@@ -223,11 +220,8 @@ fn format_product_option_translation_response(p ProductOptionTranslation) Produc
 
 struct ProductOptionResponse {
 	id           string
-	created_at   time.Time @[json: 'createdAt']
-	updated_at   time.Time @[json: 'updatedAt']
-	deleted_at   time.Time @[json: 'deletedAt'; omitempty]
-	product_id   string    @[json: 'productId']
-	values       []ProductOptionValueResponse
+	product_id   string                       @[json: 'productId']
+	values       []ProductOptionValueResponse @[omitempty]
 	translations []ProductOptionTranslationResponse
 }
 
