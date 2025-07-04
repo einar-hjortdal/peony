@@ -277,6 +277,7 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		updated_at,
 		deleted_at,
 		product_id,
+		title,
 		sku,
 		barcode,
 		ean,
@@ -291,8 +292,7 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		weight,
 		length,
 		height,
-		width,
-		title
+		width
 		FROM product_variant
 		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!

@@ -193,13 +193,13 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 
 fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]Variant {
 	// extract the ids of the retrieved variants to batch fetch money_amounts
-	mut ids_bin := [][]u8{}
+	mut ids_bin := [][]u8{len: variants.len}
 	for i := 0; i < variants.len; i++ {
-		ids_bin = arrays.concat(ids_bin, variants[i].id_bin)
+		ids_bin[i] = variants[i].id_bin
 	}
-	ids_bin_n := i32(ids_bin.len)
+	ids_bin_n := i32(variants.len)
 
-	money_amounts_data := tx.execute('SELECT 
+	money_amounts_data := tx.execute('SELECT
 		id,
 		created_at,
 		updated_at,
@@ -213,13 +213,12 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		variant_id
 		FROM product_variant_money_amount
 		JOIN money_amount ON money_amount_id = id
-		WHERE variant_id IN ${get_n_placeholders(ids_bin_n)}',
+		WHERE variant_id IN (${get_n_placeholders(ids_bin_n)})',
 		...workaround_24757(ids_bin))!
 
-	mut money_amounts := []MoneyAmount{}
+	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
 	for i := 0; i < money_amounts_data.rows.len; i++ {
-		money_amount := parse_money_amount(money_amounts_data.rows[i].values)!
-		money_amounts = arrays.concat(money_amounts, money_amount)
+		money_amounts[i] = parse_money_amount(money_amounts_data.rows[i].values)!
 	}
 
 	mut res := []Variant{len: variants.len}
