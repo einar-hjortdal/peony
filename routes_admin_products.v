@@ -100,7 +100,12 @@ fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb
 	}
 
 	// TODO require p.options if options exist for this product
-	app.create_product_variant(data) or {
+	id_bin := id_string_to_bin(id) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Invalid id ', err.msg()))
+	}
+
+	app.create_product_variant(id_bin, data) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not create variant ', err.msg()))
 	}

@@ -284,9 +284,9 @@ fn (mut app App) retrieve_product_variant_by_id(variant_id string) !Variant {
 	return variants[0]
 }
 
-fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, id_bin []u8, p VariantRequest) ! {
-	mut columns := ['id']
-	mut params := [firebird.Value(id_bin)]
+fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8, id_bin []u8, p VariantRequest) ! {
+	mut columns := ['id', 'product_id']
+	mut params := [firebird.Value(id_bin), product_id_bin]
 	if title := p.title {
 		columns = arrays.concat(columns, 'title')
 		params = arrays.concat(params, title)
@@ -372,10 +372,10 @@ fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, id_bin [
 		...params)!
 }
 
-fn (mut app App) create_product_variant(p VariantRequest) ! {
+fn (mut app App) create_product_variant(product_id_bin []u8, p VariantRequest) ! {
 	_, id_bin := app.new_id()!
 	mut tx := app.start_transaction()!
-	app.do_create_product_variant(mut tx, id_bin, p) or {
+	app.do_create_product_variant(mut tx, product_id_bin, id_bin, p) or {
 		tx.rollback()!
 		return err
 	}
