@@ -197,7 +197,6 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 	for i := 0; i < variants.len; i++ {
 		ids_bin[i] = variants[i].id_bin
 	}
-	ids_bin_n := i32(variants.len)
 
 	money_amounts_data := tx.execute('SELECT
 		id,
@@ -213,7 +212,7 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		variant_id
 		FROM product_variant_money_amount
 		JOIN money_amount ON money_amount_id = id
-		WHERE variant_id IN (${get_n_placeholders(ids_bin_n)})',
+		WHERE variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
 	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
