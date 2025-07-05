@@ -2,7 +2,6 @@ module main
 
 import einar_hjortdal.firebird
 
-// TODO return price list object?
 struct MoneyAmount {
 	id                string
 	id_bin            []u8
