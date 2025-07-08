@@ -306,8 +306,6 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		variants[i] = parse_variant(data.rows[i].values)!
 	}
 
-	variants = do_retrieve_product_variant_money_amount(mut tx, variants)!
-
 	return variants
 }
 

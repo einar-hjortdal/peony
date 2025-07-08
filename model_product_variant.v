@@ -23,6 +23,7 @@ struct Variant {
 	hs_code            string
 	origin_country     string
 	mid_code           string
+	material           string
 	weight             i32
 	length             i32
 	height             i32
@@ -51,10 +52,11 @@ fn parse_variant(v []firebird.Value) !Variant {
 	hs_code, _ := v[14].get_string()!
 	origin_country, _ := v[15].get_string()!
 	mid_code, _ := v[16].get_string()!
-	weight, _ := v[17].get_i32()!
-	length, _ := v[18].get_i32()!
-	height, _ := v[19].get_i32()!
-	width, _ := v[20].get_i32()!
+	material, _ := v[17].get_string()!
+	weight, _ := v[18].get_i32()!
+	length, _ := v[19].get_i32()!
+	height, _ := v[20].get_i32()!
+	width, _ := v[21].get_i32()!
 
 	id := id_bin_to_string(id_bin)!
 	product_id := id_bin_to_string(product_id_bin)!
@@ -79,6 +81,7 @@ fn parse_variant(v []firebird.Value) !Variant {
 		hs_code:            hs_code
 		origin_country:     origin_country
 		mid_code:           mid_code
+		material:           material
 		weight:             weight
 		length:             length
 		height:             height
@@ -133,6 +136,7 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 		hs_code,
 		origin_country,
 		mid_code,
+		material,
 		weight,
 		length,
 		height,

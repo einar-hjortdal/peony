@@ -85,6 +85,21 @@ CREATE TABLE price_list (
   CONSTRAINT "0681493b-ad7f-1d3f-7c00-3cd53eb56cd7" CHECK (status IN ('active', 'draft'))
 );
 
+CREATE TABLE tax_rate (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  rate REAL,
+  code VARCHAR(63),
+  name VARCHAR(63) NOT NULL,
+  type VARCHAR(12) DEFAULT 'additive',
+  CONSTRAINT "0681493b-ad84-100d-bc00-4f51f22e5a5a" PRIMARY KEY (id),
+  CONSTRAINT "0686cd40-331d-13a4-2c00-4de2e11c5727" CHECK ( type IN (
+    'additive', 'substitutive', 'compounding')
+  )
+);
+
 CREATE TABLE region (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -92,8 +107,6 @@ CREATE TABLE region (
   deleted_at TIMESTAMP,
   name VARCHAR(63) NOT NULL,
   currency_code CHAR(3) NOT NULL,
-  tax_rate REAL NOT NULL,
-  tax_code VARCHAR(63),
   includes_tax BOOLEAN DEFAULT false NOT NULL,
   gift_cards_taxable BOOLEAN DEFAULT false NOT NULL,
   automatic_taxes BOOLEAN DEFAULT false NOT NULL,
@@ -102,6 +115,14 @@ CREATE TABLE region (
 );
 
 CREATE INDEX "0681493b-ad81-11dd-0400-431cb8290aa0" ON region (currency_code);
+
+CREATE TABLE region_tax_rate (
+  region_id BINARY(16) NOT NULL,
+  rate_id BINARY(16) NOT NULL,
+  CONSTRAINT "06828532-0de7-1429-c800-a3171778c855" PRIMARY KEY (region_id, rate_id),
+  CONSTRAINT "06828532-0de7-178a-5000-ed338e5504c2" FOREIGN KEY (region_id) REFERENCES region (id),
+  CONSTRAINT "06828532-0de7-17db-0c00-d8402bcebe5a" FOREIGN KEY (rate_id) REFERENCES tax_rate (id)
+);
 
 CREATE TABLE money_amount (
   id BINARY(16) NOT NULL,
@@ -208,6 +229,7 @@ CREATE TABLE product_variant (
   hs_code VARCHAR(63),
   origin_country CHAR(2),
   mid_code VARCHAR(63),
+  material VARCHAR(191),
   weight INTEGER,
   length INTEGER,
   height INTEGER,
@@ -283,25 +305,9 @@ CREATE TABLE product_category (
 
 CREATE UNIQUE INDEX "0681493b-ad83-1ca3-9800-9478574f1e92" ON product_category (handle) WHERE deleted_at IS NULL;
 
-CREATE TABLE tax_rate (
-  id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  rate REAL,
-  code VARCHAR(63),
-  name VARCHAR(63) NOT NULL,
-  region_id BINARY(16) NOT NULL,
-  CONSTRAINT "0681493b-ad84-100d-bc00-4f51f22e5a5a" PRIMARY KEY (id),
-  CONSTRAINT "0681493b-ad84-1060-fc00-53619a406bdd" FOREIGN KEY (region_id) REFERENCES region (id)
-);
-
 CREATE TABLE product_tax_rate (
   product_id BINARY(16) NOT NULL,
   rate_id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
   CONSTRAINT "0681493b-ad84-1338-7000-be1a7b106bed" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
   CONSTRAINT "0681493b-ad84-138c-bc00-6f75ac2ed431" FOREIGN KEY (rate_id) REFERENCES tax_rate (id) ON DELETE CASCADE,
   PRIMARY KEY (product_id, rate_id)
@@ -313,9 +319,6 @@ CREATE INDEX "0681493b-ad84-1513-fc00-1e18e707389e" ON product_tax_rate (product
 CREATE TABLE product_type_tax_rate (
   product_type_id BINARY(16) NOT NULL,
   rate_id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
   CONSTRAINT "0681493b-ad84-1791-8800-c3519280ba87" FOREIGN KEY (product_type_id) REFERENCES product_type (id) ON DELETE CASCADE,
   CONSTRAINT "0681493b-ad84-17e4-8c00-9a9d08ccafc9" FOREIGN KEY (rate_id) REFERENCES tax_rate (id) ON DELETE CASCADE,
   PRIMARY KEY (product_type_id, rate_id)

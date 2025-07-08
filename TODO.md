@@ -46,6 +46,7 @@
 - [ ] API keys
 - [ ] User-defined data
 - [ ] API keys management
+- [ ] Unit pricing
 - [ ] Price rules
 
 ## Refactor
