@@ -25,13 +25,15 @@
 
 ### Next
 
+- [ ] Inventory management
 - [ ] Redict cache
 - [ ] Multiregion
 - [ ] Multichannel
 - [ ] Multiwarehouse
 - [ ] Multistore
 - [ ] Taxes
-- [ ] Caching
+- [ ] Price rules
+- [ ] Unit pricing
 - [ ] Discounts
 - [ ] Product tags
 - [ ] Posts
@@ -46,8 +48,6 @@
 - [ ] API keys
 - [ ] User-defined data
 - [ ] API keys management
-- [ ] Unit pricing
-- [ ] Price rules
 
 ## Refactor
 

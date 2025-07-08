@@ -289,6 +289,7 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		hs_code,
 		origin_country,
 		mid_code,
+		material,
 		weight,
 		length,
 		height,
@@ -509,9 +510,8 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, p
 		params = arrays.concat(params, discountable)
 	}
 
-	q := 'INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )'
-
-	tx.execute(q, ...params)!
+	tx.execute('INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )',
+		...params)!
 
 	if translations := p.translations {
 		app.do_create_product_translations(mut tx, product_id_bin, translations)!

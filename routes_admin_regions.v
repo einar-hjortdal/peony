@@ -19,7 +19,7 @@ fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 // creates a region
 @['/admin/regions/'; post]
 fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
-	data := json.decode(CreateRegionData, ctx.req.data) or {
+	data := json.decode(CreateRegionRequest, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode CreateRegionData', err.msg()))
 	}

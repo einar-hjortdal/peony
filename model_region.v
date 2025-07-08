@@ -5,17 +5,17 @@ import einar_hjortdal.firebird
 
 struct Region {
 	id                 string
-	id_bin             []u8 @[json: '-']
+	id_bin             []u8
 	name               string
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
-	deleted_at         firebird.DateTime @[omitempty]
+	deleted_at         firebird.DateTime
 	currency_code      string
-	tax_rate           f32
-	tax_code           string @[omitempty]
 	includes_tax       bool
 	gift_cards_taxable bool
 	automatic_taxes    bool
+mut:
+	tax_rates []TaxRate
 }
 
 fn parse_region(v []firebird.Value) !Region {
@@ -25,11 +25,9 @@ fn parse_region(v []firebird.Value) !Region {
 	updated_at, _ := v[3].get_date_time()!
 	deleted_at, _ := v[4].get_date_time()!
 	currency_code, _ := v[5].get_string()!
-	tax_rate, _ := v[6].get_f32()!
-	tax_code, _ := v[7].get_string()!
-	includes_tax, _ := v[8].get_bool()!
-	gift_cards_taxable, _ := v[9].get_bool()!
-	automatic_taxes, _ := v[10].get_bool()!
+	includes_tax, _ := v[6].get_bool()!
+	gift_cards_taxable, _ := v[7].get_bool()!
+	automatic_taxes, _ := v[8].get_bool()!
 
 	id := id_bin_to_string(id_bin)!
 
@@ -41,27 +39,9 @@ fn parse_region(v []firebird.Value) !Region {
 		updated_at:         updated_at
 		deleted_at:         deleted_at
 		currency_code:      currency_code
-		tax_rate:           tax_rate
-		tax_code:           tax_code
 		includes_tax:       includes_tax
 		gift_cards_taxable: gift_cards_taxable
 		automatic_taxes:    automatic_taxes
-	}
-}
-
-struct ListRegionParams {
-	name   ZeroString
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
-}
-
-fn extract_retrieve_regions_params(p map[string]string) ListRegionParams {
-	return ListRegionParams{
-		name:   zero_string(p, 'name')
-		offset: zero_i32(p, 'offset')
-		fetch:  zero_i32(p, 'fetch')
-		order:  zero_string(p, 'order')
 	}
 }
 
@@ -163,35 +143,28 @@ fn (mut app App) remove_country(code string, region_id string) ! {
 	tx.commit()!
 }
 
-struct CreateRegionData {
-	name          string
-	currency_code string
-	tax_rate      f32
-	tax_code      string @[omitempty]
-	country_codes []string
-	includes_tax  bool @[omitempty]
-}
+fn build_create_region_query(d CreateRegionRequest, id_bin []u8) !(string, []firebird.Value) {
+	mut columns := ['id', 'name', 'currency_code']
+	mut params := [firebird.Value(id_bin), d.name, d.currency_code]
 
-fn build_create_region_query(d CreateRegionData, id_bin []u8) (string, []firebird.Value) {
-	mut columns := ['id', 'name', 'currency_code', 'tax_rate']
-	mut params := [firebird.Value(id_bin), d.name, d.currency_code, d.tax_rate]
-	if d.tax_code != '' {
-		columns = arrays.concat(columns, 'tax_code')
-		params = arrays.concat(params, d.tax_code)
-	}
-	if d.includes_tax {
+	rate_id_bin := id_string_to_bin(d.rate_id)!
+
+	columns = arrays.concat(columns, 'rate_id')
+	params = arrays.concat(params, rate_id_bin)
+
+	if includes_tax := d.includes_tax {
 		columns = arrays.concat(columns, 'includes_tax')
-		params = arrays.concat(params, d.includes_tax)
+		params = arrays.concat(params, includes_tax)
 	}
 
 	return 'INSERT INTO region (${get_columns(columns)}) VALUES (${get_placeholders(columns)})', params
 }
 
-fn (mut app App) create_region(d CreateRegionData) !(string, []u8) {
+fn (mut app App) create_region(d CreateRegionRequest) !(string, []u8) {
 	id, id_bin := app.new_id()!
 	mut tx := app.start_transaction()!
 
-	query, params := build_create_region_query(d, id_bin)
+	query, params := build_create_region_query(d, id_bin)!
 	tx.execute(query, ...params) or {
 		tx.rollback()!
 		return err

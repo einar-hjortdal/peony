@@ -60,6 +60,30 @@ struct ProductData {
 	options           ?[]ProductOptionData
 }
 
+struct ListRegionParams {
+	name   ZeroString
+	offset ZeroI32
+	fetch  ZeroI32
+	order  ZeroString
+}
+
+fn extract_retrieve_regions_params(p map[string]string) ListRegionParams {
+	return ListRegionParams{
+		name:   zero_string(p, 'name')
+		offset: zero_i32(p, 'offset')
+		fetch:  zero_i32(p, 'fetch')
+		order:  zero_string(p, 'order')
+	}
+}
+
+struct CreateRegionRequest {
+	name          string
+	currency_code string
+	rate_id       string
+	country_codes []string
+	includes_tax  ?bool
+}
+
 struct PriceRequest {
 	amount        i32
 	region_id     ?string @[json: 'regionId']
