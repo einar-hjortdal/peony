@@ -274,6 +274,20 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 	}
 }
 
+struct PricesResponse {
+	money_amounts []MoneyAmountResponse @[json: 'moneyAmounts']
+	// tax_rates                         []TaxRateResponse     @[json: 'taxRates'] // TODO
+	currency_code                     string @[json: 'currencyCode']
+	original_price                    i32    @[json: 'originalPrice']                 // TODO
+	original_price_does_include_tax   bool   @[json: 'originalPriceDoesIncludeTax']   // TODO
+	original_price_excluding_tax      i32    @[json: 'originalPriceExcludingTax']     // TODO
+	original_price_including_tax      i32    @[json: 'originalPriceIncludingTax']     // TODO
+	calculated_price                  i32    @[json: 'calculatedPrice']               // TODO
+	calculated_price_does_include_tax bool   @[json: 'calculatedPriceDoesIncludeTax'] // TODO
+	calculated_price_excluding_tax    i32    @[json: 'calculatedPriceExcludingTax']   // TODO
+	calculated_price_including_tax    i32    @[json: 'calculatedPriceIncludingTax']   // TODO
+}
+
 struct VariantResponse {
 	id                 string
 	created_at         time.Time @[json: 'createdAt']
@@ -292,13 +306,15 @@ struct VariantResponse {
 	hs_code            string    @[json: 'hsCode'; omitempty]
 	origin_country     string    @[json: 'originCountry'; omitempty]
 	mid_code           string    @[json: 'midCode'; omitempty]
+	material           string    @[omitempty]
 	weight             i32       @[omitempty]
 	length             i32       @[omitempty]
 	height             i32       @[omitempty]
 	width              i32       @[omitempty]
-	// image              string @[omitempty] // from variant_image TODO
-	money_amounts []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
+	// image              string @[omitempty] // TODO
 	option_values []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
+	prices        PricesResponse               @[omitempty]
+	purchasable   bool // TODO
 }
 
 fn format_variant_response(v Variant) VariantResponse {
@@ -335,8 +351,8 @@ fn format_variant_response(v Variant) VariantResponse {
 		width:              v.width
 		title:              v.title
 		// image
-		money_amounts: money_amounts
 		option_values: option_values
+		// prices
 	}
 }
 

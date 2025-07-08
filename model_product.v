@@ -425,52 +425,6 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	return products[0]
 }
 
-fn build_query_create_product(product_id string, product_id_bin []u8, p ProductData) !(string, []firebird.Value) {
-	mut c := ['id', 'handle']
-	mut params := [firebird.Value(product_id_bin)]
-
-	if handle := p.handle {
-		params = arrays.concat(params, handle)
-	} else {
-		params = arrays.concat(params, product_id)
-	}
-
-	if is_giftcard := p.is_giftcard {
-		c = arrays.concat(c, 'is_giftcard')
-		params = arrays.concat(params, is_giftcard)
-	}
-
-	if status := p.status {
-		c = arrays.concat(c, 'status')
-		params = arrays.concat(params, status)
-	}
-
-	if thumbnail := p.thumbnail {
-		c = arrays.concat(c, 'thumbnail')
-		params = arrays.concat(params, thumbnail)
-	}
-
-	if collection_id := p.collection_id {
-		c = arrays.concat(c, 'collection_id')
-		collection_id_bin := luuid.to_bytes(collection_id)!
-		params = arrays.concat(params, collection_id_bin)
-	}
-
-	if type_id := p.type_id {
-		c = arrays.concat(c, 'type_id')
-		type_id_bin := luuid.to_bytes(type_id)!
-		params = arrays.concat(params, type_id_bin)
-	}
-
-	if discountable := p.discountable {
-		c = arrays.concat(c, 'discountable')
-		params = arrays.concat(params, discountable)
-	}
-
-	q := 'INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )'
-	return q, params
-}
-
 fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []ProductTranslationData) ! {
 	c := [
 		'product_id',
@@ -514,9 +468,50 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 }
 
 fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, product_id string, product_id_bin []u8) ! {
-	product_query, product_params := build_query_create_product(product_id, product_id_bin,
-		p)!
-	tx.execute(product_query, ...product_params)!
+	mut c := ['id', 'handle']
+	mut params := [firebird.Value(product_id_bin)]
+
+	if handle := p.handle {
+		params = arrays.concat(params, handle)
+	} else {
+		params = arrays.concat(params, product_id)
+	}
+
+	if is_giftcard := p.is_giftcard {
+		c = arrays.concat(c, 'is_giftcard')
+		params = arrays.concat(params, is_giftcard)
+	}
+
+	if status := p.status {
+		c = arrays.concat(c, 'status')
+		params = arrays.concat(params, status)
+	}
+
+	if thumbnail := p.thumbnail {
+		c = arrays.concat(c, 'thumbnail')
+		params = arrays.concat(params, thumbnail)
+	}
+
+	if collection_id := p.collection_id {
+		c = arrays.concat(c, 'collection_id')
+		collection_id_bin := luuid.to_bytes(collection_id)!
+		params = arrays.concat(params, collection_id_bin)
+	}
+
+	if type_id := p.type_id {
+		c = arrays.concat(c, 'type_id')
+		type_id_bin := luuid.to_bytes(type_id)!
+		params = arrays.concat(params, type_id_bin)
+	}
+
+	if discountable := p.discountable {
+		c = arrays.concat(c, 'discountable')
+		params = arrays.concat(params, discountable)
+	}
+
+	q := 'INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )'
+
+	tx.execute(q, ...params)!
 
 	if translations := p.translations {
 		app.do_create_product_translations(mut tx, product_id_bin, translations)!
@@ -547,6 +542,7 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, p
 			product_id_bin)!
 	}
 
+	// TODO merge statement?
 	if category_ids := p.category_ids {
 		mut stmt := tx.prepare('INSERT INTO product_category_product (
 					product_category_id, product_id) VALUES (?, ?)')!
