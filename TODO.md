@@ -55,8 +55,6 @@
 - [x] Keep response struct separate from internal structs
 - [ ] Return count, offset and fetch values with lists
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
-- [ ] Namespace functions that orchestrate database operations to separate them from functions that 
-        actually perform database operations
 
 ## Considerations
 
