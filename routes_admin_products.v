@@ -7,7 +7,7 @@ import veb
 // lists products
 @['/admin/products'; get]
 fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
-	p := extract_retrieve_products_params(ctx.query)
+	p := extract_retrieve_admin_products_params(ctx.query)
 
 	internal_products, count := app.retrieve_products(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)

@@ -20,6 +20,7 @@ struct Price {
 	calculated_price_does_include_tax bool
 	calculated_price_excluding_tax    i32
 	calculated_price_including_tax    i32
+	tax_rates                         []TaxRate
 }
 
 fn calculate_taxes() {

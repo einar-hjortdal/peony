@@ -296,10 +296,11 @@ struct PricesResponse {
 	original_price_does_include_tax   bool                  @[json: 'originalPriceDoesIncludeTax']
 	original_price_excluding_tax      i32                   @[json: 'originalPriceExcludingTax']
 	original_price_including_tax      i32                   @[json: 'originalPriceIncludingTax']
-	calculated_price                  i32                   @[json: 'calculatedPrice']
-	calculated_price_does_include_tax bool                  @[json: 'calculatedPriceDoesIncludeTax']
-	calculated_price_excluding_tax    i32                   @[json: 'calculatedPriceExcludingTax']
-	calculated_price_including_tax    i32                   @[json: 'calculatedPriceIncludingTax']
+	calculated_price                  i32                   @[json: 'calculatedPrice']               // TODO tax quantity discounts price-lists
+	calculated_price_does_include_tax bool                  @[json: 'calculatedPriceDoesIncludeTax'] // TODO tax
+	calculated_price_excluding_tax    i32                   @[json: 'calculatedPriceExcludingTax']   // TODO tax
+	calculated_price_including_tax    i32                   @[json: 'calculatedPriceIncludingTax']   // TODO tax
+	// tax_rates                         []TaxRateResponse     @[json: 'taxRates']                   // TODO tax
 }
 
 struct VariantResponse {
@@ -325,7 +326,7 @@ struct VariantResponse {
 	length             i32       @[omitempty]
 	height             i32       @[omitempty]
 	width              i32       @[omitempty]
-	// image              string @[omitempty] // TODO
+	// image              string @[omitempty] // TODO variant images
 	option_values []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	prices        PricesResponse               @[omitempty]
 	purchasable   bool // TODO
@@ -353,6 +354,7 @@ fn format_variant_response(v Variant) !VariantResponse {
 		// calculated_price_does_include_tax:
 		// calculated_price_excluding_tax:
 		// calculated_price_including_tax:
+		// tax_rates
 	}
 
 	return VariantResponse{
@@ -380,6 +382,7 @@ fn format_variant_response(v Variant) !VariantResponse {
 		// image
 		option_values: option_values
 		prices:        prices
+		purchasable:   true
 	}
 }
 

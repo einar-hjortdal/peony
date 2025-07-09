@@ -416,7 +416,7 @@ fn (mut app App) retrieve_product_by_id(id string) !Product {
 	m := {
 		'id': id
 	}
-	p := extract_retrieve_products_params(m)
+	p := extract_retrieve_admin_products_params(m)
 
 	products, count := app.retrieve_products(p)!
 	if count == 0 {

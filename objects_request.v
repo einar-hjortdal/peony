@@ -60,22 +60,6 @@ struct ProductData {
 	options           ?[]ProductOptionData
 }
 
-struct ListRegionParams {
-	name   ZeroString
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
-}
-
-fn extract_retrieve_regions_params(p map[string]string) ListRegionParams {
-	return ListRegionParams{
-		name:   zero_string(p, 'name')
-		offset: zero_i32(p, 'offset')
-		fetch:  zero_i32(p, 'fetch')
-		order:  zero_string(p, 'order')
-	}
-}
-
 struct CreateRegionRequest {
 	name          string
 	currency_code string
@@ -132,38 +116,6 @@ struct UpdateMoneyAmountData {
 	price_list_id ?string @[json: 'priceListId']
 	region_id     ?string @[json: 'regionId']
 	variant_id    ?string @[json: 'variantId']
-}
-
-struct RetrieveCurrenciesParams {
-	code         ZeroArrayString
-	includes_tax ZeroBool
-	offset       ZeroI32
-	fetch        ZeroI32
-	order        ZeroString
-}
-
-fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesParams {
-	return RetrieveCurrenciesParams{
-		code:         zero_array_string(m, 'code')
-		includes_tax: zero_bool(m, 'includes_tax')
-		offset:       zero_i32(m, 'offset')
-		fetch:        zero_i32(m, 'fetch')
-		order:        zero_string(m, 'order')
-	}
-}
-
-struct RetrieveLocalesParams {
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
-}
-
-fn extract_retrieve_locales_params(m map[string]string) RetrieveLocalesParams {
-	return RetrieveLocalesParams{
-		offset: zero_i32(m, 'offset')
-		fetch:  zero_i32(m, 'fetch')
-		order:  zero_string(m, 'order')
-	}
 }
 
 struct NewCurrencyData {

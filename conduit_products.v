@@ -3,11 +3,7 @@ module main
 import net.http
 import veb
 
-// lists products
-@['/store/products'; get]
-fn (mut app App) store_products_get(mut ctx Context) veb.Result {
-	p := extract_retrieve_store_products_params(ctx.query)
-
+fn (mut app App) conduit_products_get(mut ctx Context, p RetrieveProductParams) veb.Result {
 	internal_products, count := app.retrieve_products(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to retrieve products data', err.msg()))
