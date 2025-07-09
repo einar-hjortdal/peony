@@ -275,17 +275,16 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 }
 
 struct PricesResponse {
-	money_amounts []MoneyAmountResponse @[json: 'moneyAmounts']
-	// tax_rates                         []TaxRateResponse     @[json: 'taxRates'] // TODO
-	currency_code                     string @[json: 'currencyCode']
-	original_price                    i32    @[json: 'originalPrice']                 // TODO
-	original_price_does_include_tax   bool   @[json: 'originalPriceDoesIncludeTax']   // TODO
-	original_price_excluding_tax      i32    @[json: 'originalPriceExcludingTax']     // TODO
-	original_price_including_tax      i32    @[json: 'originalPriceIncludingTax']     // TODO
-	calculated_price                  i32    @[json: 'calculatedPrice']               // TODO
-	calculated_price_does_include_tax bool   @[json: 'calculatedPriceDoesIncludeTax'] // TODO
-	calculated_price_excluding_tax    i32    @[json: 'calculatedPriceExcludingTax']   // TODO
-	calculated_price_including_tax    i32    @[json: 'calculatedPriceIncludingTax']   // TODO
+	money_amounts                     []MoneyAmountResponse @[json: 'moneyAmounts']
+	currency_code                     string                @[json: 'currencyCode']
+	original_price                    i32                   @[json: 'originalPrice']
+	original_price_does_include_tax   bool                  @[json: 'originalPriceDoesIncludeTax']
+	original_price_excluding_tax      i32                   @[json: 'originalPriceExcludingTax']
+	original_price_including_tax      i32                   @[json: 'originalPriceIncludingTax']
+	calculated_price                  i32                   @[json: 'calculatedPrice']
+	calculated_price_does_include_tax bool                  @[json: 'calculatedPriceDoesIncludeTax']
+	calculated_price_excluding_tax    i32                   @[json: 'calculatedPriceExcludingTax']
+	calculated_price_including_tax    i32                   @[json: 'calculatedPriceIncludingTax']
 }
 
 struct VariantResponse {
@@ -328,6 +327,10 @@ fn format_variant_response(v Variant) VariantResponse {
 		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
 	}
 
+	prices := PricesResponse{
+		money_amounts: money_amounts
+	}
+
 	return VariantResponse{
 		id:                 v.id
 		created_at:         v.created_at.Time
@@ -352,7 +355,7 @@ fn format_variant_response(v Variant) VariantResponse {
 		title:              v.title
 		// image
 		option_values: option_values
-		// prices
+		prices:        prices
 	}
 }
 

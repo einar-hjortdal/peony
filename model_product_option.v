@@ -202,8 +202,8 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 	mut s := []string{len: o.len}
 	mut params := []firebird.Value{len: o.len * 2 + 1, init: firebird.Value(firebird.Null{})}
 	mut created_options := []ProductOptionData{}
-	mut updated_id_bins := [][]u8{}
-	mut created_id_bins := [][]u8{}
+	mut updated_ids_bin := [][]u8{}
+	mut created_ids_bin := [][]u8{}
 	for i := 0; i < o.len; i++ {
 		s[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS id,
@@ -212,12 +212,12 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 		if id := o[i].id {
 			id_bin := id_string_to_bin(id)!
 			params[i * 2] = id_bin
-			updated_id_bins = arrays.concat(updated_id_bins, id_bin)
+			updated_ids_bin = arrays.concat(updated_ids_bin, id_bin)
 		} else {
 			_, id_bin := app.new_id()!
 			params[i * 2] = id_bin
 			created_options = arrays.concat(created_options, o[i])
-			created_id_bins = arrays.concat(created_id_bins, id_bin)
+			created_ids_bin = arrays.concat(created_ids_bin, id_bin)
 		}
 		params[i * 2 + 1] = product_id_bin
 	}
@@ -249,13 +249,13 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 		if _ := o[i].id {
 			for k := 0; k < o[i].translations.len; k++ {
 				locale_id_bin := id_string_to_bin(o[i].translations[k].locale_id)!
-				params = arrays.concat(params, updated_id_bins[f], locale_id_bin, o[i].translations[k].title)
+				params = arrays.concat(params, updated_ids_bin[f], locale_id_bin, o[i].translations[k].title)
 			}
 			f++
 		} else {
 			for k := 0; k < o[i].translations.len; k++ {
 				locale_id_bin := id_string_to_bin(o[i].translations[k].locale_id)!
-				params = arrays.concat(params, created_id_bins[n], locale_id_bin, o[i].translations[k].title)
+				params = arrays.concat(params, created_ids_bin[n], locale_id_bin, o[i].translations[k].title)
 			}
 			n++
 		}
@@ -276,7 +276,7 @@ fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_
 				WHERE pov.option_id = t.product_option_id
 			)
 			THEN DELETE'
-	params = arrays.concat(params, ...workaround_24757(arrays.append(created_id_bins,
-		updated_id_bins)))
+	params = arrays.concat(params, ...workaround_24757(arrays.append(created_ids_bin,
+		updated_ids_bin)))
 	tx.execute(query, ...params)!
 }

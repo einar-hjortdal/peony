@@ -180,15 +180,15 @@ fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_i
 
 	_, created_ids_bin := app.do_create_images(mut tx, images_to_create)!
 
-	// sort id_bins according to urls array to obtain the correct image_rank order
-	mut sorted_id_bins := [][]u8{}
+	// sort ids_bin according to urls array to obtain the correct image_rank order
+	mut sorted_ids_bin := [][]u8{}
 	for i := 0; i < urls.len; i++ {
 		url := urls[i]
 		mut found := false
 
 		for k := 0; k < pi.len; k++ {
 			if pi[k].url == url {
-				sorted_id_bins = arrays.concat(sorted_id_bins, pi[k].id_bin)
+				sorted_ids_bin = arrays.concat(sorted_ids_bin, pi[k].id_bin)
 				found = true
 				break
 			}
@@ -200,7 +200,7 @@ fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_i
 
 		for k := 0; k < images_to_create.len; k++ {
 			if images_to_create[k] == url {
-				sorted_id_bins = arrays.concat(sorted_id_bins, created_ids_bin[k])
+				sorted_ids_bin = arrays.concat(sorted_ids_bin, created_ids_bin[k])
 				break
 			}
 		}
@@ -208,11 +208,11 @@ fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_i
 
 	mut s := ''
 	mut params := []firebird.Value{}
-	for i := 0; i < sorted_id_bins.len; i++ {
+	for i := 0; i < sorted_ids_bin.len; i++ {
 		image_rank := i
 		s = appendln(s, 'SELECT ? AS product_id, ? AS image_id, ? AS image_rank FROM RDB\$DATABASE')
-		params = arrays.concat(params, product_id_bin, sorted_id_bins[i], image_rank)
-		if i < sorted_id_bins.len - 1 {
+		params = arrays.concat(params, product_id_bin, sorted_ids_bin[i], image_rank)
+		if i < sorted_ids_bin.len - 1 {
 			s = appendln(s, 'UNION ALL')
 		}
 	}
