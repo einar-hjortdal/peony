@@ -1,15 +1,6 @@
 module main
 
-fn is_empty(v []u8) bool {
-	return v.len == 0
-}
-
-// hierarchy:
-// price-list
-// region
-// money_amount with set min_quantity/max_quantity
-// money_amount without set min_quantity/max_quantity
-// discount prices if include_discount_prices
+import arrays
 
 struct PriceContext {
 	cart_id_bin             []u8
@@ -17,7 +8,6 @@ struct PriceContext {
 	region_id_bin           []u8
 	currency_code           string
 	include_discount_prices bool
-	ignore_cache            bool
 }
 
 struct Price {
@@ -35,33 +25,48 @@ struct Price {
 fn calculate_taxes() {
 }
 
-fn is_valid_price() bool {
-	return true
+fn is_original_price(ma MoneyAmount, currency_code string, region_id_bin []u8) bool {
+	return ma.min_quantity.is_null && ma.max_quantity.is_null
+		&& (region_id_bin.len == 0 || ma.region_id_bin == region_id_bin)
 }
 
-fn calculate_price(variant_ids_bin [][]u8, quantity i32, pctx PriceContext) Price {
-	// if cart_id_bin is provided: verify cart.shipping_address_id cart.region_id cart.customer_id cart_discounts
-	// if customer_id_bin is provided: verify price_list_customer_groups, discount_condition_customer_group
-	// if region_id_bin is provided: verify region.includes_tax, region_tax_rate
-	// verify currency.includes_tax
+fn is_valid_price(ma MoneyAmount, quantity i32, currency_code string, region_id_bin []u8) bool {
+	return (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
+		&& (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
+		&& (currency_code == '' || ma.currency_code == currency_code)
+		&& (region_id_bin.len == 0 || ma.region_id_bin == region_id_bin)
+}
 
-	// original price:
-	// region_id matches
-	// price_list_id == null
-	// no min_quantity or max_quantity ⇒ set originalPrice.
-	// If none found, fall back to a currency-specific base price with the same null checks.
+// this function should find the lowest possible price that fits all the criteria.
+// it considers: quantity, currency, region, discount, rules, lists.
+// this function also finds and applies taxes.
+// a tax of type override will override all taxes of lower hierarchy.
+// the tax hierarchy, from most important to least important, is as follows:
+// product -> product type -> region (TODO verify)
+fn calculate_price(variant Variant, quantity i32, pctx PriceContext) Price {
+	// for now just consider variant.money_amounts and pctx.region
+	mut original_price := MoneyAmount{}
+	mut valid_money_amounts := []MoneyAmount{}
+	for i := 0; i < variant.money_amounts.len; i++ {
+		if is_original_price(variant.money_amounts[i], pctx.currency_code, pctx.region_id_bin) {
+			original_price = variant.money_amounts[i]
+		}
 
-	mut currency_code := pctx.currency_code
-	mut tax_rate := f32(0)
-	mut automatic_taxes := false
-	if is_empty(pctx.region_id_bin) {
-		// get region
-		// currency_code = region.currency_code
-		// tax_rate = ...
-		// automatic_taxes = region.automatic_taxes
+		if is_valid_price(variant.money_amounts[i], quantity, pctx.currency_code, pctx.region_id_bin) {
+			valid_money_amounts = arrays.concat(valid_money_amounts, variant.money_amounts[i])
+		}
+	}
+
+	mut calculated_price := original_price
+	for i := 0; i < valid_money_amounts.len; i++ {
+		if valid_money_amounts[i].amount < calculated_price.amount {
+			calculated_price = valid_money_amounts[i]
+		}
 	}
 
 	return Price{
-		currency_code: currency_code
+		original_price:   original_price.amount
+		calculated_price: calculated_price.amount
+		currency_code:    pctx.currency_code
 	}
 }

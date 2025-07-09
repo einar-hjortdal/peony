@@ -266,8 +266,8 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 		deleted_at:    m.deleted_at.Time
 		currency_code: m.currency_code
 		amount:        m.amount
-		min_quantity:  m.min_quantity
-		max_quantity:  m.max_quantity
+		min_quantity:  m.min_quantity.value
+		max_quantity:  m.max_quantity.value
 		price_list_id: m.price_list_id
 		region_id:     m.region_id
 		variant_id:    m.variant_id
@@ -329,6 +329,15 @@ fn format_variant_response(v Variant) VariantResponse {
 
 	prices := PricesResponse{
 		money_amounts: money_amounts
+		// currency_code:
+		// original_price:
+		// original_price_does_include_tax:
+		// original_price_excluding_tax:
+		// original_price_including_tax:
+		// calculated_price:
+		// calculated_price_does_include_tax:
+		// calculated_price_excluding_tax:
+		// calculated_price_including_tax:
 	}
 
 	return VariantResponse{

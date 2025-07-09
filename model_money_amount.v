@@ -10,8 +10,8 @@ struct MoneyAmount {
 	deleted_at        firebird.DateTime
 	currency_code     string
 	amount            i32
-	min_quantity      i32
-	max_quantity      i32
+	min_quantity      firebird.NullI32
+	max_quantity      firebird.NullI32
 	price_list_id     string
 	price_list_id_bin []u8
 	region_id         string
@@ -27,8 +27,8 @@ fn parse_money_amount(v []firebird.Value) !MoneyAmount {
 	deleted_at, _ := v[3].get_date_time()!
 	currency_code, _ := v[4].get_string()!
 	amount, _ := v[5].get_i32()!
-	min_quantity, _ := v[6].get_i32()!
-	max_quantity, _ := v[7].get_i32()!
+	min_quantity := v[6].get_null_i32()!
+	max_quantity := v[7].get_null_i32()!
 
 	price_list_id_bin, price_list_id_is_null := v[8].get_array_u8()!
 	region_id_bin, region_id_is_null := v[9].get_array_u8()!
