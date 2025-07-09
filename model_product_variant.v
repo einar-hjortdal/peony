@@ -249,7 +249,7 @@ fn do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantPa
 
 	for i := 0; i < variants.len; i++ {
 		for k := 0; k < money_amounts.len; k++ {
-			if variants[i].id == money_amounts[k].variant_id {
+			if variants[i].id_bin == money_amounts[k].variant_id_bin.value {
 				variants[i].money_amounts = arrays.concat(variants[i].money_amounts, money_amounts[k])
 			}
 		}

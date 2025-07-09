@@ -16,7 +16,10 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 
 	mut external_products := []ProductResponse{len: internal_products.len}
 	for i := 0; i < internal_products.len; i++ {
-		external_products[i] = format_product_response(internal_products[i])
+		external_products[i] = format_product_response(internal_products[i]) or {
+			ctx.res.set_status(http.Status.internal_server_error)
+			return ctx.json(new_peony_error('Failed to format response', err.msg()))
+		}
 	}
 
 	r := ListResponse{
@@ -59,7 +62,10 @@ fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
 	}
 
-	external_product := format_product_response(internal_product)
+	external_product := format_product_response(internal_product) or {
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Failed to format response', err.msg()))
+	}
 
 	return ctx.json(external_product)
 }

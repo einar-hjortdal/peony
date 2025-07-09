@@ -258,19 +258,34 @@ struct MoneyAmountResponse {
 	variant_id    string @[json: 'variantId'; omitempty]
 }
 
-fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
+fn format_money_amount_response(m MoneyAmount) !MoneyAmountResponse {
+	mut price_list_id := ''
+	mut region_id := ''
+	mut variant_id := ''
+	if !m.price_list_id_bin.is_null {
+		price_list_id = id_bin_to_string(m.price_list_id_bin.value)!
+	}
+
+	if !m.region_id_bin.is_null {
+		region_id = id_bin_to_string(m.region_id_bin.value)!
+	}
+
+	if !m.variant_id_bin.is_null {
+		variant_id = id_bin_to_string(m.variant_id_bin.value)!
+	}
+
 	return MoneyAmountResponse{
 		id:            m.id
 		created_at:    m.created_at.Time
 		updated_at:    m.updated_at.Time
-		deleted_at:    m.deleted_at.Time
+		deleted_at:    m.deleted_at.value.Time
 		currency_code: m.currency_code
 		amount:        m.amount
 		min_quantity:  m.min_quantity.value
 		max_quantity:  m.max_quantity.value
-		price_list_id: m.price_list_id
-		region_id:     m.region_id
-		variant_id:    m.variant_id
+		price_list_id: price_list_id
+		region_id:     region_id
+		variant_id:    variant_id
 	}
 }
 
@@ -316,7 +331,7 @@ struct VariantResponse {
 	purchasable   bool // TODO
 }
 
-fn format_variant_response(v Variant) VariantResponse {
+fn format_variant_response(v Variant) !VariantResponse {
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
@@ -324,7 +339,7 @@ fn format_variant_response(v Variant) VariantResponse {
 
 	mut money_amounts := []MoneyAmountResponse{len: v.money_amounts.len}
 	for i := 0; i < v.money_amounts.len; i++ {
-		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
+		money_amounts[i] = format_money_amount_response(v.money_amounts[i])!
 	}
 
 	prices := PricesResponse{
@@ -388,7 +403,7 @@ struct ProductResponse {
 	// tags         []Tag                 @[omitempty]
 }
 
-fn format_product_response(p Product) ProductResponse {
+fn format_product_response(p Product) !ProductResponse {
 	mut images := []ImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
 		images[i] = format_image_response(p.images[i])
@@ -401,7 +416,7 @@ fn format_product_response(p Product) ProductResponse {
 
 	mut variants := []VariantResponse{len: p.variants.len}
 	for i := 0; i < p.variants.len; i++ {
-		variants[i] = format_variant_response(p.variants[i])
+		variants[i] = format_variant_response(p.variants[i])!
 	}
 
 	mut translations := []ProductTranslationResponse{len: p.translations.len}
