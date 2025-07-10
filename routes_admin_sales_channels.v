@@ -20,12 +20,11 @@ fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 // retrieves a sales channel by id
 @['/admin/sales-channels/:id'; get]
 fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Result {
-	sc := app.retrieve_sales_channel_by_id(id) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not retrieve sales channel data', err.msg()))
+	id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
-
-	return ctx.json(sc)
+	ids_bin := [id_bin]
+	return conduit_sales_channels_get_by_id(mut app, mut ctx, ids_bin)
 }
 
 // creates a sales channel

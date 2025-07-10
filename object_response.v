@@ -4,6 +4,10 @@ import net.http
 import time
 import veb
 
+const error_invalid_id = 'Invalid id'
+const error_start_transaction = 'Failed to start transaction'
+const error_rollback_transaction = 'Failed to rollback transaction'
+
 struct PeonySuccess {
 	success bool
 }

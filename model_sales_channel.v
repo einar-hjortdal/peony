@@ -37,28 +37,6 @@ fn parse_sales_channel(v []firebird.Value) !SalesChannel {
 	}
 }
 
-fn (mut app App) retrieve_sales_channel_by_id(id string) !SalesChannel {
-	id_bin := id_string_to_bin(id)!
-	mut tx := app.start_transaction()!
-	data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		name,
-		description,
-		is_disabled
-		FROM sales_channel
-		WHERE id = ?',
-		id_bin)!
-	tx.rollback()!
-
-	if data.rows.len == 0 {
-		return error(format_error_message('No sales channel found'))
-	}
-	return parse_sales_channel(data.rows[0].values)!
-}
-
 fn do_retrieve_sales_channels(mut tx firebird.Transaction) ![]SalesChannel {
 	data := tx.execute('SELECT 
 		id,
