@@ -29,17 +29,16 @@ fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
 // updates a product variant
 @['/admin/variants/:id'; post]
 fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Result {
-	data := json.decode(VariantRequest, ctx.req.data) or {
+	variant_id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+	}
+
+	p := json.decode(ProductVariantRequest, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode VariantRequest ', err.msg()))
 	}
 
-	app.update_product_variant(id, data) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not update variant ', err.msg()))
-	}
-
-	return app.admin_products_id_get(mut ctx, id)
+	return conduit_update_product_variant(mut app, mut ctx, variant_id_bin, p)
 }
 
 // gets the available inventory of the product variant

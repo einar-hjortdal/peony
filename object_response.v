@@ -5,8 +5,9 @@ import time
 import veb
 
 const error_invalid_id = 'Invalid id'
-const error_start_transaction = 'Failed to start transaction'
-const error_rollback_transaction = 'Failed to rollback transaction'
+const error_transaction_start = 'Failed to start transaction'
+const error_transaction_commit = 'Failed to start transaction'
+const error_transaction_rollback = 'Failed to rollback transaction'
 
 struct PeonySuccess {
 	success bool
@@ -16,6 +17,10 @@ fn new_peony_success() PeonySuccess {
 	return PeonySuccess{
 		success: true
 	}
+}
+
+fn success(mut ctx Context) veb.Result {
+	return ctx.json(new_peony_success())
 }
 
 struct PeonyError {

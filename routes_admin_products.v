@@ -83,7 +83,7 @@ fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result
 // creates a product variant
 @['/admin/products/:id/variants'; post]
 fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
-	data := json.decode(VariantRequest, ctx.req.data) or {
+	data := json.decode(ProductVariantRequest, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode VariantRequest ', err.msg()))
 	}

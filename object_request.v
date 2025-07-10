@@ -86,10 +86,8 @@ struct ProductOptionValueRequest {
 	translations []ProductOptionValueTranslationRequest
 }
 
-struct VariantRequest {
+struct ProductVariantRequest {
 	title              ?string
-	prices             ?[]PriceRequest
-	options            ?[]ProductOptionValueRequest
 	sku                ?string
 	ean                ?string
 	upc                ?string
@@ -105,6 +103,8 @@ struct VariantRequest {
 	length             ?i32
 	height             ?i32
 	width              ?i32
+	prices             ?[]PriceRequest
+	options            ?[]ProductOptionValueRequest
 }
 
 struct UpdateMoneyAmountData {
