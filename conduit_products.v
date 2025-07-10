@@ -63,7 +63,7 @@ fn conduit_products_get_list(mut app App, mut ctx Context, p RetrieveProductPara
 	return ctx.json(r)
 }
 
-fn conduit_product_get_by_id(mut app App, mut ctx Context, id string, p RetrieveProductParams) veb.Result {
+fn conduit_products_get_by_id(mut app App, mut ctx Context, p RetrieveProductParams) veb.Result {
 	internal_products, count := app.retrieve_products(p) or {
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve products data',
 			err.msg())

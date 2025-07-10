@@ -5,12 +5,12 @@ import einar_hjortdal.firebird
 
 struct SalesChannel {
 	id          string
-	id_bin      []u8 @[json: '-']
+	id_bin      []u8
 	created_at  firebird.DateTime
 	updated_at  firebird.DateTime
-	deleted_at  firebird.DateTime @[omitempty]
+	deleted_at  firebird.DateTime
 	name        string
-	description string @[omitempty]
+	description string
 	is_disabled bool
 }
 
@@ -59,24 +59,42 @@ fn (mut app App) retrieve_sales_channel_by_id(id string) !SalesChannel {
 	return parse_sales_channel(data.rows[0].values)!
 }
 
-struct ListSalesChannelsParams {
-	ids         ZeroArrayString
-	name        ZeroString
-	description ZeroString
-	offset      ZeroI32
-	fetch       ZeroI32
-	order       ZeroString
+fn do_retrieve_sales_channels(mut tx firebird.Transaction) ![]SalesChannel {
+	data := tx.execute('SELECT 
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		name,
+		description,
+		is_disabled
+		FROM sales_channel')!
+
+	mut sales_channels := []SalesChannel{len: data.rows.len}
+	for i := 0; i < data.rows.len; i++ {
+		sales_channels[i] = parse_sales_channel(data.rows[i].values)!
+	}
+	return sales_channels
 }
 
-fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannelsParams {
-	return ListSalesChannelsParams{
-		ids:         zero_array_string(p, 'ids')
-		name:        zero_string(p, 'name')
-		description: zero_string(p, 'description')
-		offset:      zero_i32(p, 'offset')
-		fetch:       zero_i32(p, 'fetch')
-		order:       zero_string(p, 'order')
+fn do_retrieve_sales_channels_by_ids(mut tx firebird.Transaction, ids_bin [][]u8) ![]SalesChannel {
+	data := tx.execute('SELECT 
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		name,
+		description,
+		is_disabled
+		FROM sales_channel
+		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		...workaround_24757(ids_bin))!
+
+	mut sales_channels := []SalesChannel{len: data.rows.len}
+	for i := 0; i < data.rows.len; i++ {
+		sales_channels[i] = parse_sales_channel(data.rows[i].values)!
 	}
+	return sales_channels
 }
 
 fn build_list_sales_channels_query(p ListSalesChannelsParams) !(string, []firebird.Value) {
@@ -207,6 +225,44 @@ fn (mut app App) add_products_to_sales_channel(id string, products_ids []string)
 		stmt.execute(pid_bin, id_bin)!
 	}
 	tx.commit()!
+}
+
+struct ProductSalesChannel {
+	product_id           string
+	product_id_bin       []u8
+	sales_channel_id     string
+	sales_channel_id_bin []u8
+}
+
+fn parse_product_sales_channel(v []firebird.Value) !ProductSalesChannel {
+	product_id_bin, _ := v[0].get_array_u8()!
+	sales_channel_id_bin, _ := v[1].get_array_u8()!
+
+	product_id := id_bin_to_string(product_id_bin)!
+	sales_channel_id := id_bin_to_string(sales_channel_id_bin)!
+
+	return ProductSalesChannel{
+		product_id:           product_id
+		product_id_bin:       product_id_bin
+		sales_channel_id:     sales_channel_id
+		sales_channel_id_bin: sales_channel_id_bin
+	}
+}
+
+fn do_retrieve_product_sales_channels(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSalesChannel {
+	data := tx.execute('SELECT
+		product_id,
+		sales_channel_id
+		FROM product_sales_channel
+		WHERE product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})',
+		...workaround_24757(product_ids_bin))!
+
+	mut product_sales_channels := []ProductSalesChannel{len: data.rows.len}
+	for i := 0; i < data.rows.len; i++ {
+		product_sales_channels[i] = parse_product_sales_channel(data.rows[i].values)!
+	}
+
+	return product_sales_channels
 }
 
 fn (mut app App) do_update_product_sales_channels(mut tx firebird.Transaction, product_id_bin []u8, sales_channel_ids_bin [][]u8) ! {

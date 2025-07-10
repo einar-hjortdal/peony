@@ -326,6 +326,23 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !(
 		product_map[prodct_id] = unsorted_products[i]
 	}
 
+	// There usually is a small number of sales_channel and a large number of product.
+	// Using a single query results in a needlessly large payload with duplicated data.
+	product_sales_channels := do_retrieve_product_sales_channels(mut tx, ids_bin)!
+	sales_channels := do_retrieve_sales_channels(mut tx)!
+
+	mut sales_channels_map := map[string]SalesChannel{}
+	for i := 0; i < sales_channels.len; i++ {
+		sales_channels_map[sales_channels[i].id] = sales_channels[i]
+	}
+
+	for i := 0; i < product_sales_channels.len; i++ {
+		product_id := product_sales_channels[i].product_id
+		sales_channel_id := product_sales_channels[i].sales_channel_id
+		product_map[product_id].sales_channels = arrays.concat(product_map[product_id].sales_channels,
+			sales_channels_map[sales_channel_id])
+	}
+
 	product_images := do_retrieve_product_images(mut tx, ids_bin)!
 	if product_images.len != 0 {
 		mut images_ids_bin := [][]u8{len: product_images.len}
@@ -333,6 +350,7 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !(
 			images_ids_bin[i] = product_images[i].id_bin
 		}
 
+		// TODO this is unnecessary, just transform ProductImage to Image and assign it to its owner
 		images := do_retrieve_images(mut tx, images_ids_bin)!
 		// Build a map for quick image lookups
 		mut image_map := map[string]Image{}

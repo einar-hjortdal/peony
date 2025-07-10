@@ -37,9 +37,20 @@ fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 // get a product
 @['/admin/products/:id'; get]
 fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	ctx.query['id'] = id // TODO ugly ctx.query modification
-	p := extract_retrieve_admin_products_params(ctx.query)
-	return conduit_product_get_by_id(mut app, mut ctx, id, p)
+	_ := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, 'Invalid id', err.msg())
+	}
+
+	id_zas := ZeroArrayString{
+		v:      [id]
+		is_set: true
+	}
+
+	p := RetrieveProductParams{
+		id: id_zas
+	}
+
+	return conduit_products_get_by_id(mut app, mut ctx, p)
 }
 
 @['/admin/products/:id'; post]

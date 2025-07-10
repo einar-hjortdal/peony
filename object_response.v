@@ -419,6 +419,18 @@ struct SalesChannelResponse {
 	is_disabled bool
 }
 
+fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
+	return SalesChannelResponse{
+		id:          v.id
+		created_at:  v.created_at.Time
+		updated_at:  v.updated_at.Time
+		deleted_at:  v.deleted_at.Time
+		name:        v.name
+		description: v.description
+		is_disabled: v.is_disabled
+	}
+}
+
 struct ProductResponse {
 	id             string
 	created_at     time.Time @[json: 'createdAt']
@@ -460,26 +472,30 @@ fn format_product_response(p Product, variant_prices_map map[string]Prices) !Pro
 		translations[i] = format_product_translation_response(p.translations[i])
 	}
 
-	// TODO sales_channels
+	mut sales_channels := []SalesChannelResponse{len: p.sales_channels.len}
+	for i := 0; i < p.sales_channels.len; i++ {
+		sales_channels[i] = format_sales_channel_response(p.sales_channels[i])
+	}
+
 	// TODO tags
 
 	return ProductResponse{
-		id:            p.id
-		created_at:    p.created_at.Time
-		updated_at:    p.updated_at.Time
-		deleted_at:    p.deleted_at.Time
-		handle:        p.handle
-		is_giftcard:   p.is_giftcard
-		status:        p.status
-		thumbnail:     p.thumbnail
-		collection_id: p.collection_id
-		type_id:       p.type_id
-		discountable:  p.discountable
-		images:        images
-		options:       options
-		variants:      variants
-		translations:  translations
-		// sales_channels sales_channels
+		id:             p.id
+		created_at:     p.created_at.Time
+		updated_at:     p.updated_at.Time
+		deleted_at:     p.deleted_at.Time
+		handle:         p.handle
+		is_giftcard:    p.is_giftcard
+		status:         p.status
+		thumbnail:      p.thumbnail
+		collection_id:  p.collection_id
+		type_id:        p.type_id
+		discountable:   p.discountable
+		images:         images
+		options:        options
+		variants:       variants
+		translations:   translations
+		sales_channels: sales_channels
 		// tags:          tags
 	}
 }

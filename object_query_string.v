@@ -1,5 +1,68 @@
 module main
 
+struct ZeroString {
+	v      string
+	is_set bool
+}
+
+fn zero_string(m map[string]string, k string) ZeroString {
+	if k in m {
+		return ZeroString{
+			v:      m[k]
+			is_set: true
+		}
+	}
+	return ZeroString{}
+}
+
+struct ZeroArrayString {
+	v      []string
+	is_set bool
+}
+
+fn zero_array_string(m map[string]string, k string) ZeroArrayString {
+	s := zero_string(m, k)
+	if s.is_set {
+		return ZeroArrayString{
+			v:      s.v.split(',')
+			is_set: true
+		}
+	}
+	return ZeroArrayString{}
+}
+
+struct ZeroI32 {
+	v      i32
+	is_set bool
+}
+
+fn zero_i32(m map[string]string, k string) ZeroI32 {
+	s := zero_string(m, k)
+	if s.is_set {
+		return ZeroI32{
+			v:      s.v.i32()
+			is_set: true
+		}
+	}
+	return ZeroI32{}
+}
+
+struct ZeroBool {
+	v      bool
+	is_set bool
+}
+
+fn zero_bool(m map[string]string, k string) ZeroBool {
+	s := zero_string(m, k)
+	if s.is_set {
+		return ZeroBool{
+			v:      parse_bool(s.v)
+			is_set: true
+		}
+	}
+	return ZeroBool{}
+}
+
 struct ListRegionParams {
 	name   ZeroString
 	offset ZeroI32
@@ -45,6 +108,26 @@ fn extract_retrieve_locales_params(m map[string]string) RetrieveLocalesParams {
 		offset: zero_i32(m, 'offset')
 		fetch:  zero_i32(m, 'fetch')
 		order:  zero_string(m, 'order')
+	}
+}
+
+struct ListSalesChannelsParams {
+	ids         ZeroArrayString
+	name        ZeroString
+	description ZeroString
+	offset      ZeroI32
+	fetch       ZeroI32
+	order       ZeroString
+}
+
+fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannelsParams {
+	return ListSalesChannelsParams{
+		ids:         zero_array_string(p, 'ids')
+		name:        zero_string(p, 'name')
+		description: zero_string(p, 'description')
+		offset:      zero_i32(p, 'offset')
+		fetch:       zero_i32(p, 'fetch')
+		order:       zero_string(p, 'order')
 	}
 }
 
@@ -109,5 +192,20 @@ fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductPa
 		tag_id:           zero_array_string(m, 'tag_id')
 		title:            zero_string(m, 'title')
 		type_id:          zero_array_string(m, 'type_id')
+	}
+}
+
+fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string string) RetrieveProductParams {
+	id := ZeroArrayString{
+		v:      [id_string]
+		is_set: true
+	}
+
+	return RetrieveProductParams{
+		cart_id:          zero_string(m, 'cart_id')
+		currency_code:    zero_string(m, 'currency_code')
+		id:               id
+		region_id:        zero_string(m, 'region_id')
+		sales_channel_id: zero_array_string(m, 'sales_channel_id')
 	}
 }
