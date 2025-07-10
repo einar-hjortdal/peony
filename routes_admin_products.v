@@ -8,7 +8,8 @@ import veb
 @['/admin/products'; get]
 fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_admin_products_params(ctx.query)
-	return conduit_products_get(mut app, mut ctx, p)
+	// TODO validate p
+	return conduit_products_get_list(mut app, mut ctx, p)
 }
 
 // create a product
@@ -36,17 +37,9 @@ fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 // get a product
 @['/admin/products/:id'; get]
 fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	internal_product := app.retrieve_product_by_id(id) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to retrieve product data', err.msg()))
-	}
-
-	external_product := format_product_response(internal_product) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to format response', err.msg()))
-	}
-
-	return ctx.json(external_product)
+	ctx.query['id'] = id // TODO ugly ctx.query modification
+	p := extract_retrieve_admin_products_params(ctx.query)
+	return conduit_product_get_by_id(mut app, mut ctx, id, p)
 }
 
 @['/admin/products/:id'; post]

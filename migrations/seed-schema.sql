@@ -93,7 +93,7 @@ CREATE TABLE tax_rate (
   rate REAL,
   code VARCHAR(63),
   name VARCHAR(63) NOT NULL,
-  type VARCHAR(12) DEFAULT 'additive',
+  type VARCHAR(12) DEFAULT 'additive' NOT NULL,
   CONSTRAINT "0681493b-ad84-100d-bc00-4f51f22e5a5a" PRIMARY KEY (id),
   CONSTRAINT "0686cd40-331d-13a4-2c00-4de2e11c5727" CHECK ( type IN (
     'additive', 'substitutive', 'compounding')

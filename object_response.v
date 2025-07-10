@@ -1,6 +1,8 @@
 module main
 
+import net.http
 import time
+import veb
 
 struct PeonySuccess {
 	success bool
@@ -23,6 +25,11 @@ fn new_peony_error(message string, details string) PeonyError {
 		message: message
 		details: details
 	}
+}
+
+fn handle_error(mut ctx Context, status http.Status, message string, details string) veb.Result {
+	ctx.res.set_status(status)
+	return ctx.json(new_peony_error(message, details))
 }
 
 fn login_error() (string, string) {
@@ -289,50 +296,77 @@ fn format_money_amount_response(m MoneyAmount) !MoneyAmountResponse {
 	}
 }
 
+struct TaxRateResponse {
+	id         string
+	created_at time.Time @[json: 'createdAt']
+	updated_at time.Time @[json: 'updatedAt']
+	deleted_at time.Time @[json: 'deletedAt'; omitempty]
+	rate       f32       @[omitempty]
+	code       string    @[omitempty]
+	name       string
+	rate_type  string @[json: 'rateType'; omitempty]
+	region_id  string @[json: 'regionId'; omitempty]
+}
+
 struct PricesResponse {
-	money_amounts                     []MoneyAmountResponse @[json: 'moneyAmounts']
-	currency_code                     string                @[json: 'currencyCode']
-	original_price                    i32                   @[json: 'originalPrice']
-	original_price_does_include_tax   bool                  @[json: 'originalPriceDoesIncludeTax']
-	original_price_excluding_tax      i32                   @[json: 'originalPriceExcludingTax']
-	original_price_including_tax      i32                   @[json: 'originalPriceIncludingTax']
-	calculated_price                  i32                   @[json: 'calculatedPrice']               // TODO tax quantity discounts price-lists
-	calculated_price_does_include_tax bool                  @[json: 'calculatedPriceDoesIncludeTax'] // TODO tax
-	calculated_price_excluding_tax    i32                   @[json: 'calculatedPriceExcludingTax']   // TODO tax
-	calculated_price_including_tax    i32                   @[json: 'calculatedPriceIncludingTax']   // TODO tax
-	// tax_rates                         []TaxRateResponse     @[json: 'taxRates']                   // TODO tax
+	currency_code                     string            @[json: 'currencyCode']
+	original_price                    i32               @[json: 'originalPrice']
+	original_price_does_include_tax   bool              @[json: 'originalPriceDoesIncludeTax']
+	original_price_excluding_tax      i32               @[json: 'originalPriceExcludingTax']
+	original_price_including_tax      i32               @[json: 'originalPriceIncludingTax']
+	calculated_price                  i32               @[json: 'calculatedPrice']               // TODO tax quantity discounts price-lists
+	calculated_price_does_include_tax bool              @[json: 'calculatedPriceDoesIncludeTax'] // TODO tax
+	calculated_price_excluding_tax    i32               @[json: 'calculatedPriceExcludingTax']   // TODO tax
+	calculated_price_including_tax    i32               @[json: 'calculatedPriceIncludingTax']   // TODO tax
+	tax_rates                         []TaxRateResponse @[json: 'taxRates'; omitempty]           // TODO tax
+}
+
+fn format_prices_response(p Prices) PricesResponse {
+	return PricesResponse{
+		currency_code:                     p.currency_code
+		original_price:                    p.original_price
+		original_price_does_include_tax:   p.original_price_does_include_tax
+		original_price_excluding_tax:      p.original_price_excluding_tax
+		original_price_including_tax:      p.original_price_including_tax
+		calculated_price:                  p.calculated_price
+		calculated_price_does_include_tax: p.calculated_price_does_include_tax
+		calculated_price_excluding_tax:    p.calculated_price_excluding_tax
+		calculated_price_including_tax:    p.calculated_price_including_tax
+		// tax_rates:                         p.tax_rates
+	}
 }
 
 struct VariantResponse {
 	id                 string
-	created_at         time.Time @[json: 'createdAt']
-	updated_at         time.Time @[json: 'updatedAt']
-	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
-	product_id         string    @[json: 'productId']
-	title              string    @[omitempty]
-	sku                string    @[omitempty]
-	barcode            string    @[omitempty]
-	ean                string    @[omitempty]
-	upc                string    @[omitempty]
-	variant_rank       i32       @[json: 'variantRank']
-	inventory_quantity i32       @[json: 'inventoryQuantity']
-	allow_backorder    bool      @[json: 'allowBackorder']
-	manage_inventory   bool      @[json: 'manageInventory']
-	hs_code            string    @[json: 'hsCode'; omitempty]
-	origin_country     string    @[json: 'originCountry'; omitempty]
-	mid_code           string    @[json: 'midCode'; omitempty]
-	material           string    @[omitempty]
-	weight             i32       @[omitempty]
-	length             i32       @[omitempty]
-	height             i32       @[omitempty]
-	width              i32       @[omitempty]
-	// image              string @[omitempty] // TODO variant images
-	option_values []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	prices        PricesResponse               @[omitempty]
-	purchasable   bool // TODO
+	created_at         time.Time                    @[json: 'createdAt']
+	updated_at         time.Time                    @[json: 'updatedAt']
+	deleted_at         time.Time                    @[json: 'deletedAt'; omitempty]
+	product_id         string                       @[json: 'productId']
+	title              string                       @[omitempty]
+	sku                string                       @[omitempty]
+	barcode            string                       @[omitempty]
+	ean                string                       @[omitempty]
+	upc                string                       @[omitempty]
+	variant_rank       i32                          @[json: 'variantRank']
+	inventory_quantity i32                          @[json: 'inventoryQuantity']
+	allow_backorder    bool                         @[json: 'allowBackorder']
+	manage_inventory   bool                         @[json: 'manageInventory']
+	hs_code            string                       @[json: 'hsCode'; omitempty]
+	origin_country     string                       @[json: 'originCountry'; omitempty]
+	mid_code           string                       @[json: 'midCode'; omitempty]
+	material           string                       @[omitempty]
+	weight             i32                          @[omitempty]
+	length             i32                          @[omitempty]
+	height             i32                          @[omitempty]
+	width              i32                          @[omitempty]
+	image              string                       @[omitempty] // TODO variant images
+	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
+	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
+	prices             PricesResponse               @[omitempty]
+	purchasable        bool // TODO inventory management + allow_backorder
 }
 
-fn format_variant_response(v Variant) !VariantResponse {
+fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !VariantResponse {
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
@@ -343,19 +377,7 @@ fn format_variant_response(v Variant) !VariantResponse {
 		money_amounts[i] = format_money_amount_response(v.money_amounts[i])!
 	}
 
-	prices := PricesResponse{
-		money_amounts: money_amounts
-		// currency_code:
-		// original_price:
-		// original_price_does_include_tax:
-		// original_price_excluding_tax:
-		// original_price_including_tax:
-		// calculated_price:
-		// calculated_price_does_include_tax:
-		// calculated_price_excluding_tax:
-		// calculated_price_including_tax:
-		// tax_rates
-	}
+	prices := format_prices_response(variant_prices_map[v.id])
 
 	return VariantResponse{
 		id:                 v.id
@@ -379,34 +401,45 @@ fn format_variant_response(v Variant) !VariantResponse {
 		height:             v.height
 		width:              v.width
 		title:              v.title
-		// image
+		// image:
 		option_values: option_values
+		money_amounts: money_amounts
 		prices:        prices
-		purchasable:   true
+		// purchasable:
 	}
 }
 
+struct SalesChannelResponse {
+	id          string
+	created_at  time.Time @[json: 'createdAt']
+	updated_at  time.Time @[json: 'updatedAt']
+	deleted_at  time.Time @[json: 'deletedAt'; omitempty]
+	name        string
+	description string @[omitempty]
+	is_disabled bool
+}
+
 struct ProductResponse {
-	id            string
-	created_at    time.Time @[json: 'createdAt']
-	updated_at    time.Time @[json: 'updatedAt']
-	deleted_at    time.Time @[json: 'deletedAt'; omitempty]
-	handle        string
-	is_giftcard   bool @[json: 'isGiftcard']
-	status        string
-	thumbnail     string @[omitempty]
-	collection_id string @[json: 'collectionId'; omitempty]
-	type_id       string @[json: 'typeId'; omitempty]
-	discountable  bool
-	images        []ImageResponse              @[omitempty]
-	options       []ProductOptionResponse      @[omitempty]
-	variants      []VariantResponse            @[omitempty]
-	translations  []ProductTranslationResponse @[omitempty]
-	// sales_channels []SalesChannelResponse
+	id             string
+	created_at     time.Time @[json: 'createdAt']
+	updated_at     time.Time @[json: 'updatedAt']
+	deleted_at     time.Time @[json: 'deletedAt'; omitempty]
+	handle         string
+	is_giftcard    bool @[json: 'isGiftcard']
+	status         string
+	thumbnail      string @[omitempty]
+	collection_id  string @[json: 'collectionId'; omitempty]
+	type_id        string @[json: 'typeId'; omitempty]
+	discountable   bool
+	images         []ImageResponse              @[omitempty]
+	options        []ProductOptionResponse      @[omitempty]
+	variants       []VariantResponse            @[omitempty]
+	translations   []ProductTranslationResponse @[omitempty]
+	sales_channels []SalesChannelResponse       @[json: 'salesChannels']
 	// tags         []Tag                 @[omitempty]
 }
 
-fn format_product_response(p Product) !ProductResponse {
+fn format_product_response(p Product, variant_prices_map map[string]Prices) !ProductResponse {
 	mut images := []ImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
 		images[i] = format_image_response(p.images[i])
@@ -419,7 +452,7 @@ fn format_product_response(p Product) !ProductResponse {
 
 	mut variants := []VariantResponse{len: p.variants.len}
 	for i := 0; i < p.variants.len; i++ {
-		variants[i] = format_variant_response(p.variants[i])!
+		variants[i] = format_variant_response(p.variants[i], variant_prices_map)!
 	}
 
 	mut translations := []ProductTranslationResponse{len: p.translations.len}

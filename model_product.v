@@ -412,20 +412,6 @@ fn (mut app App) retrieve_products(p RetrieveProductParams) !([]Product, i64) {
 	return products, count
 }
 
-fn (mut app App) retrieve_product_by_id(id string) !Product {
-	m := {
-		'id': id
-	}
-	p := extract_retrieve_admin_products_params(m)
-
-	products, count := app.retrieve_products(p)!
-	if count == 0 {
-		return error(format_error_message('No product found with the given id'))
-	}
-
-	return products[0]
-}
-
 fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []ProductTranslationData) ! {
 	c := [
 		'product_id',

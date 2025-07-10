@@ -10,7 +10,7 @@ struct PriceContext {
 	include_discount_prices bool
 }
 
-struct Price {
+struct Prices {
 	currency_code                     string
 	original_price                    i32
 	original_price_does_include_tax   bool
@@ -72,7 +72,7 @@ fn is_valid_price(ma MoneyAmount, quantity i32, currency_code string, region_id_
 // a tax of type override will override all taxes of lower hierarchy.
 // the tax hierarchy, from most important to least important, is as follows:
 // product -> product type -> region (TODO verify)
-fn calculate_price(variant Variant, quantity i32, pctx PriceContext) Price {
+fn calculate_price(variant Variant, quantity i32, pctx PriceContext) Prices {
 	// for now just consider variant.money_amounts and pctx.region
 	mut original_prices := []MoneyAmount{}
 	mut valid_money_amounts := []MoneyAmount{}
@@ -86,9 +86,15 @@ fn calculate_price(variant Variant, quantity i32, pctx PriceContext) Price {
 		}
 	}
 
+	if original_prices.len == 0 {
+		return Prices{
+			currency_code: pctx.currency_code
+		}
+	}
+
 	original_price := select_original_price(original_prices)
 
-	return Price{
+	return Prices{
 		currency_code:  pctx.currency_code
 		original_price: original_price.amount
 		// original_price_does_include_tax:

@@ -3,18 +3,51 @@ module main
 import net.http
 import veb
 
-fn conduit_products_get(mut app App, mut ctx Context, p RetrieveProductParams) veb.Result {
+fn conduit_products_get_list(mut app App, mut ctx Context, p RetrieveProductParams) veb.Result {
 	internal_products, count := app.retrieve_products(p) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to retrieve products data', err.msg()))
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve products data',
+			err.msg())
 	}
 
-	// TODO build PriceContext, get customer_id from ctx if customer is logged in
-	// this is when variant prices should be calculated and injected in response
+	// TODO validation moved to route_
+	mut region_id_bin := []u8{}
+	if p.region_id.is_set {
+		region_id_bin = id_string_to_bin(p.region_id.v) or {
+			ctx.res.set_status(http.Status.bad_request)
+			return ctx.json(new_peony_error('Invalid region_id', err.msg()))
+		}
+	}
+
+	mut currency_code := ''
+	if p.currency_code.is_set {
+		currency_code = p.currency_code.v
+	} else {
+		store := app.store_retrieve() or {
+			ctx.res.set_status(http.Status.internal_server_error)
+			return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
+		}
+		currency_code = store.default_currency_code
+	}
+
+	pctx := PriceContext{
+		// TODO cart_id_bin
+		// TODO get customer_id from ctx if customer is logged in
+		region_id_bin: region_id_bin
+		currency_code: currency_code
+		// TODO include_discount_prices
+	}
+
+	mut variant_prices_map := map[string]Prices{}
+	for i := 0; i < internal_products.len; i++ {
+		for k := 0; k < internal_products[i].variants.len; k++ {
+			variant_prices_map[internal_products[i].variants[k].id] = calculate_price(internal_products[i].variants[k],
+				1, pctx)
+		}
+	}
 
 	mut external_products := []ProductResponse{len: internal_products.len}
 	for i := 0; i < internal_products.len; i++ {
-		external_products[i] = format_product_response(internal_products[i]) or {
+		external_products[i] = format_product_response(internal_products[i], variant_prices_map) or {
 			ctx.res.set_status(http.Status.internal_server_error)
 			return ctx.json(new_peony_error('Failed to format response', err.msg()))
 		}
@@ -28,4 +61,56 @@ fn conduit_products_get(mut app App, mut ctx Context, p RetrieveProductParams) v
 	}
 
 	return ctx.json(r)
+}
+
+fn conduit_product_get_by_id(mut app App, mut ctx Context, id string, p RetrieveProductParams) veb.Result {
+	internal_products, count := app.retrieve_products(p) or {
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve products data',
+			err.msg())
+	}
+
+	if count == 0 {
+		return handle_error(mut ctx, http.Status.not_found, 'Not found', 'No product exists with the given id')
+	}
+
+	// TODO validation moved to route_
+	mut region_id_bin := []u8{}
+	if p.region_id.is_set {
+		region_id_bin = id_string_to_bin(p.region_id.v) or {
+			ctx.res.set_status(http.Status.bad_request)
+			return ctx.json(new_peony_error('Invalid region_id', err.msg()))
+		}
+	}
+
+	mut currency_code := ''
+	if p.currency_code.is_set {
+		currency_code = p.currency_code.v
+	} else {
+		store := app.store_retrieve() or {
+			ctx.res.set_status(http.Status.internal_server_error)
+			return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
+		}
+		currency_code = store.default_currency_code
+	}
+
+	pctx := PriceContext{
+		// TODO cart_id_bin
+		// TODO get customer_id from ctx if customer is logged in
+		region_id_bin: region_id_bin
+		currency_code: currency_code
+		// TODO include_discount_prices
+	}
+
+	mut variant_prices_map := map[string]Prices{}
+	for i := 0; i < internal_products[0].variants.len; i++ {
+		variant_prices_map[internal_products[0].variants[i].id] = calculate_price(internal_products[0].variants[i],
+			1, pctx)
+	}
+
+	external_product := format_product_response(internal_products[0], variant_prices_map) or {
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to format response',
+			err.msg())
+	}
+
+	return ctx.json(external_product)
 }

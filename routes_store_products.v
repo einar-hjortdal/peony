@@ -6,5 +6,5 @@ import veb
 @['/store/products'; get]
 fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_store_products_params(ctx.query)
-	return conduit_products_get(mut app, mut ctx, p)
+	return conduit_products_get_list(mut app, mut ctx, p)
 }
