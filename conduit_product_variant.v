@@ -14,15 +14,15 @@ fn conduit_update_product_variant(mut app App, mut ctx Context, variant_id_bin [
 			err.msg())
 	}
 
-	// if prices := p.prices {
-	// 	do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, prices) or {
-	// 		tx.rollback() or {
-	// 			// ignore error
-	// 		}
-	// 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant money_amount',
-	// 			err.msg())
-	// 	}
-	// }
+	if prices := p.prices {
+		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, prices) or {
+			tx.rollback() or {
+				// ignore error
+			}
+			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant money_amount',
+				err.msg())
+		}
+	}
 
 	tx.commit() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,

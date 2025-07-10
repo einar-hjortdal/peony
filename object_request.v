@@ -70,10 +70,11 @@ struct CreateRegionRequest {
 
 struct PriceRequest {
 	amount        i32
-	region_id     ?string @[json: 'regionId']
 	currency_code ?string @[json: 'currencyCode']
-	min_quantity  ?i32    @[json: 'minQuantity']
+	id            ?string
 	max_quantity  ?i32    @[json: 'maxQuantity']
+	min_quantity  ?i32    @[json: 'minQuantity']
+	region_id     ?string @[json: 'regionId']
 }
 
 struct ProductOptionValueTranslationRequest {
@@ -105,17 +106,6 @@ struct ProductVariantRequest {
 	width              ?i32
 	prices             ?[]PriceRequest
 	options            ?[]ProductOptionValueRequest
-}
-
-struct UpdateMoneyAmountData {
-	id            ?string
-	currency_code string @[json: 'currencyCode']
-	amount        i32
-	min_quantity  ?i32    @[json: 'minQuantity']
-	max_quantity  ?i32    @[json: 'maxQuantity']
-	price_list_id ?string @[json: 'priceListId']
-	region_id     ?string @[json: 'regionId']
-	variant_id    ?string @[json: 'variantId']
 }
 
 struct NewCurrencyData {

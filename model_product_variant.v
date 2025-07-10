@@ -391,7 +391,6 @@ fn (mut app App) create_product_variant(product_id_bin []u8, p ProductVariantReq
 	tx.commit()!
 }
 
-// TODO create utility function and refactor
 fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p ProductVariantRequest) ! {
 	mut query := 'UPDATE product_variant SET'
 	mut params := []firebird.Value{}
@@ -482,7 +481,7 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	tx.execute(query, ...params)!
 }
 
-fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []UpdateMoneyAmountData) ! {
+fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []PriceRequest) ! {
 	// Delete all money_amounts that are not given by the user and that have no related price_list
 	mut persisting_ids := [][]u8{}
 	for i := 0; i < data.len; i++ {
@@ -531,16 +530,4 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 				variant_id_bin, money_amount_id_bin)!
 		}
 	}
-}
-
-// delete any money_amount that is not in the array and that does not have a price_list_id associated with it
-// add money_amount that do not yet exist
-fn (mut app App) update_variant_money_amounts(variant_id string, data []UpdateMoneyAmountData) ! {
-	id_bin := id_string_to_bin(variant_id)!
-	mut tx := app.start_transaction()!
-	do_update_product_variant_money_amount(mut app, mut tx, id_bin, data) or {
-		tx.rollback()!
-		return err
-	}
-	tx.commit()!
 }
