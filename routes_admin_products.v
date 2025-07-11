@@ -55,19 +55,17 @@ fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 
 @['/admin/products/:id'; post]
 fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
-	body := json.decode(ProductData, ctx.req.data) or {
+	id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+	}
+
+	p := json.decode(ProductData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode ProductData', err.msg()))
 	}
 
-	// TODO validate ids
-	// TODO return error when attempting to delete options that are used by some variant
-	app.update_product(id, body) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to update product data', err.msg()))
-	}
-
-	return ctx.json(new_peony_success())
+	// TODO validate ProductData ids if any
+	return conduit_products_update(mut app, mut ctx, id_bin, p)
 }
 
 // deletes a product

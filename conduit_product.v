@@ -114,3 +114,27 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, p RetrieveProductPar
 
 	return ctx.json(external_product)
 }
+
+// TODO return error when attempting to delete options that are used by some variant
+// TODO when option is created, give all existing variants a deffault option value
+fn conduit_products_update(mut app App, mut ctx Context, id_bin []u8, p ProductData) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	app.do_update_product(mut tx, id_bin, p) or {
+		tx.rollback() or {
+			// ignore error
+		}
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to update product',
+			err.msg())
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
+			err.msg())
+	}
+
+	return ctx.json(new_peony_success())
+}

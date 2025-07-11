@@ -575,8 +575,7 @@ fn (mut app App) create_product(p ProductData) !string {
 	return product_id
 }
 
-fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p ProductData) ! {
-	id_bin := id_string_to_bin(id)!
+fn (mut app App) do_update_product(mut tx firebird.Transaction, id_bin []u8, p ProductData) ! {
 	mut c := []string{}
 	mut params := []firebird.Value{}
 
@@ -660,15 +659,6 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id string, p Pro
 			app.do_update_product_options(mut tx, id_bin, options)!
 		}
 	}
-}
-
-fn (mut app App) update_product(id string, p ProductData) ! {
-	mut tx := app.start_transaction()!
-	app.do_update_product(mut tx, id, p) or {
-		tx.rollback()!
-		return err
-	}
-	tx.commit()!
 }
 
 fn (mut app App) delete_product(id string) ! {
