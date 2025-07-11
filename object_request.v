@@ -68,6 +68,11 @@ struct CreateRegionRequest {
 	includes_tax  ?bool
 }
 
+// id: if provided, the existing price will be updated. otherwise, a new price will be created.
+// region_id: required if currency_code is not provided.
+// currency_code: required if region_id is not provided.
+// max_quantity the maximum quantity required to be added to the cart for the price to be used.
+// min_quantity the minimum quantity required to be added to the cart for the price to be used.
 struct PriceRequest {
 	amount        i32
 	currency_code ?string @[json: 'currencyCode']

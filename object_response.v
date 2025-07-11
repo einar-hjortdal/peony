@@ -317,6 +317,7 @@ struct TaxRateResponse {
 	region_id  string @[json: 'regionId'; omitempty]
 }
 
+// tax_rates: applied to calculated_price
 struct PricesResponse {
 	currency_code                     string            @[json: 'currencyCode']
 	original_price                    i32               @[json: 'originalPrice']
