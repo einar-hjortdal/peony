@@ -149,9 +149,7 @@ fn rollback_schema(mut conn firebird.Connection) ! {
 			log.debug('Failed to start transaction')
 			return err
 		}
-		tx.execute(q) or {
-			// ignore errors
-		}
+		tx.execute(q) or {} // ignore error
 		tx.commit() or {
 			log.error('Could not rollback schema, manual intervention may be required.')
 			log.debug('Failed to commit changes')

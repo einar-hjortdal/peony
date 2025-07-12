@@ -26,7 +26,6 @@
 ### Next
 
 - [ ] Inventory management
-- [ ] Redict cache
 - [ ] Multiregion
 - [ ] Multichannel
 - [ ] Multiwarehouse
@@ -48,14 +47,15 @@
 - [ ] Variant images
 - [ ] API keys
 - [ ] User-defined data
-- [ ] API keys management
 
-## Refactor
+## Internals
 
-- [x] Keep response struct separate from internal structs
+- [x] Keep response structs separate from internal structs
 - [ ] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
+- [ ] Redict cache
+- [ ] Transaction attempts
 
 ## Considerations
 

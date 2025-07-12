@@ -9,7 +9,7 @@ struct Region {
 	name               string
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
-	deleted_at         firebird.DateTime
+	deleted_at         firebird.NullDateTime
 	currency_code      string
 	includes_tax       bool
 	gift_cards_taxable bool
@@ -23,7 +23,7 @@ fn parse_region(v []firebird.Value) !Region {
 	name, _ := v[1].get_string()!
 	created_at, _ := v[2].get_date_time()!
 	updated_at, _ := v[3].get_date_time()!
-	deleted_at, _ := v[4].get_date_time()!
+	deleted_at := v[4].get_null_date_time()!
 	currency_code, _ := v[5].get_string()!
 	includes_tax, _ := v[6].get_bool()!
 	gift_cards_taxable, _ := v[7].get_bool()!
@@ -45,7 +45,7 @@ fn parse_region(v []firebird.Value) !Region {
 	}
 }
 
-fn build_list_regions_query(p ListRegionParams) (string, []firebird.Value) {
+fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) ![]Region {
 	base_query := 'SELECT
 		id,
 		name,
@@ -53,11 +53,9 @@ fn build_list_regions_query(p ListRegionParams) (string, []firebird.Value) {
 		updated_at,
 		deleted_at,
 		currency_code,
-		tax_rate,
-		tax_code,
 		includes_tax,
 		gift_cards_taxable,
-		automatix_taxes
+		automatic_taxes
 		FROM region'
 	mut params := []firebird.Value{}
 	mut conditions := ''
@@ -77,20 +75,13 @@ fn build_list_regions_query(p ListRegionParams) (string, []firebird.Value) {
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	return '${base_query}${conditions}${sorting}', params
-}
-
-fn (mut app App) retrieve_regions(p ListRegionParams) ![]Region {
-	mut tx := app.start_transaction()!
-	query, params := build_list_regions_query(p)
-	data := tx.execute(query, ...params)!
-	tx.rollback()!
-
+	data := tx.execute('${base_query}${conditions}${sorting}', ...params)!
 	mut regions := []Region{}
 	for i := 0; i < data.rows.len; i++ {
 		region := parse_region(data.rows[i].values)!
 		regions = arrays.concat(regions, region)
 	}
+
 	return regions
 }
 
@@ -122,26 +113,26 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 	return parse_region(data.rows[0].values)!
 }
 
-fn (mut app App) add_country(code string, region_id string) ! {
-	region_id_bin := id_string_to_bin(region_id)!
-	mut tx := app.start_transaction()!
-	tx.execute('UPDATE country SET region_id = ? WHERE code = ?', region_id_bin, code) or {
-		tx.rollback()!
-		return err
-	}
-	tx.commit()!
-}
+// fn (mut app App) add_country(code string, region_id string) ! {
+// 	region_id_bin := id_string_to_bin(region_id)!
+// 	mut tx := app.start_transaction()!
+// 	tx.execute('UPDATE country SET region_id = ? WHERE code = ?', region_id_bin, code) or {
+// 		tx.rollback()!
+// 		return err
+// 	}
+// 	tx.commit()!
+// }
 
-fn (mut app App) remove_country(code string, region_id string) ! {
-	region_id_bin := id_string_to_bin(region_id)!
-	mut tx := app.start_transaction()!
-	tx.execute('UPDATE country SET region_id = NULL WHERE code = ? AND region_id = ?',
-		code, region_id_bin) or {
-		tx.rollback()!
-		return err
-	}
-	tx.commit()!
-}
+// fn (mut app App) remove_country(code string, region_id string) ! {
+// 	region_id_bin := id_string_to_bin(region_id)!
+// 	mut tx := app.start_transaction()!
+// 	tx.execute('UPDATE country SET region_id = NULL WHERE code = ? AND region_id = ?',
+// 		code, region_id_bin) or {
+// 		tx.rollback()!
+// 		return err
+// 	}
+// 	tx.commit()!
+// }
 
 fn build_create_region_query(d CreateRegionRequest, id_bin []u8) !(string, []firebird.Value) {
 	mut columns := ['id', 'name', 'currency_code']

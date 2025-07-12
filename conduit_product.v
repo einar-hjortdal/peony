@@ -124,9 +124,7 @@ fn conduit_products_update(mut app App, mut ctx Context, id_bin []u8, p ProductD
 	}
 
 	app.do_update_product(mut tx, id_bin, p) or {
-		tx.rollback() or {
-			// ignore error
-		}
+		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to update product',
 			err.msg())
 	}
