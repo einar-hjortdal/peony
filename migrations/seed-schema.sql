@@ -120,9 +120,11 @@ CREATE TABLE region_tax_rate (
   region_id BINARY(16) NOT NULL,
   rate_id BINARY(16) NOT NULL,
   CONSTRAINT "06828532-0de7-1429-c800-a3171778c855" PRIMARY KEY (region_id, rate_id),
-  CONSTRAINT "06828532-0de7-178a-5000-ed338e5504c2" FOREIGN KEY (region_id) REFERENCES region (id),
-  CONSTRAINT "06828532-0de7-17db-0c00-d8402bcebe5a" FOREIGN KEY (rate_id) REFERENCES tax_rate (id)
+  CONSTRAINT "06828532-0de7-178a-5000-ed338e5504c2" FOREIGN KEY (region_id) REFERENCES region (id) ON DELETE CASCADE,
+  CONSTRAINT "06828532-0de7-17db-0c00-d8402bcebe5a" FOREIGN KEY (rate_id) REFERENCES tax_rate (id) ON DELETE CASCADE
 );
+
+CREATE INDEX "0681493b-ad84-1513-fc00-1e18e707389e" ON region_tax_rate (rate_id);
 
 CREATE TABLE money_amount (
   id BINARY(16) NOT NULL,
@@ -314,7 +316,6 @@ CREATE TABLE product_tax_rate (
 );
 
 CREATE INDEX "0681493b-ad84-14c3-f400-0ba45b29e4d3" ON product_tax_rate (rate_id);
-CREATE INDEX "0681493b-ad84-1513-fc00-1e18e707389e" ON product_tax_rate (product_id);
 
 CREATE TABLE product_type_tax_rate (
   product_type_id BINARY(16) NOT NULL,
@@ -325,7 +326,6 @@ CREATE TABLE product_type_tax_rate (
 );
 
 CREATE INDEX "0681493b-ad84-1922-2000-80d2d3e5ac26" ON product_type_tax_rate (rate_id);
-CREATE INDEX "0681493b-ad84-1975-5c00-bbeb84274ac6" ON product_type_tax_rate (product_type_id);
 
 CREATE TABLE locale (
   id BINARY(16) NOT NULL,
@@ -415,7 +415,6 @@ CREATE TABLE product_category_product (
   PRIMARY KEY (product_category_id, product_id)
 );
 
-CREATE INDEX "0681493b-ad85-1769-8400-121e333361f9" ON product_category_product (product_category_id);
 CREATE INDEX "0681493b-ad85-17b5-1c00-77a1a1ff2a8c" ON product_category_product (product_id);
 
 CREATE TABLE product_image (
@@ -427,7 +426,6 @@ CREATE TABLE product_image (
   PRIMARY KEY (product_id, image_id)
 );
 
-CREATE INDEX "0681493b-ad85-1acc-b000-f10af0f2f686" ON product_image (product_id);
 CREATE INDEX "0681493b-ad85-1b2a-cc00-4a77334dc5b6" ON product_image (image_id);
 
 CREATE TABLE variant_image (
@@ -438,7 +436,6 @@ CREATE TABLE variant_image (
   PRIMARY KEY (variant_id, image_id)
 );
 
-CREATE INDEX "06828532-0de2-1bb9-d400-2cfe0ff55b48" ON variant_image (variant_id);
 CREATE INDEX "06828532-0de2-1c0e-cc00-9efe4e4a7906" ON variant_image (image_id);
 
 CREATE TABLE product_tag_product (
@@ -449,7 +446,6 @@ CREATE TABLE product_tag_product (
   PRIMARY KEY (product_id, product_tag_id)
 );
 
-CREATE INDEX "0681493b-ad85-1e2a-6400-f6e07fe1b136" ON product_tag_product (product_id);
 CREATE INDEX "0681493b-ad85-1e7a-3400-a730f5052e86" ON product_tag_product (product_tag_id);
 
 CREATE TABLE product_sales_channel (
@@ -460,7 +456,6 @@ CREATE TABLE product_sales_channel (
   PRIMARY KEY (product_id, sales_channel_id)
 );
 
-CREATE INDEX "0681493b-ad86-1177-5800-f88de3a67673" ON product_sales_channel (product_id);
 CREATE INDEX "0681493b-ad86-11c8-9c00-2802dd52f5ce" ON product_sales_channel (sales_channel_id);
 
 CREATE TABLE store_currencies (
@@ -471,7 +466,6 @@ CREATE TABLE store_currencies (
   PRIMARY KEY (store_id, currency_code)
 );
 
-CREATE INDEX "0681493b-ad86-154d-e000-1a05d05641cf" ON store_currencies (store_id);
 CREATE INDEX "0681493b-ad86-159d-b800-173af620b0b4" ON store_currencies (currency_code);
 
 CREATE TABLE store_locales (

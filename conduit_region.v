@@ -20,6 +20,7 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		region_ids_bin[i] = regions[i].id_bin
 	}
 
+	// TODO consider changing approach, sleect region_id with tax_rate in one query
 	tax_rate_ids_bin, region_to_tax_rate_id_map := do_retrieve_region_tax_rates(mut tx,
 		region_ids_bin) or {
 		tx.rollback() or {} // ignore error
@@ -45,15 +46,15 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 
 	mut region_to_tax_rate_map := map[string][]TaxRate{}
 	for region_id, region_tax_rate_ids_bin in region_to_tax_rate_id_map {
-		mut tr := []TaxRate{len: region_tax_rate_ids_bin.len}
+		mut rates := []TaxRate{len: region_tax_rate_ids_bin.len}
 		for i := 0; i < region_tax_rate_ids_bin.len; i++ {
 			tax_rate_id := id_bin_to_string(region_tax_rate_ids_bin[i]) or {
 				return handle_error(mut ctx, http.Status.internal_server_error, 'Database error',
 					'id stored in database is malformed. Manual intervention is required.')
 			}
-			tr[i] = tax_rates_map[tax_rate_id]
+			rates[i] = tax_rates_map[tax_rate_id]
 		}
-		region_to_tax_rate_map[region_id] = tr
+		region_to_tax_rate_map[region_id] = rates
 	}
 
 	for i := 0; i < regions.len; i++ {

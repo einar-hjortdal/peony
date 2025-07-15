@@ -48,6 +48,11 @@
 - [ ] API keys
 - [ ] User-defined data
 
+### Modules:
+
+- Make peony a module
+- Create public interfaces and make modules
+
 ## Internals
 
 - [x] Keep response structs separate from internal structs
