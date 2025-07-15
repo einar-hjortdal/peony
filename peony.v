@@ -1,13 +1,11 @@
 module main
 
-// vlib
 import log
 import net.http
 import os
 import strconv
 import time
 import veb
-// first party
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
 import einar_hjortdal.redict
@@ -75,6 +73,8 @@ fn main() {
 	}))
 	app.route_use('/admin/:path...', handler: app.middleware_load_user_session)
 	app.route_use('/admin/:path...', handler: app.middleware_save_user_session, after: true)
+	// app.route_use('/store/:path...', handler: app.middleware_load_store_session)
+	// app.route_use('/store/:path...', handler: app.middleware_save_store_session, after: true)
 
 	app.prepare_db()
 

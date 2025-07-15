@@ -66,7 +66,7 @@ fn do_retrieve_tax_rates_by_id(mut tx firebird.Transaction, tax_rate_ids_bin [][
 }
 
 fn do_retrieve_region_tax_rates(mut tx firebird.Transaction, region_ids_bin [][]u8) !([][]u8, map[string][][]u8) {
-	data := tx.execute('SELECT region_id, rate_id 
+	data := tx.execute('SELECT region_id, rate_id FROM region_tax_rate
 	WHERE region_id IN (${get_n_placeholders(i32(region_ids_bin.len))})',
 		...workaround_24757(region_ids_bin))!
 

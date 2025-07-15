@@ -15,6 +15,11 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 			err.msg())
 	}
 
+	if regions.len == 0 {
+		tx.rollback() or {} // ignore error
+		return ctx.json(regions)
+	}
+
 	mut region_ids_bin := [][]u8{len: regions.len}
 	for i := 0; i < regions.len; i++ {
 		region_ids_bin[i] = regions[i].id_bin
