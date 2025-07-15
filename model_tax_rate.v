@@ -70,15 +70,15 @@ fn do_retrieve_region_tax_rates(mut tx firebird.Transaction, region_ids_bin [][]
 	WHERE region_id IN (${get_n_placeholders(i32(region_ids_bin.len))})',
 		...workaround_24757(region_ids_bin))!
 
-	mut list := [][]u8{len: data.rows.len}
+	mut rates := [][]u8{len: data.rows.len}
 	mut mapping := map[string][][]u8{}
 	for i := 0; i < data.rows.len; i++ {
 		region_id_bin, _ := data.rows[i].values[0].get_array_u8()!
 		rate_id_bin, _ := data.rows[i].values[1].get_array_u8()!
 		region_id := id_bin_to_string(region_id_bin)!
 		mapping[region_id] = arrays.concat(mapping[region_id], rate_id_bin)
-		list[i] = rate_id_bin
+		rates[i] = rate_id_bin
 	}
 
-	return list, mapping
+	return rates, mapping
 }
