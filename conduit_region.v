@@ -9,7 +9,7 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 			err.msg())
 	}
 
-	mut regions := do_retrieve_regions(mut tx, p) or {
+	mut regions, count := do_retrieve_regions(mut tx, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve regions',
 			err.msg())
@@ -17,7 +17,13 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 
 	if regions.len == 0 {
 		tx.rollback() or {} // ignore error
-		return ctx.json(regions)
+		r := ListResponse{
+			items:  regions
+			count:  count
+			offset: get_offset_amount(p.offset)
+			fetch:  get_fetch_amount(p.fetch)
+		}
+		return ctx.json(r)
 	}
 
 	mut region_ids_bin := [][]u8{len: regions.len}
@@ -66,5 +72,11 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		regions[i].tax_rates = region_to_tax_rate_map[regions[i].id]
 	}
 
-	return ctx.json(regions)
+	r := ListResponse{
+		items:  regions
+		count:  count
+		offset: get_offset_amount(p.offset)
+		fetch:  get_fetch_amount(p.fetch)
+	}
+	return ctx.json(r)
 }

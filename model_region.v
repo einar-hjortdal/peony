@@ -45,7 +45,7 @@ fn parse_region(v []firebird.Value) !Region {
 	}
 }
 
-fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) ![]Region {
+fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) !([]Region, i64) {
 	base_query := 'SELECT
 		id,
 		name,
@@ -55,7 +55,8 @@ fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) ![]Regio
 		currency_code,
 		includes_tax,
 		gift_cards_taxable,
-		automatic_taxes
+		automatic_taxes,
+		COUNT(*) OVER()
 		FROM region'
 	mut params := []firebird.Value{}
 	mut conditions := ''
@@ -82,7 +83,13 @@ fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) ![]Regio
 		regions = arrays.concat(regions, region)
 	}
 
-	return regions
+	mut count := i64(0)
+	if regions.len > 0 {
+		c, _ := data.rows[0].values[1].get_i64()!
+		count = c
+	}
+
+	return regions, count
 }
 
 fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
