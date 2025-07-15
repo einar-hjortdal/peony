@@ -196,8 +196,9 @@ fn (mut app App) do_delete_product_options(mut tx firebird.Transaction, product_
 
 // updates, inserts and deletes product_option and product_option_translations rows.
 // does not delete rows when a product_option exists in product_option_value.
-// to delete a product_option first remove it from all variants.
+// to delete a product_option first remove all variants.
 // ideally: send an error to the client when a product_option that should be deleted is in use.
+// TODO if product_option is new, give it a default product_option_value, then add to variants.
 fn (mut app App) do_update_product_options(mut tx firebird.Transaction, product_id_bin []u8, o []ProductOptionData) ! {
 	mut s := []string{len: o.len}
 	mut params := []firebird.Value{len: o.len * 2 + 1, init: firebird.Value(firebird.Null{})}
