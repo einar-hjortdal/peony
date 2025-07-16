@@ -141,7 +141,7 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 // 	tx.commit()!
 // }
 
-fn build_create_region_query(d CreateRegionRequest, id_bin []u8) !(string, []firebird.Value) {
+fn build_create_region_query(d RegionRequest, id_bin []u8) !(string, []firebird.Value) {
 	mut columns := ['id', 'name', 'currency_code']
 	mut params := [firebird.Value(id_bin), d.name, d.currency_code]
 
@@ -158,7 +158,7 @@ fn build_create_region_query(d CreateRegionRequest, id_bin []u8) !(string, []fir
 	return 'INSERT INTO region (${get_columns(columns)}) VALUES (${get_placeholders(columns)})', params
 }
 
-fn (mut app App) create_region(d CreateRegionRequest) !(string, []u8) {
+fn (mut app App) create_region(d RegionRequest) !(string, []u8) {
 	id, id_bin := app.new_id()!
 	mut tx := app.start_transaction()!
 
@@ -176,4 +176,25 @@ fn (mut app App) create_region(d CreateRegionRequest) !(string, []u8) {
 
 	tx.commit()!
 	return id, id_bin
+}
+
+fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8, d RegionRequestHygienised) ! {
+	mut columns := ['currency_code', 'name', 'rate_id']
+	mut params := [firebird.Value(d.currency_code), d.name, d.rate_id_bin]
+
+	if automatic_taxes := d.automatic_taxes {
+		columns = arrays.concat(columns, 'automatic_taxes')
+		params = arrays.concat(params, automatic_taxes)
+	}
+
+	if includes_tax := d.includes_tax {
+		columns = arrays.concat(columns, 'includes_tax')
+		params = arrays.concat(params, includes_tax)
+	}
+
+	params = arrays.concat(params, region_id_bin)
+
+	tx.execute('UPDATE region SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
+	tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(d.country_codes)})',
+		...d.country_codes)!
 }
