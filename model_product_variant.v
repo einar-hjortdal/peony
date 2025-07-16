@@ -481,6 +481,8 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	tx.execute(query, ...params)!
 }
 
+// TODO handle region (when region_id is provided, select currency_code from region where id = region_id)
+// TODO merge statement at the end
 fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []PriceRequest) ! {
 	// Delete all money_amounts that are not given by the user and that have no related price_list
 	mut persisting_ids := [][]u8{}

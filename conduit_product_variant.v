@@ -3,7 +3,7 @@ module main
 import net.http
 import veb
 
-fn conduit_update_product_variant(mut app App, mut ctx Context, variant_id_bin []u8, p ProductVariantRequest) veb.Result {
+fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin []u8, p ProductVariantRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())

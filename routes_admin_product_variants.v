@@ -35,10 +35,13 @@ fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Result {
 
 	p := json.decode(ProductVariantRequest, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode VariantRequest ', err.msg()))
+		return ctx.json(new_peony_error('Could not decode VariantRequest', err.msg()))
 	}
 
-	return conduit_update_product_variant(mut app, mut ctx, variant_id_bin, p)
+	// TODO validate all ids in ProductVariantRequest
+	// TODO return bad_request if any PriceRequest contains both region_id and currency_code
+
+	return conduit_product_variant_update(mut app, mut ctx, variant_id_bin, p)
 }
 
 // gets the available inventory of the product variant
