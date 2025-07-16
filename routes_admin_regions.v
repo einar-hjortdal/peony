@@ -20,17 +20,26 @@ fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 			err.msg())
 	}
 
-	_, region_id_bin := app.create_region(data) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to retrieve regions data', err.msg()))
+	if data.country_codes.len == 0 {
+		return handle_error(mut ctx, http.Status.bad_request, 'A region must have at least one country',
+			'country_code is an empty array')
 	}
 
-	region := app.retrieve_region_by_id(region_id_bin) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not find region', err.msg()))
+	rate_id_bin := id_string_to_bin(data.rate_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
-	return ctx.json(region)
+	hygienised := RegionRequestHygienised{
+		automatic_taxes: data.automatic_taxes
+		country_codes:   data.country_codes
+		currency_code:   data.currency_code
+		includes_tax:    data.includes_tax
+		name:            data.name
+		rate_id:         data.rate_id
+		rate_id_bin:     rate_id_bin
+	}
+
+	return conduit_region_create(mut app, mut ctx, hygienised)
 }
 
 // get a region

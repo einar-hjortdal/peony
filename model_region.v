@@ -141,41 +141,26 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 // 	tx.commit()!
 // }
 
-fn build_create_region_query(d RegionRequest, id_bin []u8) !(string, []firebird.Value) {
-	mut columns := ['id', 'name', 'currency_code']
-	mut params := [firebird.Value(id_bin), d.name, d.currency_code]
+fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionRequestHygienised) ! {
+	_, id_bin := app.new_id()!
 
-	rate_id_bin := id_string_to_bin(d.rate_id)!
+	mut columns := ['id', 'currency_code', 'name', 'rate_id']
+	mut params := [firebird.Value(id_bin), d.currency_code, d.name, d.rate_id_bin]
 
-	columns = arrays.concat(columns, 'rate_id')
-	params = arrays.concat(params, rate_id_bin)
+	if automatic_taxes := d.automatic_taxes {
+		columns = arrays.concat(columns, 'automatic_taxes')
+		params = arrays.concat(params, automatic_taxes)
+	}
 
 	if includes_tax := d.includes_tax {
 		columns = arrays.concat(columns, 'includes_tax')
 		params = arrays.concat(params, includes_tax)
 	}
 
-	return 'INSERT INTO region (${get_columns(columns)}) VALUES (${get_placeholders(columns)})', params
-}
-
-fn (mut app App) create_region(d RegionRequest) !(string, []u8) {
-	id, id_bin := app.new_id()!
-	mut tx := app.start_transaction()!
-
-	query, params := build_create_region_query(d, id_bin)!
-	tx.execute(query, ...params) or {
-		tx.rollback()!
-		return err
-	}
-
+	tx.execute('INSERT INTO region (${get_columns(columns)}) VALUES (${get_n_placeholders(i32(columns.len))})',
+		...params)!
 	tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(d.country_codes)})',
-		...d.country_codes) or {
-		tx.rollback()!
-		return err
-	}
-
-	tx.commit()!
-	return id, id_bin
+		...d.country_codes)!
 }
 
 fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8, d RegionRequestHygienised) ! {

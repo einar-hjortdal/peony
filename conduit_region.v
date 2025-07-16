@@ -3,10 +3,6 @@ module main
 import net.http
 import veb
 
-fn conduit_region_create(mut app App, mut ctx Context, data RegionRequest) veb.Result {
-	return ctx.json('')
-}
-
 fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
@@ -83,6 +79,26 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		fetch:  get_fetch_amount(p.fetch)
 	}
 	return ctx.json(r)
+}
+
+fn conduit_region_create(mut app App, mut ctx Context, d RegionRequestHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	do_region_create(mut app, mut tx, d) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create region',
+			err.msg())
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
+			err.msg())
+	}
+
+	return ctx.json(new_peony_success())
 }
 
 fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionRequestHygienised) veb.Result {
