@@ -9,16 +9,16 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 			err.msg())
 	}
 
-	mut regions, count := do_retrieve_regions(mut tx, p) or {
+	mut internal_regions, count := do_retrieve_regions(mut tx, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve regions',
 			err.msg())
 	}
 
-	if regions.len == 0 {
+	if internal_regions.len == 0 {
 		tx.rollback() or {} // ignore error
 		r := ListResponse{
-			items:  regions
+			items:  []RegionResponse{}
 			count:  count
 			offset: get_offset_amount(p.offset)
 			fetch:  get_fetch_amount(p.fetch)
@@ -26,9 +26,9 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		return ctx.json(r)
 	}
 
-	mut region_ids_bin := [][]u8{len: regions.len}
-	for i := 0; i < regions.len; i++ {
-		region_ids_bin[i] = regions[i].id_bin
+	mut region_ids_bin := [][]u8{len: internal_regions.len}
+	for i := 0; i < internal_regions.len; i++ {
+		region_ids_bin[i] = internal_regions[i].id_bin
 	}
 
 	// TODO consider changing approach, sleect region_id with tax_rate in one query
@@ -68,12 +68,17 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		region_to_tax_rate_map[region_id] = rates
 	}
 
-	for i := 0; i < regions.len; i++ {
-		regions[i].tax_rates = region_to_tax_rate_map[regions[i].id]
+	for i := 0; i < internal_regions.len; i++ {
+		internal_regions[i].tax_rates = region_to_tax_rate_map[internal_regions[i].id]
+	}
+
+	mut external_regions := []RegionResponse{len: internal_regions.len}
+	for i := 0; i < internal_regions.len; i++ {
+		external_regions[i] = foramt_region_response(internal_regions[i])
 	}
 
 	r := ListResponse{
-		items:  regions
+		items:  external_regions
 		count:  count
 		offset: get_offset_amount(p.offset)
 		fetch:  get_fetch_amount(p.fetch)

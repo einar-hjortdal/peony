@@ -313,8 +313,20 @@ struct TaxRateResponse {
 	rate       f32       @[omitempty]
 	code       string    @[omitempty]
 	name       string
-	rate_type  string @[json: 'rateType'; omitempty]
-	region_id  string @[json: 'regionId'; omitempty]
+	tax_type   string @[json: 'taxType'; omitempty]
+}
+
+fn format_tax_rate_response(t TaxRate) TaxRateResponse {
+	return TaxRateResponse{
+		id:         t.id
+		created_at: t.created_at.Time
+		updated_at: t.updated_at.Time
+		deleted_at: t.deleted_at.value.Time
+		rate:       t.rate
+		code:       t.code.value
+		name:       t.name
+		tax_type:   t.tax_type
+	}
 }
 
 // tax_rates: applied to calculated_price
@@ -343,6 +355,39 @@ fn format_prices_response(p Prices) PricesResponse {
 		calculated_price_excluding_tax:    p.calculated_price_excluding_tax
 		calculated_price_including_tax:    p.calculated_price_including_tax
 		// tax_rates:                         p.tax_rates
+	}
+}
+
+struct RegionResponse {
+	id                 string
+	name               string
+	created_at         time.Time         @[json: 'createdAt']
+	updated_at         time.Time         @[json: 'updatedAt']
+	deleted_at         time.Time         @[json: 'deletedAt'; omitempty]
+	currency_code      string            @[json: 'currencyCode']
+	includes_tax       bool              @[json: 'includesTax']
+	gift_cards_taxable bool              @[json: 'giftCardsTaxable']
+	automatic_taxes    bool              @[json: 'automaticTaxes']
+	tax_rates          []TaxRateResponse @[json: 'taxRates']
+}
+
+fn foramt_region_response(r Region) RegionResponse {
+	mut tax_rates := []TaxRateResponse{len: r.tax_rates.len}
+	for i := 0; i < r.tax_rates.len; i++ {
+		tax_rates[i] = format_tax_rate_response(r.tax_rates[i])
+	}
+
+	return RegionResponse{
+		id:                 r.id
+		name:               r.name
+		created_at:         r.created_at.Time
+		updated_at:         r.updated_at.Time
+		deleted_at:         r.deleted_at.value.Time
+		currency_code:      r.currency_code
+		includes_tax:       r.includes_tax
+		gift_cards_taxable: r.gift_cards_taxable
+		automatic_taxes:    r.automatic_taxes
+		tax_rates:          tax_rates
 	}
 }
 
