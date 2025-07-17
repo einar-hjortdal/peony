@@ -86,7 +86,7 @@ struct RegionRequestHygienised {
 // region_id: required if currency_code is not provided.
 // max_quantity the maximum quantity required to be added to the cart for the price to be used.
 // min_quantity the minimum quantity required to be added to the cart for the price to be used.
-struct PriceRequest {
+struct MoneyAmountRequest {
 	amount        i32
 	currency_code ?string @[json: 'currencyCode']
 	id            ?string
@@ -122,7 +122,7 @@ struct ProductVariantRequest {
 	length             ?i32
 	height             ?i32
 	width              ?i32
-	prices             ?[]PriceRequest
+	money_amounts      ?[]MoneyAmountRequest @[json: 'moneyAmounts']
 	options            ?[]ProductOptionValueRequest
 }
 

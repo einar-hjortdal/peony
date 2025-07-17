@@ -482,8 +482,10 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 }
 
 // TODO handle region (when region_id is provided, select currency_code from region where id = region_id)
+// TODO handle min_amount and max_amount
 // TODO merge statement at the end
-fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []PriceRequest) ! {
+fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []MoneyAmountRequest) ! {
+	// TODO early exit is data.len == 0 (delete all money_amounts)
 	// Delete all money_amounts that are not given by the user and that have no related price_list
 	mut persisting_ids := [][]u8{}
 	for i := 0; i < data.len; i++ {
@@ -516,7 +518,7 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 				FROM product_variant_money_amount
 				WHERE variant_id = ?
 				AND money_amount_id NOT IN (${get_n_placeholders(i32(persisting_ids_bin.len))}))',
-			...arrays.concat([variant_id_bin], ...persisting_ids_bin))!
+			...workaround_24757(arrays.concat([variant_id_bin], ...persisting_ids_bin)))!
 	}
 
 	for i := 0; i < data.len; i++ {

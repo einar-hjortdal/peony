@@ -14,8 +14,8 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin [
 			err.msg())
 	}
 
-	if prices := p.prices {
-		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, prices) or {
+	if money_amounts := p.money_amounts {
+		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, money_amounts) or {
 			tx.rollback() or {} // ignore error
 			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant money_amount',
 				err.msg())
