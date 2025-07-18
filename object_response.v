@@ -94,14 +94,23 @@ fn format_locale_response(l Locale) LocaleResponse {
 }
 
 struct CurrencyResponse {
-	code         string
-	includes_tax bool @[json: 'includesTax']
+	code           string
+	decimal_digits i32  @[json: 'decimalDigits'; omitempty]
+	includes_tax   bool @[json: 'includesTax']
 }
 
 fn format_currency_response(c Currency) CurrencyResponse {
+	if c.decimal_digits.is_null {
+		return CurrencyResponse{
+			code:         c.code
+			includes_tax: c.includes_tax
+		}
+	}
+
 	return CurrencyResponse{
-		code:         c.code
-		includes_tax: c.includes_tax
+		code:           c.code
+		decimal_digits: c.decimal_digits.value
+		includes_tax:   c.includes_tax
 	}
 }
 

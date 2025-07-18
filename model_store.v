@@ -94,7 +94,7 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 
 	store.locales = locales
 
-	currency_data := tx.execute('SELECT currency_code, c.includes_tax 
+	currency_data := tx.execute('SELECT currency_code, c.decimal_digits, c.includes_tax 
 		FROM store_currencies
 		LEFT JOIN currency c ON currency_code = c.code
 		WHERE store_id = ?',

@@ -28,6 +28,7 @@ CREATE UNIQUE INDEX "0681493b-ad7e-1834-9000-63304927463c" ON app_user (handle) 
 
 CREATE TABLE currency (
   code CHAR(3) NOT NULL, -- ISO 4217
+  decimal_digits INTEGER,
   includes_tax BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT "0681493b-ad7e-1a2b-8c00-0137fed805b7" PRIMARY KEY (code)
 );
@@ -480,7 +481,7 @@ CREATE TABLE product_tag_translations (
   product_tag_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
-  CONSTRAINT "0686cd40-331d-1f72-a800-f135f9a18773" PRIMARY KEY (product_tag_id, locale_id)
+  CONSTRAINT "0686cd40-331d-1f72-a800-f135f9a18773" PRIMARY KEY (product_tag_id, locale_id),
   CONSTRAINT "0681493b-ad86-1e1d-4800-e5012b6bb650" FOREIGN KEY (locale_id) REFERENCES locale (id),
   CONSTRAINT "0681493b-ad86-1e82-8c00-c285061f83d0" FOREIGN KEY (product_tag_id) REFERENCES product_tag (id) ON DELETE CASCADE
 );

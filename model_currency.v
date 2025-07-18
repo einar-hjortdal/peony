@@ -4,22 +4,25 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Currency {
-	code         string
-	includes_tax bool
+	code           string
+	decimal_digits firebird.NullI32
+	includes_tax   bool
 }
 
 fn parse_currency(v []firebird.Value) !Currency {
 	code, _ := v[0].get_string()!
-	includes_tax, _ := v[1].get_bool()!
+	decimal_digits := v[1].get_null_i32()!
+	includes_tax, _ := v[2].get_bool()!
 
 	return Currency{
-		code:         code
-		includes_tax: includes_tax
+		code:           code
+		decimal_digits: decimal_digits
+		includes_tax:   includes_tax
 	}
 }
 
 fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) !([]Currency, i64) {
-	query := 'SELECT code, includes_tax, COUNT(*) OVER() FROM currency'
+	query := 'SELECT code, decimal_digits, includes_tax, COUNT(*) OVER() FROM currency'
 	mut params := []firebird.Value{}
 	mut conditions := ''
 	if p.code.is_set {

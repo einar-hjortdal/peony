@@ -1,14 +1,14 @@
 module main
 
-// import arrays
 import log
-import einar_hjortdal.firebird
 import os
+import strconv
+import einar_hjortdal.firebird
 
 const schema_file = $embed_file('migrations/seed-schema.sql')
 const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
-const currency_codes_file = $embed_file('migrations/seed-currency-codes.txt')
+const currency_file = $embed_file('migrations/seed-currency.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
 const seed_default_store_name = 'peony store'
 const seed_default_locale_code = 'en'
@@ -30,8 +30,8 @@ fn get_country_codes() []string {
 	return country_codes[..country_codes.len - 1] // remove last character \n (posix)
 }
 
-fn get_currency_codes() []string {
-	currency_codes := currency_codes_file.to_string().split('\n')
+fn get_currency_data() []string {
+	currency_codes := currency_file.to_string().split('\n')
 	return currency_codes[..currency_codes.len - 1] // remove last character \n (posix)
 }
 
@@ -51,13 +51,19 @@ fn (mut app App) insert_country_codes(mut tx firebird.Transaction) ! {
 	stmt.close()!
 }
 
-fn (mut app App) insert_currency_codes(mut tx firebird.Transaction) ! {
-	log.debug('insert_currency_codes')
-	currency_codes := get_currency_codes()
-	mut stmt := tx.prepare('INSERT INTO currency (code) VALUES (?)')!
-	for i := 0; i < currency_codes.len; i++ {
-		code := currency_codes[i]
-		stmt.execute(code)!
+fn (mut app App) insert_currency_data(mut tx firebird.Transaction) ! {
+	log.debug('insert_currency_data')
+	currency_data := get_currency_data()
+	mut stmt := tx.prepare('INSERT INTO currency (code, decimal_digits) VALUES (?, ?)')!
+	for i := 0; i < currency_data.len; i++ {
+		data := currency_data[i].split(',')
+		code := data[0]
+		decimal_digits_string := data[1]
+		decimal_digits := strconv.parse_int(decimal_digits_string, 10, 32) or {
+			stmt.execute(code, firebird.Null{})!
+			continue
+		}
+		stmt.execute(code, decimal_digits)!
 	}
 	stmt.close()!
 }
@@ -149,18 +155,19 @@ fn rollback_schema(mut conn firebird.Connection) ! {
 			log.debug('Failed to start transaction')
 			return err
 		}
-		tx.execute(q) or {} // ignore error
+		tx.execute(q) or { log.debug('Failed to execute query: ${q}') } // ignore error
 		tx.commit() or {
 			log.error('Could not rollback schema, manual intervention may be required.')
 			log.debug('Failed to commit changes')
 			return err
 		}
 	}
+	log.debug('Rollback complete')
 }
 
 fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	app.insert_country_codes(mut tx)!
-	app.insert_currency_codes(mut tx)!
+	app.insert_currency_data(mut tx)!
 	app.insert_locale_codes(mut tx)!
 	app.insert_default_user(mut tx)!
 	stock_location_id_bin := app.insert_default_stock_location(mut tx)!
