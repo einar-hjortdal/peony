@@ -204,9 +204,6 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 
 	money_amounts_data := tx.execute('SELECT
 		ma.id,
-		ma.created_at,
-		ma.updated_at,
-		ma.deleted_at,
 		ma.currency_code,
 		ma.amount,
 		ma.min_quantity,
@@ -484,7 +481,7 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 // TODO handle region (when region_id is provided, select currency_code from region where id = region_id)
 // TODO handle min_amount and max_amount
 // TODO merge statement at the end
-fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []MoneyAmountRequest) ! {
+fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []MoneyAmountRequestHygienised) ! {
 	// TODO early exit is data.len == 0 (delete all money_amounts)
 	// Delete all money_amounts that are not given by the user and that have no related price_list
 	mut persisting_ids := [][]u8{}
@@ -523,14 +520,20 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 
 	for i := 0; i < data.len; i++ {
 		ma := data[i]
-		if money_amount_id := ma.id {
-			money_amount_id_bin := id_string_to_bin(money_amount_id)!
-			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, money_amount_id_bin)!
+		if ma.id_bin.len != 0 {
+			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, ma.id_bin)!
 		} else {
 			_, money_amount_id_bin := app.new_id()!
-			tx.execute('INSERT INTO money_amount (id, currency_code, amount) VALUES (?, ?, ?)',
-				money_amount_id_bin, ma.currency_code, ma.amount)!
-			tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)',
+			if ma.region_id_bin.len != 0 {
+				tx.execute('INSERT INTO money_amount (id, currency_code, amount, region_id) 
+					VALUES (?, (SELECT currency_code FROM region WHERE id = ?), ?, ?)',
+					money_amount_id_bin, ma.region_id_bin, ma.amount, ma.region_id_bin)!
+			} else if currency_code := ma.currency_code {
+				tx.execute('INSERT INTO money_amount (id, currency_code, amount) VALUES (?, ?, ?)',
+					money_amount_id_bin, currency_code, ma.amount)!
+			}
+
+			tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id) VALUES (?, ?)',
 				variant_id_bin, money_amount_id_bin)!
 		}
 	}

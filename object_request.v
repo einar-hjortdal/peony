@@ -82,8 +82,8 @@ struct RegionRequestHygienised {
 }
 
 // id: if provided, the existing price will be updated. otherwise, a new price will be created.
-// currency_code: required if region_id is not provided.
-// region_id: required if currency_code is not provided.
+// currency_code: required if region_id is not provided, ignored when region_id or id is provided.
+// region_id: required if currency_code is not provided, ignored when id is provided.
 // max_quantity the maximum quantity required to be added to the cart for the price to be used.
 // min_quantity the minimum quantity required to be added to the cart for the price to be used.
 struct MoneyAmountRequest {
@@ -93,6 +93,17 @@ struct MoneyAmountRequest {
 	max_quantity  ?i32    @[json: 'maxQuantity']
 	min_quantity  ?i32    @[json: 'minQuantity']
 	region_id     ?string @[json: 'regionId']
+}
+
+struct MoneyAmountRequestHygienised {
+	amount        i32
+	currency_code ?string
+	id            ?string
+	id_bin        []u8
+	max_quantity  ?i32
+	min_quantity  ?i32
+	region_id     ?string
+	region_id_bin []u8
 }
 
 struct ProductOptionValueTranslationRequest {

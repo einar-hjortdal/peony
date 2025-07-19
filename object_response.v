@@ -301,9 +301,6 @@ fn format_money_amount_response(m MoneyAmount) !MoneyAmountResponse {
 
 	return MoneyAmountResponse{
 		id:            m.id
-		created_at:    m.created_at.Time
-		updated_at:    m.updated_at.Time
-		deleted_at:    m.deleted_at.value.Time
 		currency_code: m.currency_code
 		amount:        m.amount
 		min_quantity:  m.min_quantity.value

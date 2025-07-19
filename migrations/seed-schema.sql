@@ -129,9 +129,6 @@ CREATE INDEX "0681493b-ad84-1513-fc00-1e18e707389e" ON region_tax_rate (rate_id)
 
 CREATE TABLE money_amount (
   id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
   currency_code CHAR(3) NOT NULL,
   amount INTEGER NOT NULL,
   min_quantity INTEGER,
