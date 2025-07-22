@@ -20,10 +20,9 @@ fn conduit_products_get_list(mut app App, mut ctx Context, ph RetrieveProductPar
 			err.msg())
 	}
 
-	variant_prices_map := map[string]Prices{} // no prices needed here
 	mut external_products := []ProductResponse{len: internal_products.len}
 	for i := 0; i < internal_products.len; i++ {
-		external_products[i] = format_product_response(internal_products[i], variant_prices_map) or {
+		external_products[i] = format_product_response_admin(internal_products[i]) or {
 			ctx.res.set_status(http.Status.internal_server_error)
 			return ctx.json(new_peony_error('Failed to format response', err.msg()))
 		}
@@ -88,8 +87,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		return handle_error(mut ctx, http.Status.not_found, 'Not found', 'No product exists with the given id')
 	}
 
-	variant_prices_map := map[string]Prices{} // no prices needed here
-	external_product := format_product_response(internal_products[0], variant_prices_map) or {
+	external_product := format_product_response_admin(internal_products[0]) or {
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to format response',
 			err.msg())
 	}
