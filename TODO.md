@@ -61,6 +61,7 @@
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
 - [ ] Redict cache
 - [ ] Transaction attempts
+- [ ] Soft-delete
 
 ## Considerations
 

@@ -89,34 +89,6 @@ fn parse_variant(v []firebird.Value) !Variant {
 	}
 }
 
-struct RetrieveVariantParams {
-	id                 ZeroArrayString
-	allow_backorder    ZeroBool
-	manage_inventory   ZeroBool
-	region_id          ZeroString
-	currency_code      ZeroString // TODO join money_amount on id = ma.variant_id
-	title              ZeroString
-	inventory_quantity ZeroI32
-	offset             ZeroI32
-	fetch              ZeroI32
-	order              ZeroString
-}
-
-fn extract_retrieve_variant_params(m map[string]string) RetrieveVariantParams {
-	return RetrieveVariantParams{
-		id:                 zero_array_string(m, 'id')
-		allow_backorder:    zero_bool(m, 'allow_backorder')
-		manage_inventory:   zero_bool(m, 'manage_inventory')
-		region_id:          zero_string(m, 'region_id')
-		currency_code:      zero_string(m, 'currency_code')
-		title:              zero_string(m, 'title')
-		inventory_quantity: zero_i32(m, 'inventory_quantity')
-		offset:             zero_i32(m, 'offset')
-		fetch:              zero_i32(m, 'fetch')
-		order:              zero_string(m, 'order')
-	}
-}
-
 fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []firebird.Value) {
 	base_query := 'SELECT 
 		id,

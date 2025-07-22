@@ -1,5 +1,6 @@
 module main
 
+import arrays
 import net.http
 import json
 import veb
@@ -8,8 +9,57 @@ import veb
 @['/admin/products'; get]
 fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_admin_products_params(ctx.query)
-	// TODO validate p
-	return conduit_products_get_list(mut app, mut ctx, p)
+
+	mut ids_bin := [][]u8{}
+	if p.ids.is_set {
+		for i := 0; i < p.ids.v.len; i++ {
+			id_bin := id_string_to_bin(p.ids.v[i]) or {
+				return handle_error(mut ctx, http.Status.bad_request, error_invalid_id,
+					err.msg())
+			}
+			ids_bin = arrays.concat(ids_bin, id_bin)
+		}
+	}
+
+	mut region_id_bin := []u8{}
+	if p.region_id.is_set {
+		region_id_bin = id_string_to_bin(p.region_id.v) or {
+			return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id',
+				err.msg())
+		}
+	}
+
+	ph := RetrieveProductParamsHygienised{
+		ids:            p.ids
+		ids_bin:        ids_bin
+		handle:         p.handle
+		is_giftcard:    p.is_giftcard
+		status:         p.status
+		collection_ids: p.collection_ids
+		// collection_ids_bin:    p.collection_id_bin
+		type_ids: p.type_ids
+		// type_ids_bin:          p.type_id_bin
+		tag_ids: p.tag_ids
+		// tag_ids_bin:           p.tag_id_bin
+		title:        p.title
+		description:  p.description
+		category_ids: p.category_ids
+		// category_ids_bin:      p.category_id_bin
+		price_list_ids: p.price_list_ids
+		// price_list_ids_bin:    p.price_list_id_bin
+		sales_channel_ids: p.sales_channel_ids
+		// sales_channel_ids_bin: p.sales_channel_id_bin
+		region_id:     p.region_id
+		region_id_bin: region_id_bin
+		currency_code: p.currency_code
+		offset:        p.offset
+		fetch:         p.fetch
+		order:         p.order
+		cart_id:       p.cart_id
+		// cart_id_bin:           p.cart_id_bin
+	}
+
+	return conduit_products_get_list(mut app, mut ctx, ph)
 }
 
 // create a product
@@ -37,8 +87,8 @@ fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 // get a product
 @['/admin/products/:id'; get]
 fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	_ := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Invalid id', err.msg())
+	id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
 	id_zas := ZeroArrayString{
@@ -46,11 +96,12 @@ fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 		is_set: true
 	}
 
-	p := RetrieveProductParams{
-		id: id_zas
+	ph := RetrieveProductParamsHygienised{
+		ids:     id_zas
+		ids_bin: [id_bin]
 	}
 
-	return conduit_products_get_by_id(mut app, mut ctx, p)
+	return conduit_products_get_by_id(mut app, mut ctx, ph)
 }
 
 @['/admin/products/:id'; post]

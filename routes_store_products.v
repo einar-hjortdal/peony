@@ -7,7 +7,30 @@ import veb
 @['/store/products'; get]
 fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_store_products_params(ctx.query)
-	return conduit_products_get_list(mut app, mut ctx, p)
+
+	mut cart_id_bin := []u8{}
+	if p.cart_id.is_set {
+		cart_id_bin = id_string_to_bin(p.cart_id.v) or {
+			return handle_error(mut ctx, http.Status.bad_request, 'Invalid cart id', err.msg())
+		}
+	}
+
+	mut region_id_bin := []u8{}
+	if p.region_id.is_set {
+		region_id_bin = id_string_to_bin(p.region_id.v) or {
+			return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id',
+				err.msg())
+		}
+	}
+
+	ph := RetrieveProductParamsHygienised{
+		region_id:     p.region_id
+		region_id_bin: region_id_bin
+		cart_id:       p.cart_id
+		cart_id_bin:   cart_id_bin
+	}
+
+	return conduit_products_get_list(mut app, mut ctx, ph)
 }
 
 // get product by id
@@ -18,5 +41,28 @@ fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result
 	}
 
 	p := extract_retrieve_store_products_by_id_params(ctx.query, id)
-	return conduit_products_get_by_id(mut app, mut ctx, p)
+
+	mut cart_id_bin := []u8{}
+	if p.cart_id.is_set {
+		cart_id_bin = id_string_to_bin(p.cart_id.v) or {
+			return handle_error(mut ctx, http.Status.bad_request, 'Invalid cart id', err.msg())
+		}
+	}
+
+	mut region_id_bin := []u8{}
+	if p.region_id.is_set {
+		region_id_bin = id_string_to_bin(p.region_id.v) or {
+			return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id',
+				err.msg())
+		}
+	}
+
+	ph := RetrieveProductParamsHygienised{
+		region_id:     p.region_id
+		region_id_bin: region_id_bin
+		cart_id:       p.cart_id
+		cart_id_bin:   cart_id_bin
+	}
+
+	return conduit_products_get_by_id(mut app, mut ctx, ph)
 }

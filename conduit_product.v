@@ -3,48 +3,24 @@ module main
 import net.http
 import veb
 
-fn conduit_products_get_list(mut app App, mut ctx Context, p RetrieveProductParams) veb.Result {
-	internal_products, count := app.retrieve_products(p) or {
+fn conduit_products_get_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	internal_products, count := retrieve_products(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve products data',
 			err.msg())
 	}
 
-	// TODO validation moved to route_
-	mut region_id_bin := []u8{}
-	if p.region_id.is_set {
-		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			ctx.res.set_status(http.Status.bad_request)
-			return ctx.json(new_peony_error('Invalid region_id', err.msg()))
-		}
+	tx.rollback() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
+			err.msg())
 	}
 
-	mut currency_code := ''
-	if p.currency_code.is_set {
-		currency_code = p.currency_code.v
-	} else {
-		store := app.store_retrieve() or {
-			ctx.res.set_status(http.Status.internal_server_error)
-			return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
-		}
-		currency_code = store.default_currency_code
-	}
-
-	pctx := PriceContext{
-		// TODO cart_id_bin
-		// TODO get customer_id from ctx if customer is logged in
-		region_id_bin: region_id_bin
-		currency_code: currency_code
-		// TODO include_discount_prices
-	}
-
-	mut variant_prices_map := map[string]Prices{}
-	for i := 0; i < internal_products.len; i++ {
-		for k := 0; k < internal_products[i].variants.len; k++ {
-			variant_prices_map[internal_products[i].variants[k].id] = calculate_price(internal_products[i].variants[k],
-				1, pctx)
-		}
-	}
-
+	variant_prices_map := map[string]Prices{} // no prices needed here
 	mut external_products := []ProductResponse{len: internal_products.len}
 	for i := 0; i < internal_products.len; i++ {
 		external_products[i] = format_product_response(internal_products[i], variant_prices_map) or {
@@ -56,16 +32,55 @@ fn conduit_products_get_list(mut app App, mut ctx Context, p RetrieveProductPara
 	r := ListResponse{
 		items:  external_products
 		count:  count
-		offset: get_offset_amount(p.offset)
-		fetch:  get_fetch_amount(p.fetch)
+		offset: get_offset_amount(ph.offset)
+		fetch:  get_fetch_amount(ph.fetch)
 	}
 
 	return ctx.json(r)
 }
 
-fn conduit_products_get_by_id(mut app App, mut ctx Context, p RetrieveProductParams) veb.Result {
-	internal_products, count := app.retrieve_products(p) or {
+// fn conduit_products_get_store() {
+// mut currency_code := ''
+// if ph.currency_code.is_set {
+// 	currency_code = ph.currency_code.v
+// } else {
+// 	store := do_retrieve_store(mut tx) or {
+// 		tx.rollback() or {} // ignore error
+// 		ctx.res.set_status(http.Status.internal_server_error)
+// 		return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
+// 	}
+// 	currency_code = store.default_currency_code
+// }
+
+// pctx := PriceContext{
+// 	region_id_bin: ph.region_id_bin
+// 	currency_code: currency_code
+// 	// TODO include_discount_prices
+// }
+
+// mut variant_prices_map := map[string]Prices{}
+// for i := 0; i < internal_products.len; i++ {
+// 	for k := 0; k < internal_products[i].variants.len; k++ {
+// 		variant_prices_map[internal_products[i].variants[k].id] = calculate_price(internal_products[i].variants[k],
+// 			1, pctx)
+// 	}
+// }
+// }
+
+fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	internal_products, count := retrieve_products(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve products data',
+			err.msg())
+	}
+
+	tx.rollback() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
 			err.msg())
 	}
 
@@ -73,40 +88,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, p RetrieveProductPar
 		return handle_error(mut ctx, http.Status.not_found, 'Not found', 'No product exists with the given id')
 	}
 
-	// TODO validation moved to route_
-	mut region_id_bin := []u8{}
-	if p.region_id.is_set {
-		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			ctx.res.set_status(http.Status.bad_request)
-			return ctx.json(new_peony_error('Invalid region_id', err.msg()))
-		}
-	}
-
-	mut currency_code := ''
-	if p.currency_code.is_set {
-		currency_code = p.currency_code.v
-	} else {
-		store := app.store_retrieve() or {
-			ctx.res.set_status(http.Status.internal_server_error)
-			return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
-		}
-		currency_code = store.default_currency_code
-	}
-
-	pctx := PriceContext{
-		// TODO cart_id_bin
-		// TODO get customer_id from ctx if customer is logged in
-		region_id_bin: region_id_bin
-		currency_code: currency_code
-		// TODO include_discount_prices
-	}
-
-	mut variant_prices_map := map[string]Prices{}
-	for i := 0; i < internal_products[0].variants.len; i++ {
-		variant_prices_map[internal_products[0].variants[i].id] = calculate_price(internal_products[0].variants[i],
-			1, pctx)
-	}
-
+	variant_prices_map := map[string]Prices{} // no prices needed here
 	external_product := format_product_response(internal_products[0], variant_prices_map) or {
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to format response',
 			err.msg())

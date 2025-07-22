@@ -78,7 +78,7 @@ fn parse_product(v []firebird.Value) !Product {
 }
 
 // gather filtered and sorted id
-fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParams) !([][]u8, i64) {
+fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) !([][]u8, i64) {
 	query := 'SELECT p.id, COUNT(*) OVER() FROM product p'
 	mut params := []firebird.Value{}
 
@@ -94,128 +94,86 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, p RetrieveProductParam
 	mut conditions := ''
 	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
 
-	if p.id.is_set {
-		mut ids_bin := [][]u8{len: p.id.v.len}
-		for i := 0; i < p.id.v.len; i++ {
-			id_bin := id_string_to_bin(p.id.v[i])!
-			ids_bin[i] = id_bin
-		}
-		conditions = appendln(conditions, 'AND p.id IN (${get_n_placeholders(i32(p.id.v.len))})')
-		params = arrays.concat(params, ...workaround_24757(ids_bin))
+	if ph.ids.is_set {
+		conditions = appendln(conditions, 'AND p.id IN (${get_n_placeholders(i32(ph.ids_bin.len))})')
+		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
-	if p.handle.is_set {
+	if ph.handle.is_set {
 		conditions = appendln(conditions, 'AND p.handle = ?')
-		params = arrays.concat(params, p.handle.v)
+		params = arrays.concat(params, ph.handle.v)
 	}
 
-	if p.is_giftcard.is_set {
+	if ph.is_giftcard.is_set {
 		conditions = appendln(conditions, 'AND p.is_giftcard = ?')
-		params = arrays.concat(params, p.is_giftcard.v)
+		params = arrays.concat(params, ph.is_giftcard.v)
 	}
 
-	if p.status.is_set {
+	if ph.status.is_set {
 		conditions = appendln(conditions, 'AND p.status = ?')
-		params = arrays.concat(params, p.status.v)
+		params = arrays.concat(params, ph.status.v)
 	}
 
-	if p.collection_id.is_set {
-		len := p.collection_id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
-			id_bin := id_string_to_bin(p.collection_id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-		conditions = appendln(conditions, 'AND p.collection_id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.collection_ids.is_set {
+		conditions = appendln(conditions, 'AND p.collection_id IN ${get_n_placeholders(i32(ph.collection_ids_bin.len))}')
+		params = arrays.concat(params, ...ph.collection_ids_bin)
 	}
 
-	if p.type_id.is_set {
-		len := p.type_id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
-			id_bin := id_string_to_bin(p.type_id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-
-		conditions = appendln(conditions, 'AND p.type_id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.type_ids.is_set {
+		conditions = appendln(conditions, 'AND p.type_id IN ${get_n_placeholders(i32(ph.type_ids_bin.len))}')
+		params = arrays.concat(params, ...ph.type_ids_bin)
 	}
 
-	if p.tag_id.is_set {
-		len := p.tag_id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
-			id_bin := id_string_to_bin(p.tag_id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-		conditions = appendln(conditions, 'AND pt.tag_id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.tag_ids.is_set {
+		conditions = appendln(conditions, 'AND pt.tag_id IN ${get_n_placeholders(i32(ph.tag_ids_bin.len))}')
+		params = arrays.concat(params, ...ph.tag_ids_bin)
 	}
 
-	if p.title.is_set {
+	if ph.title.is_set {
 		conditions = appendln(conditions, "AND EXISTS (
 			SELECT 1
 			FROM product_translations ptr
 			WHERE ptr.product_id = p.id
 				AND UPPER(ptr.title) LIKE UPPER('%' || ? || '%')
 			)")
-		params = arrays.concat(params, p.title.v)
+		params = arrays.concat(params, ph.title.v)
 	}
 
-	if p.description.is_set {
+	if ph.description.is_set {
 		conditions = appendln(conditions, "AND EXISTS (
 			SELECT 1
 			FROM product_translations ptr
 			WHERE ptr.product_id = p.id
 				AND UPPER(ptr.description) LIKE UPPER('%' || ? || '%')
 			)")
-		params = arrays.concat(params, p.description.v)
+		params = arrays.concat(params, ph.description.v)
 	}
 
-	if p.category_id.is_set {
-		len := p.category_id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
-			id_bin := id_string_to_bin(p.category_id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-		conditions = appendln(conditions, 'AND pcp.product_category_id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.category_ids.is_set {
+		conditions = appendln(conditions, 'AND pcp.product_category_id IN ${get_n_placeholders(i32(ph.category_ids_bin.len))}')
+		params = arrays.concat(params, ...ph.category_ids_bin)
 	}
 
-	if p.price_list_id.is_set {
-		len := p.price_list_id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
-			id_bin := id_string_to_bin(p.price_list_id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-		conditions = appendln(conditions, 'AND ma.price_list_id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.price_list_ids.is_set {
+		conditions = appendln(conditions, 'AND ma.price_list_id IN ${get_n_placeholders(i32(ph.price_list_ids_bin.len))}')
+		params = arrays.concat(params, ...ph.price_list_ids_bin)
 	}
 
-	if p.sales_channel_id.is_set {
-		len := p.sales_channel_id.v.len
-		mut ids_bin := [][]u8{}
-		for i := 0; i < len; i++ {
-			id_bin := id_string_to_bin(p.sales_channel_id.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-		conditions = appendln(conditions, 'AND psc.sales_channel_id IN ${get_n_placeholders(i32(len))}')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.sales_channel_ids.is_set {
+		conditions = appendln(conditions, 'AND psc.sales_channel_id IN ${get_n_placeholders(i32(ph.sales_channel_ids_bin.len))}')
+		params = arrays.concat(params, ...ph.sales_channel_ids_bin)
 	}
 
 	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY p.created_at ${get_sorting_order(p.order)}')
+	sorting = appendln(sorting, 'ORDER BY p.created_at ${get_sorting_order(ph.order)}')
 
-	if p.offset.is_set {
+	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
+		params = arrays.concat(params, ph.offset.v)
 	}
 
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, get_fetch_amount(p.fetch))
+	params = arrays.concat(params, get_fetch_amount(ph.fetch))
 
 	data := tx.execute('${query}${joins}${conditions}${sorting}', ...params)!
 
@@ -310,8 +268,8 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 	return variants
 }
 
-fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !([]Product, i64) {
-	ids_bin, count := do_retrieve_products__ids(mut tx, p)!
+fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) !([]Product, i64) {
+	ids_bin, count := do_retrieve_products__ids(mut tx, ph)!
 	len := i32(ids_bin.len)
 	if len == 0 {
 		return []Product{}, len
@@ -375,6 +333,7 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !(
 			translations[i])
 	}
 
+	// replace variants with variant model call
 	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
 	mut options := do_retrieve_product_options(mut tx, ids_bin)!
 	if options.len != 0 {
@@ -417,16 +376,6 @@ fn do_retrieve_products(mut tx firebird.Transaction, p RetrieveProductParams) !(
 		products[i] = product_map[id]
 	}
 
-	return products, count
-}
-
-fn (mut app App) retrieve_products(p RetrieveProductParams) !([]Product, i64) {
-	mut tx := app.start_transaction()!
-	products, count := do_retrieve_products(mut tx, p) or {
-		tx.rollback()!
-		return err
-	}
-	tx.rollback()!
 	return products, count
 }
 

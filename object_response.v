@@ -512,6 +512,7 @@ struct ProductResponse {
 	// tags         []Tag                 @[omitempty]
 }
 
+// TODO split admin and store format functions? admin never needs prices
 fn format_product_response(p Product, variant_prices_map map[string]Prices) !ProductResponse {
 	mut images := []ImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
