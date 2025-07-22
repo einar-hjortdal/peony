@@ -182,7 +182,7 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		ma.max_quantity,
 		ma.price_list_id,
 		ma.region_id,
-		ma.variant_id
+		pvma.variant_id
 		FROM money_amount ma
 		JOIN product_variant_money_amount pvma ON pvma.money_amount_id = ma.id
 		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
