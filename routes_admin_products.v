@@ -59,7 +59,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		// cart_id_bin:           p.cart_id_bin
 	}
 
-	return conduit_products_get_list(mut app, mut ctx, ph)
+	return conduit_products_get(mut app, mut ctx, ph)
 }
 
 // create a product

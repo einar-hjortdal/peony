@@ -30,7 +30,7 @@ fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		cart_id_bin:   cart_id_bin
 	}
 
-	return conduit_products_get_list(mut app, mut ctx, ph)
+	return conduit_products_get_store(mut app, mut ctx, ph)
 }
 
 // get product by id
@@ -64,5 +64,5 @@ fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result
 		cart_id_bin:   cart_id_bin
 	}
 
-	return conduit_products_get_by_id(mut app, mut ctx, ph)
+	return conduit_products_get_by_id_store(mut app, mut ctx, ph)
 }
