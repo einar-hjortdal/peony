@@ -1,4 +1,4 @@
-module main
+module peony
 
 import strconv
 import time

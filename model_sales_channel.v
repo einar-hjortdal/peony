@@ -1,4 +1,4 @@
-module main
+module peony
 
 import arrays
 import einar_hjortdal.firebird

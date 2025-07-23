@@ -1,4 +1,4 @@
-module main
+module peony
 
 import crypto.rand
 import crypto.scrypt

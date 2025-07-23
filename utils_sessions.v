@@ -1,4 +1,4 @@
-module main
+module peony
 
 struct UserSessionValues {
 	id     string

@@ -1,4 +1,4 @@
-module main
+module peony
 
 import json
 import log

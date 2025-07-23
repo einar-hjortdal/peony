@@ -1,4 +1,4 @@
-module main
+module peony
 
 struct AuthRequest {
 	email    string

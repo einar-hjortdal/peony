@@ -1,4 +1,4 @@
-module main
+module peony
 
 fn test_get_columns() {
 	columns := ['id', 'name', 'currency_code', 'tax_rate']

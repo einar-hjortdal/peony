@@ -1,3 +1,3 @@
-module main
+module peony
 
 // TODO cache

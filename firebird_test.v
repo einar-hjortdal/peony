@@ -1,4 +1,4 @@
-module main
+module peony
 
 fn test_posix_new_line_end_of_text_file() {
 	queries := get_schema_queries()

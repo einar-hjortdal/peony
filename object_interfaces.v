@@ -1,4 +1,4 @@
-module main
+module peony
 
 pub struct FileRequest {
 	name      string

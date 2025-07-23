@@ -1,4 +1,4 @@
-module main
+module peony
 
 import os
 import net.http

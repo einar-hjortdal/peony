@@ -1,4 +1,4 @@
-module main
+module peony
 
 import log
 import net.http
@@ -14,6 +14,7 @@ import einar_hjortdal.sessions
 @[heap]
 pub struct App {
 	veb.Middleware[Context]
+	blob_provider BlobProvider
 mut:
 	luuid_generator &luuid.Generator
 	firebird        &firebird.Connection
@@ -38,7 +39,7 @@ fn set_log_level() {
 	}
 }
 
-fn main() {
+pub fn new_peony_app(bp BlobProvider) &App {
 	load_settings()
 	set_log_level()
 
@@ -52,13 +53,14 @@ fn main() {
 		secret:    os.getenv(env_session_secret)
 		secure:    true
 		max_age:   time.second * strconv.parse_int(os.getenv(env_session_max_age), 10,
-			64)!
+			64) or { panic(err) }
 	}
 	ro := redict.Options{
 		url: os.getenv(env_redict_url)
 	}
 
-	mut app := App{
+	mut app := &App{
+		blob_provider:   bp
 		luuid_generator: luuid.new_generator()
 		firebird:        firebird.new_connection(firebird_url) or { panic(err) }
 		redict:          redict.new_client(ro) or { panic(err) }
@@ -76,6 +78,10 @@ fn main() {
 	// app.route_use('/store/:path...', handler: app.middleware_load_store_session)
 	// app.route_use('/store/:path...', handler: app.middleware_save_store_session, after: true)
 
+	return app
+}
+
+pub fn (mut app App) run() {
 	app.prepare_db()
 
 	port := os.getenv(env_port).int()
