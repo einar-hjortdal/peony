@@ -5,6 +5,8 @@ import time
 import veb
 
 const error_invalid_id = 'Invalid id'
+const error_header_missing = 'Missing header'
+const error_header_invalid = 'Invalid header'
 const error_transaction_start = 'Failed to start transaction'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'

@@ -18,10 +18,10 @@
 
 - [x] Products
 - [x] Variants
-- [ ] Images
 - [x] Prices
 - [x] Multilanguage
 - [x] Multicurrency
+- [ ] Uploads
 
 ### Next
 
@@ -36,6 +36,9 @@
 - [ ] Unit pricing
 - [ ] Discounts
 - [ ] Product tags
+- [ ] Product types
+- [ ] Product collections
+- [ ] Product categories
 - [ ] Posts
 - [ ] Pages
 - [ ] Tags
