@@ -17,6 +17,7 @@ pub fn new_provider_blob_blobly(url string, access_keys []string, secret_keys []
 }
 
 fn (b Blobly) create(f FileRequest) !FileData {
+	// build request: add auth header
 	return error('TODO')
 }
 

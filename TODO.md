@@ -55,7 +55,6 @@
 
 - [x] Make peony a module
 - [x] BlobProvider interface
-- [ ] CacheProvider interface
 - [ ] EmailProvider interface
 - [ ] PaymentProvider interface
 - [ ] FulfillmentProvider interface
