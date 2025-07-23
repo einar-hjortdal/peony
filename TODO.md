@@ -53,8 +53,12 @@
 
 ### Modules:
 
-- Make peony a module
-- Create public interfaces and make modules
+- [x] Make peony a module
+- [x] BlobProvider interface
+- [ ] CacheProvider interface
+- [ ] EmailProvider interface
+- [ ] PaymentProvider interface
+- [ ] FulfillmentProvider interface
 
 ## Changes
 
@@ -74,7 +78,8 @@
 
 - Currently select queries must respect the order of the variables in `parse_` functions, instead consider 
   rewriting `parse_` functions to check and match column names. This introduces string normalization 
-  and comparison but prevents order-related errors when select queries are modified.
+  and comparison but prevents order-related errors when select queries are modified. Otherwise parse 
+  locally so the order is obvious, or use function parameters instead of an array of values.
 
 ## Documentation
 

@@ -10,3 +10,8 @@ pub struct FileData {
 	id  string
 	url string
 }
+
+pub interface BlobProvider {
+	create(FileRequest) !FileData
+	delete([]string) !
+}

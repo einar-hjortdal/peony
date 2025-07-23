@@ -15,6 +15,10 @@ import einar_hjortdal.sessions
 pub struct App {
 	veb.Middleware[Context]
 	blob_provider BlobProvider
+	// cache_provider CacheProvider
+	// email_provider EmailProvider
+	// payment_providers []PaymentProvider
+	// fulfillment_providers []FulfillmentProvider
 mut:
 	luuid_generator &luuid.Generator
 	firebird        &firebird.Connection
@@ -39,7 +43,7 @@ fn set_log_level() {
 	}
 }
 
-pub fn new_peony_app(bp BlobProvider) &App {
+pub fn new_peony_app(blob_provider BlobProvider) &App {
 	load_settings()
 	set_log_level()
 
@@ -60,7 +64,7 @@ pub fn new_peony_app(bp BlobProvider) &App {
 	}
 
 	mut app := &App{
-		blob_provider:   bp
+		blob_provider:   blob_provider
 		luuid_generator: luuid.new_generator()
 		firebird:        firebird.new_connection(firebird_url) or { panic(err) }
 		redict:          redict.new_client(ro) or { panic(err) }
