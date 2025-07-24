@@ -38,15 +38,15 @@ fn (b Blobly) new_signed_http_request(method http.Method, url string, data strin
 	return request
 }
 
-fn (b Blobly) create(f FileRequest) !FileData {
-	request := b.new_signed_http_request(http.Method.post, '${b.url}/${f.name}', f.content)!
+fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
+	request := b.new_signed_http_request(http.Method.post, '${b.url}/${f.filename}', f.data)!
 	response := request.do()!
 
 	if response.status_code == 200 {
 		data := json.decode(BloblySuccess, response.body) or {
 			return error('Could not decode BloblySuccess')
 		}
-		return FileData{
+		return BlobProviderFileData{
 			id:  data.file_name
 			url: '${b.url}/public/${data.file_name}'
 		}

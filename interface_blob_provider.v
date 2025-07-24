@@ -1,17 +1,13 @@
 module peony
 
-pub struct FileRequest {
-	name      string
-	mime_type string
-	content   string
-}
+import net.http
 
-pub struct FileData {
+pub struct BlobProviderFileData {
 	id  string
 	url string
 }
 
 pub interface BlobProvider {
-	create(FileRequest) !FileData
+	create(http.FileData) !BlobProviderFileData
 	delete(string) !
 }
