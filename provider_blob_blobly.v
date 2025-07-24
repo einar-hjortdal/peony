@@ -17,8 +17,6 @@ pub fn new_provider_blob_blobly(url string, access_key string, secret_key string
 		access_key: access_key
 		secret_key: secret_key
 	}
-	// TODO before returning the struct, send a request to verify that the service is running and auth
-	// is valid, then if successful return, otherwise panic
 }
 
 struct BloblyError {
@@ -32,15 +30,16 @@ struct BloblySuccess {
 	file_name_compressed string @[omitempty]
 }
 
-fn (b Blobly) create(f FileRequest) !FileData {
-	// build request
+fn (b Blobly) new_signed_http_request(method http.Method, url string, data string) !http.Request {
 	signature := hmac.new(b.secret_key.bytes(), b.access_key.bytes(), sha256.sum, sha256.block_size)
 	header_content := '${b.access_key}$${signature.bytestr()}'
-	url := '${b.url}/${f.name}'
-
-	mut request := http.new_request(http.Method.post, url, f.content)
+	mut request := http.new_request(method, url, data)
 	request.add_custom_header('Blobly-Authorization', header_content)!
+	return request
+}
 
+fn (b Blobly) create(f FileRequest) !FileData {
+	request := b.new_signed_http_request(http.Method.post, '${b.url}/${f.name}', f.content)!
 	response := request.do()!
 
 	if response.status_code == 200 {
@@ -59,6 +58,15 @@ fn (b Blobly) create(f FileRequest) !FileData {
 	return error(data.message)
 }
 
-fn (b Blobly) delete(f []string) ! {
-	return error('TODO')
+fn (b Blobly) delete(f string) ! {
+	request := b.new_signed_http_request(http.Method.delete, '${b.url}/${f}', '')!
+	response := request.do()!
+	if response.status_code == 200 {
+		return
+	}
+
+	data := json.decode(BloblyError, response.body) or {
+		return error('Could not decode BloblyError')
+	}
+	return error(data.message)
 }

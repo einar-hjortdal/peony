@@ -13,5 +13,5 @@ pub struct FileData {
 
 pub interface BlobProvider {
 	create(FileRequest) !FileData
-	delete([]string) !
+	delete(string) !
 }
