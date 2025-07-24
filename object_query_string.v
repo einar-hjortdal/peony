@@ -55,6 +55,13 @@ struct ZeroBool {
 fn zero_bool(m map[string]string, k string) ZeroBool {
 	s := zero_string(m, k)
 	if s.is_set {
+		if s.v == '' {
+			return ZeroBool{
+				v:      true
+				is_set: true
+			}
+		}
+
 		return ZeroBool{
 			v:      parse_bool(s.v)
 			is_set: true

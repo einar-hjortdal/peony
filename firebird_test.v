@@ -9,7 +9,7 @@ fn test_posix_new_line_end_of_text_file() {
 	assert country_codes.len > 0
 	assert country_codes[country_codes.len - 1] != '\n'
 
-	currency_codes := get_currency_codes()
+	currency_codes := get_currency_data()
 	assert currency_codes.len > 0
 	assert currency_codes[currency_codes.len - 1] != '\n'
 
