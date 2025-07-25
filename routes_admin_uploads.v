@@ -49,7 +49,10 @@ fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 		files_data[i] = file_data
 	}
 
-	return ctx.json(files_data)
+	r := UploadsResponseEnvelope{
+		uploads: files_data
+	}
+	return ctx.json(r)
 }
 
 // delete files from the file provider

@@ -567,3 +567,7 @@ fn format_product_response_admin(p Product) !ProductResponse {
 	variant_prices_map := map[string]Prices{} // no prices needed here
 	return format_product_response_store(p, variant_prices_map)
 }
+
+struct UploadsResponseEnvelope {
+	uploads []BlobProviderFileData
+}
