@@ -21,7 +21,7 @@
 - [x] Prices
 - [x] Multilanguage
 - [x] Multicurrency
-- [ ] Uploads
+- [x] Uploads
 
 ### Next
 
@@ -60,7 +60,6 @@
 - [ ] FulfillmentProvider interface
 
 ## Changes
-
 
 
 ## Internals

@@ -53,7 +53,15 @@ fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 }
 
 // delete files from the file provider
-// @['/admin/uploads/:id'; delete]
-// fn (mut app App) admin_uploads_id_delete(mut ctx Context) veb.Result {
-// 	return ctx.text('')
-// }
+@['/admin/uploads/:id'; delete]
+fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
+	app.blob_provider.delete(id) or {
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to delete file',
+			err.msg())
+	}
+
+	r := BloblySuccess{
+		success: true
+	}
+	return ctx.json(r)
+}
