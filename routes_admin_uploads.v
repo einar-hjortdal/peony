@@ -49,7 +49,7 @@ fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 		files_data[i] = file_data
 	}
 
-	r := UploadsResponseEnvelope{
+	r := UploadsUploadResponseEnvelope{
 		uploads: files_data
 	}
 	return ctx.json(r)
@@ -63,8 +63,9 @@ fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result 
 			err.msg())
 	}
 
-	r := BloblySuccess{
-		success: true
+	r := UploadsDeleteResponse{
+		id:      id
+		deleted: true
 	}
 	return ctx.json(r)
 }

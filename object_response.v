@@ -568,6 +568,11 @@ fn format_product_response_admin(p Product) !ProductResponse {
 	return format_product_response_store(p, variant_prices_map)
 }
 
-struct UploadsResponseEnvelope {
+struct UploadsUploadResponseEnvelope {
 	uploads []BlobProviderFileData
+}
+
+struct UploadsDeleteResponse {
+	id      string
+	deleted bool
 }

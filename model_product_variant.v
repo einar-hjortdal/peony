@@ -341,9 +341,6 @@ fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_
 		params = arrays.concat(params, width)
 	}
 
-	println('INSERT INTO product_variant (${get_columns(columns)}) 
-		VALUES (${get_n_placeholders(i32(columns.len))})')
-	println(params)
 	tx.execute('INSERT INTO product_variant (${get_columns(columns)}) 
 		VALUES (${get_n_placeholders(i32(columns.len))})',
 		...params)!
