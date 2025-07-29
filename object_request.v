@@ -5,12 +5,28 @@ struct AuthRequest {
 	password string
 }
 
-struct NewStoreData {
-	name                  ?string
-	default_locale_id     ?string @[json: 'defaultLocaleId']
-	default_currency_code ?string @[json: 'defaultCurrencyCode']
-	locales               ?[]string
-	currencies            ?[]string
+struct StoreRequest {
+	name                      ?string
+	default_locale_id         ?string @[json: 'defaultLocaleId']
+	default_currency_code     ?string @[json: 'defaultCurrencyCode']
+	default_stock_location_id ?string @[json: 'defaultStockLocationId']
+	default_sales_channel_id  ?string @[json: 'defaultSalesChannelId']
+	locale_ids                ?[]string
+	currency_codes            ?[]string
+}
+
+struct StoreRequestHygienised {
+	name                          ?string
+	default_locale_id             ?string
+	default_locale_id_bin         []u8
+	default_currency_code         ?string
+	default_stock_location_id     ?string
+	default_stock_location_id_bin []u8
+	default_sales_channel_id      ?string
+	default_sales_channel_id_bin  []u8
+	locale_ids                    ?[]string
+	locale_ids_bin                [][]u8
+	currency_codes                ?[]string
 }
 
 struct NewUserData {

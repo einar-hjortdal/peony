@@ -120,19 +120,18 @@ fn (mut app App) store_retrieve() !Store {
 	return store
 }
 
-fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_ids []string) ! {
+fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_ids_bin [][]u8) ! {
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
 		CAST(? AS BINARY(16)) AS locale_id
 		FROM RDB\$DATABASE'
 	mut src := ''
-	mut params := []firebird.Value{len: locale_ids.len * 2 + 2, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < locale_ids.len; i++ {
+	mut params := []firebird.Value{len: locale_ids_bin.len * 2 + 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < locale_ids_bin.len; i++ {
 		src = appendln(src, s)
-		locale_id_bin := id_string_to_bin(locale_ids[i])! // TODO validate in controller
 		params[i * 2] = id_bin
-		params[i * 2 + 1] = locale_id_bin
-		if i != locale_ids.len - 1 {
+		params[i * 2 + 1] = locale_ids_bin[i]
+		if i != locale_ids_bin.len - 1 {
 			src = appendln(src, 'UNION ALL')
 		}
 	}
@@ -189,55 +188,37 @@ fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin 
 	tx.execute(query, ...params)!
 }
 
-fn (mut app App) do_update_store_data(mut tx firebird.Transaction, id_bin []u8, p NewStoreData) ! {
+fn (mut app App) do_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreRequestHygienised) ! {
 	mut query := 'UPDATE store SET'
 	mut params := []firebird.Value{}
 
-	if name := p.name {
+	if name := ph.name {
 		query = appendln(query, 'name = ?')
 		params = arrays.concat(params, name)
 	}
 
-	if default_locale_id := p.default_locale_id {
+	if ph.default_locale_id != none {
 		query = appendln(query, 'default_locale_id = ?')
-		default_locale_id_bin := id_string_to_bin(default_locale_id)! // TODO validate in controller
-		params = arrays.concat(params, default_locale_id_bin)
+		params = arrays.concat(params, ph.default_locale_id_bin)
 	}
 
-	if default_currency_code := p.default_currency_code {
+	if default_currency_code := ph.default_currency_code {
 		query = appendln(query, 'default_currency_code = ?')
 		params = arrays.concat(params, default_currency_code)
+	}
+
+	if ph.default_stock_location_id != none {
+		query = appendln(query, 'default_stock_location_id = ?')
+		params = arrays.concat(params, ph.default_stock_location_id_bin)
+	}
+
+	if ph.default_sales_channel_id != none {
+		query = appendln(query, 'default_sales_channel_id = ?')
+		params = arrays.concat(params, ph.default_sales_channel_id_bin)
 	}
 
 	conditions := 'WHERE id = ?'
 	query = appendln(query, conditions)
 	params = arrays.concat(params, id_bin)
 	tx.execute(query, ...params)!
-}
-
-fn (mut app App) update_store_data(id_bin []u8, p NewStoreData) ! {
-	mut tx := app.start_transaction()!
-
-	if p.name != none || p.default_locale_id != none || p.default_currency_code != none {
-		app.do_update_store_data(mut tx, id_bin, p) or {
-			tx.rollback()!
-			return err
-		}
-	}
-
-	if locale_ids := p.locales {
-		app.do_update_store_locales(mut tx, id_bin, locale_ids) or {
-			tx.rollback()!
-			return err
-		}
-	}
-
-	if currency_codes := p.currencies {
-		app.do_update_store_currencies(mut tx, id_bin, currency_codes) or {
-			tx.rollback()!
-			return err
-		}
-	}
-
-	tx.commit()!
 }

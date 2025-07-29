@@ -50,6 +50,7 @@
 - [ ] Variant images
 - [ ] API keys
 - [ ] User-defined data
+- [ ] Cache
 
 ### Modules:
 
@@ -78,6 +79,7 @@
   rewriting `parse_` functions to check and match column names. This introduces string normalization 
   and comparison but prevents order-related errors when select queries are modified. Otherwise parse 
   locally so the order is obvious, or use function parameters instead of an array of values.
+- Consider setting a default region id on store.
 
 ## Documentation
 
