@@ -512,6 +512,13 @@ fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 	}
 }
 
+struct SalesChannelResponseEnvelope {
+	sales_channels []SalesChannelResponse
+	count          i64
+	offset         i32
+	fetch          i32
+}
+
 struct ProductResponse {
 	id             string
 	created_at     time.Time @[json: 'createdAt']

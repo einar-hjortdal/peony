@@ -6,20 +6,29 @@ import json
 
 // lists sales channels
 @['/admin/sales-channels'; get]
-fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_sales_channels_params(ctx.query)
 
-	sc := app.list_sales_channels(p) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to retrieve sales channels data', err.msg()))
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
-	return ctx.json(sc)
+	ph := ListSalesChannelsParamsHygienised{
+		ids:         p.ids
+		ids_bin:     ids_bin
+		name:        p.name
+		description: p.description
+		offset:      p.offset
+		fetch:       p.fetch
+		order:       p.order
+	}
+
+	return conduit_sales_channels_get(mut app, mut ctx, ph)
 }
 
 // retrieves a sales channel by id
 @['/admin/sales-channels/:id'; get]
-fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
@@ -29,7 +38,7 @@ fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Res
 
 // creates a sales channel
 @['/admin/sales-channels'; post]
-fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 	data := json.decode(NewSalesChannelData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode NewSalesChannelData', err.msg()))
@@ -45,7 +54,7 @@ fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 
 // updates a sales channel
 @['/admin/sales-channels/:id'; post]
-fn (mut app App) admin_sales_channels_id_post(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, id string) veb.Result {
 	p := NewSalesChannelData{
 		name:        ctx.query['name']
 		description: ctx.query['description']
@@ -62,7 +71,7 @@ fn (mut app App) admin_sales_channels_id_post(mut ctx Context, id string) veb.Re
 
 // deletes a sales channel
 @['/admin/sales-channels/:id'; delete]
-fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) veb.Result {
 	app.delete_sales_channel(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not delete sales channel', err.msg()))
@@ -73,7 +82,7 @@ fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) veb.
 
 // add products to a sales channel
 @['/admin/sales-channels/:id/products'; post]
-fn (mut app App) admin_sales_channels_id_products_post(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_sales_channels_id_products_post(mut ctx Context, id string) veb.Result {
 	data := json.decode(struct {
 		product_ids []string
 	}, ctx.req.data) or {

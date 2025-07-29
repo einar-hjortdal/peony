@@ -17,3 +17,14 @@ fn option_array_id_string_to_array_id_bin(option_array_id_string ?[]string) ![][
 	}
 	return [][]u8{}
 }
+
+fn zero_array_id_string_to_array_id_bin(zero_array_id_string ZeroArrayString) ![][]u8 {
+	if zero_array_id_string.is_set {
+		mut array_id_bin := [][]u8{len: zero_array_id_string.v.len}
+		for i := 0; i < zero_array_id_string.v.len; i++ {
+			array_id_bin[i] = id_string_to_bin(zero_array_id_string.v[i])!
+		}
+		return array_id_bin
+	}
+	return [][]u8{}
+}

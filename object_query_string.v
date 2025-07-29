@@ -138,6 +138,16 @@ fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannels
 	}
 }
 
+struct ListSalesChannelsParamsHygienised {
+	ids         ZeroArrayString
+	ids_bin     [][]u8
+	name        ZeroString
+	description ZeroString
+	offset      ZeroI32
+	fetch       ZeroI32
+	order       ZeroString
+}
+
 struct RetrieveVariantParams {
 	id                 ZeroArrayString
 	allow_backorder    ZeroBool

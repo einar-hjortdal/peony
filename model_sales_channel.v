@@ -75,75 +75,67 @@ fn do_retrieve_sales_channels_by_ids(mut tx firebird.Transaction, ids_bin [][]u8
 	return sales_channels
 }
 
-fn build_list_sales_channels_query(p ListSalesChannelsParams) !(string, []firebird.Value) {
+fn (mut app App) list_sales_channels(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) !([]SalesChannel, i64) {
 	base_query := 'SELECT
 		id,
 		created_at,
 		updated_at,
 		deleted_at,
-		is_disabled,
 		name,
-		description
+		description,
+		is_disabled,
+		COUNT(*) OVER()
 		FROM sales_channel'
 	mut params := []firebird.Value{}
 	mut c := []string{}
 	// Check if id array is not empty (we'll form a SQL IN clause).
-	if p.ids.is_set {
-		mut ids_bin := [][]u8{}
-		for i := 0; i < p.ids.v.len; i++ {
-			id_bin := id_string_to_bin(p.ids.v[i])!
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
-		c = arrays.concat(c, 'id IN (${get_placeholders(p.ids.v)})')
-		params = arrays.concat(params, ...ids_bin)
+	if ph.ids.is_set {
+		c = arrays.concat(c, 'id IN (${get_n_placeholders(i32(ph.ids_bin.len))})')
+		params = arrays.concat(params, ...ph.ids_bin)
 	}
 
 	// Add condition for name using LIKE with wildcards.
-	if p.name.is_set {
+	if ph.name.is_set {
 		c = arrays.concat(c, "name LIKE '%' || ? '%'")
-		params = arrays.concat(params, p.name.v)
+		params = arrays.concat(params, ph.name.v)
 	}
 
 	// Add condition for description if provided.
-	if p.description.is_set {
+	if ph.description.is_set {
 		c = arrays.concat(c, "description LIKE '%' || ? '%'")
-		params = arrays.concat(params, p.description.v)
+		params = arrays.concat(params, ph.description.v)
 	}
 
 	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
+	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(ph.order)}')
 
-	if p.offset.is_set {
+	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
+		params = arrays.concat(params, ph.offset.v)
 	}
 
-	if p.fetch.is_set {
+	if ph.fetch.is_set {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, get_fetch_amount(p.fetch))
+		params = arrays.concat(params, get_fetch_amount(ph.fetch))
 	}
 
-	return '${base_query}${get_where_conditions(c)}${sorting}', params
-}
+	data := tx.execute('${base_query}${get_where_conditions(c)}${sorting}', ...params)!
 
-fn (mut app App) list_sales_channels(p ListSalesChannelsParams) ![]SalesChannel {
-	mut tx := app.start_transaction()!
-	query, params := build_list_sales_channels_query(p)!
-	data := tx.execute(query, ...params)!
-	tx.rollback()!
+	if data.rows.len == 0 {
+		return []SalesChannel{}, 0
+	}
 
-	mut sales_channels := []SalesChannel{}
+	count := 0
+	//  count, _ := data.rows[0].values[7].get_i64()!
+	// for i, v in data.rows[0].values {
+	// 	println('index ${i}: ${v}')
+	// }
+	mut sales_channels := []SalesChannel{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
-		sales_channel := parse_sales_channel(data.rows[i].values)!
-		sales_channels = arrays.concat(sales_channels, sales_channel)
+		println(data.rows[i].values.len) // 8
+		sales_channels[i] = parse_sales_channel(data.rows[i].values[..6])! // V panic: array.get: index out of range (i,a.len):6, 6
 	}
-	return sales_channels
-}
-
-struct NewSalesChannelData {
-	name        string
-	description string @[omitempty]
-	is_disabled bool
+	return sales_channels, count
 }
 
 fn build_create_sales_channel_query(id_bin []u8, p NewSalesChannelData) !(string, []firebird.Value) {
