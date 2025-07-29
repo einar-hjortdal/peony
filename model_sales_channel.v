@@ -125,15 +125,10 @@ fn (mut app App) list_sales_channels(mut tx firebird.Transaction, ph ListSalesCh
 		return []SalesChannel{}, 0
 	}
 
-	count := 0
-	//  count, _ := data.rows[0].values[7].get_i64()!
-	// for i, v in data.rows[0].values {
-	// 	println('index ${i}: ${v}')
-	// }
+	count, _ := data.rows[0].values[7].get_i64()!
 	mut sales_channels := []SalesChannel{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
-		println(data.rows[i].values.len) // 8
-		sales_channels[i] = parse_sales_channel(data.rows[i].values[..6])! // V panic: array.get: index out of range (i,a.len):6, 6
+		sales_channels[i] = parse_sales_channel(data.rows[i].values[..7])!
 	}
 	return sales_channels, count
 }

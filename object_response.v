@@ -513,7 +513,7 @@ fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 }
 
 struct SalesChannelResponseEnvelope {
-	sales_channels []SalesChannelResponse
+	sales_channels []SalesChannelResponse @[json: 'salesChannels']
 	count          i64
 	offset         i32
 	fetch          i32
