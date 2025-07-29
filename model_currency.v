@@ -21,13 +21,13 @@ fn parse_currency(v []firebird.Value) !Currency {
 	}
 }
 
-fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) !([]Currency, i64) {
+fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurrenciesParams) !([]Currency, i64) {
 	query := 'SELECT code, decimal_digits, includes_tax, COUNT(*) OVER() FROM currency'
 	mut params := []firebird.Value{}
 	mut conditions := ''
 	if p.code.is_set {
 		// workaround_24757() but for strings
-		mut c := []firebird.Value{len: p.code.v.len, init: firebird.Value(0)}
+		mut c := []firebird.Value{len: p.code.v.len, init: firebird.Value(firebird.Null{})}
 		for i := 0; i < p.code.v.len; i++ {
 			c[i] = firebird.Value(p.code.v[i])
 		}
@@ -54,9 +54,7 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) !([]Currency, i
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	mut tx := app.start_transaction()!
 	data := tx.execute('${query}${conditions}${sorting}', ...params)!
-	tx.rollback()!
 
 	mut res := []Currency{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
@@ -65,16 +63,14 @@ fn (mut app App) retrieve_currencies(p RetrieveCurrenciesParams) !([]Currency, i
 
 	mut count := i64(0)
 	if res.len > 0 {
-		c, _ := data.rows[0].values[2].get_i64()!
+		c, _ := data.rows[0].values[3].get_i64()!
 		count = c
 	}
 
 	return res, count
 }
 
-fn (mut app App) update_currency(code string, data NewCurrencyData) ! {
-	mut tx := app.start_transaction()!
-	tx.execute('UPDATE currency SET includes_tax = ? WHERE code = ?', data.includes_tax,
+fn (mut app App) update_currency(mut tx firebird.Transaction, code string, p NewCurrencyData) ! {
+	tx.execute('UPDATE currency SET includes_tax = ? WHERE code = ?', p.includes_tax,
 		code)!
-	tx.commit()!
 }

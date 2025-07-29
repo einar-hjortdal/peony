@@ -7,14 +7,7 @@ import json
 // gets store details
 @['/admin/store/'; get]
 fn (mut app App) admin_store_get(mut ctx Context) veb.Result {
-	internal_store := app.store_retrieve() or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Failed to retrieve store data', err.msg()))
-	}
-
-	external_store := format_store_response(internal_store)
-
-	return ctx.json(external_store)
+	return conduit_store_get(mut app, mut ctx)
 }
 
 // updates store details

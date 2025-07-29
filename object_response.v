@@ -116,6 +116,13 @@ fn format_currency_response(c Currency) CurrencyResponse {
 	}
 }
 
+struct CurrencyResponseEnvelope {
+	currencies []CurrencyResponse
+	count      i64
+	offset     i32
+	fetch      i32
+}
+
 struct StoreResponse {
 	id                        string
 	created_at                time.Time @[json: 'createdAt']
@@ -152,6 +159,10 @@ fn format_store_response(s Store) StoreResponse {
 		locales:                   locales
 		currencies:                currencies
 	}
+}
+
+struct StoreResponseEnvelope {
+	store StoreResponse
 }
 
 struct ImageResponse {

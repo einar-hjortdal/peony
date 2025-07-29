@@ -3,6 +3,19 @@ module peony
 import net.http
 import veb
 
+fn conduit_store_get(mut app App, mut ctx Context) veb.Result {
+	internal_store := app.store_retrieve() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve store data',
+			err.msg())
+	}
+
+	r := StoreResponseEnvelope{
+		store: format_store_response(internal_store)
+	}
+
+	return ctx.json(r)
+}
+
 fn conduit_store_update(mut app App, mut ctx Context, id_bin []u8, ph StoreRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
