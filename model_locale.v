@@ -22,7 +22,7 @@ fn parse_locale(v []firebird.Value) !Locale {
 	}
 }
 
-fn (mut app App) retrieve_locales(p RetrieveLocalesParams) !([]Locale, i64) {
+fn (mut app App) retrieve_locales(mut tx firebird.Transaction, p RetrieveLocalesParams) !([]Locale, i64) {
 	query := 'SELECT id, code, COUNT(*) OVER() FROM locale'
 	mut params := []firebird.Value{}
 	mut sorting := ''
@@ -36,9 +36,7 @@ fn (mut app App) retrieve_locales(p RetrieveLocalesParams) !([]Locale, i64) {
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	mut tx := app.start_transaction()!
 	data := tx.execute('${query}${sorting}', ...params)!
-	tx.rollback()!
 
 	mut res := []Locale{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {

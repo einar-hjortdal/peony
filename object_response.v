@@ -95,6 +95,13 @@ fn format_locale_response(l Locale) LocaleResponse {
 	}
 }
 
+struct LocaleResponseEnvelope {
+	locales []LocaleResponse
+	count   i64
+	offset  i32
+	fetch   i32
+}
+
 struct CurrencyResponse {
 	code           string
 	decimal_digits i32  @[json: 'decimalDigits'; omitempty]

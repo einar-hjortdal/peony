@@ -14,7 +14,7 @@ const uploads_field_name = 'files'
 // upload files to the file provider
 // expects `multipart/form-data` payload
 @['/admin/uploads'; post]
-fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	content_type := ctx.req.header.get(http.CommonHeader.content_type) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
 	}
@@ -57,7 +57,7 @@ fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 
 // delete files from the file provider
 @['/admin/uploads/:id'; delete]
-fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
 	app.blob_provider.delete(id) or {
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to delete file',
 			err.msg())
