@@ -228,7 +228,7 @@ CREATE TABLE product_variant (
   manage_inventory BOOLEAN DEFAULT true NOT NULL,
   hs_code VARCHAR(63),
   origin_country CHAR(2),
-  mid_code VARCHAR(63),
+  mid_code VARCHAR(15),
   material VARCHAR(191),
   weight INTEGER,
   length INTEGER,
