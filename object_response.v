@@ -130,6 +130,30 @@ struct CurrencyResponseEnvelope {
 	fetch      i32
 }
 
+struct CountryResponse {
+	code      string
+	region_id string @[json: 'regionId'; omitempty]
+}
+
+fn format_country_response(c Country) !CountryResponse {
+	mut region_id := ''
+	if !c.region_id_bin.is_null {
+		region_id = id_bin_to_string(c.region_id_bin.value)!
+	}
+
+	return CountryResponse{
+		code:      c.code
+		region_id: region_id
+	}
+}
+
+struct CountryResponseListEnvelope {
+	countries []CountryResponse
+	count     i64
+	offset    i32
+	fetch     i32
+}
+
 struct StoreResponse {
 	id                        string
 	created_at                time.Time @[json: 'createdAt']

@@ -7,7 +7,7 @@ import json
 
 // lists product variants
 @['/admin/variants'; get]
-fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_variant_params(ctx.query)
 	variants := app.retrieve_product_variants(p) or {
 		ctx.res.set_status(http.Status.internal_server_error)
@@ -19,7 +19,7 @@ fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 
 // gets a product variant
 @['/admin/variants/:id'; get]
-fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
 	variant := app.retrieve_product_variant_by_id(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve variant ', err.msg()))
@@ -29,7 +29,7 @@ fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
 
 // updates a product variant
 @['/admin/variants/:id'; post]
-fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Result {
 	variant_id_bin := id_string_to_bin(id) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
@@ -84,6 +84,6 @@ fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Result {
 
 // gets the available inventory of the product variant
 @['/admin/variants/:id/inventory'; get]
-fn (mut app App) admin_variants_inventory_get(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_variants_inventory_get(mut ctx Context, id string) veb.Result {
 	return ctx.text('TODO')
 }

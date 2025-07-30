@@ -7,7 +7,7 @@ import veb
 
 // lists products
 @['/admin/products'; get]
-fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_admin_products_params(ctx.query)
 
 	mut ids_bin := [][]u8{}
@@ -64,7 +64,7 @@ fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 
 // create a product
 @['/admin/products'; post]
-fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	body := json.decode(ProductData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode ProductData', err.msg()))
@@ -80,13 +80,13 @@ fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 
 // retrieves a list of tags and the amount of times each tag is being used by products
 @['/admin/products/tag-usage'; get]
-fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
+pub fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 	return ctx.text('TODO')
 }
 
 // get a product
 @['/admin/products/:id'; get]
-fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
@@ -105,7 +105,7 @@ fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 }
 
 @['/admin/products/:id'; post]
-fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
@@ -121,7 +121,7 @@ fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
 
 // deletes a product
 @['/admin/products/:id'; delete]
-fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result {
 	app.delete_product(id) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Failed to delete product', err.msg()))
@@ -131,7 +131,7 @@ fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result
 
 // creates a product variant
 @['/admin/products/:id/variants'; post]
-fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
 	data := json.decode(ProductVariantRequest, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode VariantRequest ', err.msg()))
@@ -139,13 +139,12 @@ fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb
 
 	// TODO require p.options if options exist for this product
 	id_bin := id_string_to_bin(id) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Invalid id ', err.msg()))
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
 	app.create_product_variant(id_bin, data) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not create variant ', err.msg()))
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not create product_variant',
+			err.msg())
 	}
 
 	return ctx.json(new_peony_success())

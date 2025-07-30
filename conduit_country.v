@@ -1,0 +1,38 @@
+module peony
+
+import veb
+import net.http
+
+fn conduit_country_get(mut app App, mut ctx Context) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	internal_countries, count := model_country_list(mut tx) or {
+		tx.rollback() or {}
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not get countries',
+			err.msg())
+	}
+
+	tx.rollback() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
+			err.msg())
+	}
+
+	mut external_countries := []CountryResponse{len: internal_countries.len}
+	for i := 0; i < internal_countries.len; i++ {
+		external_countries[i] = format_country_response(internal_countries[i]) or {
+			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not retrieve countries: region_id stored in database is invalid',
+				err.msg())
+		}
+	}
+
+	r := CountryResponseListEnvelope{
+		countries: external_countries
+		count:     count
+		// TODO params
+	}
+
+	return ctx.json(r)
+}
