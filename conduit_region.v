@@ -17,11 +17,11 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 
 	if internal_regions.len == 0 {
 		tx.rollback() or {} // ignore error
-		r := ListResponse{
-			items:  []RegionResponse{}
-			count:  count
-			offset: get_offset_amount(p.offset)
-			fetch:  get_fetch_amount(p.fetch)
+		r := RegionResponseListEnvelope{
+			regions: []RegionResponse{}
+			count:   count
+			offset:  get_offset_amount(p.offset)
+			fetch:   get_fetch_amount(p.fetch)
 		}
 		return ctx.json(r)
 	}
