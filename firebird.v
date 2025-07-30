@@ -10,6 +10,8 @@ const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_file = $embed_file('migrations/seed-currency.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
+const seed_default_stock_location_name = 'default stock location'
+const seed_default_sales_channel_name = 'default sales channel'
 const seed_default_store_name = 'peony store'
 const seed_default_locale_code = 'en'
 const seed_default_currency_code = 'EUR'
@@ -92,17 +94,17 @@ fn (mut app App) insert_default_user(mut tx firebird.Transaction) ! {
 
 fn (mut app App) insert_default_stock_location(mut tx firebird.Transaction) ![]u8 {
 	log.debug('insert_default_stock_location')
-	stock_location_id, stock_location_id_bin := app.new_id()!
+	_, stock_location_id_bin := app.new_id()!
 	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', stock_location_id_bin,
-		stock_location_id)!
+		seed_default_stock_location_name)!
 	return stock_location_id_bin
 }
 
 fn (mut app App) insert_default_sales_channel(mut tx firebird.Transaction) ![]u8 {
 	log.debug('insert_default_sales_channel')
-	sales_channel_id, sales_channel_id_bin := app.new_id()!
+	_, sales_channel_id_bin := app.new_id()!
 	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id_bin,
-		sales_channel_id)!
+		seed_default_sales_channel_name)!
 	return sales_channel_id_bin
 }
 
