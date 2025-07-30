@@ -6,7 +6,7 @@ import json
 
 // lists regions
 @['/admin/regions'; get]
-fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 	// TODO validate params
 	p := extract_retrieve_regions_params(ctx.query)
 	return conduit_region_list(mut app, mut ctx, p)
@@ -14,7 +14,7 @@ fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 
 // creates a region
 @['/admin/regions/'; post]
-fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	data := json.decode(RegionRequest, ctx.req.data) or {
 		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode RegionRequest',
 			err.msg())
@@ -44,22 +44,16 @@ fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 
 // get a region
 @['/admin/regions/:region_id'; get]
-fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id string) veb.Result {
-	region_id_bin := id_string_to_bin(region_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Malformed id', err.msg())
+pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id string) veb.Result {
+	id_bin := id_string_to_bin(region_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
-
-	region := app.retrieve_region_by_id(region_id_bin) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not find region', err.msg()))
-	}
-
-	return ctx.json(region)
+	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
 }
 
 // updates a region
 @['/admin/regions/:region_id'; post]
-fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id string) veb.Result {
+pub fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}

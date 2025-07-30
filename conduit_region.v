@@ -77,12 +77,27 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		external_regions[i] = foramt_region_response(internal_regions[i])
 	}
 
-	r := ListResponse{
-		items:  external_regions
-		count:  count
-		offset: get_offset_amount(p.offset)
-		fetch:  get_fetch_amount(p.fetch)
+	r := RegionResponseListEnvelope{
+		regions: external_regions
+		count:   count
+		offset:  get_offset_amount(p.offset)
+		fetch:   get_fetch_amount(p.fetch)
 	}
+	return ctx.json(r)
+}
+
+fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Result {
+	internal_region := app.retrieve_region_by_id(id_bin) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Could not find region', err.msg()))
+	}
+
+	external_region := foramt_region_response(internal_region)
+
+	r := RegionResponseEnvelope{
+		region: external_region
+	}
+
 	return ctx.json(r)
 }
 

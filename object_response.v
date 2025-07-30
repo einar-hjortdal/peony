@@ -417,6 +417,17 @@ fn foramt_region_response(r Region) RegionResponse {
 	}
 }
 
+struct RegionResponseEnvelope {
+	region RegionResponse
+}
+
+struct RegionResponseListEnvelope {
+	regions []RegionResponse
+	count   i64
+	offset  i32
+	fetch   i32
+}
+
 struct VariantResponse {
 	id                 string
 	created_at         time.Time                    @[json: 'createdAt']
