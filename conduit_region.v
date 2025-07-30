@@ -101,7 +101,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 	return ctx.json(r)
 }
 
-fn conduit_region_create(mut app App, mut ctx Context, d RegionRequestHygienised) veb.Result {
+fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())
@@ -121,7 +121,7 @@ fn conduit_region_create(mut app App, mut ctx Context, d RegionRequestHygienised
 	return ctx.json(new_peony_success())
 }
 
-fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionRequestHygienised) veb.Result {
+fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())

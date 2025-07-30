@@ -84,23 +84,22 @@ struct ProductData {
 
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
 // for a region to limit the requests being sent to a tax provider.
-struct RegionRequest {
+struct RegionCreateRequest {
 	automatic_taxes ?bool
 	country_codes   []string
 	currency_code   string
 	includes_tax    ?bool
 	name            string
-	rate_id         string
+	// taxes
 }
 
-struct RegionRequestHygienised {
+struct RegionUpdateRequest {
 	automatic_taxes ?bool
-	country_codes   []string
-	currency_code   string
+	country_codes   ?[]string
+	currency_code   ?string
 	includes_tax    ?bool
-	name            string
-	rate_id         string
-	rate_id_bin     []u8
+	name            ?string
+	//  taxes
 }
 
 // id: if provided, the existing price will be updated. otherwise, a new price will be created.

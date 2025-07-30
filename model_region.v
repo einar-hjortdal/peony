@@ -141,11 +141,12 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 // 	tx.commit()!
 // }
 
-fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionRequestHygienised) ! {
+// TODO handle tax rate: f32 is provided, create tax rate and add relation.
+fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionCreateRequest) ! {
 	_, id_bin := app.new_id()!
 
-	mut columns := ['id', 'currency_code', 'name', 'rate_id']
-	mut params := [firebird.Value(id_bin), d.currency_code, d.name, d.rate_id_bin]
+	mut columns := ['id', 'currency_code', 'name']
+	mut params := [firebird.Value(id_bin), d.currency_code, d.name]
 
 	if automatic_taxes := d.automatic_taxes {
 		columns = arrays.concat(columns, 'automatic_taxes')
@@ -159,13 +160,30 @@ fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionRequestHyg
 
 	tx.execute('INSERT INTO region (${get_columns(columns)}) VALUES (${get_n_placeholders(i32(columns.len))})',
 		...params)!
+
+	// workaround_24757
+	params = []firebird.Value{len: d.country_codes.len, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < d.country_codes.len; i++ {
+		params[i] = d.country_codes[i]
+	}
 	tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(d.country_codes)})',
-		...d.country_codes)!
+		...params)!
 }
 
-fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8, d RegionRequestHygienised) ! {
-	mut columns := ['currency_code', 'name', 'rate_id']
-	mut params := [firebird.Value(d.currency_code), d.name, d.rate_id_bin]
+// TODO handle tax rate
+fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8, d RegionUpdateRequest) ! {
+	mut columns := []string{}
+	mut params := []firebird.Value{}
+
+	if name := d.name {
+		columns = arrays.concat(columns, 'name')
+		params = arrays.concat(params, name)
+	}
+
+	if currency_code := d.currency_code {
+		columns = arrays.concat(columns, 'currency_code')
+		params = arrays.concat(params, currency_code)
+	}
 
 	if automatic_taxes := d.automatic_taxes {
 		columns = arrays.concat(columns, 'automatic_taxes')
@@ -180,6 +198,14 @@ fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8
 	params = arrays.concat(params, region_id_bin)
 
 	tx.execute('UPDATE region SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
-	tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(d.country_codes)})',
-		...d.country_codes)!
+
+	// workaround_24757
+	if country_codes := d.country_codes {
+		params = []firebird.Value{len: country_codes.len, init: firebird.Value(firebird.Null{})}
+		for i := 0; i < country_codes.len; i++ {
+			params[i] = country_codes[i]
+		}
+		tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(country_codes)})',
+			...params)!
+	}
 }

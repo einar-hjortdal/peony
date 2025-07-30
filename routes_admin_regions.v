@@ -15,8 +15,8 @@ pub fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 // creates a region
 @['/admin/regions/'; post]
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
-	data := json.decode(RegionRequest, ctx.req.data) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode RegionRequest',
+	data := json.decode(RegionCreateRequest, ctx.req.data) or {
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode RegionCreateRequest',
 			err.msg())
 	}
 
@@ -25,21 +25,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 			'country_code is an empty array')
 	}
 
-	rate_id_bin := id_string_to_bin(data.rate_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
-	}
-
-	hygienised := RegionRequestHygienised{
-		automatic_taxes: data.automatic_taxes
-		country_codes:   data.country_codes
-		currency_code:   data.currency_code
-		includes_tax:    data.includes_tax
-		name:            data.name
-		rate_id:         data.rate_id
-		rate_id_bin:     rate_id_bin
-	}
-
-	return conduit_region_create(mut app, mut ctx, hygienised)
+	return conduit_region_create(mut app, mut ctx, data)
 }
 
 // get a region
@@ -58,29 +44,17 @@ pub fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id str
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
-	data := json.decode(RegionRequest, ctx.req.data) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode RegionRequest',
+	data := json.decode(RegionUpdateRequest, ctx.req.data) or {
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode RegionUpdateRequest',
 			err.msg())
 	}
 
-	if data.country_codes.len == 0 {
-		return handle_error(mut ctx, http.Status.bad_request, 'A region must have at least one country',
-			'country_code is an empty array')
+	if country_codes := data.country_codes {
+		if country_codes.len == 0 {
+			return handle_error(mut ctx, http.Status.bad_request, 'A region must have at least one country',
+				'country_code is an empty array')
+		}
 	}
 
-	rate_id_bin := id_string_to_bin(data.rate_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
-	}
-
-	hygienised := RegionRequestHygienised{
-		automatic_taxes: data.automatic_taxes
-		country_codes:   data.country_codes
-		currency_code:   data.currency_code
-		includes_tax:    data.includes_tax
-		name:            data.name
-		rate_id:         data.rate_id
-		rate_id_bin:     rate_id_bin
-	}
-
-	return conduit_region_update(mut app, mut ctx, region_id_bin, hygienised)
+	return conduit_region_update(mut app, mut ctx, region_id_bin, data)
 }

@@ -9,7 +9,7 @@ const tax_compounding = 'compounding'
 
 // TODO replace join tables with region_id product_id product_type_id columns
 // make the app delete tax_rate when any product/region/product_type is deleted
-// app ensures no tax_rate is created with only one of these 3 columns
+// app ensures no tax_rate is created with more than one of these 3 columns
 struct TaxRate {
 	id         string
 	id_bin     []u8
@@ -20,9 +20,6 @@ struct TaxRate {
 	code       firebird.NullString
 	name       string
 	tax_type   string
-	// region_id
-	// product_id
-	// product_type_id
 }
 
 fn parse_tax_rate(v []firebird.Value) !TaxRate {

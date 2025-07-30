@@ -58,6 +58,7 @@
 - [x] BlobProvider interface
 - [ ] EmailProvider interface
 - [ ] PaymentProvider interface
+- [ ] TaxProvider interface
 - [ ] FulfillmentProvider interface
 
 ## Changes
