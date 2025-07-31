@@ -28,11 +28,11 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		}
 	}
 
-	r := ListResponse{
-		items:  external_products
-		count:  count
-		offset: get_offset_amount(ph.offset)
-		fetch:  get_fetch_amount(ph.fetch)
+	r := ProductResponseListEnvelope{
+		products: external_products
+		count:    count
+		offset:   get_offset_amount(ph.offset)
+		fetch:    get_fetch_amount(ph.fetch)
 	}
 
 	return ctx.json(r)
@@ -89,11 +89,11 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 		}
 	}
 
-	r := ListResponse{
-		items:  external_products
-		count:  count
-		offset: get_offset_amount(ph.offset)
-		fetch:  get_fetch_amount(ph.fetch)
+	r := ProductResponseListEnvelope{
+		products: external_products
+		count:    count
+		offset:   get_offset_amount(ph.offset)
+		fetch:    get_fetch_amount(ph.fetch)
 	}
 
 	return ctx.json(r)
@@ -125,7 +125,11 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 			err.msg())
 	}
 
-	return ctx.json(external_product)
+	r := ProductResponseEnvelope{
+		product: external_product
+	}
+
+	return ctx.json(r)
 }
 
 fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -182,7 +186,11 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 			err.msg())
 	}
 
-	return ctx.json(external_product)
+	r := ProductResponseEnvelope{
+		product: external_product
+	}
+
+	return ctx.json(r)
 }
 
 // TODO return error when attempting to delete options that are used by some variant

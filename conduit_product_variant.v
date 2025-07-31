@@ -9,7 +9,7 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 			err.msg())
 	}
 
-	variants, count := model_retrieve_product_variants(mut tx, ph) or {
+	internal_variants, count := model_retrieve_product_variants(mut tx, ph) or {
 		tx.rollback() or {}
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
@@ -20,8 +20,16 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 			err.msg())
 	}
 
+	mut external_variants := []VariantResponse{len: internal_variants.len}
+	for i := 0; i < internal_variants.len; i++ {
+		external_variants[i] = format_variant_response_admin(internal_variants[i]) or {
+			return handle_error(mut ctx, http.Status.internal_server_error, error_database_data_malformed,
+				err.msg())
+		}
+	}
+
 	r := VariantResponseListEnvelope{
-		variants: variants
+		variants: external_variants
 		count:    count
 		offset:   get_offset_amount(ph.offset)
 		fetch:    get_fetch_amount(ph.fetch)
@@ -36,7 +44,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 			err.msg())
 	}
 
-	variants, count := model_retrieve_product_variants(mut tx, ph) or {
+	internal_variants, count := model_retrieve_product_variants(mut tx, ph) or {
 		tx.rollback() or {}
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
@@ -52,8 +60,13 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 			'count == 0')
 	}
 
+	external_variant := format_variant_response_admin(internal_variants[0]) or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_database_data_malformed,
+			err.msg())
+	}
+
 	r := VariantResponseEnvelope{
-		variant: variants[0]
+		variant: external_variant
 	}
 
 	return ctx.json(r)

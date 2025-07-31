@@ -10,6 +10,7 @@ const error_header_invalid = 'Invalid header'
 const error_transaction_start = 'Failed to start transaction'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
+const error_database_data_malformed = 'Data retrieved from database is malformed'
 
 struct PeonySuccess {
 	success bool
@@ -526,12 +527,17 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 	}
 }
 
+fn format_variant_response_admin(v Variant) !VariantResponse {
+	variants_prices_map := map[string]Prices{}
+	return format_variant_response(v, variants_prices_map)
+}
+
 struct VariantResponseEnvelope {
-	variant Variant
+	variant VariantResponse
 }
 
 struct VariantResponseListEnvelope {
-	variants []Variant
+	variants []VariantResponse
 	count    i64
 	offset   i32
 	fetch    i32
@@ -638,6 +644,17 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 fn format_product_response_admin(p Product) !ProductResponse {
 	variant_prices_map := map[string]Prices{} // no prices needed here
 	return format_product_response_store(p, variant_prices_map)
+}
+
+struct ProductResponseEnvelope {
+	product ProductResponse
+}
+
+struct ProductResponseListEnvelope {
+	products []ProductResponse
+	count    i64
+	offset   i32
+	fetch    i32
 }
 
 struct UploadsUploadResponseEnvelope {
