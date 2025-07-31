@@ -222,6 +222,7 @@ struct RetrieveProductParams {
 	sales_channel_ids ZeroArrayString
 	region_id         ZeroString
 	currency_code     ZeroString
+	with_deleted      ZeroBool
 	offset            ZeroI32
 	fetch             ZeroI32
 	order             ZeroString
@@ -271,6 +272,7 @@ struct RetrieveProductParamsHygienised {
 	region_id             ZeroString
 	region_id_bin         []u8
 	currency_code         ZeroString
+	with_deleted          ZeroBool
 	offset                ZeroI32
 	fetch                 ZeroI32
 	order                 ZeroString

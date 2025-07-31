@@ -82,17 +82,16 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductPara
 	query := 'SELECT p.id, COUNT(*) OVER() FROM product p'
 	mut params := []firebird.Value{}
 
-	// TODO change these joins into EXISTS
 	mut joins := ''
-	joins = appendln(joins, 'LEFT JOIN product_variant pv ON pv.product_id = p.id')
-	joins = appendln(joins, 'LEFT JOIN product_variant_money_amount pvm ON pvm.variant_id = pv.id')
-	joins = appendln(joins, 'LEFT JOIN money_amount ma ON ma.id = pvm.money_amount_id')
+	// TODO change these joins into EXISTS
 	joins = appendln(joins, 'LEFT JOIN product_tag_product pt ON pt.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_category_product pcp ON pcp.product_id = p.id')
 	joins = appendln(joins, 'LEFT JOIN product_sales_channel psc ON psc.product_id = p.id')
 
 	mut conditions := ''
-	conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
+	if !ph.with_deleted.is_set || (ph.with_deleted.is_set && !ph.with_deleted.v) {
+		conditions = appendln(conditions, 'WHERE p.deleted_at IS NULL')
+	}
 
 	if ph.ids.is_set {
 		conditions = appendln(conditions, 'AND p.id IN (${get_n_placeholders(i32(ph.ids_bin.len))})')

@@ -1,6 +1,5 @@
 module peony
 
-import arrays
 import net.http
 import json
 import veb
@@ -10,23 +9,12 @@ import veb
 pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_admin_products_params(ctx.query)
 
-	mut ids_bin := [][]u8{}
-	if p.ids.is_set {
-		for i := 0; i < p.ids.v.len; i++ {
-			id_bin := id_string_to_bin(p.ids.v[i]) or {
-				return handle_error(mut ctx, http.Status.bad_request, error_invalid_id,
-					err.msg())
-			}
-			ids_bin = arrays.concat(ids_bin, id_bin)
-		}
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
-	mut region_id_bin := []u8{}
-	if p.region_id.is_set {
-		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id',
-				err.msg())
-		}
+	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id', err.msg())
 	}
 
 	ph := RetrieveProductParamsHygienised{
@@ -52,6 +40,7 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
 		currency_code: p.currency_code
+		with_deleted:  p.with_deleted
 		offset:        p.offset
 		fetch:         p.fetch
 		order:         p.order

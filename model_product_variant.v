@@ -179,12 +179,8 @@ fn model_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveProduc
 		params = arrays.concat(params, p.inventory_quantity.v)
 	}
 
-	if p.with_deleted.is_set {
-		if p.with_deleted.v {
-			c = arrays.concat(c, 'WHERE deleted_at IS NOT NULL')
-		} else {
-			c = arrays.concat(c, 'WHERE deleted_at IS NULL')
-		}
+	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
+		c = arrays.concat(c, 'WHERE deleted_at IS NULL')
 	}
 
 	mut sorting := ''
