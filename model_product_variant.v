@@ -321,6 +321,11 @@ fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_
 		params = arrays.concat(params, mid_code)
 	}
 
+	if material := p.material {
+		columns = arrays.concat(columns, 'material')
+		params = arrays.concat(params, material)
+	}
+
 	if weight := p.weight {
 		columns = arrays.concat(columns, 'weight')
 		params = arrays.concat(params, weight)
@@ -420,6 +425,11 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	if mid_code := p.mid_code {
 		columns = arrays.concat(columns, 'mid_code')
 		params = arrays.concat(params, mid_code)
+	}
+
+	if material := p.material {
+		columns = arrays.concat(columns, 'material')
+		params = arrays.concat(params, material)
 	}
 
 	if weight := p.weight {

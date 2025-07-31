@@ -35,8 +35,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Resu
 	}
 
 	p := json.decode(ProductVariantRequest, ctx.req.data) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode VariantRequest', err.msg()))
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode VariantRequest',
+			err.msg())
 	}
 
 	// TODO validate all ids in ProductVariantRequest

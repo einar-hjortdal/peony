@@ -512,6 +512,7 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		hs_code:            v.hs_code
 		origin_country:     v.origin_country
 		mid_code:           v.mid_code
+		material:           v.material
 		weight:             v.weight
 		length:             v.length
 		height:             v.height

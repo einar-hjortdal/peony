@@ -150,6 +150,7 @@ struct ProductVariantRequest {
 	manage_inventory   ?bool   @[json: 'manageInventory']
 	origin_country     ?string @[json: 'originCountry']
 	mid_code           ?string @[json: 'midCode']
+	material           ?string
 	weight             ?i32
 	length             ?i32
 	height             ?i32
