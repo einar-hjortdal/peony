@@ -170,6 +170,7 @@ struct RetrieveVariantParams {
 	currency_code      ZeroString // TODO join money_amount on id = ma.variant_id
 	title              ZeroString
 	inventory_quantity ZeroI32
+	with_deleted       ZeroBool
 	offset             ZeroI32
 	fetch              ZeroI32
 	order              ZeroString
@@ -199,6 +200,7 @@ struct RetrieveVariantParamsHygienised {
 	currency_code      ZeroString
 	title              ZeroString
 	inventory_quantity ZeroI32
+	with_deleted       ZeroBool
 	offset             ZeroI32
 	fetch              ZeroI32
 	order              ZeroString

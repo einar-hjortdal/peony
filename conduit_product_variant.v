@@ -12,8 +12,8 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin [
 	if p.title != none || p.sku != none || p.ean != none || p.upc != none || p.barcode != none
 		|| p.hs_code != none || p.variant_rank != none || p.inventory_quantity != none
 		|| p.allow_backorder != none || p.manage_inventory != none || p.origin_country != none
-		|| p.mid_code != none || p.weight != none || p.length != none || p.height != none
-		|| p.width != none {
+		|| p.mid_code != none || p.material != none || p.weight != none || p.length != none
+		|| p.height != none || p.width != none {
 		do_update_product_variant(mut tx, variant_id_bin, p) or {
 			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant',
 				err.msg())
@@ -26,6 +26,26 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin [
 			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant money_amount',
 				err.msg())
 		}
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
+			err.msg())
+	}
+
+	return success(mut ctx)
+}
+
+fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin []u8) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	model_product_variant_delete(mut tx, variant_id_bin) or {
+		tx.rollback() or {}
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not delete product_variant',
+			err.msg())
 	}
 
 	tx.commit() or {

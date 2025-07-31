@@ -82,6 +82,15 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, id string) veb.Resu
 	return conduit_product_variant_update(mut app, mut ctx, variant_id_bin, p, mahs)
 }
 
+// deletes a product variant
+@['/admin/variants/:id'; delete]
+pub fn (mut app App) admin_variants_id_delete(mut ctx Context, id string) veb.Result {
+	variant_id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+	}
+	return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin)
+}
+
 // gets the available inventory of the product variant
 @['/admin/variants/:id/inventory'; get]
 pub fn (mut app App) admin_variants_inventory_get(mut ctx Context, id string) veb.Result {

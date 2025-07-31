@@ -153,6 +153,14 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 		params = arrays.concat(params, p.inventory_quantity.v)
 	}
 
+	if p.with_deleted.is_set {
+		if p.with_deleted.v {
+			c = arrays.concat(c, 'WHERE deleted_at IS NOT NULL')
+		} else {
+			c = arrays.concat(c, 'WHERE deleted_at IS NULL')
+		}
+	}
+
 	mut sorting := ''
 	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
 
@@ -518,4 +526,9 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 				variant_id_bin, money_amount_id_bin)!
 		}
 	}
+}
+
+fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
+	tx.execute('UPDATE product_variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		variant_id_bin)!
 }

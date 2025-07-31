@@ -253,7 +253,7 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		height,
 		width
 		FROM product_variant
-		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))}) AND deleted_at IS NULL',
 		...workaround_24757(ids_bin))!
 
 	if data.rows.len == 0 {
