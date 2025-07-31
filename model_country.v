@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import einar_hjortdal.firebird
 
 struct Country {
@@ -7,8 +8,22 @@ struct Country {
 	region_id_bin firebird.NullArrayU8
 }
 
-fn model_country_list(mut tx firebird.Transaction) !([]Country, i64) {
-	data := tx.execute('SELECT code, region_id, COUNT(*) OVER() FROM country')!
+fn model_country_list(mut tx firebird.Transaction, p ListCountriesParams) !([]Country, i64) {
+	mut query := 'SELECT code, region_id, COUNT(*) OVER() FROM country'
+	mut params := []firebird.Value{}
+
+	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY code ${get_sorting_order(p.order)}')
+
+	if p.offset.is_set {
+		sorting = appendln(sorting, 'OFFSET ? ROWS')
+		params = arrays.concat(params, p.offset.v)
+	}
+
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	params = arrays.concat(params, get_fetch_amount(p.fetch))
+
+	data := tx.execute('${query}${sorting}', ...params)!
 
 	mut countries := []Country{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {

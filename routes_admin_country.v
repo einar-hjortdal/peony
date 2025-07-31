@@ -4,5 +4,6 @@ import veb
 
 @['/admin/countries'; GET]
 fn (mut app App) admin_countries_get(mut ctx Context) veb.Result {
-	return conduit_country_get(mut app, mut ctx)
+	p := extract_retrieve_countries_params(ctx.query)
+	return conduit_country_get(mut app, mut ctx, p)
 }

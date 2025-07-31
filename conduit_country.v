@@ -3,13 +3,13 @@ module peony
 import veb
 import net.http
 
-fn conduit_country_get(mut app App, mut ctx Context) veb.Result {
+fn conduit_country_get(mut app App, mut ctx Context, p ListCountriesParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())
 	}
 
-	internal_countries, count := model_country_list(mut tx) or {
+	internal_countries, count := model_country_list(mut tx, p) or {
 		tx.rollback() or {}
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not get countries',
 			err.msg())
@@ -31,7 +31,8 @@ fn conduit_country_get(mut app App, mut ctx Context) veb.Result {
 	r := CountryResponseListEnvelope{
 		countries: external_countries
 		count:     count
-		// TODO params
+		offset:    get_offset_amount(p.offset)
+		fetch:     get_fetch_amount(p.fetch)
 	}
 
 	return ctx.json(r)

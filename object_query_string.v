@@ -86,6 +86,20 @@ fn extract_retrieve_regions_params(p map[string]string) ListRegionParams {
 	}
 }
 
+struct ListCountriesParams {
+	offset ZeroI32
+	fetch  ZeroI32
+	order  ZeroString
+}
+
+fn extract_retrieve_countries_params(p map[string]string) ListCountriesParams {
+	return ListCountriesParams{
+		offset: zero_i32(p, 'offset')
+		fetch:  zero_i32(p, 'fetch')
+		order:  zero_string(p, 'order')
+	}
+}
+
 struct RetrieveCurrenciesParams {
 	code         ZeroArrayString
 	includes_tax ZeroBool
