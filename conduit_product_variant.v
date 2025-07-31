@@ -3,6 +3,62 @@ module peony
 import net.http
 import veb
 
+fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	variants, count := model_retrieve_product_variants(mut tx, ph) or {
+		tx.rollback() or {}
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
+	}
+
+	tx.rollback() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
+			err.msg())
+	}
+
+	r := VariantResponseListEnvelope{
+		variants: variants
+		count:    count
+		offset:   get_offset_amount(ph.offset)
+		fetch:    get_fetch_amount(ph.fetch)
+	}
+
+	return ctx.json(r)
+}
+
+fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	variants, count := model_retrieve_product_variants(mut tx, ph) or {
+		tx.rollback() or {}
+		ctx.res.set_status(http.Status.internal_server_error)
+		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
+	}
+
+	tx.rollback() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
+			err.msg())
+	}
+
+	if count == 0 {
+		return handle_error(mut ctx, http.Status.not_found, 'No variant exists with the given id',
+			'count == 0')
+	}
+
+	r := VariantResponseEnvelope{
+		variant: variants[0]
+	}
+
+	return ctx.json(r)
+}
+
 fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin []u8, p ProductVariantRequest, ma []MoneyAmountRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,

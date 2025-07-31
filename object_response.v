@@ -526,6 +526,17 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 	}
 }
 
+struct VariantResponseEnvelope {
+	variant Variant
+}
+
+struct VariantResponseListEnvelope {
+	variants []Variant
+	count    i64
+	offset   i32
+	fetch    i32
+}
+
 struct SalesChannelResponse {
 	id          string
 	created_at  time.Time @[json: 'createdAt']

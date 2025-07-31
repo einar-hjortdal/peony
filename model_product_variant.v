@@ -89,7 +89,36 @@ fn parse_variant(v []firebird.Value) !Variant {
 	}
 }
 
-fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []firebird.Value) {
+fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]MoneyAmount {
+	// extract the ids of the retrieved variants to batch fetch money_amounts
+	mut ids_bin := [][]u8{len: variants.len}
+	for i := 0; i < variants.len; i++ {
+		ids_bin[i] = variants[i].id_bin
+	}
+
+	money_amounts_data := tx.execute('SELECT
+		ma.id,
+		ma.currency_code,
+		ma.amount,
+		ma.min_quantity,
+		ma.max_quantity,
+		ma.price_list_id,
+		ma.region_id,
+		pvma.variant_id
+		FROM money_amount ma
+		JOIN product_variant_money_amount pvma ON pvma.money_amount_id = ma.id
+		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		...workaround_24757(ids_bin))!
+
+	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
+	for i := 0; i < money_amounts_data.rows.len; i++ {
+		money_amounts[i] = parse_money_amount(money_amounts_data.rows[i].values)!
+	}
+
+	return money_amounts
+}
+
+fn model_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]Variant, i64) {
 	base_query := 'SELECT 
 		id,
 		created_at,
@@ -112,20 +141,17 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 		weight,
 		length,
 		height,
-		width
+		width,
+		COUNT(*) OVER()
 		FROM product_variant'
 
 	mut params := []firebird.Value{}
 
 	mut c := []string{}
 
-	if p.id.is_set {
-		for i := 0; i < p.id.v.len; i++ {
-			id := p.id.v[i]
-			id_bin := id_string_to_bin(id)!
-			params = arrays.concat(params, id_bin)
-		}
-		c = arrays.concat(c, 'WHERE id IN ${get_n_placeholders(i32(p.id.v.len))}')
+	if p.ids.is_set {
+		params = arrays.concat(params, p.ids_bin)
+		c = arrays.concat(c, 'WHERE id IN ${get_n_placeholders(i32(p.ids.v.len))}')
 	}
 
 	if p.allow_backorder.is_set {
@@ -172,51 +198,18 @@ fn build_query_retrieve_product_variants(p RetrieveVariantParams) !(string, []fi
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	return '${base_query}${get_conditions(c)}${sorting}', params
-}
-
-fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]MoneyAmount {
-	// extract the ids of the retrieved variants to batch fetch money_amounts
-	mut ids_bin := [][]u8{len: variants.len}
-	for i := 0; i < variants.len; i++ {
-		ids_bin[i] = variants[i].id_bin
-	}
-
-	money_amounts_data := tx.execute('SELECT
-		ma.id,
-		ma.currency_code,
-		ma.amount,
-		ma.min_quantity,
-		ma.max_quantity,
-		ma.price_list_id,
-		ma.region_id,
-		pvma.variant_id
-		FROM money_amount ma
-		JOIN product_variant_money_amount pvma ON pvma.money_amount_id = ma.id
-		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
-		...workaround_24757(ids_bin))!
-
-	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
-	for i := 0; i < money_amounts_data.rows.len; i++ {
-		money_amounts[i] = parse_money_amount(money_amounts_data.rows[i].values)!
-	}
-
-	return money_amounts
-}
-
-fn do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantParams) ![]Variant {
-	query, params := build_query_retrieve_product_variants(p)!
-	data := tx.execute(query, ...params)!
+	data := tx.execute('${base_query}${get_conditions(c)}${sorting}', ...params)!
 
 	// exit early if no rows returned
 	if data.rows.len == 0 {
-		return []Variant{}
+		return []Variant{}, 0
 	}
 
 	mut variants := []Variant{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
 		variants[i] = parse_variant(data.rows[i].values)!
 	}
+	count, _ := data.rows[0].values[22].get_i64()!
 
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations
@@ -232,38 +225,7 @@ fn do_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveVariantPa
 		}
 	}
 
-	return variants
-}
-
-fn (mut app App) retrieve_product_variants(p RetrieveVariantParams) ![]Variant {
-	mut tx := app.start_transaction()!
-	variants := do_retrieve_product_variants(mut tx, p) or {
-		tx.rollback()!
-		return err
-	}
-
-	tx.rollback()!
-	return variants
-}
-
-fn (mut app App) retrieve_product_variant_by_id(variant_id string) !Variant {
-	m := {
-		'id': variant_id
-	}
-	p := extract_retrieve_variant_params(m)
-
-	mut tx := app.start_transaction()!
-	variants := app.retrieve_product_variants(p) or {
-		tx.rollback()!
-		return err
-	}
-	tx.rollback()!
-
-	if variants.len == 0 {
-		return error('No variant found with the given id')
-	}
-
-	return variants[0]
+	return variants, count
 }
 
 fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8, id_bin []u8, p ProductVariantRequest) ! {

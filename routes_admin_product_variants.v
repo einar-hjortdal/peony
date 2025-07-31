@@ -9,22 +9,51 @@ import json
 @['/admin/variants'; get]
 pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_variant_params(ctx.query)
-	variants := app.retrieve_product_variants(p) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
+
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 
-	return ctx.json(variants)
+	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+	}
+
+	ph := RetrieveProductVariantParamsHygienised{
+		ids:                p.ids
+		ids_bin:            ids_bin
+		allow_backorder:    p.allow_backorder
+		manage_inventory:   p.manage_inventory
+		region_id:          p.region_id
+		region_id_bin:      region_id_bin
+		currency_code:      p.currency_code
+		title:              p.title
+		inventory_quantity: p.inventory_quantity
+		with_deleted:       p.with_deleted
+		offset:             p.offset
+		fetch:              p.fetch
+		order:              p.order
+	}
+
+	return conduit_product_variants_get(mut app, mut ctx, ph)
 }
 
 // gets a product variant
 @['/admin/variants/:id'; get]
 pub fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
-	variant := app.retrieve_product_variant_by_id(id) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not retrieve variant ', err.msg()))
+	id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
-	return ctx.json(variant)
+
+	m := {
+		'ids': id
+	}
+	p := extract_retrieve_variant_params(m)
+	ph := RetrieveProductVariantParamsHygienised{
+		ids:     p.ids
+		ids_bin: [id_bin]
+	}
+
+	return conduit_product_variant_get(mut app, mut ctx, ph)
 }
 
 // updates a product variant
@@ -89,10 +118,4 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, id string) veb.Re
 		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
 	}
 	return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin)
-}
-
-// gets the available inventory of the product variant
-@['/admin/variants/:id/inventory'; get]
-pub fn (mut app App) admin_variants_inventory_get(mut ctx Context, id string) veb.Result {
-	return ctx.text('TODO')
 }

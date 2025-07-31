@@ -228,6 +228,7 @@ fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []Product
 	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
 }
 
+// TODO use do_retrieve_product_variants instead
 fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
 	data := tx.execute('SELECT
 		id,
