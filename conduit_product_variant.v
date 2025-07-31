@@ -9,7 +9,7 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 			err.msg())
 	}
 
-	internal_variants, count := model_retrieve_product_variants(mut tx, ph) or {
+	internal_variants, count := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
@@ -44,7 +44,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 			err.msg())
 	}
 
-	internal_variants, count := model_retrieve_product_variants(mut tx, ph) or {
+	internal_variants, count := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		ctx.res.set_status(http.Status.internal_server_error)
 		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))

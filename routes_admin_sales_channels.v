@@ -10,7 +10,7 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_sales_channels_params(ctx.query)
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
 	ph := ListSalesChannelsParamsHygienised{
@@ -30,7 +30,7 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 @['/admin/sales-channels/:id'; get]
 pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 	ids_bin := [id_bin]
 	return conduit_sales_channels_get_by_id(mut app, mut ctx, ids_bin)

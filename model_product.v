@@ -610,14 +610,6 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id_bin []u8, p P
 	if translations := p.translations {
 		app.do_update_product_translations(mut tx, id_bin, translations)!
 	}
-
-	if options := p.options {
-		if options.len == 0 {
-			app.do_delete_product_options(mut tx, id_bin)!
-		} else {
-			app.do_update_product_options(mut tx, id_bin, options)!
-		}
-	}
 }
 
 fn (mut app App) delete_product(id string) ! {
@@ -626,25 +618,3 @@ fn (mut app App) delete_product(id string) ! {
 	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
 }
-
-fn (mut app App) do_create_product_option(mut tx firebird.Transaction, id_bin []u8, product_id_bin []u8, p ProductOptionData) ! {
-	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
-}
-
-// fn (mut app App) update_product_option_translation(id string, p ProductOptionTranslationData) ! {
-// 	id_bin := id_string_to_bin(id)!
-// 	mut tx := app.start_transaction()!
-// 	tx.execute('UPDATE product_option_translations (product_option_id, locale_id, title)
-// 		Values(?, ?, ?)',
-// 		id_bin, p.locale_id, p.title)!
-// 	tx.commit()!
-// }
-
-// fn (mut app App) delete_product_option_translation(id string, locale_id string) ! {
-// 	id_bin := id_string_to_bin(id)!
-// 	mut tx := app.start_transaction()!
-// 	tx.execute('UPDATE product_option_translations SET deleted_at = CURRENT_TIMESTAMP
-// 		WHERE product_option_id = ? AND locale_id = ?',
-// 		id_bin, locale_id)!
-// 	tx.commit()!
-// }

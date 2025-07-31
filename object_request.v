@@ -61,7 +61,11 @@ struct ProductOptionTranslationData {
 	locale_id string @[json: 'localeId']
 }
 
-struct ProductOptionData {
+struct ProductOptionRequest {
+	translations []ProductOptionTranslationData
+}
+
+struct ProductOptionValueData {
 	id           ?string
 	translations []ProductOptionTranslationData
 }
@@ -79,7 +83,6 @@ struct ProductData {
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?[]ProductTranslationData
-	options           ?[]ProductOptionData
 }
 
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled

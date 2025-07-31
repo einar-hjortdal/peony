@@ -10,7 +10,7 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_admin_products_params(ctx.query)
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
 	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
@@ -77,7 +77,7 @@ pub fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 @['/admin/products/:id'; get]
 pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
 	id_zas := ZeroArrayString{
@@ -96,7 +96,7 @@ pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Resul
 @['/admin/products/:id'; post]
 pub fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
 	p := json.decode(ProductData, ctx.req.data) or {
@@ -128,7 +128,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string)
 
 	// TODO require p.options if options exist for this product
 	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
 	app.create_product_variant(id_bin, data) or {
@@ -137,4 +137,19 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string)
 	}
 
 	return ctx.json(new_peony_success())
+}
+
+// creates a product option
+@['/admin/products/:id/options'; post]
+pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) veb.Result {
+	id_bin := id_string_to_bin(id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	p := json.decode(ProductOptionRequest, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Could not decode ProductOptionRequest', err.msg()))
+	}
+
+	return conduit_product_option_create(mut app, mut ctx, id_bin, p)
 }

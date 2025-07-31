@@ -118,7 +118,7 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 	return money_amounts
 }
 
-fn model_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]Variant, i64) {
+fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]Variant, i64) {
 	base_query := 'SELECT 
 		id,
 		created_at,
@@ -224,6 +224,8 @@ fn model_retrieve_product_variants(mut tx firebird.Transaction, p RetrieveProduc
 	return variants, count
 }
 
+// TODO when creating a variant add all existing product options and give a default option value
+// let frontend enforce values?
 fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8, id_bin []u8, p ProductVariantRequest) ! {
 	mut columns := ['id', 'product_id']
 	mut params := [firebird.Value(id_bin), product_id_bin]

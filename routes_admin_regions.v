@@ -32,7 +32,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
 }
@@ -41,7 +41,7 @@ pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id stri
 @['/admin/regions/:region_id'; post]
 pub fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_invalid_id, err.msg())
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
 	data := json.decode(RegionUpdateRequest, ctx.req.data) or {

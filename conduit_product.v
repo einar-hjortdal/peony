@@ -195,16 +195,58 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 
 // TODO return error when attempting to delete options that are used by some variant
 // TODO when option is created, give all existing variants a deffault option value
-fn conduit_products_update(mut app App, mut ctx Context, id_bin []u8, p ProductData) veb.Result {
+fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, p ProductData) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())
 	}
 
-	app.do_update_product(mut tx, id_bin, p) or {
+	app.do_update_product(mut tx, product_id_bin, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to update product',
 			err.msg())
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
+			err.msg())
+	}
+
+	return ctx.json(new_peony_success())
+}
+
+// TODO validate p in route
+fn conduit_product_option_create(mut app App, mut ctx Context, product_id_bin []u8, p ProductOptionRequest) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	_, id_bin := app.new_id() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_id_generation,
+			err.msg())
+	}
+
+	model_product_option_create(mut tx, id_bin, product_id_bin) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option',
+			err.msg())
+	}
+
+	model_product_option_update(mut tx, id_bin, p) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option: could not insert translations',
+			err.msg())
+	}
+
+	product_variants, count := model_product_variants_retrieve(mut tx) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not add product_option to product_variants: could not retrieve product_variants',
+			err.msg())
+	}
+
+	if count > 0 {
+		// TODO add option to variants, add 'default value' product_option_value
 	}
 
 	tx.commit() or {
