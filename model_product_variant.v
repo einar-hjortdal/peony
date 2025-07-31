@@ -359,88 +359,90 @@ fn (mut app App) create_product_variant(product_id_bin []u8, p ProductVariantReq
 
 fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p ProductVariantRequest) ! {
 	mut query := 'UPDATE product_variant SET'
+	mut columns := []string{}
 	mut params := []firebird.Value{}
 
 	if title := p.title {
-		query = appendln(query, 'title = ?')
+		columns = arrays.concat(columns, 'title')
 		params = arrays.concat(params, title)
 	}
 
 	if sku := p.sku {
-		query = appendln(query, 'sku = ?')
+		columns = arrays.concat(columns, 'sku')
 		params = arrays.concat(params, sku)
 	}
 
 	if barcode := p.barcode {
-		query = appendln(query, 'barcode = ?')
+		columns = arrays.concat(columns, 'barcode')
 		params = arrays.concat(params, barcode)
 	}
 
 	if ean := p.ean {
-		query = appendln(query, 'ean = ?')
+		columns = arrays.concat(columns, 'ean')
 		params = arrays.concat(params, ean)
 	}
 
 	if upc := p.upc {
-		query = appendln(query, 'upc = ?')
+		columns = arrays.concat(columns, 'upc')
 		params = arrays.concat(params, upc)
 	}
 
 	if variant_rank := p.variant_rank {
-		query = appendln(query, 'variant_rank = ?')
+		columns = arrays.concat(columns, 'variant_rank')
 		params = arrays.concat(params, variant_rank)
 	}
 
 	if inventory_quantity := p.inventory_quantity {
-		query = appendln(query, 'inventory_quantity = ?')
+		columns = arrays.concat(columns, 'inventory_quantity')
 		params = arrays.concat(params, inventory_quantity)
 	}
 
 	if allow_backorder := p.allow_backorder {
-		query = appendln(query, 'allow_backorder = ?')
+		columns = arrays.concat(columns, 'allow_backorder')
 		params = arrays.concat(params, allow_backorder)
 	}
 
 	if manage_inventory := p.manage_inventory {
-		query = appendln(query, 'manage_inventory = ?')
+		columns = arrays.concat(columns, 'manage_inventory')
 		params = arrays.concat(params, manage_inventory)
 	}
 
 	if hs_code := p.hs_code {
-		query = appendln(query, 'hs_code = ?')
+		columns = arrays.concat(columns, 'hs_code')
 		params = arrays.concat(params, hs_code)
 	}
 
 	if origin_country := p.origin_country {
-		query = appendln(query, 'origin_country = ?')
+		columns = arrays.concat(columns, 'origin_country')
 		params = arrays.concat(params, origin_country)
 	}
 
 	if mid_code := p.mid_code {
-		query = appendln(query, 'mid_code = ?')
+		columns = arrays.concat(columns, 'mid_code')
 		params = arrays.concat(params, mid_code)
 	}
 
 	if weight := p.weight {
-		query = appendln(query, 'weight = ?')
+		columns = arrays.concat(columns, 'weight')
 		params = arrays.concat(params, weight)
 	}
 
 	if length := p.length {
-		query = appendln(query, 'length = ?')
+		columns = arrays.concat(columns, 'length')
 		params = arrays.concat(params, length)
 	}
 
 	if height := p.height {
-		query = appendln(query, 'height = ?')
+		columns = arrays.concat(columns, 'height')
 		params = arrays.concat(params, height)
 	}
 
 	if width := p.width {
-		query = appendln(query, 'width = ?')
+		columns = arrays.concat(columns, 'width')
 		params = arrays.concat(params, width)
 	}
 
+	query = appendln(query, get_set_columns(columns))
 	query = appendln(query, 'WHERE id = ?')
 	params = arrays.concat(params, variant_id_bin)
 
