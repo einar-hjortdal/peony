@@ -249,7 +249,7 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 		product_option_id, product_option_id_bin, p)
 }
 
-// creates a product option
+// deletes a product option
 @['/admin/products/:product_id/options/:option_id'; delete]
 pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id string, product_option_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {

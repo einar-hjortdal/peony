@@ -301,11 +301,16 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 	}
 
 	if count > 1 {
+		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.bad_request, 'Refusing to delete product_option: first delete all variants',
 			'more than one variant exist')
 	}
 
-	// TODO remove product option, translations and values will cascade
+	model_product_option_delete(mut tx, product_option_id_bin) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not delete product_option',
+			err.msg())
+	}
 
 	tx.commit() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,

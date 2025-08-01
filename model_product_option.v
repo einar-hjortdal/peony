@@ -231,6 +231,10 @@ fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, p Produ
 	tx.execute(query, ...params)!
 }
 
+fn model_product_option_delete(mut tx firebird.Transaction, id_bin []u8) ! {
+	tx.execute('DELETE FROM product_option WHERE id = ?', id_bin)!
+}
+
 // used when creating a new product_option
 // each product_variant must have one product_option_value for each existing product_option
 // this function creates a product_option_value for each existing variant
@@ -277,10 +281,3 @@ fn model_product_option_value_create_default(mut tx firebird.Transaction, produc
 			VALUES (s.product_option_value_id, s.locale_id, s.name)',
 		...params)!
 }
-
-// used when cereating a new product_variant
-// each product_variant must have one product_option_value for each existing product_option
-// this function creates a product_option_value for each existing product_option
-// TODO unneeded: enforce the user to provide the values
-// fn model_product_option_value_create_default(mut tx firebird.Transaction, product_option_value_id_bin []u8, product_option_ids_bin [][]u8, variant_id_bin []u8) ! {
-// }
