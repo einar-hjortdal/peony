@@ -110,8 +110,6 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
-	println('bro')
-
 	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
 	for i := 0; i < money_amounts_data.rows.len; i++ {
 		money_amounts[i] = parse_money_amount(money_amounts_data.rows[i].values)!
