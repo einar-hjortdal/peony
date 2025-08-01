@@ -110,6 +110,8 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
+	println('bro')
+
 	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
 	for i := 0; i < money_amounts_data.rows.len; i++ {
 		money_amounts[i] = parse_money_amount(money_amounts_data.rows[i].values)!
@@ -150,42 +152,42 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	mut c := []string{}
 
 	if p.ids.is_set {
-		c = arrays.concat(c, 'WHERE id IN ${get_n_placeholders(i32(p.ids.v.len))}')
-		params = arrays.concat(params, p.ids_bin)
+		c = arrays.concat(c, 'id IN (${get_n_placeholders(i32(p.ids.v.len))})')
+		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
 	if p.product_ids.is_set {
-		c = arrays.concat(c, 'WHERE product_id IN ${get_n_placeholders(i32(p.product_ids.v.len))}')
-		params = arrays.concat(params, p.product_ids_bin)
+		c = arrays.concat(c, 'product_id IN (${get_n_placeholders(i32(p.product_ids.v.len))})')
+		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
 	}
 
 	if p.allow_backorder.is_set {
-		c = arrays.concat(c, 'WHERE allow_backorder = ?')
+		c = arrays.concat(c, 'allow_backorder = ?')
 		params = arrays.concat(params, p.allow_backorder.v)
 	}
 
 	if p.manage_inventory.is_set {
-		c = arrays.concat(c, 'WHERE manage_inventory = ?')
+		c = arrays.concat(c, 'manage_inventory = ?')
 		params = arrays.concat(params, p.manage_inventory.v)
 	}
 
 	if p.region_id.is_set {
-		c = arrays.concat(c, 'WHERE region_id = ?')
+		c = arrays.concat(c, 'region_id = ?')
 		params = arrays.concat(params, p.region_id)
 	}
 
 	if p.title.is_set {
-		c = arrays.concat(c, 'WHERE title = ?')
+		c = arrays.concat(c, 'title = ?')
 		params = arrays.concat(params, p.title)
 	}
 
 	if p.inventory_quantity.is_set {
-		c = arrays.concat(c, 'WHERE inventory_quantity = ?')
+		c = arrays.concat(c, 'inventory_quantity = ?')
 		params = arrays.concat(params, p.inventory_quantity.v)
 	}
 
 	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
-		c = arrays.concat(c, 'WHERE deleted_at IS NULL')
+		c = arrays.concat(c, 'deleted_at IS NULL')
 	}
 
 	mut sorting := ''
@@ -199,7 +201,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	data := tx.execute('${base_query}${get_conditions(c)}${sorting}', ...params)!
+	data := tx.execute('${base_query}${get_where_conditions(c)}${sorting}', ...params)!
 
 	// exit early if no rows returned
 	if data.rows.len == 0 {

@@ -56,15 +56,6 @@ struct ProductTranslationData {
 	description ?string
 }
 
-struct ProductOptionTranslationData {
-	title     string
-	locale_id string @[json: 'localeId']
-}
-
-struct ProductOptionRequest {
-	translations []ProductOptionTranslationData
-}
-
 struct ProductData {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
@@ -123,6 +114,15 @@ struct MoneyAmountRequestHygienised {
 	min_quantity  ?i32
 	region_id     ?string
 	region_id_bin []u8
+}
+
+struct ProductOptionTranslationData {
+	title     string
+	locale_id string @[json: 'localeId']
+}
+
+struct ProductOptionRequest {
+	translations []ProductOptionTranslationData
 }
 
 struct ProductOptionValueTranslationRequest {

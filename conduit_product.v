@@ -210,7 +210,7 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, p 
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }
 
 // TODO validate p in route
@@ -269,7 +269,7 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }
 
 fn conduit_product_option_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8, p ProductOptionRequest) veb.Result {
@@ -283,7 +283,7 @@ fn conduit_product_option_update(mut app App, mut ctx Context, product_id string
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }
 
 // returns an error when attempting to delete options if more than one variant exist
@@ -317,5 +317,5 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }

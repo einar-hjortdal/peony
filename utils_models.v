@@ -54,7 +54,7 @@ fn get_placeholders(a []string) string {
 }
 
 fn get_conditions(c []string) string {
-	return c.join(' AND ')
+	return '\n${c.join(' AND ')}'
 }
 
 fn get_where_conditions(c []string) string {

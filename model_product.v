@@ -363,11 +363,14 @@ fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygien
 	}
 
 	// TODO would benefit from a refactor: use a map[string]ProductVariant
-	money_amounts := do_retrieve_product_variant_money_amount(mut tx, variants)!
-	for i := 0; i < variants.len; i++ {
-		for k := 0; k < money_amounts.len; k++ {
-			if variants[i].id_bin == money_amounts[k].variant_id_bin.value {
-				variants[i].money_amounts = arrays.concat(variants[i].money_amounts, money_amounts[k])
+	if variants.len > 0 {
+		money_amounts := do_retrieve_product_variant_money_amount(mut tx, variants)!
+		for i := 0; i < variants.len; i++ {
+			for k := 0; k < money_amounts.len; k++ {
+				if variants[i].id_bin == money_amounts[k].variant_id_bin.value {
+					variants[i].money_amounts = arrays.concat(variants[i].money_amounts,
+						money_amounts[k])
+				}
 			}
 		}
 	}

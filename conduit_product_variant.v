@@ -90,7 +90,6 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 		}
 	}
 
-	// TODO refuse to set same option_value combination that already exists on another variant.
 	if povh.len != 0 {
 		model_product_option_value_update(mut tx, variant_id_bin, povh) or {
 			tx.rollback() or {}

@@ -50,5 +50,5 @@ fn conduit_currency_update(mut app App, mut ctx Context, code string, p NewCurre
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }

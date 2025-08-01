@@ -118,7 +118,7 @@ fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) ve
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }
 
 fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionUpdateRequest) veb.Result {
@@ -138,5 +138,5 @@ fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d Reg
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }
