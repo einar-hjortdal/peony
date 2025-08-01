@@ -72,7 +72,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	return ctx.json(r)
 }
 
-fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin []u8, p ProductVariantRequest, ma []MoneyAmountRequestHygienised) veb.Result {
+fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest, poh []ProductOptionValueRequestHygienised, mah []MoneyAmountRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())
@@ -84,13 +84,19 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, variant_id_bin [
 		|| p.mid_code != none || p.material != none || p.weight != none || p.length != none
 		|| p.height != none || p.width != none {
 		do_update_product_variant(mut tx, variant_id_bin, p) or {
+			tx.rollback() or {} // ignore error
 			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant',
 				err.msg())
 		}
 	}
 
-	if ma.len != 0 {
-		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, ma) or {
+	// get product_options
+	// if product_options exist and but are missing in poh return error
+	if poh.len != 0 {
+	}
+
+	if mah.len != 0 {
+		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, mah) or {
 			tx.rollback() or {} // ignore error
 			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant money_amount',
 				err.msg())

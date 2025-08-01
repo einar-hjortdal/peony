@@ -140,6 +140,12 @@ struct ProductOptionValueRequest {
 	translations []ProductOptionValueTranslationRequest
 }
 
+struct ProductOptionValueRequestHygienised {
+	option_id     string
+	option_id_bin []u8
+	translations  []ProductOptionValueTranslationRequest
+}
+
 struct ProductVariantRequest {
 	title              ?string
 	sku                ?string

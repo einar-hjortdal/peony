@@ -286,23 +286,26 @@ fn conduit_product_option_update(mut app App, mut ctx Context, product_id string
 	return ctx.json(new_peony_success())
 }
 
-// TODO return error when attempting to delete options that are used by some variant
+// returns an error when attempting to delete options if more than one variant exist
+// require user to delete all variants manually first, then allow deletion of any option
 fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())
 	}
 
-	internal_variants, count := model_product_variants_retrieve_by_product_id(mut tx,
-		product_id, product_id_bin) or {
+	_, count := model_product_variants_retrieve_by_product_id(mut tx, product_id, product_id_bin) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not add product_option to product_variants: could not retrieve product_variants',
 			err.msg())
 	}
 
-	if count > 0 {
-		// TODO add option to variants, add 'default value' product_option_value
+	if count > 1 {
+		return handle_error(mut ctx, http.Status.bad_request, 'Refusing to delete product_option: first delete all variants',
+			'more than one variant exist')
 	}
+
+	// TODO remove product option, translations and values will cascade
 
 	tx.commit() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
