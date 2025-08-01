@@ -87,6 +87,42 @@ fn do_retrieve_product_option_values(mut tx firebird.Transaction, option_ids_bin
 	return values
 }
 
+fn model_product_option_value_update(mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductOptionValueRequestHygienised) ! {
+	mut src_row_count := ph.len
+	for i := 0; i < ph.len; i++ {
+		if ph[i].translations.len > 1 {
+			src_row_count += ph[i].translations.len - 1
+		}
+	}
+
+	mut src := []string{len: src_row_count}
+	mut params := []firebird.Value{len: src_row_count * 4, init: firebird.Value(firebird.Null{})}
+	mut idx := 0
+	for i := 0; i < ph.len; i++ {
+		for j := 0; j < ph[i].translations.len; j++ {
+			src[idx] = 'SELECT
+				( SELECT id FROM product_option_value
+					WHERE option_id = CAST(? AS BINARY(16))
+					AND variant_id = CAST(? AS BINARY(16))
+				) AS product_option_value_id,
+				CAST(? AS BINARY(16)) AS locale_id,
+				CAST(? AS VARCHAR(63)) AS name
+				FROM RDB\$DATABASE'
+			params[idx * 4] = ph[i].option_id_bin
+			params[idx * 4 + 1] = variant_id_bin
+			params[idx * 4 + 2] = ph[i].translations[j].locale_id_bin
+			params[idx * 4 + 3] = ph[i].translations[j].name
+			idx++
+		}
+	}
+
+	tx.execute('MERGE INTO product_option_value_translations t
+		USING (${get_merge_source(src)}) s (product_option_value_id, locale_id, name)
+		ON s.product_option_value_id = t.product_option_value_id AND s.locale_id = t.locale_id
+		WHEN MATCHED THEN UPDATE SET t.name = s.name',
+		...params)!
+}
+
 struct ProductOptionTranslation {
 	product_option_id     string
 	product_option_id_bin []u8
@@ -152,7 +188,7 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 	}
 }
 
-fn do_retrieve_product_options(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
+fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
 	mut data := tx.execute('SELECT id, product_id FROM product_option
 			WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!

@@ -335,7 +335,7 @@ fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygien
 
 	// replace variants with variant model call
 	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
-	mut options := do_retrieve_product_options(mut tx, ids_bin)!
+	mut options := model_product_options_retrieve_by_product_ids(mut tx, ids_bin)!
 	if options.len != 0 {
 		option_values := do_retrieve_products__option_values(mut tx, options)!
 

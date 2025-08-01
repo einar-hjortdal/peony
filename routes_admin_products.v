@@ -163,10 +163,24 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 				return handle_error(mut ctx, http.Status.bad_request, error_id_invalid,
 					'option_id')
 			}
+
+			mut translations := []ProductOptionValueTranslationRequestHygienised{len: options[i].translations.len}
+			for j := 0; j < options[i].translations.len; j++ {
+				locale_id_bin := id_string_to_bin(options[i].translations[j].locale_id) or {
+					return handle_error(mut ctx, http.Status.bad_request, error_id_invalid,
+						'locale_id')
+				}
+				translations[j] = ProductOptionValueTranslationRequestHygienised{
+					locale_id:     options[i].translations[j].locale_id
+					locale_id_bin: locale_id_bin
+					name:          options[i].translations[j].name
+				}
+			}
+
 			poh[i] = ProductOptionValueRequestHygienised{
 				option_id:     options[i].option_id
 				option_id_bin: option_id_bin
-				translations:  options[i].translations
+				translations:  translations
 			}
 		}
 	}

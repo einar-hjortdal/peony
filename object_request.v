@@ -65,11 +65,6 @@ struct ProductOptionRequest {
 	translations []ProductOptionTranslationData
 }
 
-struct ProductOptionValueData {
-	id           ?string
-	translations []ProductOptionTranslationData
-}
-
 struct ProductData {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
@@ -131,8 +126,14 @@ struct MoneyAmountRequestHygienised {
 }
 
 struct ProductOptionValueTranslationRequest {
-	title     string
 	locale_id string @[json: 'localeId']
+	name      string
+}
+
+struct ProductOptionValueTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	name          string
 }
 
 struct ProductOptionValueRequest {
@@ -143,7 +144,7 @@ struct ProductOptionValueRequest {
 struct ProductOptionValueRequestHygienised {
 	option_id     string
 	option_id_bin []u8
-	translations  []ProductOptionValueTranslationRequest
+	translations  []ProductOptionValueTranslationRequestHygienised
 }
 
 struct ProductVariantRequest {
