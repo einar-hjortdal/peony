@@ -8,9 +8,13 @@ import json
 // lists product variants
 @['/admin/variants'; get]
 pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
-	p := extract_retrieve_variant_params(ctx.query)
+	p := extract_retrieve_product_variant_params(ctx.query)
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	product_ids_bin := zero_array_id_string_to_array_id_bin(p.product_ids) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
@@ -21,6 +25,8 @@ pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 	ph := RetrieveProductVariantParamsHygienised{
 		ids:                p.ids
 		ids_bin:            ids_bin
+		product_ids:        p.product_ids
+		product_ids_bin:    product_ids_bin
 		allow_backorder:    p.allow_backorder
 		manage_inventory:   p.manage_inventory
 		region_id:          p.region_id
@@ -47,7 +53,7 @@ pub fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Resul
 	m := {
 		'ids': id
 	}
-	p := extract_retrieve_variant_params(m)
+	p := extract_retrieve_product_variant_params(m)
 	ph := RetrieveProductVariantParamsHygienised{
 		ids:     p.ids
 		ids_bin: [id_bin]

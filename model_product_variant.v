@@ -150,8 +150,13 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	mut c := []string{}
 
 	if p.ids.is_set {
-		params = arrays.concat(params, p.ids_bin)
 		c = arrays.concat(c, 'WHERE id IN ${get_n_placeholders(i32(p.ids.v.len))}')
+		params = arrays.concat(params, p.ids_bin)
+	}
+
+	if p.product_ids.is_set {
+		c = arrays.concat(c, 'WHERE product_id IN ${get_n_placeholders(i32(p.product_ids.v.len))}')
+		params = arrays.concat(params, p.product_ids_bin)
 	}
 
 	if p.allow_backorder.is_set {
@@ -222,6 +227,18 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	}
 
 	return variants, count
+}
+
+fn model_product_variants_retrieve_by_product_id(mut tx firebird.Transaction, product_id string, product_id_bin []u8) !([]Variant, i64) {
+	vm := {
+		'product_ids': product_id
+	}
+	vp := extract_retrieve_product_variant_params(vm)
+	vph := RetrieveProductVariantParamsHygienised{
+		product_ids:     vp.product_ids
+		product_ids_bin: [product_id_bin]
+	}
+	return model_product_variants_retrieve(mut tx, vph)
 }
 
 // TODO when creating a variant add all existing product options and give a default option value
@@ -492,3 +509,5 @@ fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8
 	tx.execute('UPDATE product_variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		variant_id_bin)!
 }
+
+fn model_product_variant_product_option_value_update(mut tx firebird.Transaction)

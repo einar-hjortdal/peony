@@ -151,5 +151,40 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 		return ctx.json(new_peony_error('Could not decode ProductOptionRequest', err.msg()))
 	}
 
-	return conduit_product_option_create(mut app, mut ctx, id_bin, p)
+	return conduit_product_option_create(mut app, mut ctx, id, id_bin, p)
+}
+
+// updates a product option
+@['/admin/products/:product_id/options/:option_id'; post]
+pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id string, product_option_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	product_option_id_bin := id_string_to_bin(product_option_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	p := json.decode(ProductOptionRequest, ctx.req.data) or {
+		ctx.res.set_status(http.Status.bad_request)
+		return ctx.json(new_peony_error('Could not decode ProductOptionRequest', err.msg()))
+	}
+
+	return conduit_product_option_update(mut app, mut ctx, product_id, product_id_bin,
+		product_option_id, product_option_id_bin, p)
+}
+
+// creates a product option
+@['/admin/products/:product_id/options/:option_id'; delete]
+pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id string, product_option_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	product_option_id_bin := id_string_to_bin(product_option_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	return conduit_product_option_delete(mut app, mut ctx, product_id, product_id_bin,
+		product_option_id, product_option_id_bin)
 }

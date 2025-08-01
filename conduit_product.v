@@ -193,8 +193,6 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	return ctx.json(r)
 }
 
-// TODO return error when attempting to delete options that are used by some variant
-// TODO when option is created, give all existing variants a deffault option value
 fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, p ProductData) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
@@ -216,30 +214,87 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, p 
 }
 
 // TODO validate p in route
-fn conduit_product_option_create(mut app App, mut ctx Context, product_id_bin []u8, p ProductOptionRequest) veb.Result {
+fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, p ProductOptionRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
 			err.msg())
 	}
 
-	_, id_bin := app.new_id() or {
+	_, product_option_id_bin := app.new_id() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_id_generation,
 			err.msg())
 	}
 
-	model_product_option_create(mut tx, id_bin, product_id_bin) or {
+	model_product_option_create(mut tx, product_option_id_bin, product_id_bin) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option',
 			err.msg())
 	}
 
-	model_product_option_update(mut tx, id_bin, p) or {
+	model_product_option_update(mut tx, product_option_id_bin, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option: could not insert translations',
 			err.msg())
 	}
 
-	product_variants, count := model_product_variants_retrieve(mut tx) or {
+	internal_variants, count := model_product_variants_retrieve_by_product_id(mut tx,
+		product_id, product_id_bin) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not add product_option to product_variants: could not retrieve product_variants',
+			err.msg())
+	}
+
+	if count > 0 {
+		mut variant_ids_bin := [][]u8{len: internal_variants.len}
+		mut product_option_value_ids_bin := [][]u8{len: internal_variants.len}
+		for i := 0; i < internal_variants.len; i++ {
+			variant_ids_bin[i] = internal_variants[i].id_bin
+			_, product_option_value_id_bin := app.new_id() or {
+				tx.rollback() or {} // ignore error
+				return handle_error(mut ctx, http.Status.internal_server_error, error_id_generation,
+					err.msg())
+			}
+			product_option_value_ids_bin[i] = product_option_value_id_bin
+		}
+		model_product_option_value_create_default(mut tx, product_option_id_bin, product_option_value_ids_bin,
+			variant_ids_bin) or {
+			tx.rollback() or {} // ignore error
+			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not add default option value to variant',
+				err.msg())
+		}
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
+			err.msg())
+	}
+
+	return ctx.json(new_peony_success())
+}
+
+fn conduit_product_option_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8, p ProductOptionRequest) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
+			err.msg())
+	}
+
+	return ctx.json(new_peony_success())
+}
+
+// TODO return error when attempting to delete options that are used by some variant
+fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	internal_variants, count := model_product_variants_retrieve_by_product_id(mut tx,
+		product_id, product_id_bin) or {
 		tx.rollback() or {} // ignore error
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not add product_option to product_variants: could not retrieve product_variants',
 			err.msg())

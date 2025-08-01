@@ -64,6 +64,10 @@ fn get_where_conditions(c []string) string {
 	return '\nWHERE ${get_conditions(c)}'
 }
 
+fn get_merge_source(s []string) string {
+	return s.join('\nUNION ALL\n')
+}
+
 fn i32_or_max(n i32) i32 {
 	if n == 0 {
 		return max_i32

@@ -164,6 +164,7 @@ struct ListSalesChannelsParamsHygienised {
 
 struct RetrieveProductVariantParams {
 	ids                ZeroArrayString
+	product_ids        ZeroArrayString
 	allow_backorder    ZeroBool
 	manage_inventory   ZeroBool
 	region_id          ZeroString
@@ -176,9 +177,10 @@ struct RetrieveProductVariantParams {
 	order              ZeroString
 }
 
-fn extract_retrieve_variant_params(m map[string]string) RetrieveProductVariantParams {
+fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductVariantParams {
 	return RetrieveProductVariantParams{
 		ids:                zero_array_string(m, 'ids')
+		product_ids:        zero_array_string(m, 'product_ids')
 		allow_backorder:    zero_bool(m, 'allow_backorder')
 		manage_inventory:   zero_bool(m, 'manage_inventory')
 		region_id:          zero_string(m, 'region_id')
@@ -194,6 +196,8 @@ fn extract_retrieve_variant_params(m map[string]string) RetrieveProductVariantPa
 struct RetrieveProductVariantParamsHygienised {
 	ids                ZeroArrayString
 	ids_bin            [][]u8
+	product_ids        ZeroArrayString
+	product_ids_bin    [][]u8
 	allow_backorder    ZeroBool
 	manage_inventory   ZeroBool
 	region_id          ZeroString

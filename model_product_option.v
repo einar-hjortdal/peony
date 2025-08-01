@@ -230,3 +230,57 @@ fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, p Produ
 
 	tx.execute(query, ...params)!
 }
+
+// used when creating a new product_option
+// each product_variant must have one product_option_value for each existing product_option
+// this function creates a product_option_value for each existing variant
+fn model_product_option_value_create_default(mut tx firebird.Transaction, product_option_id_bin []u8, product_option_value_ids_bin [][]u8, variant_ids_bin [][]u8) ! {
+	// first create product_option_value
+	mut src := []string{len: product_option_value_ids_bin.len}
+	mut params := []firebird.Value{len: product_option_value_ids_bin.len * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < product_option_value_ids_bin.len; i++ {
+		src[i] = 'SELECT
+		CAST(? AS BINARY(16)) AS id,
+		CAST(? AS BINARY(16)) AS option_id,
+		CAST(? AS BINARY(16)) AS variant_id
+		FROM RDB\$DATABASE'
+		params[i * 3] = product_option_value_ids_bin[i]
+		params[i * 3 + 1] = product_option_id_bin
+		params[i * 3 + 2] = variant_ids_bin[i]
+	}
+
+	tx.execute('MERGE INTO product_option_value t
+		USING (${get_merge_source(src)}) s (id, option_id, variant_id)
+		ON t.id = s.id
+		WHEN NOT MATCHED THEN
+			INSERT (id, option_id, variant_id)
+			VALUES (s.id, s.option_id, s.variant_id)',
+		...params)!
+
+	// then insert product_option_value_translations
+	params = []firebird.Value{len: product_option_value_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < product_option_value_ids_bin.len; i++ {
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_option_value_id,
+			(SELECT default_locale_id FROM STORE) AS locale_id,
+			CAST(? AS VARCHAR(63)) AS name
+			FROM RDB\$DATABASE'
+		params[i * 2] = product_option_value_ids_bin[i]
+		params[i * 2 + 1] = 'default_value'
+	}
+
+	tx.execute('MERGE INTO product_option_value_translations t
+		USING (${get_merge_source(src)}) s (product_option_value_id, locale_id, name)
+		ON t.product_option_value_id = s.product_option_value_id
+		WHEN NOT MATCHED THEN
+			INSERT (product_option_value_id, locale_id, name)
+			VALUES (s.product_option_value_id, s.locale_id, s.name)',
+		...params)!
+}
+
+// used when cereating a new product_variant
+// each product_variant must have one product_option_value for each existing product_option
+// this function creates a product_option_value for each existing product_option
+// TODO unneeded: enforce the user to provide the values
+// fn model_product_option_value_create_default(mut tx firebird.Transaction, product_option_value_id_bin []u8, product_option_ids_bin [][]u8, variant_id_bin []u8) ! {
+// }
