@@ -121,6 +121,12 @@ struct ProductOptionTranslationData {
 	locale_id string @[json: 'localeId']
 }
 
+struct ProductOptionTranslationDataHygienised {
+	title         string
+	locale_id     string
+	locale_id_bin []u8
+}
+
 struct ProductOptionRequest {
 	translations []ProductOptionTranslationData
 }

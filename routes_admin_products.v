@@ -236,11 +236,29 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 	}
 
 	p := json.decode(ProductOptionRequest, ctx.req.data) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode ProductOptionRequest', err.msg()))
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode ProductOptionRequest',
+			err.msg())
 	}
 
-	return conduit_product_option_create(mut app, mut ctx, id, id_bin, p)
+	if p.translations.len == 0 {
+		return handle_error(mut ctx, http.Status.bad_request, 'product_option must have a title',
+			'No translations provided')
+	}
+
+	mut ph := []ProductOptionTranslationDataHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translation := p.translations[i]
+		locale_id_bin := id_string_to_bin(translation.locale_id) or {
+			return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, 'locale_id')
+		}
+		ph[i] = ProductOptionTranslationDataHygienised{
+			title:         translation.title
+			locale_id:     translation.locale_id
+			locale_id_bin: locale_id_bin
+		}
+	}
+
+	return conduit_product_option_create(mut app, mut ctx, id, id_bin, ph)
 }
 
 // updates a product option
@@ -257,6 +275,11 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 	p := json.decode(ProductOptionRequest, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode ProductOptionRequest', err.msg()))
+	}
+
+	if p.translations.len == 0 {
+		return handle_error(mut ctx, http.Status.bad_request, 'product_option must have a title',
+			'No translations provided')
 	}
 
 	return conduit_product_option_update(mut app, mut ctx, product_id, product_id_bin,

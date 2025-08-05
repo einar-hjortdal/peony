@@ -234,22 +234,22 @@ fn model_product_option_create(mut tx firebird.Transaction, id_bin []u8, product
 	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
 }
 
-fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, p ProductOptionRequest) ! {
-	mut src := []string{len: p.translations.len}
-	mut params := []firebird.Value{len: p.translations.len * 3 + 1, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < p.translations.len; i++ {
+fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, ph []ProductOptionTranslationDataHygienised) ! {
+	mut src := []string{len: ph.len}
+	mut params := []firebird.Value{len: ph.len * 3 + 1, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS product_option_id,
 			CAST(? AS VARCHAR(63)) AS title,
 			CAST(? AS BINARY(16)) AS locale_id
 			FROM RDB\$DATABASE'
 		params[i * 3] = id_bin
-		params[i * 3 + 1] = p.translations[i].title
-		params[i * 3 + 2] = p.translations[i].locale_id
+		params[i * 3 + 1] = ph[i].title
+		params[i * 3 + 2] = ph[i].locale_id_bin
 	}
-	params[p.translations.len * 3] = id_bin
+	params[ph.len * 3] = id_bin
 
-	mut query := 'MERGE INTO product_option_translations t
+	query := 'MERGE INTO product_option_translations t
 		USING (${src.join('\nUNION ALL\n')}) s (product_option_id, title, locale_id)
 		ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
 		WHEN NOT MATCHED THEN
