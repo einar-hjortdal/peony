@@ -15,6 +15,7 @@ import einar_hjortdal.sessions
 pub struct App {
 	veb.Middleware[Context]
 	blob_provider BlobProvider
+	// tax_provider TaxProvider
 	// email_provider EmailProvider
 	// payment_providers []PaymentProvider
 	// fulfillment_providers []FulfillmentProvider
