@@ -82,9 +82,10 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 	mut store := parse_store(store_data.rows[0].values)!
 
 	locale_data := tx.execute('SELECT locale_id, l.code
-	FROM store_locales
-	LEFT JOIN locale l ON locale_id = l.id
-	WHERE store_id = ?',
+		FROM store_locales
+		LEFT JOIN locale l ON locale_id = l.id
+		WHERE store_id = ?
+		ORDER BY l.code',
 		store.id_bin)!
 
 	mut locales := []Locale{len: locale_data.rows.len}
@@ -97,7 +98,8 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 	currency_data := tx.execute('SELECT currency_code, c.decimal_digits, c.includes_tax 
 		FROM store_currencies
 		LEFT JOIN currency c ON currency_code = c.code
-		WHERE store_id = ?',
+		WHERE store_id = ?
+		ORDER BY c.code',
 		store.id_bin)!
 
 	mut currencies := []Currency{len: currency_data.rows.len}
