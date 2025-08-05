@@ -72,6 +72,10 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	return ctx.json(r)
 }
 
+fn conduit_product_variant_create(mut app App, mut ctx Context, variant_id_bin []u8, p ProductVariantRequest) veb.Result {
+	return ctx.json(new_peony_success())
+}
+
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest, povh []ProductOptionValueRequestHygienised, mah []MoneyAmountRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,

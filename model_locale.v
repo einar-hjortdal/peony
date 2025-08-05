@@ -22,7 +22,7 @@ fn parse_locale(v []firebird.Value) !Locale {
 	}
 }
 
-fn (mut app App) retrieve_locales(mut tx firebird.Transaction, p RetrieveLocalesParams) !([]Locale, i64) {
+fn model_retrieve_locales(mut tx firebird.Transaction, p RetrieveLocalesParams) !([]Locale, i64) {
 	query := 'SELECT id, code, COUNT(*) OVER() FROM locale'
 	mut params := []firebird.Value{}
 	mut sorting := ''

@@ -119,24 +119,95 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Re
 }
 
 // creates a product variant
-@['/admin/products/:id/variants'; post]
-pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, id string) veb.Result {
-	data := json.decode(ProductVariantRequest, ctx.req.data) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode VariantRequest ', err.msg()))
-	}
-
-	// TODO require p.options if options exist for this product
-	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
-	}
-
-	app.create_product_variant(id_bin, data) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Could not create product_variant',
+@['/admin/products/:ariant_id/variants'; post]
+pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, variant_id string) veb.Result {
+	p := json.decode(ProductVariantRequest, ctx.req.data) or {
+		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode VariantRequest ',
 			err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	variant_id_bin := id_string_to_bin(variant_id) or {
+		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+	}
+
+	// Must perform a database operation to verify if all options have been provided with a value
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	existing_options := model_product_options_retrieve_by_product_ids(mut tx, [
+		variant_id_bin,
+	]) or {
+		tx.rollback() or {}
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not retrieve product options',
+			err.msg())
+	}
+
+	store := do_retrieve_store(mut tx) or {
+		tx.rollback() or {}
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not retrieve product options',
+			err.msg())
+	}
+
+	tx.rollback() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
+			err.msg())
+	}
+
+	if option_values := p.option_values {
+		if option_values.len != existing_options.len {
+			return handle_error(mut ctx, http.Status.unprocessable_entity, 'Missing product_option_value',
+				'All options must be given a value')
+		}
+
+		// verify that each option.id exists in existing_options[i].id
+		for i := 0; i < option_values.len; i++ {
+			mut found := false
+			for j := 0; j < existing_options.len; j++ {
+				if option_values[i].option_id == existing_options[j].id {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return handle_error(mut ctx, http.Status.unprocessable_entity, error_id_invalid,
+					'option_id does not exist')
+			}
+		}
+
+		// verify that each option.translation[index].locale_id exists in store.locales
+		for i := 0; i < option_values.len; i++ {
+			translations := option_values[i].translations
+			for k := 0; k < translations.len; k++ {
+				locale_id := translations[k].locale_id
+				mut found := false
+				for j := 0; j < store.locales.len; j++ {
+					if locale_id == store.locales[j].id {
+						found = true
+						break
+					}
+				}
+				if !found {
+					return handle_error(mut ctx, http.Status.unprocessable_entity, error_id_invalid,
+						'locale_id does not exist')
+				}
+			}
+		}
+
+		mut povh := []ProductOptionValueRequestHygienised{len: option_values.len}
+		for i := 0; i < option_values.len; i++ {
+			povh[i] = hygienise_product_option_value_request(option_values[i]) or {
+				return handle_error(mut ctx, http.Status.bad_request, error_id_invalid,
+					'While hygienising options')
+			}
+		}
+
+		return conduit_product_variant_create(mut app, mut ctx, variant_id_bin, p)
+	}
+
+	return handle_error(mut ctx, http.Status.unprocessable_entity, 'Missing product_option_value',
+		'All options must be given a value')
 }
 
 // updates a product variant
@@ -156,31 +227,11 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	mut poh := []ProductOptionValueRequestHygienised{}
-	if options := p.options {
-		poh = []ProductOptionValueRequestHygienised{len: options.len}
-		for i := 0; i < options.len; i++ {
-			option_id_bin := id_string_to_bin(options[i].option_id) or {
+	if option_values := p.option_values {
+		for i := 0; i < option_values.len; i++ {
+			poh[i] = hygienise_product_option_value_request(option_values[i]) or {
 				return handle_error(mut ctx, http.Status.bad_request, error_id_invalid,
-					'option_id')
-			}
-
-			mut translations := []ProductOptionValueTranslationRequestHygienised{len: options[i].translations.len}
-			for j := 0; j < options[i].translations.len; j++ {
-				locale_id_bin := id_string_to_bin(options[i].translations[j].locale_id) or {
-					return handle_error(mut ctx, http.Status.bad_request, error_id_invalid,
-						'locale_id')
-				}
-				translations[j] = ProductOptionValueTranslationRequestHygienised{
-					locale_id:     options[i].translations[j].locale_id
-					locale_id_bin: locale_id_bin
-					name:          options[i].translations[j].name
-				}
-			}
-
-			poh[i] = ProductOptionValueRequestHygienised{
-				option_id:     options[i].option_id
-				option_id_bin: option_id_bin
-				translations:  translations
+					'while hygienising options')
 			}
 		}
 	}

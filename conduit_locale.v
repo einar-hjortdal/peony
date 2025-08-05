@@ -9,7 +9,7 @@ fn conduit_locale_get(mut app App, mut ctx Context, p RetrieveLocalesParams) veb
 			err.msg())
 	}
 
-	internal_locales, count := app.retrieve_locales(mut tx, p) or {
+	internal_locales, count := model_retrieve_locales(mut tx, p) or {
 		tx.rollback() or {}
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not retrieve locales',
 			err.msg())
