@@ -48,9 +48,11 @@ fn do_retrieve_sales_channels(mut tx firebird.Transaction) ![]SalesChannel {
 		is_disabled
 		FROM sales_channel')!
 
-	mut sales_channels := []SalesChannel{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		sales_channels[i] = parse_sales_channel(data.rows[i].values)!
+	rows := data.rows()
+
+	mut sales_channels := []SalesChannel{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		sales_channels[i] = parse_sales_channel(rows[i].values())!
 	}
 	return sales_channels
 }
@@ -68,9 +70,11 @@ fn do_retrieve_sales_channels_by_ids(mut tx firebird.Transaction, ids_bin [][]u8
 		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
-	mut sales_channels := []SalesChannel{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		sales_channels[i] = parse_sales_channel(data.rows[i].values)!
+	rows := data.rows()
+
+	mut sales_channels := []SalesChannel{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		sales_channels[i] = parse_sales_channel(rows[i].values())!
 	}
 	return sales_channels
 }
@@ -120,15 +124,16 @@ fn (mut app App) list_sales_channels(mut tx firebird.Transaction, ph ListSalesCh
 	}
 
 	data := tx.execute('${base_query}${get_where_conditions(c)}${sorting}', ...params)!
+	rows := data.rows()
 
-	if data.rows.len == 0 {
+	if rows.len == 0 {
 		return []SalesChannel{}, 0
 	}
 
-	count, _ := data.rows[0].values[7].get_i64()!
-	mut sales_channels := []SalesChannel{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		sales_channels[i] = parse_sales_channel(data.rows[i].values[..7])!
+	count, _ := rows[0].values()[7].get_i64()!
+	mut sales_channels := []SalesChannel{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		sales_channels[i] = parse_sales_channel(rows[i].values()[..7])!
 	}
 	return sales_channels, count
 }
@@ -222,9 +227,11 @@ fn do_retrieve_product_sales_channels(mut tx firebird.Transaction, product_ids_b
 		WHERE product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})',
 		...workaround_24757(product_ids_bin))!
 
-	mut product_sales_channels := []ProductSalesChannel{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		product_sales_channels[i] = parse_product_sales_channel(data.rows[i].values)!
+	rows := data.rows()
+
+	mut product_sales_channels := []ProductSalesChannel{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		product_sales_channels[i] = parse_product_sales_channel(rows[i].values())!
 	}
 
 	return product_sales_channels

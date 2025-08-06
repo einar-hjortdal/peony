@@ -105,9 +105,11 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 	params = arrays.concat(params, fetch)
 
 	mut data := tx.execute(query, ...params)!
+	mut rows := data.rows()
+
 	mut ids_bin := [][]u8{}
-	for i := 0; i < data.rows.len; i++ {
-		id_bin, _ := data.rows[i].values[0].get_array_u8()!
+	for i := 0; i < rows.len; i++ {
+		id_bin, _ := rows[i].values()[0].get_array_u8()!
 		ids_bin = arrays.concat(ids_bin, id_bin)
 	}
 
@@ -115,10 +117,12 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 		WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
 		...ids_bin)!
 
+	rows = data.rows()
+
 	mut collection_map := map[string]Collection{}
-	mut ids := []string{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		collection := parse_collection(data.rows[i].values)!
+	mut ids := []string{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		collection := parse_collection(rows[i].values())!
 		collection_map[collection.id] = collection
 		ids[i] = collection.id
 	}
@@ -127,8 +131,10 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 		WHERE product_collection_id IN ${get_n_placeholders(i32(ids_bin.len))}',
 		...ids_bin)!
 
-	for i := 0; i < data.rows.len; i++ {
-		translation := parse_collection_translation(data.rows[i].values)!
+	rows = data.rows()
+
+	for i := 0; i < rows.len; i++ {
+		translation := parse_collection_translation(rows[i].values())!
 		collection_map[translation.product_collection_id].translations = arrays.concat(collection_map[translation.product_collection_id].translations,
 			translation)
 	}

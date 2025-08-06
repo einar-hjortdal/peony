@@ -175,16 +175,17 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductPara
 	params = arrays.concat(params, get_fetch_amount(ph.fetch))
 
 	data := tx.execute('${query}${joins}${conditions}${sorting}', ...params)!
+	rows := data.rows()
 
-	mut ids := [][]u8{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		id, _ := data.rows[i].values[0].get_array_u8()!
+	mut ids := [][]u8{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		id, _ := rows[i].values()[0].get_array_u8()!
 		ids[i] = id
 	}
 
 	mut count := i64(0)
 	if ids.len > 0 {
-		c, _ := data.rows[0].values[1].get_i64()!
+		c, _ := rows[0].values()[1].get_i64()!
 		count = c
 	}
 
@@ -209,9 +210,11 @@ fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) !
 		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
+	rows := data.rows()
+
 	mut products := []Product{}
-	for i := 0; i < data.rows.len; i++ {
-		product := parse_product(data.rows[i].values)!
+	for i := 0; i < rows.len; i++ {
+		product := parse_product(rows[i].values())!
 		products = arrays.concat(products, product)
 	}
 
@@ -278,13 +281,15 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))}) AND deleted_at IS NULL',
 		...workaround_24757(ids_bin))!
 
-	if data.rows.len == 0 {
+	rows := data.rows()
+
+	if rows.len == 0 {
 		return []Variant{}
 	}
 
-	mut variants := []Variant{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		variants[i] = parse_variant(data.rows[i].values)!
+	mut variants := []Variant{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		variants[i] = parse_variant(rows[i].values())!
 	}
 
 	return variants

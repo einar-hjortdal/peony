@@ -75,11 +75,13 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 		default_sales_channel_id
 		FROM store')!
 
-	if store_data.rows.len == 0 {
+	store_rows := store_data.rows()
+
+	if store_rows.len == 0 {
 		return error(format_error_message('No entries in table store'))
 	}
 
-	mut store := parse_store(store_data.rows[0].values)!
+	mut store := parse_store(store_rows[0].values())!
 
 	locale_data := tx.execute('SELECT locale_id, l.code
 		FROM store_locales
@@ -88,9 +90,11 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 		ORDER BY l.code',
 		store.id_bin)!
 
-	mut locales := []Locale{len: locale_data.rows.len}
-	for i := 0; i < locale_data.rows.len; i++ {
-		locales[i] = parse_locale(locale_data.rows[i].values)!
+	locale_rows := locale_data.rows()
+
+	mut locales := []Locale{len: locale_rows.len}
+	for i := 0; i < locale_rows.len; i++ {
+		locales[i] = parse_locale(locale_rows[i].values())!
 	}
 
 	store.locales = locales
@@ -102,9 +106,11 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 		ORDER BY c.code',
 		store.id_bin)!
 
-	mut currencies := []Currency{len: currency_data.rows.len}
-	for i := 0; i < currency_data.rows.len; i++ {
-		currencies[i] = parse_currency(currency_data.rows[i].values)!
+	currency_rows := currency_data.rows()
+
+	mut currencies := []Currency{len: currency_rows.len}
+	for i := 0; i < currency_rows.len; i++ {
+		currencies[i] = parse_currency(currency_rows[i].values())!
 	}
 
 	store.currencies = currencies

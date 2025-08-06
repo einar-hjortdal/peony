@@ -57,9 +57,11 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 		WHERE product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})',
 		...workaround_24757(product_ids_bin))!
 
+	rows := data.rows()
+
 	mut translations := []ProductTranslation{}
-	for i := 0; i < data.rows.len; i++ {
-		translation := parse_product_translation(data.rows[i].values)!
+	for i := 0; i < rows.len; i++ {
+		translation := parse_product_translation(rows[i].values())!
 		translations = arrays.concat(translations, translation)
 	}
 

@@ -77,15 +77,16 @@ fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) !([]Regi
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
 	data := tx.execute('${base_query}${conditions}${sorting}', ...params)!
+	rows := data.rows()
 	mut regions := []Region{}
-	for i := 0; i < data.rows.len; i++ {
-		region := parse_region(data.rows[i].values)!
+	for i := 0; i < rows.len; i++ {
+		region := parse_region(rows[i].values())!
 		regions = arrays.concat(regions, region)
 	}
 
 	mut count := i64(0)
 	if regions.len > 0 {
-		c, _ := data.rows[0].values[1].get_i64()!
+		c, _ := rows[0].values()[1].get_i64()!
 		count = c
 	}
 
@@ -113,11 +114,12 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 	}
 	tx.rollback()!
 
-	if data.rows.len == 0 {
+	rows := data.rows()
+	if rows.len == 0 {
 		return error(format_error_message('No region found'))
 	}
 
-	return parse_region(data.rows[0].values)!
+	return parse_region(rows[0].values())!
 }
 
 // fn (mut app App) add_country(code string, region_id string) ! {

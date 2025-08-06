@@ -24,10 +24,11 @@ fn model_country_list(mut tx firebird.Transaction, p ListCountriesParams) !([]Co
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
 	data := tx.execute('${query}${sorting}', ...params)!
+	rows := data.rows()
 
-	mut countries := []Country{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		v := data.rows[i].values
+	mut countries := []Country{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
 		code, _ := v[0].get_string()!
 		region_id_bin := v[1].get_null_array_u8()!
 		country := Country{
@@ -37,7 +38,7 @@ fn model_country_list(mut tx firebird.Transaction, p ListCountriesParams) !([]Co
 		countries[i] = country
 	}
 
-	count, _ := data.rows[0].values[2].get_i64()!
+	count, _ := rows[0].values()[2].get_i64()!
 
 	return countries, count
 }

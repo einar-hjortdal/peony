@@ -111,11 +111,12 @@ fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 		id_bin)!
 	tx.rollback()!
 
-	if res.rows.len == 0 {
+	rows := res.rows()
+	if rows.len == 0 {
 		return error(format_error_message('No app_user found'))
 	}
 
-	return parse_user_data(res.rows[0].values)!
+	return parse_user_data(rows[0].values())!
 }
 
 fn (mut app App) retrieve_user_by_email(email string) !User {
@@ -136,11 +137,12 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 		email)!
 	tx.rollback()!
 
-	if res.rows.len == 0 {
+	rows := res.rows()
+	if rows.len == 0 {
 		return error(format_error_message('No app_user found'))
 	}
 
-	return parse_user_data(res.rows[0].values)!
+	return parse_user_data(rows[0].values())!
 }
 
 fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {

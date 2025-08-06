@@ -61,9 +61,11 @@ fn do_retrieve_tax_rates_by_id(mut tx firebird.Transaction, tax_rate_ids_bin [][
 		WHERE id IN (${get_n_placeholders(i32(tax_rate_ids_bin.len))})',
 		...workaround_24757(tax_rate_ids_bin))!
 
-	mut tax_rates := []TaxRate{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		tax_rates[i] = parse_tax_rate(data.rows[i].values)!
+	rows := data.rows()
+
+	mut tax_rates := []TaxRate{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		tax_rates[i] = parse_tax_rate(rows[i].values())!
 	}
 	return tax_rates
 }
@@ -73,11 +75,14 @@ fn do_retrieve_region_tax_rates(mut tx firebird.Transaction, region_ids_bin [][]
 	WHERE region_id IN (${get_n_placeholders(i32(region_ids_bin.len))})',
 		...workaround_24757(region_ids_bin))!
 
-	mut rates := [][]u8{len: data.rows.len}
+	rows := data.rows()
+
+	mut rates := [][]u8{len: rows.len}
 	mut mapping := map[string][][]u8{}
-	for i := 0; i < data.rows.len; i++ {
-		region_id_bin, _ := data.rows[i].values[0].get_array_u8()!
-		rate_id_bin, _ := data.rows[i].values[1].get_array_u8()!
+	for i := 0; i < rows.len; i++ {
+		values := rows[i].values()
+		region_id_bin, _ := values[0].get_array_u8()!
+		rate_id_bin, _ := values[1].get_array_u8()!
 		region_id := id_bin_to_string(region_id_bin)!
 		mapping[region_id] = arrays.concat(mapping[region_id], rate_id_bin)
 		rates[i] = rate_id_bin

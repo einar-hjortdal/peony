@@ -56,9 +56,11 @@ fn do_retrieve_images(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]Imag
 		WHERE id IN (${get_n_placeholders(i32(image_ids_bin.len))})',
 		...image_ids_bin)!
 
+	rows := data.rows()
+
 	mut images := []Image{}
-	for i := 0; i < data.rows.len; i++ {
-		image := parse_image(data.rows[i].values)!
+	for i := 0; i < rows.len; i++ {
+		image := parse_image(rows[i].values())!
 		images = arrays.concat(images, image)
 	}
 
@@ -134,9 +136,11 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 		ORDER BY pi.image_rank',
 		...workaround_24757(product_ids_bin))!
 
+	rows := data.rows()
+
 	mut product_images := []ProductImage{}
-	for i := 0; i < data.rows.len; i++ {
-		product_image := parse_product_image(data.rows[i].values)!
+	for i := 0; i < rows.len; i++ {
+		product_image := parse_product_image(rows[i].values())!
 		product_images = arrays.concat(product_images, product_image)
 	}
 

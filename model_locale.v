@@ -37,15 +37,16 @@ fn model_retrieve_locales(mut tx firebird.Transaction, p RetrieveLocalesParams) 
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
 	data := tx.execute('${query}${sorting}', ...params)!
+	rows := data.rows()
 
-	mut res := []Locale{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		res[i] = parse_locale(data.rows[i].values)!
+	mut res := []Locale{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		res[i] = parse_locale(rows[i].values())!
 	}
 
 	mut count := i64(0)
 	if res.len > 0 {
-		c, _ := data.rows[0].values[2].get_i64()!
+		c, _ := rows[0].values()[2].get_i64()!
 		count = c
 	}
 

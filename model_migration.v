@@ -33,10 +33,11 @@ fn (mut app App) retrieve_migrations() ![]Migration {
 	mut tx := app.start_transaction()!
 	data := tx.execute('SELECT id, created_at, name FROM migration')!
 	tx.rollback()!
+	rows := data.rows()
 
-	mut migrations := []Migration{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		migrations[i] = parse_migration(data.rows[i].values)!
+	mut migrations := []Migration{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		migrations[i] = parse_migration(rows[i].values())!
 	}
 	return migrations
 }

@@ -96,7 +96,7 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		ids_bin[i] = variants[i].id_bin
 	}
 
-	money_amounts_data := tx.execute('SELECT
+	data := tx.execute('SELECT
 		ma.id,
 		ma.currency_code,
 		ma.amount,
@@ -110,9 +110,11 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
 
-	mut money_amounts := []MoneyAmount{len: money_amounts_data.rows.len}
-	for i := 0; i < money_amounts_data.rows.len; i++ {
-		money_amounts[i] = parse_money_amount(money_amounts_data.rows[i].values)!
+	rows := data.rows()
+
+	mut money_amounts := []MoneyAmount{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		money_amounts[i] = parse_money_amount(rows[i].values())!
 	}
 
 	return money_amounts
@@ -200,17 +202,18 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
 	data := tx.execute('${base_query}${get_where_conditions(c)}${sorting}', ...params)!
+	rows := data.rows()
 
 	// exit early if no rows returned
-	if data.rows.len == 0 {
+	if rows.len == 0 {
 		return []Variant{}, 0
 	}
 
-	mut variants := []Variant{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		variants[i] = parse_variant(data.rows[i].values)!
+	mut variants := []Variant{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		variants[i] = parse_variant(rows[i].values())!
 	}
-	count, _ := data.rows[0].values[22].get_i64()!
+	count, _ := rows[0].values()[22].get_i64()!
 
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations

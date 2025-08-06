@@ -55,15 +55,16 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
 	data := tx.execute('${query}${conditions}${sorting}', ...params)!
+	rows := data.rows()
 
-	mut res := []Currency{len: data.rows.len}
-	for i := 0; i < data.rows.len; i++ {
-		res[i] = parse_currency(data.rows[i].values)!
+	mut res := []Currency{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		res[i] = parse_currency(rows[i].values())!
 	}
 
 	mut count := i64(0)
 	if res.len > 0 {
-		c, _ := data.rows[0].values[3].get_i64()!
+		c, _ := rows[0].values()[3].get_i64()!
 		count = c
 	}
 
