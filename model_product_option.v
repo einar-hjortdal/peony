@@ -292,6 +292,7 @@ fn model_product_option_value_create_default(mut tx firebird.Transaction, produc
 	tx.execute('MERGE INTO product_option_value t
 		USING (${get_merge_source(src)}) s (id, option_id, variant_id)
 		ON t.id = s.id
+		AND t.variant_id = s.variant_id
 		WHEN NOT MATCHED THEN
 			INSERT (id, option_id, variant_id)
 			VALUES (s.id, s.option_id, s.variant_id)',
@@ -312,6 +313,63 @@ fn model_product_option_value_create_default(mut tx firebird.Transaction, produc
 	tx.execute('MERGE INTO product_option_value_translations t
 		USING (${get_merge_source(src)}) s (product_option_value_id, locale_id, name)
 		ON t.product_option_value_id = s.product_option_value_id
+		AND t.locale_id = s.locale_id
+		WHEN NOT MATCHED THEN
+			INSERT (product_option_value_id, locale_id, name)
+			VALUES (s.product_option_value_id, s.locale_id, s.name)',
+		...params)!
+}
+
+// used when creating a new variant
+fn model_product_option_values_create(mut tx firebird.Transaction, variant_id_bin []u8, povh []ProductOptionValueRequestHygienised, ids_bin [][]u8) ! {
+	mut src := []string{len: povh.len}
+	mut params := []firebird.Value{len: povh.len * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < povh.len; i++ {
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS option_id,
+			CAST(? AS BINARY(16)) AS variant_id
+			FROM RDB\$DATABASE'
+		params[i * 3] = ids_bin[i]
+		params[i * 3 + 1] = povh[i].option_id_bin
+		params[i * 3 + 2] = variant_id_bin
+	}
+
+	tx.execute('MERGE INTO product_option_value t
+		USING (${get_merge_source(src)}) s (id, option_id, variant_id)
+		ON t.id = s.id
+		AND t.variant_id = s.variant_id
+		WHEN NOT MATCHED THEN
+			INSERT (id, option_id, variant_id)
+			VALUES (s.id, s.option_id, s.variant_id)',
+		...params)!
+
+	mut total_translations := 0
+	for i := 0; i < povh.len; i++ {
+		total_translations += povh[i].translations.len
+	}
+
+	mut translation_index := 0
+	src = []string{len: total_translations}
+	params = []firebird.Value{len: total_translations * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < povh.len; i++ {
+		for j := 0; j < povh[i].translations.len; j++ {
+			src[translation_index] = 'SELECT
+				CAST(? AS BINARY(16)) AS product_option_value_id,
+				CAST(? AS BINARY(16)) AS locale_id,
+				CAST(? AS VARCHAR(63)) AS name
+				FROM RDB\$DATABASE'
+			params[translation_index * 3] = ids_bin[i]
+			params[translation_index * 3 + 1] = povh[i].translations[j].locale_id_bin
+			params[translation_index * 3 + 2] = povh[i].translations[j].name
+			translation_index++
+		}
+	}
+
+	tx.execute('MERGE INTO product_option_value_translations t
+		USING (${get_merge_source(src)}) s (product_option_value_id, locale_id, name)
+		ON t.product_option_value_id = s.product_option_value_id
+		AND t.locale_id = s.locale_id
 		WHEN NOT MATCHED THEN
 			INSERT (product_option_value_id, locale_id, name)
 			VALUES (s.product_option_value_id, s.locale_id, s.name)',

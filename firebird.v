@@ -75,7 +75,7 @@ fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
 	locale_codes := get_locale_codes()
 	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
 	for i := 0; i < locale_codes.len; i++ {
-		_, id_bin := app.new_id()!
+		_, id_bin := app.new_id()
 		code := locale_codes[i]
 		stmt.execute(id_bin, code)!
 	}
@@ -84,7 +84,7 @@ fn (mut app App) insert_locale_codes(mut tx firebird.Transaction) ! {
 
 fn (mut app App) insert_default_user(mut tx firebird.Transaction) ! {
 	log.debug('insert_default_user')
-	id, id_bin := app.new_id()!
+	id, id_bin := app.new_id()
 	email := os.getenv(env_email)
 	password_salt, password_hash := hash_password(os.getenv(env_password))!
 	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, role)
@@ -94,7 +94,7 @@ fn (mut app App) insert_default_user(mut tx firebird.Transaction) ! {
 
 fn (mut app App) insert_default_stock_location(mut tx firebird.Transaction) ![]u8 {
 	log.debug('insert_default_stock_location')
-	_, stock_location_id_bin := app.new_id()!
+	_, stock_location_id_bin := app.new_id()
 	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', stock_location_id_bin,
 		seed_default_stock_location_name)!
 	return stock_location_id_bin
@@ -102,7 +102,7 @@ fn (mut app App) insert_default_stock_location(mut tx firebird.Transaction) ![]u
 
 fn (mut app App) insert_default_sales_channel(mut tx firebird.Transaction) ![]u8 {
 	log.debug('insert_default_sales_channel')
-	_, sales_channel_id_bin := app.new_id()!
+	_, sales_channel_id_bin := app.new_id()
 	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id_bin,
 		seed_default_sales_channel_name)!
 	return sales_channel_id_bin
@@ -111,7 +111,7 @@ fn (mut app App) insert_default_sales_channel(mut tx firebird.Transaction) ![]u8
 fn (mut app App) insert_default_store(mut tx firebird.Transaction, stock_location_id_bin []u8,
 	sales_channel_id_bin []u8) ![]u8 {
 	log.debug('insert_default_store')
-	_, store_id_bin := app.new_id()!
+	_, store_id_bin := app.new_id()
 	tx.execute('INSERT INTO store (
 	id, name, default_locale_id, default_currency_code, default_stock_location_id, default_sales_channel_id)
 	VALUES (?, ?, (SELECT id FROM locale WHERE code = ?), ?, ?, ?)',

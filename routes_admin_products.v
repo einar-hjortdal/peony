@@ -119,14 +119,14 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Re
 }
 
 // creates a product variant
-@['/admin/products/:ariant_id/variants'; post]
-pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, variant_id string) veb.Result {
+@['/admin/products/:product_id/variants/'; post]
+pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id string) veb.Result {
 	p := json.decode(ProductVariantRequest, ctx.req.data) or {
 		return handle_error(mut ctx, http.Status.bad_request, 'Could not decode VariantRequest ',
 			err.msg())
 	}
 
-	variant_id_bin := id_string_to_bin(variant_id) or {
+	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
 	}
 
@@ -137,7 +137,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, variant_id
 	}
 
 	existing_options := model_product_options_retrieve_by_product_ids(mut tx, [
-		variant_id_bin,
+		product_id_bin,
 	]) or {
 		tx.rollback() or {}
 		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not retrieve product options',
@@ -203,7 +203,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, variant_id
 			}
 		}
 
-		return conduit_product_variant_create(mut app, mut ctx, variant_id_bin, p)
+		return conduit_product_variant_create(mut app, mut ctx, product_id_bin, p, povh)
 	}
 
 	return handle_error(mut ctx, http.Status.unprocessable_entity, 'Missing product_option_value',

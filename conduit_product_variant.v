@@ -72,7 +72,39 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	return ctx.json(r)
 }
 
-fn conduit_product_variant_create(mut app App, mut ctx Context, variant_id_bin []u8, p ProductVariantRequest) veb.Result {
+fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, p ProductVariantRequest, povh []ProductOptionValueRequestHygienised) veb.Result {
+	_, variant_id_bin := app.new_id()
+
+	mut tx := app.start_transaction() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	model_create_product_variant(mut tx, product_id_bin, variant_id_bin, p) or {
+		tx.rollback() or {}
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_variant',
+			err.msg())
+	}
+
+	if povh.len != 0 {
+		mut ids_bin := [][]u8{len: povh.len}
+		for i := 0; i < povh.len; i++ {
+			_, id_bin := app.new_id()
+			ids_bin[i] = id_bin
+		}
+
+		model_product_option_values_create(mut tx, variant_id_bin, povh, ids_bin) or {
+			tx.rollback() or {}
+			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option_value or product_option_value_translation',
+				err.msg())
+		}
+	}
+
+	tx.commit() or {
+		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
+			err.msg())
+	}
+
 	return ctx.json(new_peony_success())
 }
 

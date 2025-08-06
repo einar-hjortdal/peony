@@ -171,8 +171,8 @@ struct ProductVariantRequest {
 	length             ?i32
 	height             ?i32
 	width              ?i32
-	money_amounts      ?[]MoneyAmountRequest @[json: 'moneyAmounts']
-	option_values      ?[]ProductOptionValueRequest
+	money_amounts      ?[]MoneyAmountRequest        @[json: 'moneyAmounts']
+	option_values      ?[]ProductOptionValueRequest @[json: 'optionValues']
 }
 
 fn hygienise_product_option_value_request(povr ProductOptionValueRequest) !ProductOptionValueRequestHygienised {

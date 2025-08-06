@@ -25,7 +25,7 @@ fn parse_migration(v []firebird.Value) !Migration {
 }
 
 fn (mut app App) do_create_migration(mut tx firebird.Transaction, name string) ! {
-	_, id_bin := app.new_id()!
+	_, id_bin := app.new_id()
 	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', id_bin, name)!
 }
 

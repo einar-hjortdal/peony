@@ -151,7 +151,7 @@ fn build_create_sales_channel_query(id_bin []u8, p NewSalesChannelData) !(string
 }
 
 fn (mut app App) create_sales_channel(p NewSalesChannelData) !(string, []u8) {
-	id, id_bin := app.new_id()!
+	id, id_bin := app.new_id()
 	query, params := build_create_sales_channel_query(id_bin, p)!
 	mut tx := app.start_transaction()!
 	tx.execute(query, ...params)!

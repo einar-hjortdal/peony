@@ -162,7 +162,7 @@ struct CollectionData {
 }
 
 fn (mut app App) do_create_collection(mut tx firebird.Transaction, p CollectionData) ! {
-	_, id_bin := app.new_id()!
+	_, id_bin := app.new_id()
 	mut c := ['id']
 	mut params := [firebird.Value(id_bin)]
 

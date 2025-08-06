@@ -119,13 +119,13 @@ fn id_bin_to_string(id_bin []u8) !string {
 	return luuid.from_bytes(id_bin)
 }
 
-fn new_id(mut g luuid.Generator) !(string, []u8) {
+fn new_id(mut g luuid.Generator) (string, []u8) {
 	id_string := g.v1().to_upper()
-	id_bin := id_string_to_bin(id_string)!
+	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
 	return id_string, id_bin
 }
 
-fn (mut app App) new_id() !(string, []u8) {
+fn (mut app App) new_id() (string, []u8) {
 	return new_id(mut app.luuid_generator)
 }
 

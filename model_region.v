@@ -143,7 +143,7 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
 fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionCreateRequest) ! {
-	_, id_bin := app.new_id()!
+	_, id_bin := app.new_id()
 
 	mut columns := ['id', 'currency_code', 'name']
 	mut params := [firebird.Value(id_bin), d.currency_code, d.name]

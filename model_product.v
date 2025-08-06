@@ -526,7 +526,7 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, p
 }
 
 fn (mut app App) create_product(p ProductData) !string {
-	product_id, product_id_bin := app.new_id()!
+	product_id, product_id_bin := app.new_id()
 	mut tx := app.start_transaction()!
 
 	app.do_create_product(mut tx, p, product_id, product_id_bin) or {

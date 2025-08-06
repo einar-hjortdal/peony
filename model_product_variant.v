@@ -241,11 +241,9 @@ fn model_product_variants_retrieve_by_product_id(mut tx firebird.Transaction, pr
 	return model_product_variants_retrieve(mut tx, vph)
 }
 
-// TODO when creating a variant add all existing product options and give a default option value
-// let frontend enforce values?
-fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8, id_bin []u8, p ProductVariantRequest) ! {
+fn model_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest) ! {
 	mut columns := ['id', 'product_id']
-	mut params := [firebird.Value(id_bin), product_id_bin]
+	mut params := [firebird.Value(variant_id_bin), product_id_bin]
 	if title := p.title {
 		columns = arrays.concat(columns, 'title')
 		params = arrays.concat(params, title)
@@ -334,17 +332,6 @@ fn (mut app App) do_create_product_variant(mut tx firebird.Transaction, product_
 	tx.execute('INSERT INTO product_variant (${get_columns(columns)}) 
 		VALUES (${get_n_placeholders(i32(columns.len))})',
 		...params)!
-}
-
-fn (mut app App) create_product_variant(product_id_bin []u8, p ProductVariantRequest) ! {
-	_, id_bin := app.new_id()!
-	mut tx := app.start_transaction()!
-	app.do_create_product_variant(mut tx, product_id_bin, id_bin, p) or {
-		tx.rollback()!
-		return err
-	}
-	// TODO handle p.options
-	tx.commit()!
 }
 
 fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p ProductVariantRequest) ! {
@@ -489,7 +476,7 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 		if ma.id_bin.len != 0 {
 			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, ma.id_bin)!
 		} else {
-			_, money_amount_id_bin := app.new_id()!
+			_, money_amount_id_bin := app.new_id()
 			if ma.region_id_bin.len != 0 {
 				tx.execute('INSERT INTO money_amount (id, currency_code, amount, region_id) 
 					VALUES (?, (SELECT currency_code FROM region WHERE id = ?), ?, ?)',

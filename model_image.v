@@ -39,7 +39,7 @@ fn (mut app App) do_create_images(mut tx firebird.Transaction, urls []string) !(
 	mut ids_bin := [][]u8{len: urls.len}
 
 	for i := 0; i < urls.len; i++ {
-		id, id_bin := app.new_id()!
+		id, id_bin := app.new_id()
 		ids[i] = id
 		ids_bin[i] = id_bin
 		stmt.execute(id_bin, urls[i]) or {

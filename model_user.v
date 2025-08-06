@@ -56,7 +56,7 @@ fn parse_user_data(v []firebird.Value) !User {
 }
 
 fn (mut app App) create_user(d NewUserData) !(string, []u8) {
-	id, id_bin := app.new_id()!
+	id, id_bin := app.new_id()
 	handle := app.luuid_generator.v1()
 	password_hash, password_salt := hash_password(d.password)!
 
