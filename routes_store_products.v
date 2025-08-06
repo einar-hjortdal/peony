@@ -36,7 +36,7 @@ fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 // get product by id
 @['/store/products/:id'; get]
 fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result {
-	_ := id_string_to_bin(id) or {
+	id_bin := id_string_to_bin(id) or {
 		return handle_error(mut ctx, http.Status.bad_request, 'Invalid id', err.msg())
 	}
 
@@ -58,6 +58,8 @@ fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result
 	}
 
 	ph := RetrieveProductParamsHygienised{
+		ids:           p.ids
+		ids_bin:       [id_bin]
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
 		cart_id:       p.cart_id
