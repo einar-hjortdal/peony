@@ -74,8 +74,11 @@ fn parse_product_option_value(v []firebird.Value) !ProductOptionValue {
 }
 
 fn model_product_option_values_retrieve(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionValue {
-	data := tx.execute('SELECT id, option_id, variant_id FROM product_option_value
-	WHERE option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
+	data := tx.execute('SELECT pov.id, pov.option_id, pov.variant_id 
+		FROM product_option_value pov
+		LEFT JOIN product_variant pv ON pov.variant_id = pv.id
+		WHERE option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})
+		AND pv.deleted_at IS NULL',
 		...workaround_24757(option_ids_bin))!
 
 	mut product_option_values := []ProductOptionValue{len: data.rows.len}
