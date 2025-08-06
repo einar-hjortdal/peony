@@ -73,18 +73,34 @@ fn parse_product_option_value(v []firebird.Value) !ProductOptionValue {
 	}
 }
 
-fn do_retrieve_product_option_values(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionValue {
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionValue {
 	data := tx.execute('SELECT id, option_id, variant_id FROM product_option_value
 	WHERE option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
 		...workaround_24757(option_ids_bin))!
 
-	mut values := []ProductOptionValue{}
+	mut product_option_values := []ProductOptionValue{len: data.rows.len}
 	for i := 0; i < data.rows.len; i++ {
-		value := parse_product_option_value(data.rows[i].values)!
-		values = arrays.concat(values, value)
+		product_option_values[i] = parse_product_option_value(data.rows[i].values)!
 	}
 
-	return values
+	return product_option_values
+}
+
+fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
+	data := tx.execute('SELECT product_option_value_id, locale_id, name
+		FROM product_option_value_translations
+		WHERE product_option_value_id IN (${get_n_placeholders(i32(product_option_value_ids_bin.len))})',
+		...workaround_24757(product_option_value_ids_bin))!
+
+	mut product_option_value_translations := []ProductOptionValueTranslation{len: data.rows.len}
+	if data.rows.len == 0 {
+		return product_option_value_translations
+	}
+
+	for i := 0; i < data.rows.len; i++ {
+		product_option_value_translations[i] = parse_product_option_value_translation(data.rows[i].values)!
+	}
+	return product_option_value_translations
 }
 
 fn model_product_option_value_update(mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductOptionValueRequestHygienised) ! {

@@ -224,7 +224,29 @@ fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []Product
 		option_ids_bin = arrays.concat(option_ids_bin, po[i].id_bin)
 	}
 
-	return do_retrieve_product_option_values(mut tx, option_ids_bin)!
+	option_values := model_product_option_values_retrieve(mut tx, option_ids_bin)!
+	mut product_option_values_ids_bin := [][]u8{len: option_values.len}
+	mut option_values_map := map[string]ProductOptionValue{}
+	for i := 0; i < option_values.len; i++ {
+		product_option_values_ids_bin[i] = option_values[i].id_bin
+		option_value_id := option_values[i].id
+		option_values_map[option_value_id] = option_values[i]
+	}
+
+	translations := model_product_option_value_translations_retrieve(mut tx, product_option_values_ids_bin)!
+	for i := 0; i < translations.len; i++ {
+		option_value_id := translations[i].product_option_value_id
+		option_values_map[option_value_id].translations = arrays.concat(option_values_map[option_value_id].translations,
+			translations[i])
+	}
+
+	mut result_option_values := []ProductOptionValue{len: option_values.len}
+	for i := 0; i < option_values.len; i++ {
+		option_value_id := option_values[i].id
+		result_option_values[i] = option_values_map[option_value_id]
+	}
+
+	return result_option_values
 }
 
 // TODO use do_retrieve_product_variants instead
