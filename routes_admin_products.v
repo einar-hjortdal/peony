@@ -228,10 +228,11 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 	mut poh := []ProductOptionValueRequestHygienised{}
 	if option_values := p.option_values {
+		poh = []ProductOptionValueRequestHygienised{len: option_values.len}
 		for i := 0; i < option_values.len; i++ {
 			poh[i] = hygienise_product_option_value_request(option_values[i]) or {
 				return handle_error(mut ctx, http.Status.bad_request, error_id_invalid,
-					'while hygienising options')
+					'at hygienise_product_option_value_request')
 			}
 		}
 	}
