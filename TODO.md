@@ -81,6 +81,7 @@
   and comparison but prevents order-related errors when select queries are modified. Otherwise parse 
   locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
+- Consider modularizing price calculation.
 
 ## Documentation
 
