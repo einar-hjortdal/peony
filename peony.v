@@ -63,12 +63,16 @@ pub fn new_peony_app(blob_provider BlobProvider) &App {
 		url: os.getenv(env_redict_url)
 	}
 
+	firebird_connection := firebird.new_connection(firebird_url) or { panic(err) }
+	redict_client := redict.new_client(ro) or { panic(err) }
+	session_store := sessions.new_redict_store_cookie_from_redict_client(rso, co, redict_client)
+
 	mut app := &App{
 		blob_provider:   blob_provider
 		luuid_generator: luuid.new_generator()
-		firebird:        firebird.new_connection(firebird_url) or { panic(err) }
-		redict:          redict.new_client(ro) or { panic(err) }
-		session_store:   sessions.new_redict_store_cookie(rso, co, ro) or { panic(err) }
+		firebird:        firebird_connection
+		redict:          redict_client
+		session_store:   session_store
 	}
 
 	app.use(handler: app.middleware_debug)
@@ -93,5 +97,5 @@ pub fn (mut app App) run() {
 }
 
 pub fn (mut ctx Context) not_found() veb.Result {
-	return handle_error(mut ctx, http.Status.not_found, '404', 'Not Found')
+	return handle_error(mut ctx, http.Status.not_found, 'Not Found', '404')
 }

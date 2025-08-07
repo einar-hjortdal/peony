@@ -67,10 +67,9 @@
 ## Internals
 
 - [x] Keep response structs separate from internal structs
-- [ ] Return data as the root property of json payload
+- [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
-- [ ] Redict cache
 - [ ] Transaction attempts
 - [ ] Soft-delete
 
