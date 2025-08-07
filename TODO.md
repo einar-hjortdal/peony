@@ -82,6 +82,10 @@
   locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
 - Consider modularizing price calculation.
+- User-defined data may be a simple json or a system like the one implemented by shopify or vendure: 
+  the user defines data and its types and a database migration happens. The first option leaves everything 
+  in the hands of the frontend, the second option may allow custom filters in query strings when requesting 
+  data from peony. However, the second option is also significantly more complex to implement and maintain.
 
 ## Documentation
 
