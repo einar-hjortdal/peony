@@ -158,7 +158,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 	if option_values := p.option_values {
 		if option_values.len != existing_options.len {
 			return handle_error(mut ctx, http.Status.unprocessable_entity, 'Missing product_option_value',
-				'All options must be given a value')
+				'All existing product_option must be given a value')
 		}
 
 		// verify that each option.id exists in existing_options[i].id
@@ -206,8 +206,13 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return conduit_product_variant_create(mut app, mut ctx, product_id_bin, p, povh)
 	}
 
-	return handle_error(mut ctx, http.Status.unprocessable_entity, 'Missing product_option_value',
-		'All options must be given a value')
+	if existing_options.len != 0 {
+		return handle_error(mut ctx, http.Status.unprocessable_entity, 'No product_option_value provided',
+			'All existing product_option must be given a value')
+	}
+
+	povh := []ProductOptionValueRequestHygienised{}
+	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, p, povh)
 }
 
 // updates a product variant

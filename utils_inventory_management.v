@@ -9,12 +9,12 @@ module peony
 // - it has no inventory items (TODO)
 // - no sales_channel is provided
 // - inventory_quantity > 0
-fn get_variant_availability(v Variant, a availability) (bool, i32) {
+fn get_variant_availability(v Variant, sales_channel_id_bin []u8) (bool, i32) {
 	if !v.manage_inventory {
 		return true, 0
 	}
 
-	if ac.sales_channel_id_bin.len == 0 {
+	if sales_channel_id_bin.len == 0 {
 		return false, 0
 	}
 
