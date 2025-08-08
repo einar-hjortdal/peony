@@ -336,7 +336,7 @@ fn model_product_option_value_create_default(mut tx firebird.Transaction, produc
 			CAST(? AS VARCHAR(63)) AS name
 			FROM RDB\$DATABASE'
 		params[i * 2] = product_option_value_ids_bin[i]
-		params[i * 2 + 1] = 'default_value'
+		params[i * 2 + 1] = 'default_option_value'
 	}
 
 	tx.execute('MERGE INTO product_option_value_translations t
