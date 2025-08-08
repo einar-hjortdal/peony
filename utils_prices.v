@@ -23,6 +23,7 @@ struct Prices {
 	tax_rates                         []TaxRate
 }
 
+// use app.tax_provider when necessary
 fn calculate_taxes() {
 }
 

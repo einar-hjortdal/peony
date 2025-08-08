@@ -4,30 +4,29 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Variant {
-	id                 string
-	id_bin             []u8
-	created_at         firebird.DateTime
-	updated_at         firebird.DateTime
-	deleted_at         firebird.DateTime
-	product_id         string
-	product_id_bin     []u8
-	title              string
-	sku                string
-	barcode            string
-	ean                string
-	upc                string
-	variant_rank       i32
-	inventory_quantity i32
-	allow_backorder    bool
-	manage_inventory   bool
-	hs_code            string
-	origin_country     string
-	mid_code           string
-	material           string
-	weight             i32
-	length             i32
-	height             i32
-	width              i32
+	id               string
+	id_bin           []u8
+	created_at       firebird.DateTime
+	updated_at       firebird.DateTime
+	deleted_at       firebird.DateTime
+	product_id       string
+	product_id_bin   []u8
+	title            string
+	sku              string
+	barcode          string
+	ean              string
+	upc              string
+	variant_rank     i32
+	allow_backorder  bool
+	manage_inventory bool
+	hs_code          string
+	origin_country   string
+	mid_code         string
+	material         string
+	weight           i32
+	length           i32
+	height           i32
+	width            i32
 	// image              string // from variant_image TODO
 mut:
 	money_amounts []MoneyAmount
@@ -46,46 +45,44 @@ fn parse_variant(v []firebird.Value) !Variant {
 	ean, _ := v[8].get_string()!
 	upc, _ := v[9].get_string()!
 	variant_rank, _ := v[10].get_i32()!
-	inventory_quantity, _ := v[11].get_i32()!
-	allow_backorder, _ := v[12].get_bool()!
-	manage_inventory, _ := v[13].get_bool()!
-	hs_code, _ := v[14].get_string()!
-	origin_country, _ := v[15].get_string()!
-	mid_code, _ := v[16].get_string()!
-	material, _ := v[17].get_string()!
-	weight, _ := v[18].get_i32()!
-	length, _ := v[19].get_i32()!
-	height, _ := v[20].get_i32()!
-	width, _ := v[21].get_i32()!
+	allow_backorder, _ := v[11].get_bool()!
+	manage_inventory, _ := v[12].get_bool()!
+	hs_code, _ := v[13].get_string()!
+	origin_country, _ := v[14].get_string()!
+	mid_code, _ := v[15].get_string()!
+	material, _ := v[16].get_string()!
+	weight, _ := v[17].get_i32()!
+	length, _ := v[18].get_i32()!
+	height, _ := v[19].get_i32()!
+	width, _ := v[20].get_i32()!
 
 	id := id_bin_to_string(id_bin)!
 	product_id := id_bin_to_string(product_id_bin)!
 
 	return Variant{
-		id:                 id
-		id_bin:             id_bin
-		created_at:         created_at
-		updated_at:         updated_at
-		deleted_at:         deleted_at
-		product_id:         product_id
-		product_id_bin:     product_id_bin
-		title:              title
-		sku:                sku
-		barcode:            barcode
-		ean:                ean
-		upc:                upc
-		variant_rank:       variant_rank
-		inventory_quantity: inventory_quantity
-		allow_backorder:    allow_backorder
-		manage_inventory:   manage_inventory
-		hs_code:            hs_code
-		origin_country:     origin_country
-		mid_code:           mid_code
-		material:           material
-		weight:             weight
-		length:             length
-		height:             height
-		width:              width
+		id:               id
+		id_bin:           id_bin
+		created_at:       created_at
+		updated_at:       updated_at
+		deleted_at:       deleted_at
+		product_id:       product_id
+		product_id_bin:   product_id_bin
+		title:            title
+		sku:              sku
+		barcode:          barcode
+		ean:              ean
+		upc:              upc
+		variant_rank:     variant_rank
+		allow_backorder:  allow_backorder
+		manage_inventory: manage_inventory
+		hs_code:          hs_code
+		origin_country:   origin_country
+		mid_code:         mid_code
+		material:         material
+		weight:           weight
+		length:           length
+		height:           height
+		width:            width
 	}
 }
 
@@ -133,7 +130,6 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		ean,
 		upc,
 		variant_rank,
-		inventory_quantity,
 		allow_backorder,
 		manage_inventory,
 		hs_code,
@@ -179,11 +175,6 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	if p.title.is_set {
 		c = arrays.concat(c, 'title = ?')
 		params = arrays.concat(params, p.title)
-	}
-
-	if p.inventory_quantity.is_set {
-		c = arrays.concat(c, 'inventory_quantity = ?')
-		params = arrays.concat(params, p.inventory_quantity.v)
 	}
 
 	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
@@ -277,11 +268,6 @@ fn model_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8
 		params = arrays.concat(params, variant_rank)
 	}
 
-	if inventory_quantity := p.inventory_quantity {
-		columns = arrays.concat(columns, 'inventory_quantity')
-		params = arrays.concat(params, inventory_quantity)
-	}
-
 	if allow_backorder := p.allow_backorder {
 		columns = arrays.concat(columns, 'allow_backorder')
 		params = arrays.concat(params, allow_backorder)
@@ -370,11 +356,6 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	if variant_rank := p.variant_rank {
 		columns = arrays.concat(columns, 'variant_rank')
 		params = arrays.concat(params, variant_rank)
-	}
-
-	if inventory_quantity := p.inventory_quantity {
-		columns = arrays.concat(columns, 'inventory_quantity')
-		params = arrays.concat(params, inventory_quantity)
 	}
 
 	if allow_backorder := p.allow_backorder {

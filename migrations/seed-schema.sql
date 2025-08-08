@@ -223,7 +223,6 @@ CREATE TABLE product_variant (
   ean VARCHAR(13),
   upc VARCHAR(12),
   variant_rank INTEGER DEFAULT 0 NOT NULL,
-  inventory_quantity INTEGER DEFAULT 0 NOT NULL,
   allow_backorder BOOLEAN DEFAULT false NOT NULL,
   manage_inventory BOOLEAN DEFAULT true NOT NULL,
   hs_code VARCHAR(63),

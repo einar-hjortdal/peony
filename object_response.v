@@ -481,7 +481,7 @@ struct VariantResponse {
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
 	prices             PricesResponse               @[omitempty]
-	purchasable        bool // TODO inventory management + allow_backorder
+	purchasable        bool
 }
 
 fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !VariantResponse {
@@ -496,35 +496,36 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 	}
 
 	prices := format_prices_response(variant_prices_map[v.id])
+	purchasable, inventory_quantity := true, i32(0) // TODO inventory management
 
 	return VariantResponse{
-		id:                 v.id
-		created_at:         v.created_at.Time
-		updated_at:         v.updated_at.Time
-		deleted_at:         v.deleted_at.Time
-		product_id:         v.product_id
-		sku:                v.sku
-		barcode:            v.barcode
-		ean:                v.ean
-		upc:                v.upc
-		variant_rank:       v.variant_rank
-		inventory_quantity: v.inventory_quantity
-		allow_backorder:    v.allow_backorder
-		manage_inventory:   v.manage_inventory
-		hs_code:            v.hs_code
-		origin_country:     v.origin_country
-		mid_code:           v.mid_code
-		material:           v.material
-		weight:             v.weight
-		length:             v.length
-		height:             v.height
-		width:              v.width
-		title:              v.title
+		id:               v.id
+		created_at:       v.created_at.Time
+		updated_at:       v.updated_at.Time
+		deleted_at:       v.deleted_at.Time
+		product_id:       v.product_id
+		sku:              v.sku
+		barcode:          v.barcode
+		ean:              v.ean
+		upc:              v.upc
+		variant_rank:     v.variant_rank
+		allow_backorder:  v.allow_backorder
+		manage_inventory: v.manage_inventory
+		hs_code:          v.hs_code
+		origin_country:   v.origin_country
+		mid_code:         v.mid_code
+		material:         v.material
+		weight:           v.weight
+		length:           v.length
+		height:           v.height
+		width:            v.width
+		title:            v.title
 		// image:
-		option_values: option_values
-		money_amounts: money_amounts
-		prices:        prices
-		// purchasable:
+		option_values:      option_values
+		money_amounts:      money_amounts
+		prices:             prices
+		purchasable:        purchasable
+		inventory_quantity: inventory_quantity
 	}
 }
 

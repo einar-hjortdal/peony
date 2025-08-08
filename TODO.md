@@ -10,7 +10,7 @@
 - [x] Write a sessions management library <!-- https://github.com/einar-hjortdal/sessions -->
 - [x] Seed new database with a schema, constants and defaults
 - [x] Always return json
-- [x] Iron out error handling
+- [x] Error handling
 
 ## Features
 
@@ -22,10 +22,10 @@
 - [x] Multilanguage
 - [x] Multicurrency
 - [x] Uploads
+- [ ] Inventory management
 
 ### Next
 
-- [ ] Inventory management
 - [ ] Multiregion
 - [ ] Multichannel
 - [ ] Multiwarehouse
@@ -39,6 +39,7 @@
 - [ ] Product types
 - [ ] Product collections
 - [ ] Product categories
+- [ ] Product bundles
 - [ ] Posts
 - [ ] Pages
 - [ ] Tags
@@ -63,6 +64,7 @@
 
 ## Changes
 
+- [ ] Better error handling
 
 ## Internals
 

@@ -163,52 +163,49 @@ struct ListSalesChannelsParamsHygienised {
 }
 
 struct RetrieveProductVariantParams {
-	ids                ZeroArrayString
-	product_ids        ZeroArrayString
-	allow_backorder    ZeroBool
-	manage_inventory   ZeroBool
-	region_id          ZeroString
-	currency_code      ZeroString // TODO join money_amount on id = ma.variant_id
-	title              ZeroString
-	inventory_quantity ZeroI32
-	with_deleted       ZeroBool
-	offset             ZeroI32
-	fetch              ZeroI32
-	order              ZeroString
+	ids              ZeroArrayString
+	product_ids      ZeroArrayString
+	allow_backorder  ZeroBool
+	manage_inventory ZeroBool
+	region_id        ZeroString
+	currency_code    ZeroString // TODO join money_amount on id = ma.variant_id
+	title            ZeroString
+	with_deleted     ZeroBool
+	offset           ZeroI32
+	fetch            ZeroI32
+	order            ZeroString
 }
 
 fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductVariantParams {
 	return RetrieveProductVariantParams{
-		ids:                zero_array_string(m, 'ids')
-		product_ids:        zero_array_string(m, 'product_ids')
-		allow_backorder:    zero_bool(m, 'allow_backorder')
-		manage_inventory:   zero_bool(m, 'manage_inventory')
-		region_id:          zero_string(m, 'region_id')
-		currency_code:      zero_string(m, 'currency_code')
-		title:              zero_string(m, 'title')
-		inventory_quantity: zero_i32(m, 'inventory_quantity')
-		offset:             zero_i32(m, 'offset')
-		fetch:              zero_i32(m, 'fetch')
-		order:              zero_string(m, 'order')
+		ids:              zero_array_string(m, 'ids')
+		product_ids:      zero_array_string(m, 'product_ids')
+		allow_backorder:  zero_bool(m, 'allow_backorder')
+		manage_inventory: zero_bool(m, 'manage_inventory')
+		region_id:        zero_string(m, 'region_id')
+		currency_code:    zero_string(m, 'currency_code')
+		title:            zero_string(m, 'title')
+		offset:           zero_i32(m, 'offset')
+		fetch:            zero_i32(m, 'fetch')
+		order:            zero_string(m, 'order')
 	}
 }
 
 struct RetrieveProductVariantParamsHygienised {
-	ids                ZeroArrayString
-	ids_bin            [][]u8
-	product_ids        ZeroArrayString
-	product_ids_bin    [][]u8
-	allow_backorder    ZeroBool
-	manage_inventory   ZeroBool
-	region_id          ZeroString
-	region_id_bin      []u8
-	currency_code      ZeroString
-	title              ZeroString
-	inventory_quantity ZeroI32
-	with_deleted       ZeroBool
-	offset             ZeroI32
-	fetch              ZeroI32
-	order              ZeroString
+	ids              ZeroArrayString
+	ids_bin          [][]u8
+	product_ids      ZeroArrayString
+	product_ids_bin  [][]u8
+	allow_backorder  ZeroBool
+	manage_inventory ZeroBool
+	region_id        ZeroString
+	region_id_bin    []u8
+	currency_code    ZeroString
+	title            ZeroString
+	with_deleted     ZeroBool
+	offset           ZeroI32
+	fetch            ZeroI32
+	order            ZeroString
 }
 
 struct RetrieveProductParams {

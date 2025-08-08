@@ -95,7 +95,3 @@ pub fn (mut app App) run() {
 	port := os.getenv(env_port).int()
 	veb.run[App, Context](mut app, port)
 }
-
-pub fn (mut ctx Context) not_found() veb.Result {
-	return handle_error(mut ctx, http.Status.not_found, 'Not Found', '404')
-}

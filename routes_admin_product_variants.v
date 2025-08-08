@@ -21,21 +21,20 @@ pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 	}
 
 	ph := RetrieveProductVariantParamsHygienised{
-		ids:                p.ids
-		ids_bin:            ids_bin
-		product_ids:        p.product_ids
-		product_ids_bin:    product_ids_bin
-		allow_backorder:    p.allow_backorder
-		manage_inventory:   p.manage_inventory
-		region_id:          p.region_id
-		region_id_bin:      region_id_bin
-		currency_code:      p.currency_code
-		title:              p.title
-		inventory_quantity: p.inventory_quantity
-		with_deleted:       p.with_deleted
-		offset:             p.offset
-		fetch:              p.fetch
-		order:              p.order
+		ids:              p.ids
+		ids_bin:          ids_bin
+		product_ids:      p.product_ids
+		product_ids_bin:  product_ids_bin
+		allow_backorder:  p.allow_backorder
+		manage_inventory: p.manage_inventory
+		region_id:        p.region_id
+		region_id_bin:    region_id_bin
+		currency_code:    p.currency_code
+		title:            p.title
+		with_deleted:     p.with_deleted
+		offset:           p.offset
+		fetch:            p.fetch
+		order:            p.order
 	}
 
 	return conduit_product_variants_get(mut app, mut ctx, ph)

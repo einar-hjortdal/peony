@@ -228,6 +228,11 @@ fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []Product
 	}
 
 	option_values := model_product_option_values_retrieve(mut tx, option_ids_bin)!
+
+	if option_values.len == 0 {
+		return option_values
+	}
+
 	mut product_option_values_ids_bin := [][]u8{len: option_values.len}
 	mut option_values_map := map[string]ProductOptionValue{}
 	for i := 0; i < option_values.len; i++ {
@@ -266,7 +271,6 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		ean,
 		upc,
 		variant_rank,
-		inventory_quantity,
 		allow_backorder,
 		manage_inventory,
 		hs_code,
