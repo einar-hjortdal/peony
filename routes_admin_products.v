@@ -344,8 +344,26 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			'No translations provided')
 	}
 
+	mut ph := []ProductOptionTranslationDataHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translation := p.translations[i]
+		if translation.title == '' {
+			return handle_error(mut ctx, http.Status.bad_request, 'Invalid title', 'empty strings are not valid product_option titles')
+		}
+
+		locale_id_bin := id_string_to_bin(translation.locale_id) or {
+			return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, 'locale_id')
+		}
+
+		ph[i] = ProductOptionTranslationDataHygienised{
+			title:         translation.title
+			locale_id:     translation.locale_id
+			locale_id_bin: locale_id_bin
+		}
+	}
+
 	return conduit_product_option_update(mut app, mut ctx, product_id, product_id_bin,
-		product_option_id, product_option_id_bin, p)
+		product_option_id, product_option_id_bin, ph)
 }
 
 // deletes a product option

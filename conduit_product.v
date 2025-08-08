@@ -265,9 +265,15 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 	return success(mut ctx)
 }
 
-fn conduit_product_option_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8, p ProductOptionRequest) veb.Result {
+fn conduit_product_option_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8, ph []ProductOptionTranslationDataHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
+			err.msg())
+	}
+
+	model_product_option_update(mut tx, product_option_id_bin, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option: could not insert translations',
 			err.msg())
 	}
 
