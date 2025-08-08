@@ -481,7 +481,6 @@ struct VariantResponse {
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
 	prices             PricesResponse               @[omitempty]
-	purchasable        bool
 }
 
 fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !VariantResponse {
@@ -496,7 +495,7 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 	}
 
 	prices := format_prices_response(variant_prices_map[v.id])
-	purchasable, inventory_quantity := true, i32(0) // TODO inventory management
+	inventory_quantity := i32(0) // TODO inventory management
 
 	return VariantResponse{
 		id:               v.id
@@ -524,7 +523,6 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		option_values:      option_values
 		money_amounts:      money_amounts
 		prices:             prices
-		purchasable:        purchasable
 		inventory_quantity: inventory_quantity
 	}
 }

@@ -1,21 +1,18 @@
 module peony
 
 // WIP
+// `product_variant` has a manage_inventory bool that indicates whether peony  manages the inventory.
+// When manage_inventory is false, peony always considers the product_variant to be in stock.
+// When manage_inventory is true, peony tracks the inventory of the product_variant. For example, when
+// a customer purchases a product_variant, peony decrements the stocked quantity of the product_variant.
 
-// Returns calculated purchasable and inventory_quantity values
-// A variant is purchasable if:
-// - manage_inventory is false
-// - allow_backorder is true
-// - it has no inventory items (TODO)
-// - no sales_channel is provided
-// - inventory_quantity > 0
-fn get_variant_availability(v Variant, sales_channel_id_bin []u8) (bool, i32) {
+fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
 	if !v.manage_inventory {
-		return true, 0
+		return 0
 	}
 
 	if sales_channel_id_bin.len == 0 {
-		return false, 0
+		return 0
 	}
 
 	// why is it like this?
@@ -28,12 +25,12 @@ fn get_variant_availability(v Variant, sales_channel_id_bin []u8) (bool, i32) {
 	available_quantity := i32(0) // TODO sum of all inventory items - reserved items
 	if available_quantity == 0 {
 		if v.allow_backorder {
-			return true, 0
+			return 0
 		}
-		return false, 0
+		return 0
 	}
 
-	return true, available_quantity
+	return available_quantity
 }
 
 // for each variant:
@@ -41,6 +38,6 @@ fn get_variant_availability(v Variant, sales_channel_id_bin []u8) (bool, i32) {
 // 2) calculate available quantity of each variant in the stock locations related to the sales channel
 // 3) for each inventory_item calculate the maximum deliverable amount according to required_quantity of product_variant_inventory_item
 // 4) the smallest number of these maximum deliverable amounts is the availability for this variant
-fn get_variants_availability(v []Variant, sales_channel_id_bin []u8) ([]bool, []i32) {
-	return []bool{}, []i32{}
+fn get_variants_availability(v []Variant, sales_channel_id_bin []u8) []i32 {
+	return []i32{}
 }
