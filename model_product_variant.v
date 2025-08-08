@@ -204,7 +204,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	for i := 0; i < rows.len; i++ {
 		variants[i] = parse_variant(rows[i].values())!
 	}
-	count, _ := rows[0].values()[22].get_i64()!
+	count, _ := rows[0].values()[21].get_i64()!
 
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations
