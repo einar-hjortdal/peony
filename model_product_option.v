@@ -286,11 +286,6 @@ fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, ph []Pr
 			VALUES (s.product_option_id, s.locale_id, s.title)
 		WHEN NOT MATCHED BY SOURCE
 			AND t.product_option_id = ?
-			AND NOT EXISTS (
-				SELECT 1
-				FROM product_option_value pov
-				WHERE pov.option_id = t.product_option_id
-			)
 		THEN DELETE'
 
 	tx.execute(query, ...params)!
