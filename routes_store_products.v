@@ -5,7 +5,7 @@ import veb
 
 // lists products
 @['/store/products'; get]
-fn (mut app App) store_products_get(mut ctx Context) veb.Result {
+pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_store_products_params(ctx.query)
 
 	mut cart_id_bin := []u8{}
@@ -35,7 +35,7 @@ fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 
 // get product by id
 @['/store/products/:id'; get]
-fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		return handle_error(mut ctx, http.Status.bad_request, 'Invalid id', err.msg())
 	}

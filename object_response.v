@@ -45,8 +45,9 @@ fn handle_error(mut ctx Context, status http.Status, message string, details str
 	return ctx.json(new_peony_error(message, details))
 }
 
-fn login_error() (string, string) {
-	return 'Invalid email or password', 'No further details'
+fn handle_login_error(mut ctx Context) veb.Result {
+	return handle_error(mut ctx, http.Status.unauthorized, 'Invalid email or password',
+		'No further details')
 }
 
 // count is the number of items, that match the filters, stored in the database.

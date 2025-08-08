@@ -22,15 +22,18 @@
 - [x] Multilanguage
 - [x] Multicurrency
 - [x] Uploads
-- [ ] Inventory management
+
+### Currently being implemented
+
+- [ ] Multiregion
+- [ ] Taxes
 
 ### Next
 
-- [ ] Multiregion
 - [ ] Multichannel
 - [ ] Multiwarehouse
 - [ ] Multistore
-- [ ] Taxes
+- [ ] Inventory management
 - [ ] Price rules
 - [ ] Price lists
 - [ ] Unit pricing

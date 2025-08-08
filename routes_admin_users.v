@@ -6,13 +6,13 @@ import veb
 
 // retrieves a list of users
 @['/admin/users/'; get]
-fn (app &App) admin_users_get(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_users_get(mut ctx Context) veb.Result {
 	return ctx.text('ok')
 }
 
 // creates a user
 @['/admin/users/'; post]
-fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	body := json.decode(NewUserData, ctx.req.data) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Could not decode NewUserData', err.msg()))
@@ -43,7 +43,7 @@ fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 
 // retrieves a user details
 @['/admin/users/:id'; get]
-fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Malformed id', err.msg()))
@@ -58,7 +58,7 @@ fn (mut app App) admin_users_id_get(mut ctx Context, id string) veb.Result {
 
 // updates a user
 @['/admin/users/:id'; post]
-fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Malformed id', err.msg()))
@@ -84,7 +84,7 @@ fn (mut app App) admin_users_id_post(mut ctx Context, id string) veb.Result {
 
 // deletes a user
 @['/admin/users/:id'; post]
-fn (mut app App) admin_users_id_delete(mut ctx Context, id string) veb.Result {
+pub fn (mut app App) admin_users_id_delete(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
 		ctx.res.set_status(http.Status.bad_request)
 		return ctx.json(new_peony_error('Malformed id', err.msg()))
