@@ -251,7 +251,8 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, id
 // ideally: send an error to the client when a product_option that should be deleted is in use.
 fn (mut app App) do_delete_product_options(mut tx firebird.Transaction, product_id_bin []u8) ! {
 	tx.execute('DELETE FROM product_option po
-		WHERE product_id = ? AND NOT EXISTS (
+		WHERE product_id = ? 
+		AND NOT EXISTS (
 			SELECT 1 
 			FROM product_option_value pov
 			WHERE pov.option_id = po.id
@@ -263,6 +264,7 @@ fn model_product_option_create(mut tx firebird.Transaction, id_bin []u8, product
 	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
 }
 
+// note: does not protect from deleting default_locale_id translations.
 fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, ph []ProductOptionTranslationDataHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 3 + 1, init: firebird.Value(firebird.Null{})}
