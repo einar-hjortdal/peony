@@ -6,8 +6,12 @@ A content management system and shoping cart API.
 
 peony is a headless ecommerce software designed to satisfy publishers, merchants and service providers.
 
-peony aims to support multi-language, multi-channel, multi-currency, multi-stock locations, physical, 
+peony aims to be multi-language, multi-channel, multi-currency, multi-warehouse, and support physical, 
 virtual products and services.
+
+## Get started
+
+Clone the [starter](https://github.com/einar-hjortdal/peony-starter) and customize it to fit your needs.
 
 ## Architecture
 
@@ -19,12 +23,12 @@ by deploying each box on its own independent server.
                                  ┌────────────┐                                                                                         
                                  │            │                                                                                         
                                  │            │                                                                                         
-                                 │            ◄────────────────────────────────────────────────────────────────────────┐                
-                                 │            │                                                                        │                
-                                 │            │                                   ┌──────────────────────┐             │                
-                                 │            │                                   │        peony         │    ┌────────┼───────┐        
+                                 │            |                                                                                         
+                                 │            │                                                                                         
+                                 │            │                                   ┌──────────────────────┐                              
+                                 │            │                                   │        peony         │    ┌────────────────┐        
                                  │            │                                   │                      │    │                │        
-       ┌───────────────────┐     │            │     ┌───────────────────────┐     │                      ┼────►     Blobly     │        
+       ┌───────────────────┐     │            │     ┌───────────────────────┐     │                      ┼────►    providers   │        
        │                   │     │            │     │                       │     │                      │    │                │        
        │ Admin browser app ◄─────►            ◄─────► Admin frontend server ◄─────►       /admin/        │    └────────────────┘        
        │                   │     │            │     │                       │     │                      │                              
@@ -47,8 +51,10 @@ by deploying each box on its own independent server.
 ```
 
 peony uses a cloud architecture. It can run on several backend servers sharing a connection to the database 
-servers. BLOBs are uploaded from the Admin frontend (such as images and documents) are stored on a central 
-BLOB server.
+servers.
+
+- BLOBs (such as images and files) are uploaded from the admin frontend to peony which passes the data 
+  through to a service of your choice: build your own integration by satisfying the `BlobProvider` interface.
 
 The Store API routes are all prefixed with `/store/`, while the Admin API routes are all prefixed with 
 `/admin/`.

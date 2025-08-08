@@ -43,6 +43,7 @@ fn set_log_level() {
 	}
 }
 
+// returns the initialized peony App, you can register your custom veb middleware on it.
 pub fn new_peony_app(blob_provider BlobProvider) &App {
 	load_settings()
 	set_log_level()
@@ -89,6 +90,7 @@ pub fn new_peony_app(blob_provider BlobProvider) &App {
 	return app
 }
 
+// starts peony
 pub fn (mut app App) run() {
 	app.prepare_db()
 

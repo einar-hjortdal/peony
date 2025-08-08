@@ -25,6 +25,12 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 			'country_code is an empty array')
 	}
 
+	// TODO validation
+	// error if currency_code not in store currencies
+	// error if currency_code not in currency table
+	// for each country_codes error if code not in country table
+	// this can be abstracted to a utility function because it would be reused in region update endpoint
+
 	return conduit_region_create(mut app, mut ctx, data)
 }
 

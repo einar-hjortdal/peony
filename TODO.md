@@ -19,20 +19,19 @@
 - [x] Products
 - [x] Variants
 - [x] Prices
-- [x] Multilanguage
-- [x] Multicurrency
+- [x] Multi-language
+- [x] Multi-currency
 - [x] Uploads
 
 ### Currently being implemented
 
-- [ ] Multiregion
+- [ ] Multi-region
 - [ ] Taxes
 
 ### Next
 
-- [ ] Multichannel
-- [ ] Multiwarehouse
-- [ ] Multistore
+- [ ] Multi-channel
+- [ ] Multi-warehouse
 - [ ] Inventory management
 - [ ] Price rules
 - [ ] Price lists
