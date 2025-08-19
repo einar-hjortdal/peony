@@ -16,15 +16,15 @@ const uploads_field_name = 'files'
 @['/admin/uploads'; post]
 pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	content_type := ctx.req.header.get(http.CommonHeader.content_type) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
+		return handle_error_400(mut ctx, error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
 	}
 
 	if content_type != 'multipart/form-data' {
-		return handle_error(mut ctx, http.Status.bad_request, error_header_invalid, 'Expected `Content-Type` header with `multipart/form-data` value')
+		return handle_error_400(mut ctx, error_header_invalid, 'Expected `Content-Type` header with `multipart/form-data` value')
 	}
 
 	if ctx.files.len == 0 || uploads_field_name !in ctx.files {
-		return handle_error(mut ctx, http.Status.bad_request, 'No files provided', 'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
+		return handle_error_400(mut ctx, 'No files provided', 'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
 	}
 
 	files := ctx.files[uploads_field_name]
@@ -38,11 +38,11 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 			}
 
 			if fail_deletion {
-				return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to upload file, any successfully uploaded file may have not been kept',
+				return handle_error_500(mut ctx, 'Failed to upload file, any successfully uploaded file may have not been kept',
 					'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}')
 			}
 
-			return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to upload file, any successfully uploaded file was deleted',
+			return handle_error_500(mut ctx, 'Failed to upload file, any successfully uploaded file was deleted',
 				'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}')
 		}
 
@@ -59,8 +59,7 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 @['/admin/uploads/:id'; delete]
 pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
 	app.blob_provider.delete(id) or {
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to delete file',
-			err.msg())
+		return handle_error_500(mut ctx, 'Failed to delete file', err.msg())
 	}
 
 	r := UploadsDeleteResponse{

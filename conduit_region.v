@@ -5,14 +5,12 @@ import veb
 
 fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	mut internal_regions, count := do_retrieve_regions(mut tx, p) or {
 		tx.rollback() or {} // ignore error
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve regions',
-			err.msg())
+		return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
 	}
 
 	if internal_regions.len == 0 {
@@ -35,20 +33,16 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 	tax_rate_ids_bin, region_to_tax_rate_id_map := do_retrieve_region_tax_rates(mut tx,
 		region_ids_bin) or {
 		tx.rollback() or {} // ignore error
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve region_tax_rate mapping',
+		return handle_error_500(mut ctx, 'Failed to retrieve region_tax_rate mapping',
 			err.msg())
 	}
 
 	tax_rates := do_retrieve_tax_rates_by_id(mut tx, tax_rate_ids_bin) or {
 		tx.rollback() or {} // ignore error
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Failed to retrieve tax rates',
-			err.msg())
+		return handle_error_500(mut ctx, 'Failed to retrieve tax rates', err.msg())
 	}
 
-	tx.rollback() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
-			err.msg())
-	}
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	mut tax_rates_map := map[string]TaxRate{}
 	for i := 0; i < tax_rates.len; i++ {
@@ -60,8 +54,7 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		mut rates := []TaxRate{len: region_tax_rate_ids_bin.len}
 		for i := 0; i < region_tax_rate_ids_bin.len; i++ {
 			tax_rate_id := id_bin_to_string(region_tax_rate_ids_bin[i]) or {
-				return handle_error(mut ctx, http.Status.internal_server_error, 'Database error',
-					'id stored in database is malformed. Manual intervention is required.')
+				return handle_error(mut ctx, 'Database error', 'id stored in database is malformed. Manual intervention is required.')
 			}
 			rates[i] = tax_rates_map[tax_rate_id]
 		}
@@ -88,8 +81,7 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 
 fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Result {
 	internal_region := app.retrieve_region_by_id(id_bin) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not find region', err.msg()))
+		return handle_error_400(mut ctx, 'Could not find region', err.msg())
 	}
 
 	external_region := foramt_region_response(internal_region)
@@ -103,40 +95,30 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 
 fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	do_region_create(mut app, mut tx, d) or {
 		tx.rollback() or {} // ignore error
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create region',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not create region', err.msg())
 	}
 
-	tx.commit() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
-			err.msg())
-	}
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	return success(mut ctx)
 }
 
 fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	do_region_update(mut app, mut tx, region_id_bin, d) or {
 		tx.rollback() or {} // ignore error
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update region',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not update region', err.msg())
 	}
 
-	tx.commit() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
-			err.msg())
-	}
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	return success(mut ctx)
 }

@@ -8,8 +8,7 @@ import veb
 @['/admin/auth/'; get]
 pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 	user := app.retrieve_user_by_id(ctx.user_session_values.id_bin) or {
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not retrieve user data',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve user data', err.msg())
 	}
 	return ctx.json(format_user_response(user))
 }
@@ -18,8 +17,7 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 @['/admin/auth/'; post]
 pub fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 	p := json.decode(AuthRequest, ctx.req.data) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode AuthRequest', err.msg()))
+		return handle_error_400(mut ctx, 'Could not decode AuthRequest', err.msg())
 	}
 
 	// TODO quick validate email: min/max char length, shape and presence of @ and .

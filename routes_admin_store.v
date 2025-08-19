@@ -14,31 +14,27 @@ pub fn (mut app App) admin_store_get(mut ctx Context) veb.Result {
 @['/admin/store/:id'; post]
 pub fn (mut app App) admin_store_post(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Malformed id', err.msg()))
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
 	p := json.decode(StoreRequest, ctx.req.data) or {
-		ctx.res.set_status(http.Status.bad_request)
-		return ctx.json(new_peony_error('Could not decode NewStoreData', err.msg()))
+		return handle_error_400(mut ctx, 'Could not decode NewStoreData', err.msg())
 	}
 
 	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Invalid locale id', err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'default_locale_id')
 	}
 
 	locale_ids_bin := option_array_id_string_to_array_id_bin(p.locale_ids) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Invalid locale id', err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
 	}
 
 	default_stock_location_id_bin := option_id_string_to_id_bin(p.default_stock_location_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Invalid stock location id',
-			err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'default_stock_location_id')
 	}
 
 	default_sales_channel_id_bin := option_id_string_to_id_bin(p.default_sales_channel_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Invalid sales channel id',
-			err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'default_sales_channel_id')
 	}
 
 	ph := StoreRequestHygienised{

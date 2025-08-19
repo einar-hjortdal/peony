@@ -9,15 +9,15 @@ pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_product_variant_params(ctx.query)
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
 	product_ids_bin := zero_array_id_string_to_array_id_bin(p.product_ids) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
 	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
 	ph := RetrieveProductVariantParamsHygienised{
@@ -44,7 +44,7 @@ pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 @['/admin/variants/:id'; get]
 pub fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
 	m := {
@@ -63,7 +63,7 @@ pub fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Resul
 @['/admin/variants/:id'; delete]
 pub fn (mut app App) admin_variants_id_delete(mut ctx Context, id string) veb.Result {
 	variant_id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 	return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin)
 }

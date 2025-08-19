@@ -5,26 +5,20 @@ import veb
 
 fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	internal_variants, count := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
+		return handle_error_500(mut ctx, 'Could not retrieve variants ', err.msg())
 	}
 
-	tx.rollback() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
-			err.msg())
-	}
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	mut external_variants := []VariantResponse{len: internal_variants.len}
 	for i := 0; i < internal_variants.len; i++ {
 		external_variants[i] = format_variant_response_admin(internal_variants[i]) or {
-			return handle_error(mut ctx, http.Status.internal_server_error, error_database_data_malformed,
-				err.msg())
+			return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 		}
 	}
 
@@ -40,29 +34,22 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 
 fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	internal_variants, count := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		ctx.res.set_status(http.Status.internal_server_error)
-		return ctx.json(new_peony_error('Could not retrieve variants ', err.msg()))
+		return handle_error_500(mut ctx, 'Could not retrieve variants ', err.msg())
 	}
 
-	tx.rollback() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
-			err.msg())
-	}
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	if count == 0 {
-		return handle_error(mut ctx, http.Status.not_found, 'No variant exists with the given id',
-			'count == 0')
+		return handle_error_404(mut ctx, 'No variant exists with the given id', 'count == 0')
 	}
 
 	external_variant := format_variant_response_admin(internal_variants[0]) or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_database_data_malformed,
-			err.msg())
+		return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 	}
 
 	r := VariantResponseEnvelope{
@@ -76,14 +63,12 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	_, variant_id_bin := app.new_id()
 
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	model_create_product_variant(mut tx, product_id_bin, variant_id_bin, p) or {
 		tx.rollback() or {}
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_variant',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not create product_variant', err.msg())
 	}
 
 	if povh.len != 0 {
@@ -95,23 +80,19 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 
 		model_product_option_values_create(mut tx, variant_id_bin, povh, ids_bin) or {
 			tx.rollback() or {}
-			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not create product_option_value or product_option_value_translation',
+			return handle_error_500(mut ctx, 'Could not create product_option_value or product_option_value_translation',
 				err.msg())
 		}
 	}
 
-	tx.commit() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_rollback,
-			err.msg())
-	}
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	return ctx.json(new_peony_success())
 }
 
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest, povh []ProductOptionValueRequestHygienised, mah []MoneyAmountRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	if p.title != none || p.sku != none || p.ean != none || p.upc != none || p.barcode != none
@@ -121,15 +102,14 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 		|| p.width != none {
 		do_update_product_variant(mut tx, variant_id_bin, p) or {
 			tx.rollback() or {} // ignore error
-			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant',
-				err.msg())
+			return handle_error_500(mut ctx, 'Could not update product_variant', err.msg())
 		}
 	}
 
 	if povh.len != 0 {
 		model_product_option_value_update(mut tx, variant_id_bin, povh) or {
 			tx.rollback() or {}
-			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_option_value',
+			return handle_error_500(mut ctx, 'Could not update product_option_value',
 				err.msg())
 		}
 	}
@@ -137,35 +117,27 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	if mah.len != 0 {
 		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, mah) or {
 			tx.rollback() or {} // ignore error
-			return handle_error(mut ctx, http.Status.internal_server_error, 'Could not update product_variant money_amount',
+			return handle_error_500(mut ctx, 'Could not update product_variant money_amount',
 				err.msg())
 		}
 	}
 
-	tx.commit() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
-			err.msg())
-	}
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	return success(mut ctx)
 }
 
 fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_start,
-			err.msg())
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	model_product_variant_delete(mut tx, variant_id_bin) or {
 		tx.rollback() or {}
-		return handle_error(mut ctx, http.Status.internal_server_error, 'Could not delete product_variant',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not delete product_variant', err.msg())
 	}
 
-	tx.commit() or {
-		return handle_error(mut ctx, http.Status.internal_server_error, error_transaction_commit,
-			err.msg())
-	}
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	return success(mut ctx)
 }

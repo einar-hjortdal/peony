@@ -45,6 +45,26 @@ fn handle_error(mut ctx Context, status http.Status, message string, details str
 	return ctx.json(new_peony_error(message, details))
 }
 
+// 400 bad request
+fn handle_error_400(mut ctx Context, message string, details string) veb.Result {
+	return handle_error(mut ctx, http.Status.bad_request, message, details)
+}
+
+// 404 not found
+fn handle_error_404(mut ctx Context, message string, details string) veb.Result {
+	return handle_error(mut ctx, http.Status.not_found, message, details)
+}
+
+// 422 unprocessable content
+fn handle_error_422(mut ctx Context, message string, details string) veb.Result {
+	return handle_error(mut ctx, http.Status.unprocessable_entity, message, details)
+}
+
+// 500 internal server error
+fn handle_error_500(mut ctx Context, message string, details string) veb.Result {
+	return handle_error(mut ctx, http.Status.internal_server_error, message, details)
+}
+
 fn handle_login_error(mut ctx Context) veb.Result {
 	return handle_error(mut ctx, http.Status.unauthorized, 'Invalid email or password',
 		'No further details')

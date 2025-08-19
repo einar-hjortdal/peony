@@ -11,15 +11,14 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	mut cart_id_bin := []u8{}
 	if p.cart_id.is_set {
 		cart_id_bin = id_string_to_bin(p.cart_id.v) or {
-			return handle_error(mut ctx, http.Status.bad_request, 'Invalid cart id', err.msg())
+			return handle_error_400(mut ctx, 'Invalid cart id', err.msg())
 		}
 	}
 
 	mut region_id_bin := []u8{}
 	if p.region_id.is_set {
 		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id',
-				err.msg())
+			return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
 		}
 	}
 
@@ -36,24 +35,21 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 // get product by id
 @['/store/products/:id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Result {
-	id_bin := id_string_to_bin(id) or {
-		return handle_error(mut ctx, http.Status.bad_request, 'Invalid id', err.msg())
-	}
+	id_bin := id_string_to_bin(id) or { return handle_error_400(mut ctx, 'Invalid id', err.msg()) }
 
 	p := extract_retrieve_store_products_by_id_params(ctx.query, id)
 
 	mut cart_id_bin := []u8{}
 	if p.cart_id.is_set {
 		cart_id_bin = id_string_to_bin(p.cart_id.v) or {
-			return handle_error(mut ctx, http.Status.bad_request, 'Invalid cart id', err.msg())
+			return handle_error_400(mut ctx, 'Invalid cart id', err.msg())
 		}
 	}
 
 	mut region_id_bin := []u8{}
 	if p.region_id.is_set {
 		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			return handle_error(mut ctx, http.Status.bad_request, 'Invalid region_id',
-				err.msg())
+			return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
 		}
 	}
 
