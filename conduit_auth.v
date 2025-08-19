@@ -6,12 +6,12 @@ import veb
 fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	user := app.retrieve_user_by_email(p.email) or {
 		log.debug(err.msg())
-		return handle_login_error(mut ctx)
+		return handle_error_login(mut ctx)
 	}
 
 	verify_password(p.password, user.password_hash, user.password_salt) or {
 		log.debug(err.msg())
-		return handle_login_error(mut ctx)
+		return handle_error_login(mut ctx)
 	}
 
 	ctx.user_session_values = UserSessionValues{

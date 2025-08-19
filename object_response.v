@@ -65,7 +65,7 @@ fn handle_error_500(mut ctx Context, message string, details string) veb.Result 
 	return handle_error(mut ctx, http.Status.internal_server_error, message, details)
 }
 
-fn handle_login_error(mut ctx Context) veb.Result {
+fn handle_error_login(mut ctx Context) veb.Result {
 	return handle_error(mut ctx, http.Status.unauthorized, 'Invalid email or password',
 		'No further details')
 }
