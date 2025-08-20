@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 
 const uploads_field_name = 'files'
@@ -12,10 +11,11 @@ const uploads_field_name = 'files'
 // }
 
 // upload files to the file provider
-// expects `multipart/form-data` payload
+// accepts `multipart/form-data` payloads, files should be put in the 'files' field.
+// This endpoint is broken because of a bug in veb: https://github.com/vlang/v/issues/24975
 @['/admin/uploads'; post]
 pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
-	content_type := ctx.req.header.get(http.CommonHeader.content_type) or {
+	content_type := get_header_content_type(mut ctx) or {
 		return handle_error_400(mut ctx, error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
 	}
 

@@ -25,14 +25,19 @@
 
 ### Currently being implemented
 
+- [ ] Inventory management
+
+### Soon to be implemented
+
+- [ ] User-defined data
 - [ ] Multi-region
 - [ ] Taxes
 
-### Next
+### To implement
 
 - [ ] Multi-channel
 - [ ] Multi-warehouse
-- [ ] Inventory management
+- [ ] Reservations
 - [ ] Price rules
 - [ ] Price lists
 - [ ] Unit pricing
@@ -52,7 +57,6 @@
 - [ ] User permissions
 - [ ] Variant images
 - [ ] API keys
-- [ ] User-defined data
 - [ ] Cache
 
 ### Modules:

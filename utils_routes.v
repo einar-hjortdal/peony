@@ -1,5 +1,7 @@
 module peony
 
+import net.http
+
 fn option_id_string_to_id_bin(option_id_string ?string) ![]u8 {
 	if id_string := option_id_string {
 		return id_string_to_bin(id_string)!
@@ -34,4 +36,8 @@ fn zero_array_id_string_to_array_id_bin(zero_array_id_string ZeroArrayString) ![
 		return array_id_bin
 	}
 	return [][]u8{}
+}
+
+fn get_header_content_type(mut ctx Context) ! {
+	return ctx.get_header(http.CommonHeader.content_type)
 }

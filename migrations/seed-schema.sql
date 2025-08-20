@@ -158,21 +158,9 @@ CREATE TABLE inventory_item (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  title VARCHAR(63),
-  sku VARCHAR(63),
-  hs_code VARCHAR(63),
-  origin_country CHAR(2),
-  mid_code VARCHAR(63),
-  weight INTEGER,
-  length INTEGER,
-  height INTEGER,
-  width INTEGER,
-  thumbnail BLOB SUB_TYPE TEXT,
   requires_shipping BOOLEAN DEFAULT true NOT NULL,
   CONSTRAINT "06828532-0de1-11a7-a000-6f71f973f8bf" PRIMARY KEY (id)
 );
-
-CREATE UNIQUE INDEX "06828532-0de1-1536-e000-0e3bbc33555c" ON inventory_item (sku) WHERE deleted_at IS NULL;
 
 CREATE TABLE inventory_level (
   id BINARY(16) NOT NULL,
