@@ -67,3 +67,19 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, id string) veb.Re
 	}
 	return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin)
 }
+
+// creates an inventory_item for a product_variant at the stock_location
+@['/admin/variants/:variant_id/stock-locations/:stock_location_id'; post]
+pub fn (mut app App) admin_variant_inventory_item_create(mut ctx Context, variant_id string, stock_location_id string) veb.Result {
+	variant_id_bin := id_string_to_bin(variant_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	// TODO get variant and verify that it exists and that manage_inventory is true
+
+	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	return conduit_inventory_item_create(mut app, mut ctx, variant_id_bin, stock_location_id_bin)
+}

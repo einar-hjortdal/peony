@@ -162,23 +162,6 @@ CREATE TABLE inventory_item (
   CONSTRAINT "06828532-0de1-11a7-a000-6f71f973f8bf" PRIMARY KEY (id)
 );
 
-CREATE TABLE inventory_level (
-  id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  inventory_item_id BINARY(16) NOT NULL,
-  location_id BINARY(16) NOT NULL,
-  stocked_quantity INTEGER DEFAULT 0 NOT NULL,
-  reserved_quantity INTEGER DEFAULT 0 NOT NULL,
-  incoming_quantity INTEGER DEFAULT 0 NOT NULL,
-  CONSTRAINT "06828532-0de1-11fb-5800-aecf67f0cc77" PRIMARY KEY (id)
-);
-
-CREATE UNIQUE INDEX "06828532-0de1-1ef1-e000-ed029783b4aa" ON inventory_level (inventory_item_id, location_id);
-CREATE INDEX "06828532-0de1-1f47-fc00-0bd5681967b9" ON inventory_level (inventory_item_id);
-CREATE INDEX "06828532-0de2-10cd-6400-0d702f5a6fea" ON inventory_level (location_id);
-
 CREATE TABLE product (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -349,6 +332,18 @@ CREATE TABLE stock_location (
 );
 
 CREATE INDEX "068284bc-d74a-1362-3800-bfa41b2fe4a8" ON stock_location (address_id) WHERE deleted_at IS NOT NULL;
+
+CREATE TABLE inventory_level (
+  inventory_item_id BINARY(16) NOT NULL,
+  stock_location_id BINARY(16) NOT NULL,
+  stocked_quantity INTEGER DEFAULT 0 NOT NULL,
+  reserved_quantity INTEGER DEFAULT 0 NOT NULL,
+  CONSTRAINT "06828532-0de1-11fb-5800-aecf67f0cc77" PRIMARY KEY (inventory_item_id, stock_location_id),
+  CONSTRAINT "06828532-0de1-1ef1-e000-ed029783b4aa" FOREIGN KEY (inventory_item_id) REFERENCES inventory_item (id) ON DELETE CASCADE,
+  CONSTRAINT "06828532-0de1-1f47-fc00-0bd5681967b9" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id) ON DELETE CASCADE
+);
+
+CREATE INDEX "06828532-0de2-10cd-6400-0d702f5a6fea" ON inventory_level (stock_location_id);
 
 CREATE TABLE sales_channel (
   id BINARY(16) NOT NULL,

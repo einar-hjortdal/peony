@@ -195,3 +195,7 @@ fn hygienise_product_option_value_request(povr ProductOptionValueRequest) !Produ
 struct NewCurrencyData {
 	includes_tax bool @[json: 'includesTax']
 }
+
+struct InventoryLevelRequest {
+	stocked_quantity i32 @[json: stockedQuantity]
+}

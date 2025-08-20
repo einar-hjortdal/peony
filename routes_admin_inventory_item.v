@@ -1,0 +1,26 @@
+module peony
+
+import veb
+import json
+
+// updates an inventory level
+@['/admin/inventory-items/:inventory_item_id/stock-locations/:stock_location_id'; post]
+fn (mut app App) admin_inventory_items_inventory_level_update(mut ctx Context, inventory_item_id string, stock_location_id string) veb.Result {
+	inventory_item_id_bin := id_string_to_bin(inventory_item_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'inventory_item_id')
+	}
+
+	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
+	}
+
+	p := json.decode(InventoryLevelRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode InventoryLevelRequest', err.msg())
+	}
+
+	// TODO validate new stocked_quantity is not less than reserved_quantity
+	// TODO process with a conduit function
+	// TODO add inventory items to variants responses: users must have access to inventory_item_id
+
+	return success(mut ctx)
+}
