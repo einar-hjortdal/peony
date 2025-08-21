@@ -26,10 +26,11 @@
 ### Currently being implemented
 
 - [ ] Inventory management
+- [ ] Product categories
+- [ ] User-defined data
 
 ### Soon to be implemented
 
-- [ ] User-defined data
 - [ ] Multi-region
 - [ ] Taxes
 
@@ -45,7 +46,6 @@
 - [ ] Product tags
 - [ ] Product types
 - [ ] Product collections
-- [ ] Product categories
 - [ ] Product bundles
 - [ ] Posts
 - [ ] Pages

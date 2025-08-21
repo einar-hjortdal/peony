@@ -196,6 +196,10 @@ struct NewCurrencyData {
 	includes_tax bool @[json: 'includesTax']
 }
 
+struct InventoryItemRequest {
+	requires_shipping ?bool @[json: 'requiresShipping']
+}
+
 struct InventoryLevelRequest {
-	stocked_quantity i32 @[json: stockedQuantity]
+	stocked_quantity ?i32 @[json: 'stockedQuantity']
 }

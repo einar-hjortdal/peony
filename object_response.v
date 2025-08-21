@@ -475,6 +475,24 @@ struct RegionResponseListEnvelope {
 	fetch   i32
 }
 
+struct InventoryItemResponse {
+	id                string
+	created_at        time.Time @[json: 'createdAt']
+	updated_at        time.Time @[json: 'updatedAt']
+	deleted_at        time.Time @[json: 'deletedAt'; omitempty]
+	requires_shipping bool
+}
+
+fn format_inventory_item_response(r InventoryItem) InventoryItemResponse {
+	return InventoryItemResponse{
+		id:                r.id
+		created_at:        r.created_at.Time
+		updated_at:        r.updated_at.Time
+		deleted_at:        r.deleted_at.value.Time
+		requires_shipping: r.requires_shipping
+	}
+}
+
 struct VariantResponse {
 	id                 string
 	created_at         time.Time                    @[json: 'createdAt']
@@ -487,7 +505,6 @@ struct VariantResponse {
 	ean                string                       @[omitempty]
 	upc                string                       @[omitempty]
 	variant_rank       i32                          @[json: 'variantRank']
-	inventory_quantity i32                          @[json: 'inventoryQuantity']
 	allow_backorder    bool                         @[json: 'allowBackorder']
 	manage_inventory   bool                         @[json: 'manageInventory']
 	hs_code            string                       @[json: 'hsCode'; omitempty]
@@ -502,6 +519,8 @@ struct VariantResponse {
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
 	prices             PricesResponse               @[omitempty]
+	inventory_items    []InventoryItemResponse      @[json: 'inventoryItems'; omitempty]
+	inventory_quantity i32 @[json: 'inventoryQuantity']
 }
 
 fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !VariantResponse {
@@ -515,8 +534,13 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		money_amounts[i] = format_money_amount_response(v.money_amounts[i])!
 	}
 
+	mut inventory_items := []InventoryItemResponse{len: v.inventory_items}
+	for i := 0; i < v.inventory_items.len; i++ {
+		inventory_items[i] = format_inventory_item_response(v.inventory_items[i])
+	}
+
 	prices := format_prices_response(variant_prices_map[v.id])
-	inventory_quantity := i32(0) // TODO inventory management
+	inventory_quantity := i32(0) // TODO
 
 	return VariantResponse{
 		id:               v.id
@@ -543,6 +567,7 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		// image:
 		option_values:      option_values
 		money_amounts:      money_amounts
+		inventory_items:    inventory_items
 		prices:             prices
 		inventory_quantity: inventory_quantity
 	}

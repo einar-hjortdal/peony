@@ -29,8 +29,9 @@ struct Variant {
 	width            i32
 	// image              string // from variant_image TODO
 mut:
-	money_amounts []MoneyAmount
-	option_values []ProductOptionValue
+	money_amounts   []MoneyAmount
+	option_values   []ProductOptionValue
+	inventory_items []InventoryItem
 }
 
 fn parse_variant(v []firebird.Value) !Variant {
