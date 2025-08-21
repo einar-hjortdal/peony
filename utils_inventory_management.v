@@ -16,7 +16,7 @@ fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
 	}
 
 	// why is it like this?
-	// inventory_items := TODO get inventory items
+	// inventory_items := TODO get all inventory_item or have them inside of Variant already
 	// if inventory_items.len == 0 {
 	// 	return true, 0
 	// }

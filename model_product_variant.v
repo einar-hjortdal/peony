@@ -27,6 +27,7 @@ struct Variant {
 	length           i32
 	height           i32
 	width            i32
+	metadata         firebird.NullString
 	// image              string // from variant_image TODO
 mut:
 	money_amounts   []MoneyAmount
@@ -84,6 +85,7 @@ fn parse_variant(v []firebird.Value) !Variant {
 		length:           length
 		height:           height
 		width:            width
+		metadata:         v[21].get_null_string()!
 	}
 }
 
@@ -141,6 +143,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		length,
 		height,
 		width,
+		metadata,
 		COUNT(*) OVER()
 		FROM product_variant'
 
@@ -206,7 +209,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		variants[i] = parse_variant(rows[i].values())!
 	}
 	values := rows[0].values()
-	count, _ := values[21].get_i64()!
+	count, _ := values[22].get_i64()!
 
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations
@@ -237,7 +240,7 @@ fn model_product_variants_retrieve_by_product_id(mut tx firebird.Transaction, pr
 	return model_product_variants_retrieve(mut tx, vph)
 }
 
-fn model_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest) ! {
+fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest) ! {
 	mut columns := ['id', 'product_id']
 	mut params := [firebird.Value(variant_id_bin), product_id_bin]
 	if title := p.title {
@@ -318,6 +321,11 @@ fn model_create_product_variant(mut tx firebird.Transaction, product_id_bin []u8
 	if width := p.width {
 		columns = arrays.concat(columns, 'width')
 		params = arrays.concat(params, width)
+	}
+
+	if metadata := p.metadata {
+		c = arrays.concat(columns, 'metadata')
+		params = arrays.concat(params, metadata)
 	}
 
 	tx.execute('INSERT INTO product_variant (${get_columns(columns)}) 
@@ -408,6 +416,11 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	if width := p.width {
 		columns = arrays.concat(columns, 'width')
 		params = arrays.concat(params, width)
+	}
+
+	if metadata := p.metadata {
+		c = arrays.concat(columns, 'metadata')
+		params = arrays.concat(params, metadata)
 	}
 
 	query = appendln(query, get_set_columns(columns))

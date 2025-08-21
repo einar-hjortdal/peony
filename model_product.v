@@ -24,6 +24,7 @@ struct Product {
 	type_id           string
 	type_id_bin       []u8
 	discountable      bool
+	metadata          firebird.NullString
 mut:
 	images         []Image
 	options        []ProductOption
@@ -74,6 +75,7 @@ fn parse_product(v []firebird.Value) !Product {
 		type_id:           type_id
 		type_id_bin:       type_id_bin
 		discountable:      discountable
+		metadata:          v[11].get_null_string()!
 	}
 }
 
@@ -205,7 +207,8 @@ fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) !
 		thumbnail,
 		collection_id,
 		type_id,
-		discountable
+		discountable,
+		metadata
 		FROM product
 		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
 		...workaround_24757(ids_bin))!
@@ -280,7 +283,8 @@ fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) !
 		weight,
 		length,
 		height,
-		width
+		width,
+		metadata
 		FROM product_variant
 		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))}) AND deleted_at IS NULL',
 		...workaround_24757(ids_bin))!
@@ -507,6 +511,11 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, p
 		params = arrays.concat(params, discountable)
 	}
 
+	if metadata := p.metadata {
+		c = arrays.concat(c, 'metadata')
+		params = arrays.concat(params, metadata)
+	}
+
 	tx.execute('INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )',
 		...params)!
 
@@ -607,6 +616,11 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id_bin []u8, p P
 	if discountable := p.discountable {
 		c = arrays.concat(c, 'discountable')
 		params = arrays.concat(params, discountable)
+	}
+
+	if metadata := p.metadata {
+		c = arrays.concat(c, 'metadata')
+		params = arrays.concat(params, metadata)
 	}
 
 	if c.len != 0 {

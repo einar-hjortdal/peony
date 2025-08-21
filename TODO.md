@@ -22,12 +22,12 @@
 - [x] Multi-language
 - [x] Multi-currency
 - [x] Uploads
+- [x] Metadata
 
 ### Currently being implemented
 
 - [ ] Inventory management
 - [ ] Product categories
-- [ ] User-defined data
 
 ### Soon to be implemented
 
@@ -71,6 +71,7 @@
 ## Changes
 
 - [ ] Better error handling
+- [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
 
 ## Internals
 
@@ -89,10 +90,6 @@
   locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
 - Consider modularizing price calculation.
-- User-defined data may be a simple json or a system like the one implemented by shopify or vendure: 
-  the user defines data and its types and a database migration happens. The first option leaves everything 
-  in the hands of the frontend, the second option may allow custom filters in query strings when requesting 
-  data from peony. However, the second option is also significantly more complex to implement and maintain.
 
 ## Documentation
 

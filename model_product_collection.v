@@ -35,6 +35,7 @@ struct Collection {
 	updated_at firebird.DateTime
 	deleted_at firebird.DateTime @[omitempty]
 	handle     string
+	metadata   firebird.NullString
 mut:
 	translations []CollectionTranslation
 }
@@ -55,6 +56,7 @@ fn parse_collection(v []firebird.Value) !Collection {
 		updated_at: updated_at
 		deleted_at: deleted_at
 		handle:     handle
+		metadata:   v[4].get_null_string()!
 	}
 }
 
@@ -113,8 +115,8 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 		ids_bin = arrays.concat(ids_bin, id_bin)
 	}
 
-	data = tx.execute('SELECT id, created_at, updated_at, deleted_at, handle FROM product_collection
-		WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
+	data = tx.execute('SELECT id, created_at, updated_at, deleted_at, handle, metadata
+		FROM product_collection WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
 		...ids_bin)!
 
 	rows = data.rows()

@@ -22,6 +22,7 @@ struct User {
 	deleted_at    firebird.DateTime
 	first_name    string
 	last_name     string
+	metadata      firebird.NullString
 }
 
 fn parse_user_data(v []firebird.Value) !User {
@@ -52,41 +53,38 @@ fn parse_user_data(v []firebird.Value) !User {
 		deleted_at:    deleted_at
 		first_name:    first_name
 		last_name:     last_name
+		metadata:      v[11].get_null_string()!
 	}
 }
 
-fn (mut app App) create_user(d NewUserData) !(string, []u8) {
-	id, id_bin := app.new_id()
-	handle := app.luuid_generator.v1()
+fn (mut app App) create_user(d NewUserData, id string, id_bin []u8) !(string, []u8) {
 	password_hash, password_salt := hash_password(d.password)!
 
 	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
-	mut params := [firebird.Value(id_bin), handle, d.email, password_hash, password_salt]
+	mut params := [firebird.Value(id_bin), id, d.email, password_hash, password_salt]
 
 	if role := d.role {
 		c = arrays.concat(c, 'role')
 		params = arrays.concat(params, role)
 	}
+
 	if first_name := d.first_name {
 		c = arrays.concat(c, 'first_name')
 		params = arrays.concat(params, first_name)
 	}
+
 	if last_name := d.last_name {
 		c = arrays.concat(c, 'last_name')
 		params = arrays.concat(params, last_name)
 	}
 
+	if metadata := d.metadata {
+		c = arrays.concat(c, 'metadata')
+		params = arrays.concat(params, metadata)
+	}
+
 	mut tx := app.start_transaction()!
-	tx.execute('INSERT INTO app_user (
-		id,
-		handle,
-		email,
-		password_hash,
-		password_salt,
-		role,
-		first_name,
-		last_name
-		) VALUES ${get_columns(c)})',
+	tx.execute('INSERT INTO app_user (${get_columns(c)}) VALUES (${get_placeholders(c)})',
 		arrays.concat([firebird.Value(id)], params))!
 	tx.commit()!
 
@@ -106,7 +104,8 @@ fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
 		updated_at,
 		deleted_at,
 		first_name,
-		last_name
+		last_name,
+		metadata
 		FROM app_user WHERE id = ?',
 		id_bin)!
 	tx.rollback()!
@@ -132,7 +131,8 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 		updated_at,
 		deleted_at,
 		first_name,
-		last_name
+		last_name,
+		metadata
 		FROM app_user WHERE email = ?',
 		email)!
 	tx.rollback()!
@@ -145,36 +145,35 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 	return parse_user_data(rows[0].values())!
 }
 
-fn (mut app App) update_user(id_bin []u8, p UpdateUserData) ! {
-	mut query := 'UPDATE app_user SET'
+fn model_user_update(mut tx firebird.Transaction, id_bin []u8, p UpdateUserData) ! {
+	mut columns := []string{}
 	mut params := []firebird.Value{}
 
 	if first_name := p.first_name {
-		query = appendln(query, 'first_name = ?')
+		columns = arrays, append(columns, 'first_name')
 		params = arrays.concat(params, first_name)
 	}
 
 	if last_name := p.last_name {
-		query = appendln(query, 'last_name = ?')
+		columns = arrays, append(columns, 'last_name')
 		params = arrays.concat(params, last_name)
 	}
 
 	if role := p.role {
-		query = appendln(query, 'role = ?')
+		columns = arrays, append(columns, 'role')
 		params = arrays.concat(params, role)
 	}
 
-	conditions := 'WHERE id = ?'
-	query = appendln(query, conditions)
+	if metadata := p.metadata {
+		columns = arrays, append(columns, 'metadata')
+		params = arrays.concat(params, metadata)
+	}
+
 	params = arrays.concat(params, id_bin)
 
-	mut tx := app.start_transaction()!
-	tx.execute(query, ...params)!
-	tx.commit()!
+	tx.execute('UPDATE app_user SET (${get_set_columns(columns)}) WHERE id = ?', ...params)!
 }
 
-fn (mut app App) delete_user(id_bin []u8) ! {
-	mut tx := app.start_transaction()!
+fn model_user_delete(mut tx firebird.Transaction, id_bin []u8) ! {
 	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
-	tx.commit()!
 }

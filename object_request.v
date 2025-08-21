@@ -41,12 +41,14 @@ struct NewUserData {
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
+	metadata   ?string
 }
 
 struct UpdateUserData {
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
+	metadata   ?string
 }
 
 struct ProductTranslationData {
@@ -64,6 +66,7 @@ struct ProductData {
 	collection_id     ?string @[json: 'collectionId']
 	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
+	metadata          ?string
 	images            ?[]string
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
@@ -170,6 +173,7 @@ struct ProductVariantRequest {
 	length           ?i32
 	height           ?i32
 	width            ?i32
+	metadata         ?string
 	money_amounts    ?[]MoneyAmountRequest        @[json: 'moneyAmounts']
 	option_values    ?[]ProductOptionValueRequest @[json: 'optionValues']
 }

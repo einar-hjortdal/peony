@@ -17,6 +17,7 @@ CREATE TABLE app_user (
   deleted_at TIMESTAMP,
   first_name VARCHAR(63),
   last_name VARCHAR(63),
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7e-15e0-f000-68e91e4d68b9" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad7e-163b-a800-88be23fc406a" CHECK ( role IN (
     'admin', 'member', 'developer', 'author', 'contributor')
@@ -48,6 +49,7 @@ CREATE TABLE product_collection (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   handle VARCHAR(63) NOT NULL,
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7f-1197-4400-3f49d8a69649" PRIMARY KEY (id)
 );
 
@@ -58,6 +60,7 @@ CREATE TABLE product_tag (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7f-1495-c400-531833208d23" PRIMARY KEY (id)
 );
 
@@ -66,6 +69,7 @@ CREATE TABLE product_type (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7f-17e9-bc00-194e2c0426e8" PRIMARY KEY (id)
 );
 
@@ -174,6 +178,7 @@ CREATE TABLE product (
   collection_id BINARY(16),
   type_id BINARY(16),
   discountable BOOLEAN DEFAULT true NOT NULL,
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad81-1b60-4400-c6c74051e5fb" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad81-1baf-9800-2b10d817dc21" CHECK (status IN ('draft', 'proposed', 'published', 'rejected')),
   CONSTRAINT "0681493b-ad81-1c4e-8400-20e03827959a" FOREIGN KEY (collection_id) REFERENCES product_collection (id),
@@ -204,6 +209,7 @@ CREATE TABLE product_variant (
   length INTEGER,
   height INTEGER,
   width INTEGER,
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad82-1567-9800-ff9f17937647" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad82-15b3-1c00-30ccc78e0b8e" FOREIGN KEY (product_id) REFERENCES product (id),
   CONSTRAINT "0681493b-ad82-15ff-8400-59a26da86c3d" FOREIGN KEY (origin_country) REFERENCES country (code)
@@ -269,6 +275,7 @@ CREATE TABLE product_category (
   is_active BOOLEAN NOT NULL,
   is_internal BOOLEAN NOT NULL,
   parent_category_id BINARY(16) NOT NULL,
+  metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad83-1b65-8400-8c8e5989be1d" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad83-1bbc-c400-6c3ba906dfa8" FOREIGN KEY (parent_category_id) REFERENCES product_category (id)
 );

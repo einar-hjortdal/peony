@@ -90,6 +90,7 @@ struct UserResponse {
 	deleted_at time.Time @[json: 'deletedAt'; omitempty]
 	first_name string    @[json: 'firstName'; omitempty]
 	last_name  string    @[json: 'lastName'; omitempty]
+	metadata   string    @[omitempty]
 }
 
 fn format_user_response(u User) UserResponse {
@@ -103,6 +104,7 @@ fn format_user_response(u User) UserResponse {
 		deleted_at: u.deleted_at.Time
 		first_name: u.first_name
 		last_name:  u.last_name
+		metadata:   u.metadata.value
 	}
 }
 
@@ -515,6 +517,7 @@ struct VariantResponse {
 	length             i32                          @[omitempty]
 	height             i32                          @[omitempty]
 	width              i32                          @[omitempty]
+	metadata           string                       @[omitempty]
 	image              string                       @[omitempty] // TODO variant images
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
@@ -564,6 +567,7 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		height:           v.height
 		width:            v.width
 		title:            v.title
+		metadata:         v.metadata.value
 		// image:
 		option_values:      option_values
 		money_amounts:      money_amounts
@@ -630,6 +634,7 @@ struct ProductResponse {
 	collection_id  string @[json: 'collectionId'; omitempty]
 	type_id        string @[json: 'typeId'; omitempty]
 	discountable   bool
+	metadata       string                       @[omitempty]
 	images         []ImageResponse              @[omitempty]
 	options        []ProductOptionResponse      @[omitempty]
 	variants       []VariantResponse            @[omitempty]
@@ -678,6 +683,7 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 		collection_id:  p.collection_id
 		type_id:        p.type_id
 		discountable:   p.discountable
+		metadata:       p.discountable.value
 		images:         images
 		options:        options
 		variants:       variants

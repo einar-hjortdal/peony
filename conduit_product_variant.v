@@ -66,7 +66,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_create_product_variant(mut tx, product_id_bin, variant_id_bin, p) or {
+	model_product_variant_create(mut tx, product_id_bin, variant_id_bin, p) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_variant', err.msg())
 	}

@@ -1,6 +1,17 @@
-# Notes
+# Info
 
 ## Design
+
+### metadata
+
+Some resources contain a `metadata` field. The admin frontend can give any data to peony using this 
+field, and the data will be stored in the database. This field will be available on `/store/` endpoints, 
+allowing customization when presenting data.
+
+Note: currently this field is stored as a string in the database, without any validation or processing. 
+Eventually, (when Firebird will support it) this field will be handled as JSON. For a smooth transition 
+when such change happens it is best to only assign valid JSON value (an object, array, string, number, 
+boolean or null).
 
 ### Countries, regions, currencies and prices
 
