@@ -2,6 +2,13 @@
 
 ## Design
 
+### product
+
+#### product_category
+
+A `product_category` allows to categorize `product`. A `product_category` can describe a hierarchical 
+structure thanks to the `parent_category_id` field.
+
 ### metadata
 
 Some resources contain a `metadata` field. The admin frontend can give any data to peony using this 
@@ -15,12 +22,12 @@ boolean or null).
 
 ### Countries, regions, currencies and prices
 
-One country can only be in one region. One region can only have one currency. Therefore one country 
-can only have one currency. By default, a store has no regions.
+One `country` can only be in one `region`. One `region` can only have one `currency`. Therefore one `country` can only have one `currency`. By default, a `store` has no `region`.
 
-A product_variant can be given many money_amount. If a region is created, a product_variant can have 
-a money_amount that is related to a region. In this case, if the customer is from this region, the regional 
-money_amount is prioritized: the customer will get the regional money_amount in its currency.
+A `product_variant` can be given many `money_amount`. If a `region` is created, a `product_variant` 
+can have a `money_amount` that is related to a `region`. In this case, if the customer is from this 
+`region`, the regional `money_amount` is prioritized: the customer will get the regional `money_amount` 
+in its currency.
 
 ### Inventory management
 
