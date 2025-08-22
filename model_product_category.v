@@ -3,6 +3,31 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
+struct ProductCategoryTranslation {
+	product_category_id     string
+	product_category_id_bin []u8
+	locale_id               string
+	locale_id_bin           []u8
+	name                    string
+}
+
+// TODO represent children without recursion
+struct ProductCategory {
+	id                     string
+	id_bin                 []u8
+	created_at             firebird.DateTime
+	updated_at             firebird.DateTime
+	deleted_at             firebird.NullDateTime
+	handle                 string
+	is_active              bool
+	is_internal            bool
+	parent_category_id     string
+	parent_category_id_bin firebird.NullArrayU8
+	metadata               firebird.NullString
+mut:
+	translations []ProductCategoryTranslation
+}
+
 fn (mut app App) do_update_product_categories(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
 	mut s := ''
 	mut pa := []firebird.Value{}

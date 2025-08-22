@@ -274,7 +274,7 @@ CREATE TABLE product_category (
   handle VARCHAR(63) NOT NULL,
   is_active BOOLEAN NOT NULL,
   is_internal BOOLEAN NOT NULL,
-  parent_category_id BINARY(16) NOT NULL,
+  parent_category_id BINARY(16),
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad83-1b65-8400-8c8e5989be1d" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad83-1bbc-c400-6c3ba906dfa8" FOREIGN KEY (parent_category_id) REFERENCES product_category (id)

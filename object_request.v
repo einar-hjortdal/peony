@@ -207,3 +207,33 @@ struct InventoryItemRequest {
 struct InventoryLevelRequest {
 	stocked_quantity ?i32 @[json: 'stockedQuantity']
 }
+
+struct ProductCategoryTranslationRequest {
+	locale_id string
+	name      string
+}
+
+struct ProductCategoryTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	name          string
+}
+
+struct ProductCategoryRequest {
+	translations       []ProductCategoryTranslationRequest
+	handle             ?string
+	is_internal        ?bool
+	is_active          ?bool
+	parent_category_id ?string
+	metadata           ?string
+}
+
+struct ProductCategoryRequestHygienised {
+	translations           []ProductCategoryTranslationRequestHygienised
+	handle                 ?string
+	is_internal            ?bool
+	is_active              ?bool
+	parent_category_id     ?string
+	parent_category_id_bin []u8
+	metadata               ?string
+}
