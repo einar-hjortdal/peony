@@ -27,7 +27,76 @@ mut:
 	translations []ProductCategoryTranslation
 }
 
-fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryRetrieveParamsHygienised) ![]ProductCategory {
+fn model_product_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph ProductCategoryRequestHygienised) ! {
+	mut columns := ['id']
+	mut params := [firebird.Value(id_bin)]
+
+	columns = arrays.concat(columns, 'handle')
+	if handle := ph.handle {
+		params = arrays.concat(params, handle)
+	} else {
+		params = arrays.concat(params, id)
+	}
+
+	if is_active := ph.is_active {
+		columns = arrays.concat(columns, 'is_active')
+		params = arrays.concat(params, is_active)
+	}
+
+	if is_internal := ph.is_internal {
+		columns = arrays.concat(columns, 'is_internal')
+		params = arrays.concat(params, is_internal)
+	}
+
+	if metadata := ph.metadata {
+		columns = arrays.concat(columns, 'metadata')
+		params = arrays.concat(params, metadata)
+	}
+
+	if _ := ph.parent_category_id {
+		columns = arrays.concat(columns, 'parent_category_id')
+		params = arrays.concat(params, ph.parent_category_id_bin)
+	}
+
+	tx.execute('INSERT INTO product_category (${get_columns(columns)}) 
+		VALUES (${get_placeholders(params)})',
+		...params)!
+}
+
+fn model_product_category_update(mut tx firebird.Transaction, product_category_id_bin []u8, ph ProductCategoryRequestHygienised) ! {
+	mut columns := []string{}
+	mut params := []firebird.Value{}
+
+	if handle := ph.handle {
+		columns = arrays.concat(columns, 'handle')
+		params = arrays.concat(params, handle)
+	}
+
+	if is_active := ph.is_active {
+		columns = arrays.concat(columns, 'is_active')
+		params = arrays.concat(params, is_active)
+	}
+
+	if is_internal := ph.is_internal {
+		columns = arrays.concat(columns, 'is_internal')
+		params = arrays.concat(params, is_internal)
+	}
+
+	if metadata := ph.metadata {
+		columns = arrays.concat(columns, 'metadata')
+		params = arrays.concat(params, metadata)
+	}
+
+	if _ := ph.parent_category_id {
+		columns = arrays.concat(columns, 'parent_category_id')
+		params = arrays.concat(params, ph.parent_category_id_bin)
+	}
+
+	tx.execute('UPDATE product_category SET ${get_set_columns(columns)} WHERE id = ?',
+		...params)!
+}
+
+fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !([]ProductCategory, i64) {
 	mut query := ''
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
@@ -87,12 +156,15 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryRet
 		is_active,
 		is_internal,
 		parent_category_id,
-		metadata
+		metadata,
+		COUNT(*) OVER()
 		FROM product_category ${get_where_conditions(conditions)}${sorting}')
 
 	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
+	mut count := i64(0)
+
 	mut product_categories := []ProductCategory{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
@@ -126,9 +198,18 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryRet
 			parent_category_id_bin: parent_category_id_bin
 			metadata:               metadata
 		}
+
+		if i == 0 {
+			count, _ = v[9].get_i64()!
+		}
 	}
 
-	return product_categories
+	return product_categories, count
+}
+
+fn model_product_category_delete(mut tx firebird.Transaction, product_category_id_bin []u8) ! {
+	tx.execute('UPDATE product_category SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		product_category_id_bin)!
 }
 
 // TODO get tranlsations

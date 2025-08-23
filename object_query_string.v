@@ -322,7 +322,7 @@ fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string s
 // handles expects a string that is a single handle, or many comma-separated handles.
 // parent_category_ids expects a string that is a single id, or many comma-separated ids. All children
 // of these will be returned.
-struct ProductCategoryRetrieveParams {
+struct ProductCategoryParamsRetrieve {
 	ids                 ZeroArrayString
 	handles             ZeroArrayString
 	is_active           ZeroBool
@@ -334,8 +334,8 @@ struct ProductCategoryRetrieveParams {
 	order               ZeroString
 }
 
-fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryRetrieveParams {
-	return ProductCategoryRetrieveParams{
+fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryParamsRetrieve {
+	return ProductCategoryParamsRetrieve{
 		ids:                 zero_array_string(m, 'ids')
 		handles:             zero_array_string(m, 'handle')
 		is_active:           zero_bool(m, 'is_active')
@@ -348,7 +348,7 @@ fn extract_retrieve_product_category_params(m map[string]string) ProductCategory
 	}
 }
 
-struct ProductCategoryRetrieveParamsHygienised {
+struct ProductCategoryParamsRetrieveHygienised {
 	ids                     ZeroArrayString
 	ids_bin                 [][]u8
 	handles                 ZeroArrayString

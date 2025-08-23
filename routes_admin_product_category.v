@@ -16,7 +16,7 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, error_id_invalid, 'parent_category_ids')
 	}
 
-	ph := ProductCategoryRetrieveParamsHygienised{
+	ph := ProductCategoryParamsRetrieveHygienised{
 		ids:                     p.ids
 		ids_bin:                 ids_bin
 		handles:                 p.handles
@@ -38,6 +38,12 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 	p := json.decode(ProductCategoryRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode ProductCategoryRequest', err.msg())
+	}
+
+	if translations := p.translations {
+		if translations.len == 0 {
+			return handle_error_400(mut ctx, 'Translations missing', 'Provide at least one translation')
+		}
 	}
 
 	mut parent_category_id_bin := []u8{}
@@ -82,7 +88,16 @@ pub fn (mut app App) admin_product_category_get(mut ctx Context, product_categor
 		return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
 	}
 
-	return conduit_product_category_get(mut app, mut ctx, product_category_id_bin)
+	m := {
+		'ids': product_category_id
+	}
+	p := extract_retrieve_product_category_params(m)
+	ph := ProductCategoryParamsRetrieveHygienised {
+		ids: p.ids
+		ids_bin: [product_category_id_bin]
+	}
+
+	return conduit_product_category_list(mut app, mut ctx, ph)
 }
 
 // updates a product_category
@@ -94,6 +109,11 @@ pub fn (mut app App) admin_product_category_update(mut ctx Context, product_cate
 
 	p := json.decode(ProductCategoryRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode ProductCategoryRequest', err.msg())
+	}
+
+	if p.translations == none && p.handle == none && p.is_internal == none && p.is_active == none
+		&& p.parent_category_id == none && p.metadata == none {
+		return handle_error_400(mut ctx, 'Nothing to update', 'received all empty fields')
 	}
 
 	mut parent_category_id_bin := []u8{}

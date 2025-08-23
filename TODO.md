@@ -80,7 +80,8 @@
 - [x] Return count, offset and fetch values with lists
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
 - [ ] Transaction attempts
-- [ ] Soft-delete
+- [ ] Soft-delete where needed, and only where needed
+- [ ] insert `NULL` when opportune during resource updates
 
 ## Considerations
 
@@ -90,6 +91,7 @@
   locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
 - Consider modularizing price calculation.
+- Consider moving the default translation of resources on their parent resource.
 
 ## Documentation
 
