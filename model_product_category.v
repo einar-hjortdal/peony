@@ -28,32 +28,110 @@ mut:
 }
 
 fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryRetrieveParamsHygienised) ![]ProductCategory {
+	mut query := ''
+	mut conditions := []string{}
+	mut params := []firebird.Value{}
+
+	if ph.parent_category_ids.is_set {
+		query = appendln(query, 'WITH RECURSIVE descendants (id) AS (
+			SELECT id FROM product_category
+				WHERE parent_category_id IN (${get_placeholders(ph.parent_category_id_bins)})
+			UNION ALL
+			SELECT pc.id
+				FROM product_category pc JOIN descendants d
+				ON pc.parent_category_id = d.id
+			)')
+		params = arrays.concat(params, ...ph.parent_category_id_bins)
+	}
+
 	if ph.ids.is_set {
-		// TODO where id in ()
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
+		params = arrays.concat(params, ...ph.ids_bin)
 	}
 
 	if ph.handles.is_set {
-		// TODO where handle like
+		conditions = arrays.concat(conditions, 'handle IN (${get_placeholders(ph.handles.v)})')
+		params = arrays.concat(params, ...ph.handles.v)
 	}
 
 	if ph.is_active.is_set {
-		// TODO WHERE is_active = ?
+		conditions = arrays.concat(conditions, 'is_active = ?')
+		params = arrays.concat(params, ph.is_active.v)
 	}
 
 	if ph.is_internal.is_set {
-		// TODO WHERE is_internal = ?
+		conditions = arrays.concat(conditions, 'is_internal = ?')
+		params = arrays.concat(params, ph.is_internal.v)
 	}
 
-	if ph.with_deleted.is_set {
-		// TODO WHERE deleted_at IS NULL or IS NOT NULL
+	if !ph.with_deleted.is_set || ph.with_deleted.v {
+		conditions = arrays.concat(conditions, 'deleted_at IS NOT NULL')
 	}
 
-	if ph.parent_category_ids.is_set {
-		// TODO with recursive
+	mut sorting := ''
+	sorting = appendln(sorting, 'ORDER BY created_at ${get_sorting_order(ph.order)}')
+
+	if ph.offset.is_set {
+		sorting = appendln(sorting, 'OFFSET ? ROWS')
+		params = arrays.concat(params, ph.offset.v)
 	}
 
-	// TODO offset/fetch/order
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+
+	query = appendln(query, 'SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		handle,
+		is_active,
+		is_internal,
+		parent_category_id,
+		metadata
+		FROM product_category ${get_where_conditions(conditions)}${sorting}')
+
+	data := tx.execute(query, ...params)!
+
+	rows := data.rows()
+	mut product_categories := []ProductCategory{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+		id_bin, _ := v[0].get_array_u8()!
+		created_at, _ := v[1].get_date_time()!
+		updated_at, _ := v[2].get_date_time()!
+		deleted_at := v[3].get_null_date_time()!
+		handle, _ := v[4].get_string()!
+		is_active, _ := v[5].get_bool()!
+		is_internal, _ := v[6].get_bool()!
+		parent_category_id_bin := v[7].get_null_array_u8()!
+		metadata := v[8].get_null_string()!
+
+		id := id_bin_to_string(id_bin)!
+
+		mut parent_category_id := ''
+		if !parent_category_id_bin.is_null {
+			parent_category_id = id_bin_to_string(parent_category_id_bin.value)!
+		}
+
+		product_categories[i] = ProductCategory{
+			id:                     id
+			id_bin:                 id_bin
+			created_at:             created_at
+			updated_at:             updated_at
+			deleted_at:             deleted_at
+			handle:                 handle
+			is_active:              is_active
+			is_internal:            is_internal
+			parent_category_id:     parent_category_id
+			parent_category_id_bin: parent_category_id_bin
+			metadata:               metadata
+		}
+	}
+
+	return product_categories
 }
+
+// TODO get tranlsations
 
 fn model_product_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
 	mut src := []string{len: category_ids_bin.len}

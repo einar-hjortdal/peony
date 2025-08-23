@@ -54,7 +54,7 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		mut rates := []TaxRate{len: region_tax_rate_ids_bin.len}
 		for i := 0; i < region_tax_rate_ids_bin.len; i++ {
 			tax_rate_id := id_bin_to_string(region_tax_rate_ids_bin[i]) or {
-				return handle_error(mut ctx, 'Database error', 'id stored in database is malformed. Manual intervention is required.')
+				return handle_error_500(mut ctx, 'Database error', 'id stored in database is malformed. Manual intervention is required.')
 			}
 			rates[i] = tax_rates_map[tax_rate_id]
 		}

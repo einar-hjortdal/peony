@@ -68,7 +68,7 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 	return translations
 }
 
-fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin []u8, d []ProductTranslationRequest) ! {
+fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin []u8, d []ProductTranslationRequestHygienised) ! {
 	mut s := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < d.len; i++ {

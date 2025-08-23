@@ -17,6 +17,13 @@ fn appendln(src string, ln string) string {
 	return '${src}${newln(ln)}'
 }
 
+fn get_cte(cte []string) string {
+	if cte.len == 0 {
+		return ''
+	}
+	return newln(cte.join(','))
+}
+
 fn get_columns(c []string) string {
 	return c.join(', ')
 }
@@ -45,10 +52,10 @@ fn get_n_placeholders(n i32) string {
 	return res
 }
 
-fn get_placeholders(a []string) string {
-	mut res := []string{}
+fn get_placeholders[T](a []T) string {
+	mut res := []string{len: a.len}
 	for i := 0; i < a.len; i++ {
-		res = arrays.concat(res, '?')
+		res[i] = '?'
 	}
 	return res.join(', ')
 }

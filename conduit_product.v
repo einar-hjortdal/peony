@@ -172,15 +172,16 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	if handle != none || is_giftcard != none || status != none || thumbnail != none
-		|| collection_id != none || type_id != none || discountable != none || metadata != none {
-		model_product_update(mut tx, product_id_bin, p) or {
+	if ph.handle != none || ph.is_giftcard != none || ph.status != none || ph.thumbnail != none
+		|| ph.collection_id != none || ph.type_id != none || ph.discountable != none
+		|| ph.metadata != none {
+		model_product_update(mut tx, product_id_bin, ph) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to update product', err.msg())
 		}
 	}
 
-	if tag_ids := ph.tag_ids {
+	if _ := ph.tag_ids {
 		// TODO
 	}
 
@@ -191,7 +192,7 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		}
 	}
 
-	if sales_channel_ids := p.sales_channel_ids {
+	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product sales channel',
@@ -199,15 +200,15 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		}
 	}
 
-	if category_ids := p.category_ids {
-		model_product_category_product_update(mut tx, product_id_bin, category_ids_bin) or {
+	if _ := ph.category_ids {
+		model_product_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product category relation',
 				err.msg())
 		}
 	}
 
-	if translations := p.translations {
+	if translations := ph.translations {
 		model_product_translation_update(mut tx, product_id_bin, translations) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product translations',
