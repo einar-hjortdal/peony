@@ -29,24 +29,21 @@ mut:
 }
 
 fn model_product_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
-	mut s := ''
-	mut pa := []firebird.Value{}
+	mut src := []string{len: category_ids_bin.len}
+	mut params := []firebird.Value{len: category_ids_bin.len * 2 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < category_ids_bin.len; i++ {
-		s = appendln(s, 'SELECT ? AS product_id, ? AS product_category_id FROM RDB\$DATABASE')
-		pa = arrays.concat(pa, product_id_bin, category_ids_bin[i])
-		if i != category_ids_bin.len - 1 {
-			s = appendln(s, 'UNION ALL')
-		}
+		src[i] = 'SELECT ? AS product_id, ? AS product_category_id FROM RDB\$DATABASE'
+		params[i * 2] = product_id_bin
+		params[i * 2 + 1] = category_ids_bin[i]
 	}
+	params[category_ids_bin.len * 2] = product_id_bin
 
-	query := 'MERGE INTO product_category_product t
-			USING (${s}) s (product_id, product_category_id)
+	tx.execute('MERGE INTO product_category_product t
+			USING (${get_merge_source(src)}) s (product_id, product_category_id)
 			ON (t.product_id = s.product_id AND t.product_category_id = s.product_category_id)
 			WHEN NOT MATCHED THEN
 				INSERT (product_id, product_category_id)
 				VALUES (s.product_id, s.product_category_id)
-			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE'
-	pa = arrays.concat(pa, product_id_bin)
-
-	tx.execute(query, ...pa)!
+			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE',
+		...params)!
 }
