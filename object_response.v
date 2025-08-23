@@ -717,3 +717,53 @@ struct UploadsDeleteResponse {
 	id      string
 	deleted bool
 }
+
+struct ProductCategoryTranslationResponse {
+	product_category_id string @[json: 'productCategoryId']
+	locale_id           string @[json: 'localeId']
+	name                string
+}
+
+struct ProductCategoryResponse {
+	id                 string
+	created_at         time.Time @[json: 'createdAt']
+	updated_at         time.Time @[json: 'updatedAt']
+	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
+	handle             string
+	is_active          bool   @[json: 'isActive']
+	is_internal        bool   @[json: 'isInternal']
+	parent_category_id string @[json: 'parentCategoryId'; omitempty]
+	metadata           string @[omitempty]
+	translations       []ProductCategoryTranslationResponse
+}
+
+struct ProductCategoryResponseListEnvelope {
+	product_categories []ProductCategoryResponse @[json: 'productCategories']
+	count              i64
+	offset             i32
+	fetch              i32
+}
+
+fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
+	mut translations := []ProductCategoryTranslationResponse{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = ProductCategoryTranslationResponse{
+			product_category_id: translations[i].product_category_id
+			locale_id:           translations[i].locale_id
+			name:                translations[i].name
+		}
+	}
+
+	return ProductCategoryResponse{
+		id:                 p.id
+		created_at:         p.created_at.Time
+		updated_at:         p.updated_at.Time
+		deleted_at:         p.deleted_at.value.Time
+		handle:             p.handle
+		is_active:          p.is_active
+		is_internal:        p.is_internal
+		parent_category_id: p.parent_category_id
+		metadata:           p.metadata.value
+		translations:       translations
+	}
+}
