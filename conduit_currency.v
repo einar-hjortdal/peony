@@ -1,7 +1,6 @@
 module peony
 
 import veb
-import net.http
 
 fn conduit_currency_get(mut app App, mut ctx Context, p RetrieveCurrenciesParams) veb.Result {
 	mut tx := app.start_transaction() or {

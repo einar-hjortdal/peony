@@ -38,6 +38,6 @@ fn zero_array_id_string_to_array_id_bin(zero_array_id_string ZeroArrayString) ![
 	return [][]u8{}
 }
 
-fn get_header_content_type(mut ctx Context) ! {
+fn get_header_content_type(mut ctx Context) !string {
 	return ctx.get_header(http.CommonHeader.content_type)
 }

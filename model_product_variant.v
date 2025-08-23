@@ -324,7 +324,7 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 	}
 
 	if metadata := p.metadata {
-		c = arrays.concat(columns, 'metadata')
+		columns = arrays.concat(columns, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
 
@@ -419,7 +419,7 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	}
 
 	if metadata := p.metadata {
-		c = arrays.concat(columns, 'metadata')
+		columns = arrays.concat(columns, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
 

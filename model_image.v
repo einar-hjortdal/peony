@@ -31,7 +31,7 @@ fn parse_image(v []firebird.Value) !Image {
 	}
 }
 
-fn (mut app App) do_create_images(mut tx firebird.Transaction, urls []string) !([]string, [][]u8) {
+fn model_image_create(mut app App, mut tx firebird.Transaction, urls []string) !([]string, [][]u8) {
 	mut c := ['id', 'url']
 	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
 
@@ -147,7 +147,7 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_images
 }
 
-fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
+fn model_product_images_update(mut app App, mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
 	pi := do_retrieve_product_images(mut tx, [product_id_bin])!
 
 	// delete all product_images with url missing from the given array
@@ -182,7 +182,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		}
 	}
 
-	_, created_ids_bin := app.do_create_images(mut tx, images_to_create)!
+	_, created_ids_bin := model_image_create(mut app, mut tx, images_to_create)!
 
 	// sort ids_bin according to urls array to obtain the correct image_rank order
 	mut sorted_ids_bin := [][]u8{}

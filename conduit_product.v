@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 
 fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -186,7 +185,7 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 	}
 
 	if images := ph.images {
-		model_product_images_update(mut tx, product_id_bin, images) or {
+		model_product_images_update(mut app, mut tx, product_id_bin, images) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
 		}

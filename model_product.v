@@ -524,7 +524,7 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductRequest
 	}
 
 	if images := p.images {
-		_, ids_bin := app.do_create_images(mut tx, images)!
+		_, ids_bin := model_image_create(mut app, mut tx, images)!
 		app.do_create_product_images(mut tx, product_id_bin, ids_bin)!
 	}
 
@@ -601,12 +601,12 @@ fn model_product_update(mut tx firebird.Transaction, id_bin []u8, ph ProductRequ
 		params = arrays.concat(params, thumbnail)
 	}
 
-	if collection_id := ph.collection_id {
+	if _ := ph.collection_id {
 		c = arrays.concat(c, 'collection_id')
 		params = arrays.concat(params, ph.collection_id_bin)
 	}
 
-	if type_id := ph.type_id {
+	if _ := ph.type_id {
 		c = arrays.concat(c, 'type_id')
 		params = arrays.concat(params, ph.type_id_bin)
 	}

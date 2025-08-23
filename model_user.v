@@ -57,7 +57,7 @@ fn parse_user_data(v []firebird.Value) !User {
 	}
 }
 
-fn (mut app App) create_user(d NewUserData, id string, id_bin []u8) !(string, []u8) {
+fn model_user_create(mut tx firebird.Transaction, d NewUserData, id string, id_bin []u8) ! {
 	password_hash, password_salt := hash_password(d.password)!
 
 	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
@@ -83,12 +83,8 @@ fn (mut app App) create_user(d NewUserData, id string, id_bin []u8) !(string, []
 		params = arrays.concat(params, metadata)
 	}
 
-	mut tx := app.start_transaction()!
 	tx.execute('INSERT INTO app_user (${get_columns(c)}) VALUES (${get_placeholders(c)})',
 		arrays.concat([firebird.Value(id)], params))!
-	tx.commit()!
-
-	return id, id_bin
 }
 
 fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
@@ -150,22 +146,22 @@ fn model_user_update(mut tx firebird.Transaction, id_bin []u8, p UpdateUserData)
 	mut params := []firebird.Value{}
 
 	if first_name := p.first_name {
-		columns = arrays, append(columns, 'first_name')
+		columns = arrays.concat(columns, 'first_name')
 		params = arrays.concat(params, first_name)
 	}
 
 	if last_name := p.last_name {
-		columns = arrays, append(columns, 'last_name')
+		columns = arrays.concat(columns, 'last_name')
 		params = arrays.concat(params, last_name)
 	}
 
 	if role := p.role {
-		columns = arrays, append(columns, 'role')
+		columns = arrays.concat(columns, 'role')
 		params = arrays.concat(params, role)
 	}
 
 	if metadata := p.metadata {
-		columns = arrays, append(columns, 'metadata')
+		columns = arrays.concat(columns, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
 

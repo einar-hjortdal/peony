@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 
 fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {

@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 import json
 

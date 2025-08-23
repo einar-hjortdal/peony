@@ -17,7 +17,7 @@ fn test_get_conditions() {
 	assert get_conditions(c) == ''
 
 	c = ['id IN ?', "name LIKE '%' || ? '%'"]
-	assert get_conditions(c) == "id IN ? AND name LIKE '%' || ? '%'"
+	assert get_conditions(c) == "\nid IN ? AND name LIKE '%' || ? '%'"
 }
 
 fn test_get_where_conditions() {
@@ -25,5 +25,5 @@ fn test_get_where_conditions() {
 	assert get_where_conditions(c) == ''
 
 	c = ['id IN ?', "name LIKE '%' || ? '%'"]
-	assert get_where_conditions(c) == "\nWHERE id IN ? AND name LIKE '%' || ? '%'"
+	assert get_where_conditions(c) == "\nWHERE \nid IN ? AND name LIKE '%' || ? '%'"
 }

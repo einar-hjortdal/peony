@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import json
 import veb
 
@@ -114,11 +113,15 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		return handle_error_400(mut ctx, error_id_invalid, 'tag_id')
 	}
 
+	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
+	}
+
 	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
 	}
 
-	ph := ProductRequestHygienised{
+	mut ph := ProductRequestHygienised{
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status
@@ -131,7 +134,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		metadata:              p.metadata
 		images:                p.images
 		tag_ids:               p.tag_ids
-		tad_ids_bin:           tag_ids_bin
+		tag_ids_bin:           tag_ids_bin
 		sales_channel_ids:     p.sales_channel_ids
 		sales_channel_ids_bin: sales_channel_ids_bin
 		category_ids:          p.category_ids
@@ -139,7 +142,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 	}
 
 	if translations := p.translations {
-		pth := []ProductTranslationRequestHygienised{len: translations.len}
+		mut pth := []ProductTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {

@@ -537,7 +537,7 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		money_amounts[i] = format_money_amount_response(v.money_amounts[i])!
 	}
 
-	mut inventory_items := []InventoryItemResponse{len: v.inventory_items}
+	mut inventory_items := []InventoryItemResponse{len: v.inventory_items.len}
 	for i := 0; i < v.inventory_items.len; i++ {
 		inventory_items[i] = format_inventory_item_response(v.inventory_items[i])
 	}
@@ -683,7 +683,7 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 		collection_id:  p.collection_id
 		type_id:        p.type_id
 		discountable:   p.discountable
-		metadata:       p.discountable.value
+		metadata:       p.metadata.value
 		images:         images
 		options:        options
 		variants:       variants

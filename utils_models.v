@@ -1,6 +1,5 @@
 module peony
 
-import arrays
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
@@ -61,6 +60,9 @@ fn get_placeholders[T](a []T) string {
 }
 
 fn get_conditions(c []string) string {
+	if c.len == 0 {
+		return ''
+	}
 	return '\n${c.join(' AND ')}'
 }
 

@@ -1,7 +1,6 @@
 module peony
 
 import json
-import net.http
 import veb
 
 // lists currencies

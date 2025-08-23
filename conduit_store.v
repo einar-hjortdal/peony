@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 
 fn conduit_store_get(mut app App, mut ctx Context) veb.Result {

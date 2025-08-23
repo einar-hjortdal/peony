@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 import json
 
@@ -20,7 +19,7 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 	ph := ProductCategoryRetrieveParamsHygienised{
 		ids:                     p.ids
 		ids_bin:                 ids_bin
-		handle:                  p.handle
+		handles:                 p.handles
 		is_active:               p.is_active
 		is_internal:             p.is_internal
 		parent_category_ids:     p.parent_category_ids
@@ -31,7 +30,6 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 		order:                   p.order
 	}
 
-	// TODO implement
 	return conduit_product_category_list(mut app, mut ctx, ph)
 }
 
@@ -42,9 +40,38 @@ pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Could not decode ProductCategoryRequest', err.msg())
 	}
 
-	// TODO hygienise
+	mut parent_category_id_bin := []u8{}
+	if parent_category_id := p.parent_category_id {
+		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
+			return handle_error_400(mut ctx, error_id_invalid, 'parent_category_id')
+		}
+	}
 
-	// TODO implement
+	mut ph := ProductCategoryRequestHygienised{
+		handle:                 p.handle
+		is_internal:            p.is_internal
+		is_active:              p.is_active
+		parent_category_id:     p.parent_category_id
+		parent_category_id_bin: parent_category_id_bin
+		metadata:               p.metadata
+	}
+
+	if translations := p.translations {
+		mut pcth := []ProductCategoryTranslationRequestHygienised{len: translations.len}
+		for i := 0; translations.len; i++ {
+			translation := translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
+			}
+			pcth[i] = ProductCategoryTranslationRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				name:          translation.name
+			}
+		}
+		ph.translations = pcth
+	}
+
 	return conduit_product_category_create(mut app, mut ctx, ph)
 }
 
@@ -55,7 +82,6 @@ pub fn (mut app App) admin_product_category_get(mut ctx Context, product_categor
 		return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
 	}
 
-	// TODO implement
 	return conduit_product_category_get(mut app, mut ctx, product_category_id_bin)
 }
 
@@ -70,25 +96,14 @@ pub fn (mut app App) admin_product_category_update(mut ctx Context, product_cate
 		return handle_error_400(mut ctx, 'Could not decode ProductCategoryRequest', err.msg())
 	}
 
-	mut pcth := []ProductCategoryTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
-		locale_id_bin := id_string_to_bin(translation.locale_id) or {
-			return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
-		}
-		pcth[i] = ProductCategoryTranslationRequestHygienised{
-			locale_id:     translation.locale_id
-			locale_id_bin: locale_id_bin
-			name:          translation.name
+	mut parent_category_id_bin := []u8{}
+	if parent_category_id := p.parent_category_id {
+		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
+			return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
 		}
 	}
 
-	parent_category_id_bin := id_string_to_bin(p.parent_category_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
-	}
-
-	ph := ProductCategoryRequestHygienised{
-		translations:           pcth
+	mut ph := ProductCategoryRequestHygienised{
 		handle:                 p.handle
 		is_internal:            p.is_internal
 		is_active:              p.is_active
@@ -97,7 +112,22 @@ pub fn (mut app App) admin_product_category_update(mut ctx Context, product_cate
 		metadata:               p.metadata
 	}
 
-	// TODO implement
+	if translations := p.translations {
+		mut pcth := []ProductCategoryTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
+			}
+			pcth[i] = ProductCategoryTranslationRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				name:          translation.name
+			}
+		}
+		ph.translations = pcth
+	}
+
 	return conduit_product_category_update(mut app, mut ctx, product_category_id_bin,
 		ph)
 }

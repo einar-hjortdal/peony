@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 
 fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Result {

@@ -1,6 +1,5 @@
 module peony
 
-import net.http
 import veb
 import json
 
@@ -16,13 +15,11 @@ pub fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 @['/admin/regions/'; post]
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	data := json.decode(RegionCreateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx,  'Could not decode RegionCreateRequest',
-			err.msg())
+		return handle_error_400(mut ctx, 'Could not decode RegionCreateRequest', err.msg())
 	}
 
 	if data.country_codes.len == 0 {
-		return handle_error_400(mut ctx,  'A region must have at least one country',
-			'country_code is an empty array')
+		return handle_error_400(mut ctx, 'A region must have at least one country', 'country_code is an empty array')
 	}
 
 	// TODO validation
@@ -38,7 +35,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {
-		return handle_error_400(mut ctx,  error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
 }
@@ -47,17 +44,16 @@ pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id stri
 @['/admin/regions/:region_id'; post]
 pub fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
-		return handle_error_400(mut ctx,  error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
 	data := json.decode(RegionUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx,  'Could not decode RegionUpdateRequest',
-			err.msg())
+		return handle_error_400(mut ctx, 'Could not decode RegionUpdateRequest', err.msg())
 	}
 
 	if country_codes := data.country_codes {
 		if country_codes.len == 0 {
-			return handle_error_400(mut ctx,  'A region must have at least one country',
+			return handle_error_400(mut ctx, 'A region must have at least one country',
 				'country_code is an empty array')
 		}
 	}

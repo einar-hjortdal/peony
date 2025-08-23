@@ -95,7 +95,7 @@ struct ProductRequestHygienised {
 	metadata              ?string
 	images                ?[]string
 	tag_ids               ?[]string
-	tad_ids_bin           [][]u8
+	tag_ids_bin           [][]u8
 	sales_channel_ids     ?[]string
 	sales_channel_ids_bin [][]u8
 	category_ids          ?[]string
@@ -250,7 +250,7 @@ struct ProductCategoryTranslationRequestHygienised {
 }
 
 struct ProductCategoryRequest {
-	translations       []ProductCategoryTranslationRequest
+	translations       ?[]ProductCategoryTranslationRequest
 	handle             ?string
 	is_internal        ?bool
 	is_active          ?bool
@@ -259,11 +259,12 @@ struct ProductCategoryRequest {
 }
 
 struct ProductCategoryRequestHygienised {
-	translations           []ProductCategoryTranslationRequestHygienised
 	handle                 ?string
 	is_internal            ?bool
 	is_active              ?bool
 	parent_category_id     ?string
 	parent_category_id_bin []u8
 	metadata               ?string
+mut:
+	translations ?[]ProductCategoryTranslationRequestHygienised
 }
