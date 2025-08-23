@@ -147,7 +147,7 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_images
 }
 
-fn (mut app App) do_update_product_images(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
+fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
 	pi := do_retrieve_product_images(mut tx, [product_id_bin])!
 
 	// delete all product_images with url missing from the given array

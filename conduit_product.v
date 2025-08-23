@@ -167,14 +167,52 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	return ctx.json(r)
 }
 
-fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, p ProductData) veb.Result {
+fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph ProductRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	app.do_update_product(mut tx, product_id_bin, p) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to update product', err.msg())
+	if handle != none || is_giftcard != none || status != none || thumbnail != none
+		|| collection_id != none || type_id != none || discountable != none || metadata != none {
+		model_product_update(mut tx, product_id_bin, p) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to update product', err.msg())
+		}
+	}
+
+	if tag_ids := ph.tag_ids {
+		// TODO
+	}
+
+	if images := ph.images {
+		model_product_images_update(mut tx, product_id_bin, images) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
+		}
+	}
+
+	if sales_channel_ids := p.sales_channel_ids {
+		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product sales channel',
+				err.msg())
+		}
+	}
+
+	if category_ids := p.category_ids {
+		model_product_category_product_update(mut tx, product_id_bin, category_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product category relation',
+				err.msg())
+		}
+	}
+
+	if translations := p.translations {
+		model_product_translation_update(mut tx, product_id_bin, translations) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product translations',
+				err.msg())
+		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

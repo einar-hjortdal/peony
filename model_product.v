@@ -427,7 +427,7 @@ fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygien
 	return products, count
 }
 
-fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []ProductTranslationData) ! {
+fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []ProductTranslationRequest) ! {
 	c := [
 		'product_id',
 		'locale_id',
@@ -469,7 +469,7 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 	stmt.close()!
 }
 
-fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, product_id string, product_id_bin []u8) ! {
+fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductRequest, product_id string, product_id_bin []u8) ! {
 	mut c := ['id', 'handle']
 	mut params := [firebird.Value(product_id_bin)]
 
@@ -565,7 +565,7 @@ fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductData, p
 	}
 }
 
-fn (mut app App) create_product(p ProductData) !string {
+fn (mut app App) create_product(p ProductRequest) !string {
 	product_id, product_id_bin := app.new_id()
 	mut tx := app.start_transaction()!
 
@@ -577,48 +577,46 @@ fn (mut app App) create_product(p ProductData) !string {
 	return product_id
 }
 
-fn (mut app App) do_update_product(mut tx firebird.Transaction, id_bin []u8, p ProductData) ! {
+fn model_product_update(mut tx firebird.Transaction, id_bin []u8, ph ProductRequestHygienised) ! {
 	mut c := []string{}
 	mut params := []firebird.Value{}
 
-	if handle := p.handle {
+	if handle := ph.handle {
 		c = arrays.concat(c, 'handle')
 		params = arrays.concat(params, handle)
 	}
 
-	if is_giftcard := p.is_giftcard {
+	if is_giftcard := ph.is_giftcard {
 		c = arrays.concat(c, 'is_giftcard')
 		params = arrays.concat(params, is_giftcard)
 	}
 
-	if status := p.status {
+	if status := ph.status {
 		c = arrays.concat(c, 'status')
 		params = arrays.concat(params, status)
 	}
 
-	if thumbnail := p.thumbnail {
+	if thumbnail := ph.thumbnail {
 		c = arrays.concat(c, 'thumbnail')
 		params = arrays.concat(params, thumbnail)
 	}
 
-	if collection_id := p.collection_id {
+	if collection_id := ph.collection_id {
 		c = arrays.concat(c, 'collection_id')
-		collection_id_bin := luuid.to_bytes(collection_id)!
-		params = arrays.concat(params, collection_id_bin)
+		params = arrays.concat(params, ph.collection_id_bin)
 	}
 
-	if type_id := p.type_id {
+	if type_id := ph.type_id {
 		c = arrays.concat(c, 'type_id')
-		type_id_bin := luuid.to_bytes(type_id)!
-		params = arrays.concat(params, type_id_bin)
+		params = arrays.concat(params, ph.type_id_bin)
 	}
 
-	if discountable := p.discountable {
+	if discountable := ph.discountable {
 		c = arrays.concat(c, 'discountable')
 		params = arrays.concat(params, discountable)
 	}
 
-	if metadata := p.metadata {
+	if metadata := ph.metadata {
 		c = arrays.concat(c, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
@@ -627,36 +625,6 @@ fn (mut app App) do_update_product(mut tx firebird.Transaction, id_bin []u8, p P
 		query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
 		params = arrays.concat(params, firebird.Value(id_bin))
 		tx.execute(query, ...params)!
-	}
-
-	// TODO
-	// tag_ids
-
-	if image_urls := p.images {
-		app.do_update_product_images(mut tx, id_bin, image_urls)!
-	}
-
-	if sales_channel_ids := p.sales_channel_ids {
-		mut sales_channel_ids_bin := [][]u8{}
-		for i := 0; i < sales_channel_ids.len; i++ {
-			sales_channel_id_bin := id_string_to_bin(sales_channel_ids[i])!
-			sales_channel_ids_bin = arrays.concat(sales_channel_ids_bin, sales_channel_id_bin)
-		}
-
-		app.do_update_product_sales_channels(mut tx, id_bin, sales_channel_ids_bin)!
-	}
-
-	if category_ids := p.category_ids {
-		mut category_ids_bin := [][]u8{}
-		for i := 0; i < category_ids.len; i++ {
-			category_id_bin := id_string_to_bin(category_ids[i])!
-			category_ids_bin = arrays.concat(category_ids_bin, category_id_bin)
-		}
-		app.do_update_product_categories(mut tx, id_bin, category_ids_bin)!
-	}
-
-	if translations := p.translations {
-		app.do_update_product_translations(mut tx, id_bin, translations)!
 	}
 }
 

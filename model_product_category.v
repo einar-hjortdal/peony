@@ -28,7 +28,7 @@ mut:
 	translations []ProductCategoryTranslation
 }
 
-fn (mut app App) do_update_product_categories(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
+fn model_product_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
 	mut s := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < category_ids_bin.len; i++ {

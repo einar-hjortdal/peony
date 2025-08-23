@@ -237,7 +237,7 @@ fn do_retrieve_product_sales_channels(mut tx firebird.Transaction, product_ids_b
 	return product_sales_channels
 }
 
-fn (mut app App) do_update_product_sales_channels(mut tx firebird.Transaction, product_id_bin []u8, sales_channel_ids_bin [][]u8) ! {
+fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bin []u8, sales_channel_ids_bin [][]u8) ! {
 	mut d := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < sales_channel_ids_bin.len; i++ {

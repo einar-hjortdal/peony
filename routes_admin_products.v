@@ -54,8 +54,8 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 // create a product
 @['/admin/products'; post]
 pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
-	body := json.decode(ProductData, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductData', err.msg())
+	body := json.decode(ProductRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
 
 	id := app.create_product(body) or {
@@ -91,18 +91,72 @@ pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Resul
 	return conduit_products_get_by_id(mut app, mut ctx, ph)
 }
 
-@['/admin/products/:id'; post]
-pub fn (mut app App) admin_products_id_post(mut ctx Context, id string) veb.Result {
-	id_bin := id_string_to_bin(id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+// updates a product
+@['/admin/products/:product_id'; post]
+pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
 	}
 
-	p := json.decode(ProductData, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductData', err.msg())
+	p := json.decode(ProductRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
 
-	// TODO validate ProductData ids if any
-	return conduit_products_update(mut app, mut ctx, id_bin, p)
+	collection_id_bin := option_id_string_to_id_bin(p.collection_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'collection_id')
+	}
+
+	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'type_id')
+	}
+
+	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'tag_id')
+	}
+
+	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
+	}
+
+	ph := ProductRequestHygienised{
+		handle:                p.handle
+		is_giftcard:           p.is_giftcard
+		status:                p.status
+		thumbnail:             p.thumbnail
+		collection_id:         p.collection_id
+		collection_id_bin:     collection_id_bin
+		type_id:               p.type_id
+		type_id_bin:           type_id_bin
+		discountable:          p.discountable
+		metadata:              p.metadata
+		images:                p.images
+		tag_ids:               p.tag_ids
+		tad_ids_bin:           tag_ids_bin
+		sales_channel_ids:     p.sales_channel_ids
+		sales_channel_ids_bin: sales_channel_ids_bin
+		category_ids:          p.category_ids
+		category_ids_bin:      category_ids_bin
+	}
+
+	if translations := p.translations {
+		pth := []ProductTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
+			}
+			pth[i] = ProductTranslationRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				title:         translation.title
+				subtitle:      translation.subtitle
+				description:   translation.description
+			}
+		}
+		ph.translations = pth
+	}
+
+	return conduit_products_update(mut app, mut ctx, product_id_bin, ph)
 }
 
 // deletes a product
@@ -214,11 +268,11 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest', err.msg())
 	}
 
-	mut poh := []ProductOptionValueRequestHygienised{}
+	mut povh := []ProductOptionValueRequestHygienised{}
 	if option_values := p.option_values {
-		poh = []ProductOptionValueRequestHygienised{len: option_values.len}
+		povh = []ProductOptionValueRequestHygienised{len: option_values.len}
 		for i := 0; i < option_values.len; i++ {
-			poh[i] = hygienise_product_option_value_request(option_values[i]) or {
+			povh[i] = hygienise_product_option_value_request(option_values[i]) or {
 				return handle_error_400(mut ctx, error_id_invalid, 'at hygienise_product_option_value_request')
 			}
 		}
@@ -261,7 +315,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
-		p, poh, mah)
+		p, povh, mah)
 }
 
 // creates a product option

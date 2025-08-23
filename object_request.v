@@ -51,14 +51,22 @@ struct UpdateUserData {
 	metadata   ?string
 }
 
-struct ProductTranslationData {
+struct ProductTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
 	description ?string
 }
 
-struct ProductData {
+struct ProductTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	title         ?string
+	subtitle      ?string
+	description   ?string
+}
+
+struct ProductRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
@@ -71,7 +79,29 @@ struct ProductData {
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
-	translations      ?[]ProductTranslationData
+	translations      ?[]ProductTranslationRequest
+}
+
+struct ProductRequestHygienised {
+	handle                ?string
+	is_giftcard           ?bool
+	status                ?string
+	thumbnail             ?string
+	collection_id         ?string
+	collection_id_bin     []u8
+	type_id               ?string
+	type_id_bin           []u8
+	discountable          ?bool
+	metadata              ?string
+	images                ?[]string
+	tag_ids               ?[]string
+	tad_ids_bin           [][]u8
+	sales_channel_ids     ?[]string
+	sales_channel_ids_bin [][]u8
+	category_ids          ?[]string
+	category_ids_bin      [][]u8
+mut:
+	translations ?[]ProductTranslationRequestHygienised
 }
 
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled

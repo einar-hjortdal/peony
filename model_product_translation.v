@@ -68,7 +68,7 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 	return translations
 }
 
-fn (mut app App) do_update_product_translations(mut tx firebird.Transaction, product_id_bin []u8, d []ProductTranslationData) ! {
+fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin []u8, d []ProductTranslationRequest) ! {
 	mut s := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < d.len; i++ {
