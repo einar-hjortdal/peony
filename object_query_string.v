@@ -319,25 +319,25 @@ fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string s
 	}
 }
 
-struct RetrieveProductCategoryParams {
-	ids                ZeroArrayString
-	handle             ZeroString
-	is_active          ZeroBool
-	is_internal        ZeroBool
-	parent_category_id ZeroString
-	with_deleted       ZeroBool
-	offset             ZeroI32
-	fetch              ZeroI32
-	order              ZeroString
+struct ProductCategoryRetrieveParams {
+	ids                 ZeroArrayString
+	handles             ZeroArrayString
+	is_active           ZeroBool
+	is_internal         ZeroBool
+	parent_category_ids ZeroArrayString
+	with_deleted        ZeroBool
+	offset              ZeroI32
+	fetch               ZeroI32
+	order               ZeroString
 }
 
-fn extract_retrieve_product_category_params(m map[string]string) RetrieveProductCategoryParams {
-	return RetrieveProductCategoryParams{
+fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryRetrieveParams {
+	return ProductCategoryRetrieveParams{
 		ids:                zero_array_string(m, 'ids')
-		handle:             zero_string(m, 'handle')
+		handles:            zero_array_string(m, 'handle')
 		is_active:          zero_bool(m, 'is_active')
 		is_internal:        zero_bool(m, 'is_internal')
-		parent_category_id: zero_string(m, 'parent_category_id')
+		parent_category_id: zero_array_string(m, 'parent_category_id')
 		with_deleted:       zero_bool(m, 'with_deleted')
 		offset:             zero_i32(m, 'offset')
 		fetch:              zero_i32(m, 'fetch')
@@ -345,16 +345,16 @@ fn extract_retrieve_product_category_params(m map[string]string) RetrieveProduct
 	}
 }
 
-struct RetrieveProductCategoryParamsHygienised {
-	ids                    ZeroArrayString
-	ids_bin                [][]u8
-	handle                 ZeroString
-	is_active              ZeroBool
-	is_internal            ZeroBool
-	parent_category_id     ZeroString
-	parent_category_id_bin []u8
-	with_deleted           ZeroBool
-	offset                 ZeroI32
-	fetch                  ZeroI32
-	order                  ZeroString
+struct ProductCategoryRetrieveParamsHygienised {
+	ids                     ZeroArrayString
+	ids_bin                 [][]u8
+	handles                 ZeroArrayString
+	is_active               ZeroBool
+	is_internal             ZeroBool
+	parent_category_ids     ZeroArrayString
+	parent_category_id_bins [][]u8
+	with_deleted            ZeroBool
+	offset                  ZeroI32
+	fetch                   ZeroI32
+	order                   ZeroString
 }

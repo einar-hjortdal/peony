@@ -9,26 +9,26 @@ import json
 pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 	p := extract_retrieve_product_category_params(ctx.query)
 
-	ids_bin := option_array_id_string_to_array_id_bin(p.ids) or {
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'ids_bin')
 	}
 
-	parent_category_id_bin := option_id_string_to_id_bin(p.parent_category_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'parent_category_id')
+	parent_category_ids_bin := zero_array_id_string_to_array_id_bin(p.parent_category_ids) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'parent_category_ids')
 	}
 
-	ph := RetrieveProductCategoryParamsHygienised{
-		ids:                    p.ids
-		ids_bin:                ids_bin
-		handle:                 p.handle
-		is_active:              p.is_active
-		is_internal:            p.is_internal
-		parent_category_id:     p.parent_category_id
-		parent_category_id_bin: parent_category_id_bin
-		with_deleted:           p.with_deleted
-		offset:                 p.offset
-		fetch:                  p.fetch
-		order:                  p.order
+	ph := ProductCategoryRetrieveParamsHygienised{
+		ids:                     p.ids
+		ids_bin:                 ids_bin
+		handle:                  p.handle
+		is_active:               p.is_active
+		is_internal:             p.is_internal
+		parent_category_ids:     p.parent_category_ids
+		parent_category_id_bins: parent_category_ids_bin
+		with_deleted:            p.with_deleted
+		offset:                  p.offset
+		fetch:                   p.fetch
+		order:                   p.order
 	}
 
 	// TODO implement

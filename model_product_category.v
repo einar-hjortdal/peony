@@ -11,7 +11,6 @@ struct ProductCategoryTranslation {
 	name                    string
 }
 
-// TODO represent children without recursion
 struct ProductCategory {
 	id                     string
 	id_bin                 []u8
@@ -26,6 +25,34 @@ struct ProductCategory {
 	metadata               firebird.NullString
 mut:
 	translations []ProductCategoryTranslation
+}
+
+fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryRetrieveParamsHygienised) ![]ProductCategory {
+	if ph.ids.is_set {
+		// TODO where id in ()
+	}
+
+	if ph.handles.is_set {
+		// TODO where handle like
+	}
+
+	if ph.is_active.is_set {
+		// TODO WHERE is_active = ?
+	}
+
+	if ph.is_internal.is_set {
+		// TODO WHERE is_internal = ?
+	}
+
+	if ph.with_deleted.is_set {
+		// TODO WHERE deleted_at IS NULL or IS NOT NULL
+	}
+
+	if ph.parent_category_ids.is_set {
+		// TODO with recursive
+	}
+
+	// TODO offset/fetch/order
 }
 
 fn model_product_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
