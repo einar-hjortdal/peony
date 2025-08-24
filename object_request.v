@@ -239,14 +239,16 @@ struct InventoryLevelRequest {
 }
 
 struct ProductCategoryTranslationRequest {
-	locale_id string
-	name      string
+	locale_id   string
+	name        string
+	description ?string
 }
 
 struct ProductCategoryTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8
 	name          string
+	description   ?string
 }
 
 struct ProductCategoryRequest {

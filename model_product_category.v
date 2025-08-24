@@ -9,6 +9,72 @@ struct ProductCategoryTranslation {
 	locale_id               string
 	locale_id_bin           []u8
 	name                    string
+	description             firebird.NullString
+}
+
+fn model_product_category_translations_merge(mut tx firebird.Transaction, product_category_id_bin []u8, ph []ProductCategoryTranslationRequestHygienised) ! {
+	mut src := []string{len: ph.len}
+	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < ph.len; i++ {
+		src[i] = '(
+			CAST(? AS BINARY(16)),
+			CAST(? AS BINARY(16)),
+			CAST(? AS VARCHAR(63))),
+			CAST(? as BLOB SUB_TYPE TEXT
+		)'
+		params[i * 4] = product_category_id_bin
+		params[i * 4 + 1] = ph[i].locale_id_bin
+		params[i * 4 + 2] = ph[i].name
+
+		if description := ph[i].description {
+			params[i * 4 + 3] = description
+		} else {
+			params[i * 4 + 3] = firebird.Null{}
+		}
+	}
+	params[ph.len] = product_category_id_bin
+
+	tx.execute('MERGE INTO product_category_translations t
+		USING (VALUES ${src.join(',')}) s (product_category_id, locale_id, name)
+		ON (t.product_category_id = s.product_category_id AND t.locale_id = s.locale_id)
+		WHEN MATCHED THEN
+			UPDATE SET name = s.name
+		WHEN NOT MATCHED THEN
+			INSERT (product_category_id, locale_id, name)
+			VALUES (s.product_category_id, s.locale_id, s.name)
+		WHEN NOT MATCHED BY SOURCE AND t.product_category_id = ? THEN
+			DELETE',
+		...params)!
+}
+
+fn model_product_category_translations_get(mut tx firebird.Transaction, product_category_ids_bin [][]u8) ![]ProductCategoryTranslation {
+	data := tx.execute('SELECT product_category_id, locale_id, name, description FROM product_category_translations
+		WHERE product_category_id IN (${get_placeholders(product_category_ids_bin)})',
+		workaround_24757(product_category_ids_bin))!
+
+	rows := data.rows()
+	mut product_category_translations := []ProductCategoryTranslation{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		translation := rows[i].values()
+
+		product_category_id_bin, _ := translation[0].get_array_u8()!
+		locale_id_bin, _ := translation[1].get_array_u8()!
+		name, _ := translation[1].get_string()!
+		description := translation[1].get_null_string()!
+
+		product_category_id := id_bin_to_string(product_category_id_bin)!
+		locale_id := id_bin_to_string(locale_id_bin)!
+
+		product_category_translations[i] = ProductCategoryTranslation{
+			product_category_id:     product_category_id
+			product_category_id_bin: product_category_id_bin
+			locale_id:               locale_id
+			locale_id_bin:           locale_id_bin
+			name:                    name
+			description:             description
+		}
+	}
+	return product_category_translations
 }
 
 struct ProductCategory {

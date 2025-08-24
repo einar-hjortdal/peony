@@ -722,6 +722,7 @@ struct ProductCategoryTranslationResponse {
 	product_category_id string @[json: 'productCategoryId']
 	locale_id           string @[json: 'localeId']
 	name                string
+	description         string @[omitempty]
 }
 
 struct ProductCategoryResponse {
@@ -733,6 +734,7 @@ struct ProductCategoryResponse {
 	is_active          bool   @[json: 'isActive']
 	is_internal        bool   @[json: 'isInternal']
 	parent_category_id string @[json: 'parentCategoryId'; omitempty]
+	category_rank      i32    @[json: 'categoryRank']
 	metadata           string @[omitempty]
 	translations       []ProductCategoryTranslationResponse
 }
@@ -745,12 +747,14 @@ struct ProductCategoryResponseListEnvelope {
 }
 
 fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
-	mut translations := []ProductCategoryTranslationResponse{len: p.translations.len}
+	mut tr := []ProductCategoryTranslationResponse{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
-		translations[i] = ProductCategoryTranslationResponse{
-			product_category_id: translations[i].product_category_id
-			locale_id:           translations[i].locale_id
-			name:                translations[i].name
+		translation := p.translations[i]
+		tr[i] = ProductCategoryTranslationResponse{
+			product_category_id: translation.product_category_id
+			locale_id:           translation.locale_id
+			name:                translation.name
+			description:         translation.description.value
 		}
 	}
 
@@ -763,7 +767,8 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 		is_active:          p.is_active
 		is_internal:        p.is_internal
 		parent_category_id: p.parent_category_id
+		category_rank:      p.category_rank
 		metadata:           p.metadata.value
-		translations:       translations
+		translations:       tr
 	}
 }

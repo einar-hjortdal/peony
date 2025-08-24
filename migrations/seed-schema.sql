@@ -504,6 +504,7 @@ CREATE TABLE product_category_translations (
   product_category_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
+  description BLOB SUB_TYPE TEXT,
   CONSTRAINT "0686cd40-331e-1b07-6000-010a1625e5c0" PRIMARY KEY (product_category_id, locale_id),
   CONSTRAINT "0681493b-ad88-154d-8c00-37a1528f2b37" FOREIGN KEY (product_category_id) REFERENCES product_category (id) ON DELETE CASCADE,
   CONSTRAINT "0681493b-ad88-159c-1000-e7761236ae70" FOREIGN KEY (locale_id) REFERENCES locale (id)
