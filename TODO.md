@@ -14,7 +14,7 @@
 
 ## Features
 
-### 3.3.0
+### Implemented
 
 - [x] Products
 - [x] Variants
@@ -34,7 +34,7 @@
 - [ ] Multi-region
 - [ ] Taxes
 
-### To implement
+### To be implement
 
 - [ ] Multi-channel
 - [ ] Multi-warehouse
