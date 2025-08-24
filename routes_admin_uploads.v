@@ -58,7 +58,6 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 
 // workaround https://github.com/vlang/v/issues/24975
 // uploads one file to the file provider
-// accepts `application/octet-stream` payloads.
 @['/admin/uploads/:filename'; post]
 pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
