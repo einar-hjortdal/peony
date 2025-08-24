@@ -20,6 +20,7 @@ struct ProductCategory {
 	handle                 string
 	is_active              bool
 	is_internal            bool
+	category_rank          i32
 	parent_category_id     string
 	parent_category_id_bin firebird.NullArrayU8
 	metadata               firebird.NullString
@@ -58,6 +59,11 @@ fn model_product_category_create(mut tx firebird.Transaction, id string, id_bin 
 		params = arrays.concat(params, ph.parent_category_id_bin)
 	}
 
+	if category_rank := ph.category_rank {
+		columns = arrays.concat(columns, 'category_rank')
+		params = arrays.concat(params, category_rank)
+	}
+
 	tx.execute('INSERT INTO product_category (${get_columns(columns)}) 
 		VALUES (${get_placeholders(params)})',
 		...params)!
@@ -90,6 +96,11 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 	if _ := ph.parent_category_id {
 		columns = arrays.concat(columns, 'parent_category_id')
 		params = arrays.concat(params, ph.parent_category_id_bin)
+	}
+
+	if category_rank := ph.category_rank {
+		columns = arrays.concat(columns, 'category_rank')
+		params = arrays.concat(params, category_rank)
 	}
 
 	tx.execute('UPDATE product_category SET ${get_set_columns(columns)} WHERE id = ?',
@@ -138,7 +149,8 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 	}
 
 	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY created_at ${get_sorting_order(ph.order)}')
+	sorting = appendln(sorting, 'ORDER BY created_at ${get_sorting_order(ph.order)},
+		category_rank ${get_sorting_order(ph.order)}')
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
@@ -156,6 +168,7 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 		is_active,
 		is_internal,
 		parent_category_id,
+		category_rank,
 		metadata,
 		COUNT(*) OVER()
 		FROM product_category ${get_where_conditions(conditions)}${sorting}')
@@ -176,7 +189,8 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 		is_active, _ := v[5].get_bool()!
 		is_internal, _ := v[6].get_bool()!
 		parent_category_id_bin := v[7].get_null_array_u8()!
-		metadata := v[8].get_null_string()!
+		category_rank, _ := v[8].get_i32()!
+		metadata := v[9].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
@@ -194,13 +208,14 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 			handle:                 handle
 			is_active:              is_active
 			is_internal:            is_internal
+			category_rank:          category_rank
 			parent_category_id:     parent_category_id
 			parent_category_id_bin: parent_category_id_bin
 			metadata:               metadata
 		}
 
 		if i == 0 {
-			count, _ = v[9].get_i64()!
+			count, _ = v[10].get_i64()!
 		}
 	}
 

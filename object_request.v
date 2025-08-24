@@ -255,6 +255,7 @@ struct ProductCategoryRequest {
 	is_internal        ?bool
 	is_active          ?bool
 	parent_category_id ?string
+	category_rank      ?i32
 	metadata           ?string
 }
 
@@ -264,6 +265,7 @@ struct ProductCategoryRequestHygienised {
 	is_active              ?bool
 	parent_category_id     ?string
 	parent_category_id_bin []u8
+	category_rank          ?i32
 	metadata               ?string
 mut:
 	translations ?[]ProductCategoryTranslationRequestHygienised

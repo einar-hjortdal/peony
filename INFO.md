@@ -7,7 +7,7 @@
 #### product_category
 
 A `product_category` allows to categorize `product`. A `product_category` can describe a hierarchical 
-structure thanks to the `parent_category_id` field.
+structure thanks to the `parent_category_id` field. The `category_rank` field allows for sorting.
 
 ### metadata
 
