@@ -23,11 +23,11 @@
 - [x] Multi-currency
 - [x] Uploads
 - [x] Metadata
+- [x] Product categories
 
 ### Currently being implemented
 
 - [ ] Inventory management
-- [ ] Product categories
 
 ### Soon to be implemented
 
