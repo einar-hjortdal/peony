@@ -1,6 +1,7 @@
 module peony
 
 import veb
+import net.http
 
 const uploads_field_name = 'files'
 
@@ -51,6 +52,38 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 
 	r := UploadsUploadResponseEnvelope{
 		uploads: files_data
+	}
+	return ctx.json(r)
+}
+
+// workaround https://github.com/vlang/v/issues/24975
+// uploads one file to the file provider
+// accepts `application/octet-stream` payloads.
+// accepts `original_content_type` query parameter to describe the content type of the file.
+// TODO check if browser automatically selects content_type on file upload, in which case query is useless
+@['/admin/uploads/:filename'; post]
+pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) veb.Result {
+	content_type := get_header_content_type(mut ctx) or {
+		return handle_error_400(mut ctx, error_header_missing, 'Expected `Content-Type` header with `application/octet-stream` value')
+	}
+
+	if content_type != 'application/octet-stream' {
+		return handle_error_400(mut ctx, error_header_invalid, 'Expected `Content-Type` header with `application/octet-stream` value')
+	}
+
+	original_content_type := ctx.query['content_type']
+	f := http.FileData{
+		filename:     filename
+		content_type: original_content_type
+		data:         ctx.req.data
+	}
+
+	file_data := app.blob_provider.create(f) or {
+		return handle_error_500(mut ctx, 'Failed to upload file', err.msg())
+	}
+
+	r := UploadsUploadResponseEnvelope{
+		uploads: [file_data]
 	}
 	return ctx.json(r)
 }
