@@ -22,7 +22,7 @@ fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
 	// }
 
 	// for
-	// available_quantity := i32(0) // TODO sum of all inventory items - reserved items
+	available_quantity := i32(0) // TODO sum of all inventory items - reserved items
 	// if available_quantity == 0 {
 	// 	if v.allow_backorder {
 	// 		return 0
