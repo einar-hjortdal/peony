@@ -7,13 +7,13 @@ module peony
 // a customer purchases a product_variant, peony decrements the stocked quantity of the product_variant.
 
 fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
-	if !v.manage_inventory {
-		return 0
-	}
+	// if !v.manage_inventory {
+	// 	return 0
+	// }
 
-	if sales_channel_id_bin.len == 0 {
-		return 0
-	}
+	// if sales_channel_id_bin.len == 0 {
+	// 	return 0
+	// }
 
 	// why is it like this?
 	// inventory_items := TODO get all inventory_item or have them inside of Variant already
@@ -22,13 +22,13 @@ fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
 	// }
 
 	// for
-	available_quantity := i32(0) // TODO sum of all inventory items - reserved items
-	if available_quantity == 0 {
-		if v.allow_backorder {
-			return 0
-		}
-		return 0
-	}
+	// available_quantity := i32(0) // TODO sum of all inventory items - reserved items
+	// if available_quantity == 0 {
+	// 	if v.allow_backorder {
+	// 		return 0
+	// 	}
+	// 	return 0
+	// }
 
 	return available_quantity
 }

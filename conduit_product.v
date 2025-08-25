@@ -239,8 +239,8 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 			err.msg())
 	}
 
-	internal_variants, count := model_product_variants_retrieve_by_product_id(mut tx,
-		product_id, product_id_bin) or {
+	internal_variants, count := model_product_variants_retrieve_by_product_ids(mut tx,
+		[product_id_bin]) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variants',
 			err.msg())
@@ -290,7 +290,9 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	_, count := model_product_variants_retrieve_by_product_id(mut tx, product_id, product_id_bin) or {
+	_, count := model_product_variants_retrieve_by_product_ids(mut tx, [
+		product_id_bin,
+	]) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variants',
 			err.msg())

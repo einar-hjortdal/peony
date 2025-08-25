@@ -84,7 +84,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	}
 
 	if p.product_ids.is_set {
-		c = arrays.concat(c, 'product_id IN (${get_n_placeholders(i32(p.product_ids.v.len))})')
+		c = arrays.concat(c, 'product_id IN (${get_n_placeholders(i32(p.product_ids_bin.len))})')
 		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
 	}
 
@@ -190,14 +190,12 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	return variants, count
 }
 
-fn model_product_variants_retrieve_by_product_id(mut tx firebird.Transaction, product_id string, product_id_bin []u8) !([]Variant, i64) {
-	vm := {
-		'product_ids': product_id
-	}
-	vp := extract_retrieve_product_variant_params(vm)
+fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) !([]Variant, i64) {
 	vph := RetrieveProductVariantParamsHygienised{
-		product_ids:     vp.product_ids
-		product_ids_bin: [product_id_bin]
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: product_ids_bin
 	}
 	return model_product_variants_retrieve(mut tx, vph)
 }

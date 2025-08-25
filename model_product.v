@@ -194,8 +194,7 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductPara
 	return ids, count
 }
 
-// retrieve all products using list of id, returns unsorted list
-fn do_retrieve_products__products(mut tx firebird.Transaction, ids_bin [][]u8) ![]Product {
+fn model_products_retrieve_by_product_ids(mut tx firebird.Transaction, ids_bin [][]u8) ![]Product {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -260,49 +259,6 @@ fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []Product
 	return result_option_values
 }
 
-// TODO use do_retrieve_product_variants instead
-fn do_retrieve_products__variants(mut tx firebird.Transaction, ids_bin [][]u8) ![]Variant {
-	data := tx.execute('SELECT
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		product_id,
-		title,
-		sku,
-		barcode,
-		ean,
-		upc,
-		variant_rank,
-		allow_backorder,
-		manage_inventory,
-		hs_code,
-		origin_country,
-		mid_code,
-		material,
-		weight,
-		length,
-		height,
-		width,
-		metadata
-		FROM product_variant
-		WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))}) AND deleted_at IS NULL',
-		...workaround_24757(ids_bin))!
-
-	rows := data.rows()
-
-	if rows.len == 0 {
-		return []Variant{}
-	}
-
-	mut variants := []Variant{len: rows.len}
-	for i := 0; i < rows.len; i++ {
-		variants[i] = parse_variant(rows[i].values())!
-	}
-
-	return variants
-}
-
 fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) !([]Product, i64) {
 	ids_bin, count := do_retrieve_products__ids(mut tx, ph)!
 	len := i32(ids_bin.len)
@@ -310,13 +266,13 @@ fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygien
 		return []Product{}, len
 	}
 
-	unsorted_products := do_retrieve_products__products(mut tx, ids_bin)!
+	unsorted_products := model_products_retrieve_by_product_ids(mut tx, ids_bin)!
 
 	// Build a map for quick product lookups
 	mut product_map := map[string]Product{}
 	for i := 0; i < unsorted_products.len; i++ {
-		prodct_id := unsorted_products[i].id
-		product_map[prodct_id] = unsorted_products[i]
+		product_id := unsorted_products[i].id
+		product_map[product_id] = unsorted_products[i]
 	}
 
 	// There usually is a small number of sales_channel and a large number of product.
@@ -368,8 +324,7 @@ fn retrieve_products(mut tx firebird.Transaction, ph RetrieveProductParamsHygien
 			translations[i])
 	}
 
-	// replace variants with variant model call
-	mut variants := do_retrieve_products__variants(mut tx, ids_bin)!
+	mut variants := model_product_variants_retrieve_by_product_ids(mut tx, ids_bin)!
 	mut options := model_product_options_retrieve_by_product_ids(mut tx, ids_bin)!
 	if options.len != 0 {
 		option_values := do_retrieve_products__option_values(mut tx, options)!
