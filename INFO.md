@@ -2,10 +2,6 @@
 
 ## Design
 
-- `route_` files validate user inputs
-- `counduit_` files execute requested operations
-- `model_` files access the database
-
 ### product
 
 #### product_category
