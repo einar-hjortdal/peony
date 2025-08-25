@@ -2,6 +2,8 @@ module peony
 
 import net.http
 
+const error_empty_object = 'Received all empty fields'
+
 fn option_id_string_to_id_bin(option_id_string ?string) ![]u8 {
 	if id_string := option_id_string {
 		return id_string_to_bin(id_string)!

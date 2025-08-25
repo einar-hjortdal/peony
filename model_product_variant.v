@@ -4,89 +4,26 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Variant {
-	id               string
-	id_bin           []u8
-	created_at       firebird.DateTime
-	updated_at       firebird.DateTime
-	deleted_at       firebird.DateTime
-	product_id       string
-	product_id_bin   []u8
-	title            string
-	sku              string
-	barcode          string
-	ean              string
-	upc              string
-	variant_rank     i32
-	allow_backorder  bool
-	manage_inventory bool
-	hs_code          string
-	origin_country   string
-	mid_code         string
-	material         string
-	weight           i32
-	length           i32
-	height           i32
-	width            i32
-	metadata         firebird.NullString
-	// image              string // from variant_image TODO
+	id                    string
+	id_bin                []u8
+	created_at            firebird.DateTime
+	updated_at            firebird.DateTime
+	deleted_at            firebird.NullDateTime
+	product_id            string
+	product_id_bin        []u8
+	inventory_item_id     string
+	inventory_item_id_bin []u8
+	title                 firebird.NullString
+	barcode               firebird.NullString
+	ean                   firebird.NullString
+	upc                   firebird.NullString
+	variant_rank          i32
+	metadata              firebird.NullString
+	// image              firebird.NullString // from variant_image TODO
 mut:
 	money_amounts   []MoneyAmount
 	option_values   []ProductOptionValue
 	inventory_items []InventoryItem
-}
-
-fn parse_variant(v []firebird.Value) !Variant {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	updated_at, _ := v[2].get_date_time()!
-	deleted_at, _ := v[3].get_date_time()!
-	product_id_bin, _ := v[4].get_array_u8()!
-	title, _ := v[5].get_string()!
-	sku, _ := v[6].get_string()!
-	barcode, _ := v[7].get_string()!
-	ean, _ := v[8].get_string()!
-	upc, _ := v[9].get_string()!
-	variant_rank, _ := v[10].get_i32()!
-	allow_backorder, _ := v[11].get_bool()!
-	manage_inventory, _ := v[12].get_bool()!
-	hs_code, _ := v[13].get_string()!
-	origin_country, _ := v[14].get_string()!
-	mid_code, _ := v[15].get_string()!
-	material, _ := v[16].get_string()!
-	weight, _ := v[17].get_i32()!
-	length, _ := v[18].get_i32()!
-	height, _ := v[19].get_i32()!
-	width, _ := v[20].get_i32()!
-
-	id := id_bin_to_string(id_bin)!
-	product_id := id_bin_to_string(product_id_bin)!
-
-	return Variant{
-		id:               id
-		id_bin:           id_bin
-		created_at:       created_at
-		updated_at:       updated_at
-		deleted_at:       deleted_at
-		product_id:       product_id
-		product_id_bin:   product_id_bin
-		title:            title
-		sku:              sku
-		barcode:          barcode
-		ean:              ean
-		upc:              upc
-		variant_rank:     variant_rank
-		allow_backorder:  allow_backorder
-		manage_inventory: manage_inventory
-		hs_code:          hs_code
-		origin_country:   origin_country
-		mid_code:         mid_code
-		material:         material
-		weight:           weight
-		length:           length
-		height:           height
-		width:            width
-		metadata:         v[21].get_null_string()!
-	}
 }
 
 fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]MoneyAmount {
@@ -127,22 +64,12 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		updated_at,
 		deleted_at,
 		product_id,
+		inventory_item_id,
 		title,
-		sku,
 		barcode,
 		ean,
 		upc,
 		variant_rank,
-		allow_backorder,
-		manage_inventory,
-		hs_code,
-		origin_country,
-		mid_code,
-		material,
-		weight,
-		length,
-		height,
-		width,
 		metadata,
 		COUNT(*) OVER()
 		FROM product_variant'
@@ -166,18 +93,14 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		params = arrays.concat(params, p.allow_backorder.v)
 	}
 
-	if p.manage_inventory.is_set {
-		c = arrays.concat(c, 'manage_inventory = ?')
-		params = arrays.concat(params, p.manage_inventory.v)
-	}
-
-	if p.region_id.is_set {
-		c = arrays.concat(c, 'region_id = ?')
-		params = arrays.concat(params, p.region_id)
-	}
+	// TODO handle correctly
+	// if p.region_id.is_set {
+	// 	c = arrays.concat(c, 'region_id = ?')
+	// 	params = arrays.concat(params, p.region_id)
+	// }
 
 	if p.title.is_set {
-		c = arrays.concat(c, 'title = ?')
+		c = arrays.concat(c, 'title = ?') // TODO use LIKE
 		params = arrays.concat(params, p.title)
 	}
 
@@ -205,11 +128,50 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	}
 
 	mut variants := []Variant{len: rows.len}
+	mut count := i64(0) // TODO will be 0 if offset bigger than count
 	for i := 0; i < rows.len; i++ {
-		variants[i] = parse_variant(rows[i].values())!
+		v := rows[i].values()
+		id_bin, _ := v[0].get_array_u8()!
+		created_at, _ := v[1].get_date_time()!
+		updated_at, _ := v[2].get_date_time()!
+		deleted_at := v[3].get_null_date_time()!
+		product_id_bin, _ := v[4].get_array_u8()!
+		inventory_item_id_bin, _ := v[5].get_array_u8()!
+		title := v[6].get_null_string()!
+		barcode := v[7].get_null_string()!
+		ean := v[8].get_null_string()!
+		upc := v[9].get_null_string()!
+		variant_rank, _ := v[10].get_i32()!
+		metadata := v[11].get_null_string()!
+
+		id := id_bin_to_string(id_bin)!
+		product_id := id_bin_to_string(product_id_bin)!
+		inventory_item_id := id_bin_to_string(inventory_item_id_bin)!
+
+		variants[i] = Variant{
+			id:                    id
+			id_bin:                id_bin
+			created_at:            created_at
+			updated_at:            updated_at
+			deleted_at:            deleted_at
+			product_id:            product_id
+			product_id_bin:        product_id_bin
+			inventory_item_id:     inventory_item_id
+			inventory_item_id_bin: inventory_item_id_bin
+			title:                 title
+			barcode:               barcode
+			ean:                   ean
+			upc:                   upc
+			variant_rank:          variant_rank
+			metadata:              metadata
+		}
+
+		if i == 0 {
+			count, _ = v[12].get_i64()!
+		}
 	}
 	values := rows[0].values()
-	count, _ := values[22].get_i64()!
+	count, _ = values[22].get_i64()!
 
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations
@@ -248,11 +210,6 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 		params = arrays.concat(params, title)
 	}
 
-	if sku := p.sku {
-		columns = arrays.concat(columns, 'sku')
-		params = arrays.concat(params, sku)
-	}
-
 	if barcode := p.barcode {
 		columns = arrays.concat(columns, 'barcode')
 		params = arrays.concat(params, barcode)
@@ -271,56 +228,6 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 	if variant_rank := p.variant_rank {
 		columns = arrays.concat(columns, 'variant_rank')
 		params = arrays.concat(params, variant_rank)
-	}
-
-	if allow_backorder := p.allow_backorder {
-		columns = arrays.concat(columns, 'allow_backorder')
-		params = arrays.concat(params, allow_backorder)
-	}
-
-	if manage_inventory := p.manage_inventory {
-		columns = arrays.concat(columns, 'manage_inventory')
-		params = arrays.concat(params, manage_inventory)
-	}
-
-	if hs_code := p.hs_code {
-		columns = arrays.concat(columns, 'hs_code')
-		params = arrays.concat(params, hs_code)
-	}
-
-	if origin_country := p.origin_country {
-		columns = arrays.concat(columns, 'origin_country')
-		params = arrays.concat(params, origin_country)
-	}
-
-	if mid_code := p.mid_code {
-		columns = arrays.concat(columns, 'mid_code')
-		params = arrays.concat(params, mid_code)
-	}
-
-	if material := p.material {
-		columns = arrays.concat(columns, 'material')
-		params = arrays.concat(params, material)
-	}
-
-	if weight := p.weight {
-		columns = arrays.concat(columns, 'weight')
-		params = arrays.concat(params, weight)
-	}
-
-	if length := p.length {
-		columns = arrays.concat(columns, 'length')
-		params = arrays.concat(params, length)
-	}
-
-	if height := p.height {
-		columns = arrays.concat(columns, 'height')
-		params = arrays.concat(params, height)
-	}
-
-	if width := p.width {
-		columns = arrays.concat(columns, 'width')
-		params = arrays.concat(params, width)
 	}
 
 	if metadata := p.metadata {
@@ -343,11 +250,6 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 		params = arrays.concat(params, title)
 	}
 
-	if sku := p.sku {
-		columns = arrays.concat(columns, 'sku')
-		params = arrays.concat(params, sku)
-	}
-
 	if barcode := p.barcode {
 		columns = arrays.concat(columns, 'barcode')
 		params = arrays.concat(params, barcode)
@@ -366,56 +268,6 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 	if variant_rank := p.variant_rank {
 		columns = arrays.concat(columns, 'variant_rank')
 		params = arrays.concat(params, variant_rank)
-	}
-
-	if allow_backorder := p.allow_backorder {
-		columns = arrays.concat(columns, 'allow_backorder')
-		params = arrays.concat(params, allow_backorder)
-	}
-
-	if manage_inventory := p.manage_inventory {
-		columns = arrays.concat(columns, 'manage_inventory')
-		params = arrays.concat(params, manage_inventory)
-	}
-
-	if hs_code := p.hs_code {
-		columns = arrays.concat(columns, 'hs_code')
-		params = arrays.concat(params, hs_code)
-	}
-
-	if origin_country := p.origin_country {
-		columns = arrays.concat(columns, 'origin_country')
-		params = arrays.concat(params, origin_country)
-	}
-
-	if mid_code := p.mid_code {
-		columns = arrays.concat(columns, 'mid_code')
-		params = arrays.concat(params, mid_code)
-	}
-
-	if material := p.material {
-		columns = arrays.concat(columns, 'material')
-		params = arrays.concat(params, material)
-	}
-
-	if weight := p.weight {
-		columns = arrays.concat(columns, 'weight')
-		params = arrays.concat(params, weight)
-	}
-
-	if length := p.length {
-		columns = arrays.concat(columns, 'length')
-		params = arrays.concat(params, length)
-	}
-
-	if height := p.height {
-		columns = arrays.concat(columns, 'height')
-		params = arrays.concat(params, height)
-	}
-
-	if width := p.width {
-		columns = arrays.concat(columns, 'width')
-		params = arrays.concat(params, width)
 	}
 
 	if metadata := p.metadata {

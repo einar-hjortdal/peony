@@ -91,7 +91,7 @@
   locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
 - Consider modularizing price calculation.
-- Consider moving the default translation of resources on their parent resource.
+- Consider creating higher order functions to wrap conduit functions to provide tx.
 
 ## Documentation
 

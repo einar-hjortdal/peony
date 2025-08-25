@@ -502,27 +502,17 @@ struct VariantResponse {
 	deleted_at         time.Time                    @[json: 'deletedAt'; omitempty]
 	product_id         string                       @[json: 'productId']
 	title              string                       @[omitempty]
-	sku                string                       @[omitempty]
 	barcode            string                       @[omitempty]
 	ean                string                       @[omitempty]
 	upc                string                       @[omitempty]
 	variant_rank       i32                          @[json: 'variantRank']
-	allow_backorder    bool                         @[json: 'allowBackorder']
-	manage_inventory   bool                         @[json: 'manageInventory']
-	hs_code            string                       @[json: 'hsCode'; omitempty]
-	origin_country     string                       @[json: 'originCountry'; omitempty]
-	mid_code           string                       @[json: 'midCode'; omitempty]
-	material           string                       @[omitempty]
-	weight             i32                          @[omitempty]
-	length             i32                          @[omitempty]
-	height             i32                          @[omitempty]
-	width              i32                          @[omitempty]
 	metadata           string                       @[omitempty]
-	image              string                       @[omitempty] // TODO variant images
+	image              string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
 	prices             PricesResponse               @[omitempty]
 	inventory_items    []InventoryItemResponse      @[json: 'inventoryItems'; omitempty]
+	purchasable        bool
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 }
 
@@ -544,36 +534,26 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 
 	prices := format_prices_response(variant_prices_map[v.id])
 	inventory_quantity := i32(0) // TODO
+	purchasable := true // TODO
 
 	return VariantResponse{
-		id:               v.id
-		created_at:       v.created_at.Time
-		updated_at:       v.updated_at.Time
-		deleted_at:       v.deleted_at.Time
-		product_id:       v.product_id
-		sku:              v.sku
-		barcode:          v.barcode
-		ean:              v.ean
-		upc:              v.upc
-		variant_rank:     v.variant_rank
-		allow_backorder:  v.allow_backorder
-		manage_inventory: v.manage_inventory
-		hs_code:          v.hs_code
-		origin_country:   v.origin_country
-		mid_code:         v.mid_code
-		material:         v.material
-		weight:           v.weight
-		length:           v.length
-		height:           v.height
-		width:            v.width
-		title:            v.title
-		metadata:         v.metadata.value
+		id:           v.id
+		created_at:   v.created_at.Time
+		updated_at:   v.updated_at.Time
+		deleted_at:   v.deleted_at.value.Time
+		product_id:   v.product_id
+		barcode:      v.barcode.value
+		ean:          v.ean.value
+		upc:          v.upc.value
+		variant_rank: v.variant_rank
+		metadata:     v.metadata.value
 		// image:
 		option_values:      option_values
 		money_amounts:      money_amounts
 		inventory_items:    inventory_items
 		prices:             prices
 		inventory_quantity: inventory_quantity
+		purchasable:        purchasable
 	}
 }
 

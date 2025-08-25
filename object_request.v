@@ -187,25 +187,14 @@ struct ProductOptionValueRequestHygienised {
 }
 
 struct ProductVariantRequest {
-	title            ?string
-	sku              ?string
-	ean              ?string
-	upc              ?string
-	barcode          ?string
-	hs_code          ?string @[json: 'hsCode']
-	variant_rank     ?i32    @[json: 'variantRank']
-	allow_backorder  ?bool   @[json: 'allowBackorder']
-	manage_inventory ?bool   @[json: 'manageInventory']
-	origin_country   ?string @[json: 'originCountry']
-	mid_code         ?string @[json: 'midCode']
-	material         ?string
-	weight           ?i32
-	length           ?i32
-	height           ?i32
-	width            ?i32
-	metadata         ?string
-	money_amounts    ?[]MoneyAmountRequest        @[json: 'moneyAmounts']
-	option_values    ?[]ProductOptionValueRequest @[json: 'optionValues']
+	title         ?string
+	ean           ?string
+	upc           ?string
+	barcode       ?string
+	variant_rank  ?i32 @[json: 'variantRank']
+	metadata      ?string
+	money_amounts ?[]MoneyAmountRequest        @[json: 'moneyAmounts']
+	option_values ?[]ProductOptionValueRequest @[json: 'optionValues']
 }
 
 fn hygienise_product_option_value_request(povr ProductOptionValueRequest) !ProductOptionValueRequestHygienised {
@@ -231,11 +220,22 @@ struct NewCurrencyData {
 }
 
 struct InventoryItemRequest {
+	sku               ?string
+	origin_country    ?string @[json: 'originCountry']
+	hs_code           ?string @[json: 'hsCode']
+	mid_code          ?string @[json: 'midCode']
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
 	requires_shipping ?bool @[json: 'requiresShipping']
+	manage_inventory  ?bool @[json: 'manageInventory']
+	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
 struct InventoryLevelRequest {
-	stocked_quantity ?i32 @[json: 'stockedQuantity']
+	stocked_quantity i32 @[json: 'stockedQuantity']
 }
 
 struct ProductCategoryTranslationRequest {

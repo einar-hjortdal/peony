@@ -162,9 +162,23 @@ CREATE TABLE inventory_item (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
+  sku VARCHAR(63),
+  origin_country CHAR(2),
+  hs_code VARCHAR(63),
+  mid_code VARCHAR(15),
+  material VARCHAR(191),
+  weight INTEGER,
+  length INTEGER,
+  height INTEGER,
+  width INTEGER,
   requires_shipping BOOLEAN DEFAULT true NOT NULL,
-  CONSTRAINT "06828532-0de1-11a7-a000-6f71f973f8bf" PRIMARY KEY (id)
+  manage_inventory BOOLEAN DEFAULT true NOT NULL,
+  allow_backorder BOOLEAN DEFAULT false NOT NULL,
+  CONSTRAINT "06828532-0de1-11a7-a000-6f71f973f8bf" PRIMARY KEY (id),
+  CONSTRAINT "0681493b-ad82-15ff-8400-59a26da86c3d" FOREIGN KEY (origin_country) REFERENCES country (code)
 );
+
+CREATE UNIQUE INDEX "0681493b-ad82-1729-cc00-081f57f16e27" ON inventory_item (sku) WHERE deleted_at IS NULL;
 
 CREATE TABLE product (
   id BINARY(16) NOT NULL,
@@ -193,30 +207,20 @@ CREATE TABLE product_variant (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
   product_id BINARY(16) NOT NULL,
+  inventory_item_id BINARY(16) NOT NULL,
   title VARCHAR(63),
-  sku VARCHAR(63),
   barcode VARCHAR(63),
   ean VARCHAR(13),
   upc VARCHAR(12),
   variant_rank INTEGER DEFAULT 0 NOT NULL,
-  allow_backorder BOOLEAN DEFAULT false NOT NULL,
-  manage_inventory BOOLEAN DEFAULT true NOT NULL,
-  hs_code VARCHAR(63),
-  origin_country CHAR(2),
-  mid_code VARCHAR(15),
-  material VARCHAR(191),
-  weight INTEGER,
-  length INTEGER,
-  height INTEGER,
-  width INTEGER,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad82-1567-9800-ff9f17937647" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad82-15b3-1c00-30ccc78e0b8e" FOREIGN KEY (product_id) REFERENCES product (id),
-  CONSTRAINT "0681493b-ad82-15ff-8400-59a26da86c3d" FOREIGN KEY (origin_country) REFERENCES country (code)
+  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (inventory_item_id) REFERENCES inventory_item (id)
 );
 
 CREATE INDEX "0681493b-ad82-16da-7000-61fe4483229d" ON product_variant (product_id);
-CREATE UNIQUE INDEX "0681493b-ad82-1729-cc00-081f57f16e27" ON product_variant (sku) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX "06828532-0de0-1d21-f800-7309e0f7c125" ON product_variant (inventory_item_id);
 CREATE UNIQUE INDEX "0681493b-ad82-1799-4800-7aba05e57f99" ON product_variant (barcode) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX "0681493b-ad82-1802-d000-454acce626f6" ON product_variant (ean) WHERE deleted_at IS NULL;
 CREATE UNIQUE INDEX "0681493b-ad82-186b-2800-015e1c02ca35" ON product_variant (upc) WHERE deleted_at IS NULL;
@@ -230,22 +234,6 @@ CREATE TABLE product_variant_money_amount (
 );
 
 CREATE UNIQUE INDEX "06828532-0dde-1256-9c00-c34b44f8e9c4" ON product_variant_money_amount (money_amount_id);
-
-CREATE TABLE product_variant_inventory_item (
-  id BINARY(16) NOT NULL,
-  inventory_item_id BINARY(16) NOT NULL,
-  variant_id BINARY(16) NOT NULL,
-  required_quantity INTEGER DEFAULT 1 NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  CONSTRAINT "06828532-0de0-1cd6-3000-96dbe91750c7" PRIMARY KEY (id),
-  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE
-);
-
-CREATE UNIQUE INDEX "06828532-0de0-1d21-f800-7309e0f7c125" ON product_variant_inventory_item (variant_id, inventory_item_id);
-CREATE INDEX "06828532-0de0-1d95-9800-ae9f318d828f" ON product_variant_inventory_item (inventory_item_id) WHERE (deleted_at IS NULL);
-CREATE INDEX "06828532-0de0-1e01-2800-55bcee8d13c3" ON product_variant_inventory_item (variant_id) WHERE (deleted_at IS NULL);
 
 CREATE TABLE product_option (
   id BINARY(16) NOT NULL,

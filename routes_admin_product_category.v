@@ -112,7 +112,7 @@ pub fn (mut app App) admin_product_category_update(mut ctx Context, product_cate
 
 	if p.translations == none && p.handle == none && p.is_internal == none && p.is_active == none
 		&& p.parent_category_id == none && p.metadata == none {
-		return handle_error_400(mut ctx, 'Nothing to update', 'received all empty fields')
+		return handle_error_400(mut ctx, error_empty_object, 'ProductCategoryRequest')
 	}
 
 	mut parent_category_id_bin := []u8{}
