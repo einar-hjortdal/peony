@@ -16,34 +16,7 @@ struct ProductTranslation {
 	description    string
 }
 
-fn parse_product_translation(v []firebird.Value) !ProductTranslation {
-	product_id_bin, _ := v[0].get_array_u8()!
-	locale_id_bin, _ := v[1].get_array_u8()!
-	created_at, _ := v[2].get_date_time()!
-	updated_at, _ := v[3].get_date_time()!
-	deleted_at, _ := v[4].get_date_time()!
-	title, _ := v[5].get_string()!
-	subtitle, _ := v[6].get_string()!
-	description, _ := v[7].get_string()!
-
-	product_id := id_bin_to_string(product_id_bin)!
-	locale_id := id_bin_to_string(locale_id_bin)!
-
-	return ProductTranslation{
-		product_id:     product_id
-		product_id_bin: product_id_bin
-		locale_id:      locale_id
-		locale_id_bin:  locale_id_bin
-		created_at:     created_at
-		updated_at:     updated_at
-		deleted_at:     deleted_at
-		title:          title
-		subtitle:       subtitle
-		description:    description
-	}
-}
-
-fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslation {
+fn model_product_translation_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslation {
 	data := tx.execute('SELECT
 		product_id,
 		locale_id,
@@ -59,10 +32,34 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 
 	rows := data.rows()
 
-	mut translations := []ProductTranslation{}
+	mut translations := []ProductTranslation{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		translation := parse_product_translation(rows[i].values())!
-		translations = arrays.concat(translations, translation)
+		v := rows[i].values()
+
+		product_id_bin, _ := v[0].get_array_u8()!
+		locale_id_bin, _ := v[1].get_array_u8()!
+		created_at, _ := v[2].get_date_time()!
+		updated_at, _ := v[3].get_date_time()!
+		deleted_at, _ := v[4].get_date_time()!
+		title, _ := v[5].get_string()!
+		subtitle, _ := v[6].get_string()!
+		description, _ := v[7].get_string()!
+
+		product_id := id_bin_to_string(product_id_bin)!
+		locale_id := id_bin_to_string(locale_id_bin)!
+
+		translations[i] = ProductTranslation{
+			product_id:     product_id
+			product_id_bin: product_id_bin
+			locale_id:      locale_id
+			locale_id_bin:  locale_id_bin
+			created_at:     created_at
+			updated_at:     updated_at
+			deleted_at:     deleted_at
+			title:          title
+			subtitle:       subtitle
+			description:    description
+		}
 	}
 
 	return translations

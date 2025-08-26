@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import veb
 
 fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -8,20 +9,50 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	}
 
 	count := model_product_retrieve_count(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product count', err.msg())
 	}
 
-	internal_products := model_product_retrieve(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
+	products := model_product_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product', err.msg())
+	}
+
+	mut product_map, product_ids_bin := make_product_map(products)
+	translations := model_product_translation_retrieve(mut tx, product_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product_translation', err.msg())
+	}
+
+	for i := 0; i < translations.len; i++ {
+		product_id := translations[i].product_id
+		product_map[product_id].translations = arrays.concat(product_map[product_id].translations,
+			translations[i])
+	}
+
+	sales_channels := model_sales_channel_retrieve(mut tx, product_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel', err.msg())
+	}
+
+	// sales_channels
+	// images
+	// variants
+	// inventory_items
+	// options
+	// option_values
+
+	mut complete_products := []Product{len: products.len}
+	for i := 0; i < products.len; i++ {
+		id := products[i].id
+		complete_products[i] = product_map[id]
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	mut external_products := []ProductResponse{len: internal_products.len}
-	for i := 0; i < internal_products.len; i++ {
-		external_products[i] = format_product_response_admin(internal_products[i]) or {
+	mut external_products := []ProductResponse{len: complete_products.len}
+	for i := 0; i < complete_products.len; i++ {
+		external_products[i] = format_product_response_admin(complete_products[i]) or {
 			return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 		}
 	}

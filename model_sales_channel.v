@@ -197,41 +197,41 @@ fn (mut app App) add_products_to_sales_channel(id string, products_ids []string)
 	tx.commit()!
 }
 
-struct ProductSalesChannel {
-	product_id           string
-	product_id_bin       []u8
-	sales_channel_id     string
-	sales_channel_id_bin []u8
-}
-
-fn parse_product_sales_channel(v []firebird.Value) !ProductSalesChannel {
-	product_id_bin, _ := v[0].get_array_u8()!
-	sales_channel_id_bin, _ := v[1].get_array_u8()!
-
-	product_id := id_bin_to_string(product_id_bin)!
-	sales_channel_id := id_bin_to_string(sales_channel_id_bin)!
-
-	return ProductSalesChannel{
-		product_id:           product_id
-		product_id_bin:       product_id_bin
-		sales_channel_id:     sales_channel_id
-		sales_channel_id_bin: sales_channel_id_bin
-	}
-}
-
-fn do_retrieve_product_sales_channels(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSalesChannel {
-	data := tx.execute('SELECT
-		product_id,
-		sales_channel_id
-		FROM product_sales_channel
-		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
+fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]SalesChannel {
+	data := tx.execute('SELECT 
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		name,
+		description,
+		is_disabled
+		FROM sales_channel
+		WHERE EXISTS (
+			SELECT 1 FROM product_sales_channel psc
+			WHERE sales_channel.id = psc.sales_channel_id
+				AND psc.product_id IN (${get_placeholders(product_ids_bin)})
+		)',
 		...workaround_24757(product_ids_bin))!
 
 	rows := data.rows()
 
-	mut product_sales_channels := []ProductSalesChannel{len: rows.len}
+	mut product_sales_channels := []SalesChannel{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		product_sales_channels[i] = parse_product_sales_channel(rows[i].values())!
+		v := rows[i].values()
+
+		product_id_bin, _ := v[0].get_array_u8()!
+		sales_channel_id_bin, _ := v[1].get_array_u8()!
+
+		product_id := id_bin_to_string(product_id_bin)!
+		sales_channel_id := id_bin_to_string(sales_channel_id_bin)!
+
+		product_sales_channels[i] = ProductSalesChannel{
+			product_id:           product_id
+			product_id_bin:       product_id_bin
+			sales_channel_id:     sales_channel_id
+			sales_channel_id_bin: sales_channel_id_bin
+		}
 	}
 
 	return product_sales_channels
