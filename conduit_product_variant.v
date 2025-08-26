@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import log
 import veb
 
@@ -115,7 +116,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 		return handle_error_500(mut ctx, error_database_data_malformed, 'inventory_item missing')
 	}
 
-	inventory_item := inventory_items[0]
+	mut inventory_item := inventory_items[0]
 	inventory_item.inventory_levels = model_inventory_level_get(mut tx, [inventory_item.id_bin]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve inventory_level ', err.msg())
