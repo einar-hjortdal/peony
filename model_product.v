@@ -28,7 +28,7 @@ struct Product {
 mut:
 	images         []Image
 	options        []ProductOption
-	variants       []Variant
+	variants       []ProductVariant
 	translations   []ProductTranslation
 	sales_channels []SalesChannel
 	// tags         []Tag

@@ -91,6 +91,7 @@
 - Consider setting a default region id on store.
 - Consider modularizing price calculation.
 - Consider creating higher order functions to wrap conduit functions to provide tx.
+- Consider independent query for count.
 
 ## Documentation
 

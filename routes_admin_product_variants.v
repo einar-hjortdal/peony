@@ -63,5 +63,25 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, id string) veb.Re
 	variant_id_bin := id_string_to_bin(id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
-	return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin)
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	product_variants, count := model_product_variants_retrieve_by_ids(mut tx, [
+		variant_id_bin,
+	]) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	if count == 0 {
+		return handle_error_400(mut ctx, 'product_variant does not exist', 'count == 0')
+	}
+
+	inventory_item_id_bin := product_variants[0].inventory_item.id_bin
+
+	return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin, inventory_item_id_bin)
 }

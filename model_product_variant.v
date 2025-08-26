@@ -3,30 +3,28 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-struct Variant {
-	id                    string
-	id_bin                []u8
-	created_at            firebird.DateTime
-	updated_at            firebird.DateTime
-	deleted_at            firebird.NullDateTime
-	product_id            string
-	product_id_bin        []u8
-	inventory_item_id     string
-	inventory_item_id_bin []u8
-	title                 firebird.NullString
-	barcode               firebird.NullString
-	ean                   firebird.NullString
-	upc                   firebird.NullString
-	variant_rank          i32
-	metadata              firebird.NullString
+struct ProductVariant {
+	id             string
+	id_bin         []u8
+	created_at     firebird.DateTime
+	updated_at     firebird.DateTime
+	deleted_at     firebird.NullDateTime
+	product_id     string
+	product_id_bin []u8
+	title          firebird.NullString
+	barcode        firebird.NullString
+	ean            firebird.NullString
+	upc            firebird.NullString
+	variant_rank   i32
+	metadata       firebird.NullString
 	// image              firebird.NullString // from variant_image TODO
 mut:
-	money_amounts   []MoneyAmount
-	option_values   []ProductOptionValue
-	inventory_items []InventoryItem
+	inventory_item InventoryItem
+	money_amounts  []MoneyAmount
+	option_values  []ProductOptionValue
 }
 
-fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []Variant) ![]MoneyAmount {
+fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []ProductVariant) ![]MoneyAmount {
 	// extract the ids of the retrieved variants to batch fetch money_amounts
 	mut ids_bin := [][]u8{len: variants.len}
 	for i := 0; i < variants.len; i++ {
@@ -57,14 +55,13 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 	return money_amounts
 }
 
-fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]Variant, i64) {
+fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]ProductVariant, i64) {
 	base_query := 'SELECT 
 		id,
 		created_at,
 		updated_at,
 		deleted_at,
 		product_id,
-		inventory_item_id,
 		title,
 		barcode,
 		ean,
@@ -124,10 +121,10 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 
 	// exit early if no rows returned
 	if rows.len == 0 {
-		return []Variant{}, 0
+		return []ProductVariant{}, 0
 	}
 
-	mut variants := []Variant{len: rows.len}
+	mut variants := []ProductVariant{len: rows.len}
 	mut count := i64(0) // TODO will be 0 if offset bigger than count
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
@@ -136,42 +133,36 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		updated_at, _ := v[2].get_date_time()!
 		deleted_at := v[3].get_null_date_time()!
 		product_id_bin, _ := v[4].get_array_u8()!
-		inventory_item_id_bin, _ := v[5].get_array_u8()!
-		title := v[6].get_null_string()!
-		barcode := v[7].get_null_string()!
-		ean := v[8].get_null_string()!
-		upc := v[9].get_null_string()!
-		variant_rank, _ := v[10].get_i32()!
-		metadata := v[11].get_null_string()!
+		title := v[5].get_null_string()!
+		barcode := v[6].get_null_string()!
+		ean := v[7].get_null_string()!
+		upc := v[8].get_null_string()!
+		variant_rank, _ := v[9].get_i32()!
+		metadata := v[10].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 		product_id := id_bin_to_string(product_id_bin)!
-		inventory_item_id := id_bin_to_string(inventory_item_id_bin)!
 
-		variants[i] = Variant{
-			id:                    id
-			id_bin:                id_bin
-			created_at:            created_at
-			updated_at:            updated_at
-			deleted_at:            deleted_at
-			product_id:            product_id
-			product_id_bin:        product_id_bin
-			inventory_item_id:     inventory_item_id
-			inventory_item_id_bin: inventory_item_id_bin
-			title:                 title
-			barcode:               barcode
-			ean:                   ean
-			upc:                   upc
-			variant_rank:          variant_rank
-			metadata:              metadata
+		variants[i] = ProductVariant{
+			id:             id
+			id_bin:         id_bin
+			created_at:     created_at
+			updated_at:     updated_at
+			deleted_at:     deleted_at
+			product_id:     product_id
+			product_id_bin: product_id_bin
+			title:          title
+			barcode:        barcode
+			ean:            ean
+			upc:            upc
+			variant_rank:   variant_rank
+			metadata:       metadata
 		}
 
 		if i == 0 {
-			count, _ = v[12].get_i64()!
+			count, _ = v[11].get_i64()!
 		}
 	}
-	values := rows[0].values()
-	count, _ = values[22].get_i64()!
 
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations
@@ -190,7 +181,17 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	return variants, count
 }
 
-fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) !([]Variant, i64) {
+fn model_product_variants_retrieve_by_ids(mut tx firebird.Transaction, variant_ids_bin [][]u8) !([]ProductVariant, i64) {
+	vph := RetrieveProductVariantParamsHygienised{
+		ids:     ZeroArrayString{
+			is_set: true
+		}
+		ids_bin: variant_ids_bin
+	}
+	return model_product_variants_retrieve(mut tx, vph)
+}
+
+fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) !([]ProductVariant, i64) {
 	vph := RetrieveProductVariantParamsHygienised{
 		product_ids:     ZeroArrayString{
 			is_set: true

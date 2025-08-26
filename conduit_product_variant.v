@@ -14,9 +14,9 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	mut external_variants := []VariantResponse{len: internal_variants.len}
+	mut external_variants := []ProductVariantResponse{len: internal_variants.len}
 	for i := 0; i < internal_variants.len; i++ {
-		external_variants[i] = format_variant_response_admin(internal_variants[i]) or {
+		external_variants[i] = format_product_variant_response_admin(internal_variants[i]) or {
 			return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 		}
 	}
@@ -36,9 +36,37 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_variants, count := model_product_variants_retrieve(mut tx, ph) or {
+	product_variants, count := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve variants ', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
+	}
+
+	// build map for efficient lookups
+	mut variants_map := map[string]ProductVariant{}
+	mut variant_ids_bin := [][]u8{len: product_variants.len}
+	for i := 0; i < product_variants.len; i++ {
+		id := product_variants[i].id
+		id_bin := product_variants[i].id_bin
+		variants_map[id] = product_variants[i]
+		variant_ids_bin[i] = id_bin
+	}
+
+	inventory_items := model_inventory_item_retrieve(mut tx, variant_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve inventory_item ', err.msg())
+	}
+
+	for i := 0; i < inventory_items.len; i++ {
+		inventory_item := inventory_items[i]
+		id := inventory_item.variant_id
+		variants_map[id].inventory_item = inventory_item
+	}
+
+	// rebuild array using same sorting as original array
+	mut complete_variants := []ProductVariant{len: product_variants.len}
+	for i := 0; i < product_variants.len; i++ {
+		id := product_variants[i].id
+		complete_variants[i] = variants_map[id]
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
@@ -47,7 +75,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 		return handle_error_404(mut ctx, 'No variant exists with the given id', 'count == 0')
 	}
 
-	external_variant := format_variant_response_admin(internal_variants[0]) or {
+	external_variant := format_product_variant_response_admin(complete_variants[0]) or {
 		return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 	}
 
@@ -60,6 +88,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 
 fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, p ProductVariantRequest, povh []ProductOptionValueRequestHygienised) veb.Result {
 	_, variant_id_bin := app.new_id()
+	_, inventory_item_id_bin := app.new_id()
 
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
@@ -68,6 +97,12 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	model_product_variant_create(mut tx, product_id_bin, variant_id_bin, p) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_variant', err.msg())
+	}
+
+	model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not create inventory_item for product_variant',
+			err.msg())
 	}
 
 	if povh.len != 0 {
@@ -123,7 +158,7 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin []u8) veb.Result {
+fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin []u8, inventory_item_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -131,6 +166,11 @@ fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin [
 	model_product_variant_delete(mut tx, variant_id_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not delete product_variant', err.msg())
+	}
+
+	model_inventory_item_delete(mut tx, inventory_item_id_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not delete inventory_item', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

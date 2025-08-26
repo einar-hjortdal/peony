@@ -1,5 +1,6 @@
 module peony
 
+import log
 import net.http
 import time
 import veb
@@ -352,20 +353,29 @@ struct MoneyAmountResponse {
 	variant_id    string @[json: 'variantId'; omitempty]
 }
 
-fn format_money_amount_response(m MoneyAmount) !MoneyAmountResponse {
+fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 	mut price_list_id := ''
 	mut region_id := ''
 	mut variant_id := ''
 	if !m.price_list_id_bin.is_null {
-		price_list_id = id_bin_to_string(m.price_list_id_bin.value)!
+		price_list_id = id_bin_to_string(m.price_list_id_bin.value) or {
+			log.error('money_amount.price_list_id is invalid')
+			''
+		}
 	}
 
 	if !m.region_id_bin.is_null {
-		region_id = id_bin_to_string(m.region_id_bin.value)!
+		region_id = id_bin_to_string(m.region_id_bin.value) or {
+			log.error('money_amount.price_list_id is invalid')
+			''
+		}
 	}
 
 	if !m.variant_id_bin.is_null {
-		variant_id = id_bin_to_string(m.variant_id_bin.value)!
+		variant_id = id_bin_to_string(m.variant_id_bin.value) or {
+			log.error('money_amount.price_list_id is invalid')
+			''
+		}
 	}
 
 	return MoneyAmountResponse{
@@ -477,25 +487,72 @@ struct RegionResponseListEnvelope {
 	fetch   i32
 }
 
+struct InventoryLevelResponse {
+	inventory_item_id string @[json: 'inventoryItemId']
+	stock_location_id string @[json: 'stockLocationId']
+	stocked_quantity  i32    @[json: 'stockedQuantity']
+	reserved_quantity i32    @[json: 'reservedQuantity']
+}
+
+fn format_inventory_level_response(v InventoryLevel) InventoryLevelResponse {
+	return InventoryLevelResponse{
+		inventory_item_id: v.inventory_item_id
+		stock_location_id: v.stock_location_id
+		stocked_quantity:  v.stocked_quantity
+		reserved_quantity: v.reserved_quantity
+	}
+}
+
 struct InventoryItemResponse {
 	id                string
 	created_at        time.Time @[json: 'createdAt']
 	updated_at        time.Time @[json: 'updatedAt']
 	deleted_at        time.Time @[json: 'deletedAt'; omitempty]
+	variant_id        string
+	sku               string @[omitempty]
+	origin_country    string @[omitempty]
+	hs_code           string @[omitempty]
+	mid_code          string @[omitempty]
+	material          string @[omitempty]
+	weight            i32    @[omitempty]
+	length            i32    @[omitempty]
+	height            i32    @[omitempty]
+	width             i32    @[omitempty]
 	requires_shipping bool
+	manage_inventory  bool
+	allow_backorder   bool
+	inventory_levels  []InventoryLevelResponse
 }
 
-fn format_inventory_item_response(r InventoryItem) InventoryItemResponse {
+fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
+	mut inventory_levels := []InventoryLevelResponse{len: v.inventory_levels.len}
+	for i := 0; i < v.inventory_levels.len; i++ {
+		inventory_levels[i] = format_inventory_level_response(v.inventory_levels[i])
+	}
+
 	return InventoryItemResponse{
-		id:                r.id
-		created_at:        r.created_at.Time
-		updated_at:        r.updated_at.Time
-		deleted_at:        r.deleted_at.value.Time
-		requires_shipping: r.requires_shipping
+		id:                v.id
+		created_at:        v.created_at.Time
+		updated_at:        v.updated_at.Time
+		deleted_at:        v.deleted_at.value.Time
+		variant_id:        v.variant_id
+		sku:               v.sku.value
+		origin_country:    v.origin_country.value
+		hs_code:           v.hs_code.value
+		mid_code:          v.mid_code.value
+		material:          v.material.value
+		weight:            v.weight.value
+		length:            v.length.value
+		height:            v.height.value
+		width:             v.width.value
+		requires_shipping: v.requires_shipping
+		manage_inventory:  v.manage_inventory
+		allow_backorder:   v.allow_backorder
+		inventory_levels:  inventory_levels
 	}
 }
 
-struct VariantResponse {
+struct ProductVariantResponse {
 	id                 string
 	created_at         time.Time                    @[json: 'createdAt']
 	updated_at         time.Time                    @[json: 'updatedAt']
@@ -510,13 +567,15 @@ struct VariantResponse {
 	image              string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
-	prices             PricesResponse               @[omitempty]
-	inventory_items    []InventoryItemResponse      @[json: 'inventoryItems'; omitempty]
+	inventory_item     InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
 	purchasable        bool
-	inventory_quantity i32 @[json: 'inventoryQuantity']
+	inventory_quantity i32            @[json: 'inventoryQuantity']
+	prices             PricesResponse @[omitempty]
 }
 
-fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !VariantResponse {
+fn format_variant_response(v ProductVariant, variant_prices_map map[string]Prices) ProductVariantResponse {
+	inventory_item := format_inventory_item_response(v.inventory_item)
+
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
@@ -524,19 +583,14 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 
 	mut money_amounts := []MoneyAmountResponse{len: v.money_amounts.len}
 	for i := 0; i < v.money_amounts.len; i++ {
-		money_amounts[i] = format_money_amount_response(v.money_amounts[i])!
-	}
-
-	mut inventory_items := []InventoryItemResponse{len: v.inventory_items.len}
-	for i := 0; i < v.inventory_items.len; i++ {
-		inventory_items[i] = format_inventory_item_response(v.inventory_items[i])
+		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
 	}
 
 	prices := format_prices_response(variant_prices_map[v.id])
 	inventory_quantity := i32(0) // TODO
 	purchasable := true // TODO
 
-	return VariantResponse{
+	return ProductVariantResponse{
 		id:           v.id
 		created_at:   v.created_at.Time
 		updated_at:   v.updated_at.Time
@@ -548,26 +602,26 @@ fn format_variant_response(v Variant, variant_prices_map map[string]Prices) !Var
 		variant_rank: v.variant_rank
 		metadata:     v.metadata.value
 		// image:
+		inventory_item:     inventory_item // TODO not needed in /store/
 		option_values:      option_values
 		money_amounts:      money_amounts
-		inventory_items:    inventory_items
 		prices:             prices
-		inventory_quantity: inventory_quantity
-		purchasable:        purchasable
+		inventory_quantity: inventory_quantity // TODO not needed in /admin/
+		purchasable:        purchasable        // TODO not needed in /admin/
 	}
 }
 
-fn format_variant_response_admin(v Variant) !VariantResponse {
+fn format_product_variant_response_admin(v ProductVariant) !ProductVariantResponse {
 	variants_prices_map := map[string]Prices{}
 	return format_variant_response(v, variants_prices_map)
 }
 
 struct VariantResponseEnvelope {
-	variant VariantResponse
+	variant ProductVariantResponse
 }
 
 struct VariantResponseListEnvelope {
-	variants []VariantResponse
+	variants []ProductVariantResponse
 	count    i64
 	offset   i32
 	fetch    i32
@@ -617,7 +671,7 @@ struct ProductResponse {
 	metadata       string                       @[omitempty]
 	images         []ImageResponse              @[omitempty]
 	options        []ProductOptionResponse      @[omitempty]
-	variants       []VariantResponse            @[omitempty]
+	variants       []ProductVariantResponse     @[omitempty]
 	translations   []ProductTranslationResponse @[omitempty]
 	sales_channels []SalesChannelResponse       @[json: 'salesChannels']
 	// tags         []Tag                 @[omitempty]
@@ -634,9 +688,9 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 		options[i] = format_product_option_response(p.options[i])
 	}
 
-	mut variants := []VariantResponse{len: p.variants.len}
+	mut variants := []ProductVariantResponse{len: p.variants.len}
 	for i := 0; i < p.variants.len; i++ {
-		variants[i] = format_variant_response(p.variants[i], variant_prices_map)!
+		variants[i] = format_variant_response(p.variants[i], variant_prices_map)
 	}
 
 	mut translations := []ProductTranslationResponse{len: p.translations.len}
