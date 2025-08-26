@@ -7,7 +7,12 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_products, count := retrieve_products(mut tx, ph) or {
+	count := model_product_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+	}
+
+	internal_products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
 	}
@@ -36,7 +41,12 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_products, count := retrieve_products(mut tx, ph) or {
+	count := model_product_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+	}
+
+	internal_products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
 	}
@@ -90,16 +100,21 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_products, count := retrieve_products(mut tx, ph) or {
+	count := model_product_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+	}
+
+	if count == 0 {
+		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
+	}
+
+	internal_products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	if count == 0 {
-		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
-	}
 
 	external_product := format_product_response_admin(internal_products[0]) or {
 		return handle_error_500(mut ctx, 'Failed to format response', err.msg())
@@ -117,7 +132,16 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_products, count := retrieve_products(mut tx, ph) or {
+	count := model_product_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+	}
+
+	if count == 0 {
+		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
+	}
+
+	internal_products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
 	}
@@ -134,10 +158,6 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	if count == 0 {
-		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
-	}
 
 	pctx := PriceContext{
 		// cart_id_bin

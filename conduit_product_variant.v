@@ -14,30 +14,13 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
 	}
 
-	// build map for efficient lookups
-	mut variant_map := map[string]ProductVariant{}
-	mut variant_ids_bin := [][]u8{len: product_variants.len}
-	for i := 0; i < product_variants.len; i++ {
-		id := product_variants[i].id
-		id_bin := product_variants[i].id_bin
-		variant_map[id] = product_variants[i]
-		variant_ids_bin[i] = id_bin
-	}
-
+	mut variant_map, variant_ids_bin := make_product_variant_map(product_variants)
 	inventory_items := model_inventory_item_retrieve(mut tx, variant_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve inventory_item ', err.msg())
 	}
 
-	mut inventory_item_map := map[string]InventoryItem{}
-	mut inventory_item_ids_bin := [][]u8{len: inventory_items.len}
-	for i := 0; i < inventory_items.len; i++ {
-		id := inventory_items[i].id
-		id_bin := inventory_items[i].id_bin
-		inventory_item_map[id] = inventory_items[i]
-		inventory_item_ids_bin[i] = id_bin
-	}
-
+	mut inventory_item_map, inventory_item_ids_bin := make_inventory_item_map(inventory_items)
 	inventory_levels := model_inventory_level_get(mut tx, inventory_item_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve inventory_levels ', err.msg())

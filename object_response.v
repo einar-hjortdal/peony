@@ -681,6 +681,24 @@ struct ProductResponse {
 }
 
 fn format_product_response_store(p Product, variant_prices_map map[string]Prices) !ProductResponse {
+	mut collection_id := ''
+	if !p.collection_id_bin.is_null {
+		collection_id = id_bin_to_string(p.collection_id_bin.value) or {
+			log.error(error_database_data_malformed)
+			log.error('product.collection_id is invalid')
+			''
+		}
+	}
+
+	mut type_id := ''
+	if !p.type_id_bin.is_null {
+		type_id = id_bin_to_string(p.type_id_bin.value) or {
+			log.error(error_database_data_malformed)
+			log.error('product.type_id_bin is invalid')
+			''
+		}
+	}
+
 	mut images := []ImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
 		images[i] = format_image_response(p.images[i])
@@ -712,13 +730,13 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 		id:             p.id
 		created_at:     p.created_at.Time
 		updated_at:     p.updated_at.Time
-		deleted_at:     p.deleted_at.Time
+		deleted_at:     p.deleted_at.value.Time
 		handle:         p.handle
 		is_giftcard:    p.is_giftcard
 		status:         p.status
-		thumbnail:      p.thumbnail
-		collection_id:  p.collection_id
-		type_id:        p.type_id
+		thumbnail:      p.thumbnail.value
+		collection_id:  collection_id
+		type_id:        type_id
 		discountable:   p.discountable
 		metadata:       p.metadata.value
 		images:         images
