@@ -6,7 +6,7 @@ module peony
 // When manage_inventory is true, peony tracks the inventory of the product_variant. For example, when
 // a customer purchases a product_variant, peony decrements the stocked quantity of the product_variant.
 
-fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
+fn get_variant_availability(v ProductVariant, sales_channel_id_bin []u8) i32 {
 	// if !v.manage_inventory {
 	// 	return 0
 	// }
@@ -38,6 +38,6 @@ fn get_variant_availability(v Variant, sales_channel_id_bin []u8) i32 {
 // 2) calculate available quantity of each variant in the stock locations related to the sales channel
 // 3) for each inventory_item calculate the maximum deliverable amount according to required_quantity of product_variant_inventory_item
 // 4) the smallest number of these maximum deliverable amounts is the availability for this variant
-fn get_variants_availability(v []Variant, sales_channel_id_bin []u8) []i32 {
+fn get_variants_availability(v []ProductVariant, sales_channel_id_bin []u8) []i32 {
 	return []i32{}
 }

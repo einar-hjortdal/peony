@@ -359,6 +359,7 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 	mut variant_id := ''
 	if !m.price_list_id_bin.is_null {
 		price_list_id = id_bin_to_string(m.price_list_id_bin.value) or {
+			log.error(error_database_data_malformed)
 			log.error('money_amount.price_list_id is invalid')
 			''
 		}
@@ -366,6 +367,7 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 
 	if !m.region_id_bin.is_null {
 		region_id = id_bin_to_string(m.region_id_bin.value) or {
+			log.error(error_database_data_malformed)
 			log.error('money_amount.price_list_id is invalid')
 			''
 		}
@@ -373,6 +375,7 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 
 	if !m.variant_id_bin.is_null {
 		variant_id = id_bin_to_string(m.variant_id_bin.value) or {
+			log.error(error_database_data_malformed)
 			log.error('money_amount.price_list_id is invalid')
 			''
 		}

@@ -73,7 +73,7 @@ fn is_valid_price(ma MoneyAmount, quantity i32, currency_code string, region_id_
 // a tax of type override will override all taxes of lower hierarchy.
 // the tax hierarchy, from most important to least important, is as follows:
 // product -> product type -> region (TODO verify)
-fn calculate_price(variant Variant, quantity i32, pctx PriceContext) Prices {
+fn calculate_price(variant ProductVariant, quantity i32, pctx PriceContext) Prices {
 	// for now just consider variant.money_amounts and pctx.region
 	mut original_prices := []MoneyAmount{}
 	mut valid_money_amounts := []MoneyAmount{}

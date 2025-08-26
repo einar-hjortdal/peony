@@ -1,5 +1,6 @@
 module peony
 
+import log
 import veb
 
 fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
@@ -7,38 +8,9 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_variants, count := model_product_variants_retrieve(mut tx, ph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve variants ', err.msg())
-	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	mut external_variants := []ProductVariantResponse{len: internal_variants.len}
-	for i := 0; i < internal_variants.len; i++ {
-		external_variants[i] = format_product_variant_response_admin(internal_variants[i]) or {
-			return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
-		}
-	}
-
-	r := VariantResponseListEnvelope{
-		variants: external_variants
-		count:    count
-		offset:   get_offset_amount(ph.offset)
-		fetch:    get_fetch_amount(ph.fetch)
-	}
-
-	return ctx.json(r)
-}
-
-fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
 	product_variants, count := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
 	}
 
 	// build map for efficient lookups
@@ -71,11 +43,57 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
+	mut external_variants := []ProductVariantResponse{len: complete_variants.len}
+	for i := 0; i < complete_variants.len; i++ {
+		external_variants[i] = format_product_variant_response_admin(complete_variants[i]) or {
+			log.error('Failed to format ProductVariantResponse: ${err}')
+			return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
+		}
+	}
+
+	r := VariantResponseListEnvelope{
+		variants: external_variants
+		count:    count
+		offset:   get_offset_amount(ph.offset)
+		fetch:    get_fetch_amount(ph.fetch)
+	}
+
+	return ctx.json(r)
+}
+
+fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	product_variants, count := model_product_variants_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
+	}
+
 	if count == 0 {
+		tx.rollback() or {}
 		return handle_error_404(mut ctx, 'No variant exists with the given id', 'count == 0')
 	}
 
-	external_variant := format_product_variant_response_admin(complete_variants[0]) or {
+	mut product_variant := product_variants[0]
+	inventory_items := model_inventory_item_retrieve(mut tx, [product_variant.id_bin]) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve inventory_item ', err.msg())
+	}
+
+	if inventory_items.len == 0 {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, error_database_data_malformed, 'inventory_item missing')
+	}
+
+	inventory_item := inventory_items[0]
+	product_variant.inventory_item = inventory_item
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	external_variant := format_product_variant_response_admin(product_variant) or {
+		log.error('Failed to format ProductVariantResponse: ${err}')
 		return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 	}
 
