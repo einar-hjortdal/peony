@@ -12,6 +12,36 @@ struct InventoryLevel {
 	reserved_quantity     i32
 }
 
+fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin [][]u8) ![]InventoryLevel {
+	data := tx.execute('SELECT inventory_item_id, stock_location_id, stocked_quantity, reserved_quantity
+		FROM inventory_level WHERE inventory_item_id IN (${get_placeholders(inventory_item_ids_bin)})',
+		...workaround_24757(inventory_item_ids_bin))!
+
+	rows := data.rows()
+	mut inventory_levels := []InventoryLevel{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+		inventory_item_id_bin, _ := v[0].get_array_u8()!
+		stock_location_id_bin, _ := v[1].get_array_u8()!
+		stocked_quantity, _ := v[2].get_i32()!
+		reserved_quantity, _ := v[3].get_i32()!
+
+		inventory_item_id := id_bin_to_string(inventory_item_id_bin)!
+		stock_location_id := id_bin_to_string(stock_location_id_bin)!
+
+		inventory_levels[i] = InventoryLevel{
+			inventory_item_id:     inventory_item_id
+			inventory_item_id_bin: inventory_item_id_bin
+			stock_location_id:     stock_location_id
+			stock_location_id_bin: stock_location_id_bin
+			stocked_quantity:      stocked_quantity
+			reserved_quantity:     reserved_quantity
+		}
+	}
+
+	return inventory_levels
+}
+
 fn model_inventory_level_create(mut tx firebird.Transaction, inventory_item_id_bin []u8, stock_location_id_bin []u8,
 	p InventoryLevelRequest) ! {
 	mut params := [firebird.Value(inventory_item_id_bin), stock_location_id_bin, p.stocked_quantity]

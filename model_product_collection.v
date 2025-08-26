@@ -116,7 +116,7 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 	}
 
 	data = tx.execute('SELECT id, created_at, updated_at, deleted_at, handle, metadata
-		FROM product_collection WHERE id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		FROM product_collection WHERE id IN ${get_placeholders(ids_bin)}',
 		...ids_bin)!
 
 	rows = data.rows()
@@ -130,7 +130,7 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 	}
 
 	data = tx.execute('SELECT product_collection_id, locale_id, title FROM product_collection_translations
-		WHERE product_collection_id IN ${get_n_placeholders(i32(ids_bin.len))}',
+		WHERE product_collection_id IN ${get_placeholders(ids_bin)}',
 		...ids_bin)!
 
 	rows = data.rows()
@@ -179,7 +179,7 @@ fn (mut app App) do_create_collection(mut tx firebird.Transaction, p CollectionD
 		params = arrays.concat(params, handle)
 	}
 
-	tx.execute('INSERT INTO product_collection (${get_columns(c)}) VALUES (${get_n_placeholders(i32(c.len))})',
+	tx.execute('INSERT INTO product_collection (${get_columns(c)}) VALUES (${get_placeholders(c)})',
 		...params)!
 
 	if translations := p.translations {

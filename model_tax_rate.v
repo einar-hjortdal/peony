@@ -58,7 +58,7 @@ fn do_retrieve_tax_rates_by_id(mut tx firebird.Transaction, tax_rate_ids_bin [][
 		name,
 		type
 		FROM tax_rate
-		WHERE id IN (${get_n_placeholders(i32(tax_rate_ids_bin.len))})',
+		WHERE id IN (${get_placeholders(tax_rate_ids_bin)})',
 		...workaround_24757(tax_rate_ids_bin))!
 
 	rows := data.rows()
@@ -72,7 +72,7 @@ fn do_retrieve_tax_rates_by_id(mut tx firebird.Transaction, tax_rate_ids_bin [][
 
 fn do_retrieve_region_tax_rates(mut tx firebird.Transaction, region_ids_bin [][]u8) !([][]u8, map[string][][]u8) {
 	data := tx.execute('SELECT region_id, rate_id FROM region_tax_rate
-	WHERE region_id IN (${get_n_placeholders(i32(region_ids_bin.len))})',
+	WHERE region_id IN (${get_placeholders(region_ids_bin)})',
 		...workaround_24757(region_ids_bin))!
 
 	rows := data.rows()

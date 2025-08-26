@@ -160,7 +160,7 @@ fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionCreateRequ
 		params = arrays.concat(params, includes_tax)
 	}
 
-	tx.execute('INSERT INTO region (${get_columns(columns)}) VALUES (${get_n_placeholders(i32(columns.len))})',
+	tx.execute('INSERT INTO region (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
 		...params)!
 
 	// workaround_24757

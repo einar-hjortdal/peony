@@ -42,7 +42,7 @@ fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variant
 		pvma.variant_id
 		FROM money_amount ma
 		JOIN product_variant_money_amount pvma ON pvma.money_amount_id = ma.id
-		WHERE pvma.variant_id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		WHERE pvma.variant_id IN (${get_placeholders(ids_bin)})',
 		...workaround_24757(ids_bin))!
 
 	rows := data.rows()
@@ -76,12 +76,12 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	mut c := []string{}
 
 	if p.ids.is_set {
-		c = arrays.concat(c, 'id IN (${get_n_placeholders(i32(p.ids.v.len))})')
+		c = arrays.concat(c, 'id IN (${get_placeholders(p.ids.v)})')
 		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
 	if p.product_ids.is_set {
-		c = arrays.concat(c, 'product_id IN (${get_n_placeholders(i32(p.product_ids_bin.len))})')
+		c = arrays.concat(c, 'product_id IN (${get_placeholders(p.product_ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
 	}
 
@@ -235,7 +235,7 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 	}
 
 	tx.execute('INSERT INTO product_variant (${get_columns(columns)}) 
-		VALUES (${get_n_placeholders(i32(columns.len))})',
+		VALUES (${get_placeholders(columns)})',
 		...params)!
 }
 
@@ -317,7 +317,7 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 				SELECT money_amount_id
 				FROM product_variant_money_amount
 				WHERE variant_id = ?
-				AND money_amount_id NOT IN (${get_n_placeholders(i32(persisting_ids_bin.len))}))',
+				AND money_amount_id NOT IN (${get_placeholders(persisting_ids_bin)}))',
 			...workaround_24757(arrays.concat([variant_id_bin], ...persisting_ids_bin)))!
 	}
 

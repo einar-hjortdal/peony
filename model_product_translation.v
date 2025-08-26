@@ -54,7 +54,7 @@ fn do_retrieve_product_translations(mut tx firebird.Transaction, product_ids_bin
 		subtitle,
 		description
 		FROM product_translations
-		WHERE product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})',
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
 		...workaround_24757(product_ids_bin))!
 
 	rows := data.rows()

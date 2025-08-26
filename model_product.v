@@ -96,7 +96,7 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductPara
 	}
 
 	if ph.ids.is_set {
-		conditions = appendln(conditions, 'AND p.id IN (${get_n_placeholders(i32(ph.ids_bin.len))})')
+		conditions = appendln(conditions, 'AND p.id IN (${get_placeholders(ph.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
@@ -116,17 +116,17 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductPara
 	}
 
 	if ph.collection_ids.is_set {
-		conditions = appendln(conditions, 'AND p.collection_id IN ${get_n_placeholders(i32(ph.collection_ids_bin.len))}')
+		conditions = appendln(conditions, 'AND p.collection_id IN ${get_placeholders(ph.collection_ids_bin)}')
 		params = arrays.concat(params, ...ph.collection_ids_bin)
 	}
 
 	if ph.type_ids.is_set {
-		conditions = appendln(conditions, 'AND p.type_id IN ${get_n_placeholders(i32(ph.type_ids_bin.len))}')
+		conditions = appendln(conditions, 'AND p.type_id IN ${get_placeholders(ph.type_ids_bin)}')
 		params = arrays.concat(params, ...ph.type_ids_bin)
 	}
 
 	if ph.tag_ids.is_set {
-		conditions = appendln(conditions, 'AND pt.tag_id IN ${get_n_placeholders(i32(ph.tag_ids_bin.len))}')
+		conditions = appendln(conditions, 'AND pt.tag_id IN ${get_placeholders(ph.tag_ids_bin)}')
 		params = arrays.concat(params, ...ph.tag_ids_bin)
 	}
 
@@ -151,17 +151,17 @@ fn do_retrieve_products__ids(mut tx firebird.Transaction, ph RetrieveProductPara
 	}
 
 	if ph.category_ids.is_set {
-		conditions = appendln(conditions, 'AND pcp.product_category_id IN ${get_n_placeholders(i32(ph.category_ids_bin.len))}')
+		conditions = appendln(conditions, 'AND pcp.product_category_id IN ${get_placeholders(ph.category_ids_bin)}')
 		params = arrays.concat(params, ...ph.category_ids_bin)
 	}
 
 	if ph.price_list_ids.is_set {
-		conditions = appendln(conditions, 'AND ma.price_list_id IN ${get_n_placeholders(i32(ph.price_list_ids_bin.len))}')
+		conditions = appendln(conditions, 'AND ma.price_list_id IN ${get_placeholders(ph.price_list_ids_bin)}')
 		params = arrays.concat(params, ...ph.price_list_ids_bin)
 	}
 
 	if ph.sales_channel_ids.is_set {
-		conditions = appendln(conditions, 'AND psc.sales_channel_id IN ${get_n_placeholders(i32(ph.sales_channel_ids_bin.len))}')
+		conditions = appendln(conditions, 'AND psc.sales_channel_id IN ${get_placeholders(ph.sales_channel_ids_bin)}')
 		params = arrays.concat(params, ...ph.sales_channel_ids_bin)
 	}
 
@@ -209,7 +209,7 @@ fn model_products_retrieve_by_product_ids(mut tx firebird.Transaction, ids_bin [
 		discountable,
 		metadata
 		FROM product
-		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		WHERE id IN (${get_placeholders(ids_bin)})',
 		...workaround_24757(ids_bin))!
 
 	rows := data.rows()

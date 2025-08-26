@@ -53,7 +53,7 @@ fn model_image_create(mut app App, mut tx firebird.Transaction, urls []string) !
 
 fn do_retrieve_images(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]Image {
 	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, url FROM image
-		WHERE id IN (${get_n_placeholders(i32(image_ids_bin.len))})',
+		WHERE id IN (${get_placeholders(image_ids_bin)})',
 		...image_ids_bin)!
 
 	rows := data.rows()
@@ -117,7 +117,7 @@ fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_i
 fn do_delete_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
 	params := arrays.concat([firebird.Value(product_id_bin)], ...ids_bin)
 	tx.execute('DELETE FROM product_image WHERE product_id = ?
-		AND image_id IN (${get_n_placeholders(i32(ids_bin.len))}));',
+		AND image_id IN (${get_placeholders(ids_bin)}));',
 		...params)!
 }
 
@@ -132,7 +132,7 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 		pi.product_id
 		FROM product_image pi
 		LEFT JOIN image i ON id = image_id
-		WHERE pi.product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})
+		WHERE pi.product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY pi.image_rank',
 		...workaround_24757(product_ids_bin))!
 

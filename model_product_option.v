@@ -31,7 +31,7 @@ fn parse_product_option_value_translation(v []firebird.Value) !ProductOptionValu
 fn do_retrieve_product_option_value_translations(mut tx firebird.Transaction, option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
 	data := tx.execute('SELECT product_option_value_id, locale_id, name
 	FROM product_option_value_translations
-	WHERE product_option_value_id IN ${get_n_placeholders(i32(option_value_ids_bin.len))}',
+	WHERE product_option_value_id IN ${get_placeholders(option_value_ids_bin)}',
 		...option_value_ids_bin)!
 
 	rows := data.rows()
@@ -79,7 +79,7 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, option_ids_
 	data := tx.execute('SELECT pov.id, pov.option_id, pov.variant_id 
 		FROM product_option_value pov
 		LEFT JOIN product_variant pv ON pov.variant_id = pv.id
-		WHERE option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})
+		WHERE option_id IN (${get_placeholders(option_ids_bin)})
 		AND pv.deleted_at IS NULL',
 		...workaround_24757(option_ids_bin))!
 
@@ -96,7 +96,7 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, option_ids_
 fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
 	data := tx.execute('SELECT product_option_value_id, locale_id, name
 		FROM product_option_value_translations
-		WHERE product_option_value_id IN (${get_n_placeholders(i32(product_option_value_ids_bin.len))})',
+		WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids_bin)})',
 		...workaround_24757(product_option_value_ids_bin))!
 
 	rows := data.rows()
@@ -176,7 +176,7 @@ fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslatio
 fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
-		WHERE product_option_id IN (${get_n_placeholders(i32(option_ids_bin.len))})',
+		WHERE product_option_id IN (${get_placeholders(option_ids_bin)})',
 		...workaround_24757(option_ids_bin))!
 
 	rows := data.rows()
@@ -217,7 +217,7 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 
 fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
 	mut data := tx.execute('SELECT id, product_id FROM product_option
-			WHERE product_id IN (${get_n_placeholders(i32(ids_bin.len))})',
+			WHERE product_id IN (${get_placeholders(ids_bin)})',
 		...workaround_24757(ids_bin))!
 
 	rows := data.rows()

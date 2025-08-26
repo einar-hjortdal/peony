@@ -31,7 +31,7 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 		for i := 0; i < p.code.v.len; i++ {
 			c[i] = firebird.Value(p.code.v[i])
 		}
-		conditions = appendln(conditions, 'WHERE code IN (${get_n_placeholders(i32(p.code.v.len))})')
+		conditions = appendln(conditions, 'WHERE code IN (${get_placeholders(p.code.v)})')
 		// v: ['EUR']
 		// firebird.Value(5395781)
 		// params = arrays.concat(params, ...p.code.v)

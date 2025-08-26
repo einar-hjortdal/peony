@@ -16,18 +16,18 @@
 
 ### Implemented
 
-- [x] Products
-- [x] Variants
-- [x] Prices
-- [x] Multi-language
-- [x] Multi-currency
-- [x] Uploads
+- [x] Inventory items
 - [x] Metadata
+- [x] Multi-currency
+- [x] Multi-language
+- [x] Prices
 - [x] Product categories
+- [x] Product variants
+- [x] Products
+- [x] Uploads
 
 ### Currently being implemented
 
-- [ ] Inventory management
 
 ### Soon to be implemented
 

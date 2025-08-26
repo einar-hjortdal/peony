@@ -67,7 +67,7 @@ fn do_retrieve_sales_channels_by_ids(mut tx firebird.Transaction, ids_bin [][]u8
 		description,
 		is_disabled
 		FROM sales_channel
-		WHERE id IN (${get_n_placeholders(i32(ids_bin.len))})',
+		WHERE id IN (${get_placeholders(ids_bin)})',
 		...workaround_24757(ids_bin))!
 
 	rows := data.rows()
@@ -94,7 +94,7 @@ fn (mut app App) list_sales_channels(mut tx firebird.Transaction, ph ListSalesCh
 	mut c := []string{}
 	// Check if id array is not empty (we'll form a SQL IN clause).
 	if ph.ids.is_set {
-		c = arrays.concat(c, 'id IN (${get_n_placeholders(i32(ph.ids_bin.len))})')
+		c = arrays.concat(c, 'id IN (${get_placeholders(ph.ids_bin)})')
 		params = arrays.concat(params, ...ph.ids_bin)
 	}
 
@@ -224,7 +224,7 @@ fn do_retrieve_product_sales_channels(mut tx firebird.Transaction, product_ids_b
 		product_id,
 		sales_channel_id
 		FROM product_sales_channel
-		WHERE product_id IN (${get_n_placeholders(i32(product_ids_bin.len))})',
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
 		...workaround_24757(product_ids_bin))!
 
 	rows := data.rows()
