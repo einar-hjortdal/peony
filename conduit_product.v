@@ -76,6 +76,9 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 			new_money_amounts := arrays.concat(old_money_amounts, money_amount)
 			product_varaints_map[variant_id].money_amounts = new_money_amounts
 		}
+
+		// inventory_items
+		// TODO variant_image
 	}
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
@@ -152,9 +155,18 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		}
 	}
 
-	// images
-	// inventory_items
-	// TODO variant_image
+	product_images := model_product_image_retrieve(mut tx, product_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product_image', err.msg())
+	}
+
+	for i := 0; i < product_images.len; i++ {
+		product_image := product_images[i]
+		product_id := product_image.product_id
+		old_images := product_map[product_id].images
+		new_images := arrays.concat(old_images, product_image)
+		product_map[product_id].images = new_images
+	}
 
 	// new array, using original sorting order
 	mut complete_products := []Product{len: products.len}
@@ -255,14 +267,21 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
 	}
 
-	internal_products := model_product_retrieve(mut tx, ph) or {
+	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
 	}
 
+	mut product := products[0]
+
+	product.translations = model_product_translation_retrieve(mut tx, ph.ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product_translation', err.msg())
+	}
+
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	external_product := format_product_response_admin(internal_products[0]) or {
+	external_product := format_product_response_admin(product) or {
 		return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 	}
 

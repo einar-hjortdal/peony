@@ -222,21 +222,25 @@ struct StoreResponseEnvelope {
 	store StoreResponse
 }
 
-struct ImageResponse {
+struct ProductImageResponse {
 	id         string
 	created_at time.Time @[json: 'createdAt']
 	updated_at time.Time @[json: 'updatedAt']
 	deleted_at time.Time @[json: 'deletedAt'; omitempty]
 	url        string
+	product_id string
+	image_rank i32 @[json: 'imageRank']
 }
 
-fn format_image_response(i Image) ImageResponse {
-	return ImageResponse{
+fn format_product_image_response(i ProductImage) ProductImageResponse {
+	return ProductImageResponse{
 		id:         i.id
 		created_at: i.created_at.Time
 		updated_at: i.updated_at.Time
-		deleted_at: i.deleted_at.Time
+		deleted_at: i.deleted_at.value.Time
 		url:        i.url
+		product_id: i.product_id
+		image_rank: i.image_rank
 	}
 }
 
@@ -672,7 +676,7 @@ struct ProductResponse {
 	type_id        string @[json: 'typeId'; omitempty]
 	discountable   bool
 	metadata       string                       @[omitempty]
-	images         []ImageResponse              @[omitempty]
+	images         []ProductImageResponse       @[omitempty]
 	options        []ProductOptionResponse      @[omitempty]
 	variants       []ProductVariantResponse     @[omitempty]
 	translations   []ProductTranslationResponse @[omitempty]
@@ -699,9 +703,9 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 		}
 	}
 
-	mut images := []ImageResponse{len: p.images.len}
+	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
-		images[i] = format_image_response(p.images[i])
+		images[i] = format_product_image_response(p.images[i])
 	}
 
 	mut options := []ProductOptionResponse{len: p.options.len}

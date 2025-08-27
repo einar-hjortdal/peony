@@ -3,34 +3,6 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-struct Image {
-	id         string
-	id_bin     []u8
-	created_at firebird.DateTime
-	updated_at firebird.DateTime
-	deleted_at firebird.DateTime
-	url        string
-}
-
-fn parse_image(v []firebird.Value) !Image {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	updated_at, _ := v[2].get_date_time()!
-	deleted_at, _ := v[3].get_date_time()!
-	url, _ := v[4].get_string()!
-
-	id := id_bin_to_string(id_bin)!
-
-	return Image{
-		id:         id
-		id_bin:     id_bin
-		created_at: created_at
-		updated_at: updated_at
-		deleted_at: deleted_at
-		url:        url
-	}
-}
-
 fn model_image_create(mut app App, mut tx firebird.Transaction, urls []string) !([]string, [][]u8) {
 	mut c := ['id', 'url']
 	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
@@ -51,54 +23,16 @@ fn model_image_create(mut app App, mut tx firebird.Transaction, urls []string) !
 	return ids, ids_bin
 }
 
-fn do_retrieve_images(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]Image {
-	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, url FROM image
-		WHERE id IN (${get_placeholders(image_ids_bin)})',
-		...image_ids_bin)!
-
-	rows := data.rows()
-
-	mut images := []Image{}
-	for i := 0; i < rows.len; i++ {
-		image := parse_image(rows[i].values())!
-		images = arrays.concat(images, image)
-	}
-
-	return images
-}
-
 struct ProductImage {
 	id             string
-	id_bin         []u8 @[json: '-']
+	id_bin         []u8
 	created_at     firebird.DateTime
 	updated_at     firebird.DateTime
-	deleted_at     firebird.DateTime @[omitempty]
+	deleted_at     firebird.NullDateTime
 	url            string
 	image_rank     i32
-	product_id_bin []u8 @[json: '-']
-}
-
-fn parse_product_image(v []firebird.Value) !ProductImage {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	updated_at, _ := v[2].get_date_time()!
-	deleted_at, _ := v[3].get_date_time()!
-	url, _ := v[4].get_string()!
-	image_rank, _ := v[5].get_i32()!
-	product_id_bin, _ := v[6].get_array_u8()!
-
-	id := id_bin_to_string(id_bin)!
-
-	return ProductImage{
-		id:             id
-		id_bin:         id_bin
-		created_at:     created_at
-		updated_at:     updated_at
-		deleted_at:     deleted_at
-		url:            url
-		image_rank:     image_rank
-		product_id_bin: product_id_bin
-	}
+	product_id     string
+	product_id_bin []u8
 }
 
 fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
@@ -121,7 +55,7 @@ fn do_delete_product_images(mut tx firebird.Transaction, product_id_bin []u8, id
 		...params)!
 }
 
-fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
+fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
 	data := tx.execute('SELECT
 		i.id,
 		i.created_at,
@@ -138,17 +72,39 @@ fn do_retrieve_product_images(mut tx firebird.Transaction, product_ids_bin [][]u
 
 	rows := data.rows()
 
-	mut product_images := []ProductImage{}
+	mut product_images := []ProductImage{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		product_image := parse_product_image(rows[i].values())!
-		product_images = arrays.concat(product_images, product_image)
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		created_at, _ := v[1].get_date_time()!
+		updated_at, _ := v[2].get_date_time()!
+		deleted_at := v[3].get_null_date_time()!
+		url, _ := v[4].get_string()!
+		image_rank, _ := v[5].get_i32()!
+		product_id_bin, _ := v[6].get_array_u8()!
+
+		id := id_bin_to_string(id_bin)!
+		product_id := id_bin_to_string(product_id_bin)!
+
+		product_images[i] = ProductImage{
+			id:             id
+			id_bin:         id_bin
+			created_at:     created_at
+			updated_at:     updated_at
+			deleted_at:     deleted_at
+			url:            url
+			image_rank:     image_rank
+			product_id:     product_id
+			product_id_bin: product_id_bin
+		}
 	}
 
 	return product_images
 }
 
 fn model_product_images_update(mut app App, mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
-	pi := do_retrieve_product_images(mut tx, [product_id_bin])!
+	pi := model_product_image_retrieve(mut tx, [product_id_bin])!
 
 	// delete all product_images with url missing from the given array
 	mut ids_bin_to_prune := [][]u8{}

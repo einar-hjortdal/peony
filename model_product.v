@@ -24,7 +24,7 @@ struct Product {
 	discountable      bool
 	metadata          firebird.NullString
 mut:
-	images         []Image
+	images         []ProductImage
 	options        []ProductOption
 	variants       []ProductVariant
 	translations   []ProductTranslation
