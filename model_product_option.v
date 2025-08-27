@@ -11,37 +11,33 @@ struct ProductOptionValueTranslation {
 	name                        string
 }
 
-fn parse_product_option_value_translation(v []firebird.Value) !ProductOptionValueTranslation {
-	product_option_value_id_bin, _ := v[0].get_array_u8()!
-	locale_id_bin, _ := v[1].get_array_u8()!
-	name, _ := v[2].get_string()!
-
-	product_option_value_id := id_bin_to_string(product_option_value_id_bin)!
-	locale_id := id_bin_to_string(locale_id_bin)!
-
-	return ProductOptionValueTranslation{
-		product_option_value_id:     product_option_value_id
-		product_option_value_id_bin: product_option_value_id_bin
-		locale_id:                   locale_id
-		locale_id_bin:               locale_id_bin
-		name:                        name
-	}
-}
-
-fn do_retrieve_product_option_value_translations(mut tx firebird.Transaction, option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
+fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
 	data := tx.execute('SELECT product_option_value_id, locale_id, name
 	FROM product_option_value_translations
-	WHERE product_option_value_id IN ${get_placeholders(option_value_ids_bin)}',
-		...option_value_ids_bin)!
+	WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids_bin)})',
+		...workaround_24757(product_option_value_ids_bin))!
 
 	rows := data.rows()
 
-	mut translations := []ProductOptionValueTranslation{}
+	mut translations := []ProductOptionValueTranslation{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		translation := parse_product_option_value_translation(rows[i].values())!
-		translations = arrays.concat(translations, translation)
-	}
+		v := rows[i].values()
 
+		product_option_value_id_bin, _ := v[0].get_array_u8()!
+		locale_id_bin, _ := v[1].get_array_u8()!
+		name, _ := v[2].get_string()!
+
+		product_option_value_id := id_bin_to_string(product_option_value_id_bin)!
+		locale_id := id_bin_to_string(locale_id_bin)!
+
+		translations[i] = ProductOptionValueTranslation{
+			product_option_value_id:     product_option_value_id
+			product_option_value_id_bin: product_option_value_id_bin
+			locale_id:                   locale_id
+			locale_id_bin:               locale_id_bin
+			name:                        name
+		}
+	}
 	return translations
 }
 
@@ -56,60 +52,39 @@ mut:
 	translations []ProductOptionValueTranslation
 }
 
-fn parse_product_option_value(v []firebird.Value) !ProductOptionValue {
-	id_bin, _ := v[0].get_array_u8()!
-	option_id_bin, _ := v[1].get_array_u8()!
-	variant_id_bin, _ := v[2].get_array_u8()!
-
-	id := id_bin_to_string(id_bin)!
-	option_id := id_bin_to_string(option_id_bin)!
-	variant_id := id_bin_to_string(variant_id_bin)!
-
-	return ProductOptionValue{
-		id:             id
-		id_bin:         id_bin
-		option_id:      option_id
-		option_id_bin:  option_id_bin
-		variant_id:     variant_id
-		variant_id_bin: variant_id_bin
-	}
-}
-
-fn model_product_option_values_retrieve(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionValue {
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionValue {
 	data := tx.execute('SELECT pov.id, pov.option_id, pov.variant_id 
 		FROM product_option_value pov
 		LEFT JOIN product_variant pv ON pov.variant_id = pv.id
-		WHERE option_id IN (${get_placeholders(option_ids_bin)})
+		WHERE option_id IN (${get_placeholders(product_option_ids_bin)})
 		AND pv.deleted_at IS NULL',
-		...workaround_24757(option_ids_bin))!
+		...workaround_24757(product_option_ids_bin))!
 
 	rows := data.rows()
 
 	mut product_option_values := []ProductOptionValue{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		product_option_values[i] = parse_product_option_value(rows[i].values())!
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		option_id_bin, _ := v[1].get_array_u8()!
+		variant_id_bin, _ := v[2].get_array_u8()!
+
+		id := id_bin_to_string(id_bin)!
+		option_id := id_bin_to_string(option_id_bin)!
+		variant_id := id_bin_to_string(variant_id_bin)!
+
+		product_option_values[i] = ProductOptionValue{
+			id:             id
+			id_bin:         id_bin
+			option_id:      option_id
+			option_id_bin:  option_id_bin
+			variant_id:     variant_id
+			variant_id_bin: variant_id_bin
+		}
 	}
 
 	return product_option_values
-}
-
-fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
-	data := tx.execute('SELECT product_option_value_id, locale_id, name
-		FROM product_option_value_translations
-		WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids_bin)})',
-		...workaround_24757(product_option_value_ids_bin))!
-
-	rows := data.rows()
-
-	mut product_option_value_translations := []ProductOptionValueTranslation{len: rows.len}
-	if rows.len == 0 {
-		return product_option_value_translations
-	}
-
-	for i := 0; i < rows.len; i++ {
-		product_option_value_translations[i] = parse_product_option_value_translation(rows[i].values())!
-	}
-	return product_option_value_translations
 }
 
 fn model_product_option_value_update(mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductOptionValueRequestHygienised) ! {
@@ -173,11 +148,11 @@ fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslatio
 	}
 }
 
-fn do_retrieve_product_option_translations(mut tx firebird.Transaction, option_ids_bin [][]u8) ![]ProductOptionTranslation {
+fn model_product_option_translations_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
-		WHERE product_option_id IN (${get_placeholders(option_ids_bin)})',
-		...workaround_24757(option_ids_bin))!
+		WHERE product_option_id IN (${get_placeholders(product_option_ids_bin)})',
+		...workaround_24757(product_option_ids_bin))!
 
 	rows := data.rows()
 
@@ -232,18 +207,6 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, pr
 		options[i] = parse_product_option(rows[i].values())!
 		option_ids_bin[i] = options[i].id_bin
 	}
-
-	// TODO take out of here
-	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!
-
-	for i := 0; i < translations.len; i++ {
-		for k := 0; k < options.len; k++ {
-			if translations[i].product_option_id == options[k].id {
-				options[k].translations = arrays.concat(options[k].translations, translations[i])
-			}
-		}
-	}
-
 	return options
 }
 

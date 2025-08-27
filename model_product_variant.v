@@ -24,37 +24,7 @@ mut:
 	option_values  []ProductOptionValue
 }
 
-fn do_retrieve_product_variant_money_amount(mut tx firebird.Transaction, variants []ProductVariant) ![]MoneyAmount {
-	// extract the ids of the retrieved variants to batch fetch money_amounts
-	mut ids_bin := [][]u8{len: variants.len}
-	for i := 0; i < variants.len; i++ {
-		ids_bin[i] = variants[i].id_bin
-	}
-
-	data := tx.execute('SELECT
-		ma.id,
-		ma.currency_code,
-		ma.amount,
-		ma.min_quantity,
-		ma.max_quantity,
-		ma.price_list_id,
-		ma.region_id,
-		pvma.variant_id
-		FROM money_amount ma
-		JOIN product_variant_money_amount pvma ON pvma.money_amount_id = ma.id
-		WHERE pvma.variant_id IN (${get_placeholders(ids_bin)})',
-		...workaround_24757(ids_bin))!
-
-	rows := data.rows()
-
-	mut money_amounts := []MoneyAmount{len: rows.len}
-	for i := 0; i < rows.len; i++ {
-		money_amounts[i] = parse_money_amount(rows[i].values())!
-	}
-
-	return money_amounts
-}
-
+// TODO take count out
 fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]ProductVariant, i64) {
 	base_query := 'SELECT 
 		id,
@@ -167,16 +137,6 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	// TODO variant_image
 	// TODO product_option_value, product_option_value_translations
 	// TODO product_variant_inventory_item
-
-	money_amounts := do_retrieve_product_variant_money_amount(mut tx, variants)!
-
-	for i := 0; i < variants.len; i++ {
-		for k := 0; k < money_amounts.len; k++ {
-			if variants[i].id_bin == money_amounts[k].variant_id_bin.value {
-				variants[i].money_amounts = arrays.concat(variants[i].money_amounts, money_amounts[k])
-			}
-		}
-	}
 
 	return variants, count
 }
@@ -302,7 +262,8 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 			AND id IN (
 				SELECT money_amount_id
 				FROM product_variant_money_amount
-				WHERE variant_id = ?)',
+				WHERE variant_id = ?
+			)',
 			variant_id_bin)!
 	} else {
 		mut persisting_ids_bin := [][]u8{len: persisting_ids.len}
@@ -317,7 +278,8 @@ fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transacti
 				SELECT money_amount_id
 				FROM product_variant_money_amount
 				WHERE variant_id = ?
-				AND money_amount_id NOT IN (${get_placeholders(persisting_ids_bin)}))',
+				AND money_amount_id NOT IN (${get_placeholders(persisting_ids_bin)})
+			)',
 			...workaround_24757(arrays.concat([variant_id_bin], ...persisting_ids_bin)))!
 	}
 

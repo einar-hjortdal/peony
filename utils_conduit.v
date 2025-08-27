@@ -47,3 +47,27 @@ fn make_sales_channel_map(p []SalesChannel) (map[string]SalesChannel, [][]u8) {
 	}
 	return m, a
 }
+
+fn make_product_option_map(p []ProductOption) (map[string]ProductOption, [][]u8) {
+	mut m := map[string]ProductOption{}
+	mut a := [][]u8{len: p.len}
+	for i := 0; i < p.len; i++ {
+		id := p[i].id
+		id_bin := p[i].id_bin
+		m[id] = p[i]
+		a[i] = id_bin
+	}
+	return m, a
+}
+
+fn make_product_option_value_map(p []ProductOptionValue) (map[string]ProductOptionValue, [][]u8) {
+	mut m := map[string]ProductOptionValue{}
+	mut a := [][]u8{len: p.len}
+	for i := 0; i < p.len; i++ {
+		id := p[i].id
+		id_bin := p[i].id_bin
+		m[id] = p[i]
+		a[i] = id_bin
+	}
+	return m, a
+}

@@ -1,6 +1,7 @@
 module peony
 
 import arrays
+import log
 import veb
 
 fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -51,23 +52,111 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		product_map[product_id].sales_channels = new_sales_channels
 	}
 
-	mut variants, _ := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
+	mut product_variants, _ := model_product_variants_retrieve_by_product_ids(mut tx,
+		product_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve product_variant', err.msg())
 	}
+	mut product_varaints_map, variant_ids_bin := make_product_variant_map(product_variants)
 
-	mut options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
+	if product_variants.len > 0 {
+		money_amounts := model_product_variant_money_amount_retrieve(mut tx, variant_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve product_varaint_money_amount',
+				err.msg())
+		}
+
+		for i := 0; i < money_amounts.len; i++ {
+			money_amount := money_amounts[i]
+			variant_id := id_bin_to_string(money_amount.variant_id_bin.value) or {
+				log.error('money_amount.variant_id cannot be parsed: ${err}')
+				return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
+			}
+			old_money_amounts := product_varaints_map[variant_id].money_amounts
+			new_money_amounts := arrays.concat(old_money_amounts, money_amount)
+			product_varaints_map[variant_id].money_amounts = new_money_amounts
+		}
+	}
+
+	product_options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve product_option', err.msg())
 	}
 
-	// option translations
-	// option values
-	// option values translations
+	if product_options.len > 0 {
+		mut product_options_map, product_option_ids_bin := make_product_option_map(product_options)
+		product_option_translations := model_product_option_translations_retrieve(mut tx,
+			product_option_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve product_option_translations',
+				err.msg())
+		}
+
+		for i := 0; i < product_option_translations.len; i++ {
+			translation := product_option_translations[i]
+			id := translation.product_option_id
+			old_translations := product_options_map[id].translations
+			new_translations := arrays.concat(old_translations, translation)
+			product_options_map[id].translations = new_translations
+		}
+
+		product_option_values := model_product_option_values_retrieve(mut tx, product_option_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve product_option_values',
+				err.msg())
+		}
+		mut product_option_values_map, product_option_value_ids_bin := make_product_option_value_map(product_option_values)
+
+		product_option_value_translations := model_product_option_value_translations_retrieve(mut tx,
+			product_option_value_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve product_option_value_translations',
+				err.msg())
+		}
+
+		for i := 0; i < product_option_value_translations.len; i++ {
+			translation := product_option_value_translations[i]
+			id := translation.product_option_value_id
+			old_translations := product_option_values_map[id].translations
+			new_translations := arrays.concat(old_translations, translation)
+			product_option_values_map[id].translations = new_translations
+		}
+
+		// assign complete product_option_value to options and variants
+		for i := 0; i < product_option_values.len; i++ {
+			product_option_value := product_option_values[i]
+			id := product_option_value.id
+			option_id := product_option_value.option_id
+			variant_id := product_option_value.variant_id
+			complete_product_option_value := product_option_values_map[id]
+
+			option_old_values := product_options_map[option_id].values
+			option_new_values := arrays.concat(option_old_values, complete_product_option_value)
+			product_options_map[option_id].values = option_new_values
+
+			variant_old_values := product_varaints_map[variant_id].option_values
+			variant_new_values := arrays.concat(variant_old_values, complete_product_option_value)
+			product_varaints_map[variant_id].option_values = variant_new_values
+		}
+
+		// assign product_option to products
+		for i := 0; i < product_options.len; i++ {
+			option := product_options[i]
+			option_id := option.id
+			product_id := option.product_id
+			complete_product_option := product_options_map[option_id]
+
+			old_options := product_map[product_id].options
+			new_options := arrays.concat(old_options, complete_product_option)
+			product_map[product_id].options = new_options
+		}
+	}
 
 	// images
 	// inventory_items
+	// TODO variant_image
 
+	// new array, using original sorting order
 	mut complete_products := []Product{len: products.len}
 	for i := 0; i < products.len; i++ {
 		id := products[i].id
