@@ -57,12 +57,12 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve product_variant', err.msg())
 	}
-	mut product_varaints_map, variant_ids_bin := make_product_variant_map(product_variants)
+	mut product_variants_map, product_variant_ids_bin := make_product_variant_map(product_variants)
 
 	if product_variants.len > 0 {
-		money_amounts := model_product_variant_money_amount_retrieve(mut tx, variant_ids_bin) or {
+		money_amounts := model_product_variant_money_amount_retrieve(mut tx, product_variant_ids_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve product_varaint_money_amount',
+			return handle_error_500(mut ctx, 'Failed to retrieve product_variant_money_amount',
 				err.msg())
 		}
 
@@ -72,12 +72,22 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 				log.error('money_amount.variant_id cannot be parsed: ${err}')
 				return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 			}
-			old_money_amounts := product_varaints_map[variant_id].money_amounts
+			old_money_amounts := product_variants_map[variant_id].money_amounts
 			new_money_amounts := arrays.concat(old_money_amounts, money_amount)
-			product_varaints_map[variant_id].money_amounts = new_money_amounts
+			product_variants_map[variant_id].money_amounts = new_money_amounts
 		}
 
-		// inventory_items
+		inventory_items := model_inventory_item_retrieve(mut tx, product_variant_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve inventory_items', err.msg())
+		}
+
+		for i := 0; i < inventory_items.len; i++ {
+			inventory_item := inventory_items[i]
+			variant_id := inventory_item.variant_id
+			product_variants_map[variant_id].inventory_item = inventory_item
+		}
+
 		// TODO variant_image
 	}
 
@@ -137,9 +147,9 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 			option_new_values := arrays.concat(option_old_values, complete_product_option_value)
 			product_options_map[option_id].values = option_new_values
 
-			variant_old_values := product_varaints_map[variant_id].option_values
+			variant_old_values := product_variants_map[variant_id].option_values
 			variant_new_values := arrays.concat(variant_old_values, complete_product_option_value)
-			product_varaints_map[variant_id].option_values = variant_new_values
+			product_variants_map[variant_id].option_values = variant_new_values
 		}
 
 		// assign product_option to products
@@ -432,15 +442,15 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 	}
 
 	if count > 0 {
-		mut variant_ids_bin := [][]u8{len: internal_variants.len}
+		mut product_variant_ids_bin := [][]u8{len: internal_variants.len}
 		mut product_option_value_ids_bin := [][]u8{len: internal_variants.len}
 		for i := 0; i < internal_variants.len; i++ {
-			variant_ids_bin[i] = internal_variants[i].id_bin
+			product_variant_ids_bin[i] = internal_variants[i].id_bin
 			_, product_option_value_id_bin := app.new_id()
 			product_option_value_ids_bin[i] = product_option_value_id_bin
 		}
 		model_product_option_value_create_default(mut tx, product_option_id_bin, product_option_value_ids_bin,
-			variant_ids_bin) or {
+			product_variant_ids_bin) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Could not add default option value to variant',
 				err.msg())
