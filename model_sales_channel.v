@@ -14,101 +14,41 @@ struct SalesChannel {
 	is_disabled bool
 }
 
-fn parse_sales_channel(v []firebird.Value) !SalesChannel {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	updated_at, _ := v[2].get_date_time()!
-	deleted_at, _ := v[3].get_date_time()!
-	name, _ := v[4].get_string()!
-	description, _ := v[5].get_string()!
-	is_disabled, _ := v[6].get_bool()!
-
-	id := id_bin_to_string(id_bin)!
-
-	return SalesChannel{
-		id:          id
-		id_bin:      id_bin
-		created_at:  created_at
-		updated_at:  updated_at
-		deleted_at:  deleted_at
-		name:        name
-		description: description
-		is_disabled: is_disabled
-	}
-}
-
-fn do_retrieve_sales_channels(mut tx firebird.Transaction) ![]SalesChannel {
-	data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		name,
-		description,
-		is_disabled
-		FROM sales_channel')!
-
-	rows := data.rows()
-
-	mut sales_channels := []SalesChannel{len: rows.len}
-	for i := 0; i < rows.len; i++ {
-		sales_channels[i] = parse_sales_channel(rows[i].values())!
-	}
-	return sales_channels
-}
-
-fn do_retrieve_sales_channels_by_ids(mut tx firebird.Transaction, ids_bin [][]u8) ![]SalesChannel {
-	data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		name,
-		description,
-		is_disabled
-		FROM sales_channel
-		WHERE id IN (${get_placeholders(ids_bin)})',
-		...workaround_24757(ids_bin))!
-
-	rows := data.rows()
-
-	mut sales_channels := []SalesChannel{len: rows.len}
-	for i := 0; i < rows.len; i++ {
-		sales_channels[i] = parse_sales_channel(rows[i].values())!
-	}
-	return sales_channels
-}
-
-fn (mut app App) list_sales_channels(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) !([]SalesChannel, i64) {
-	base_query := 'SELECT
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		name,
-		description,
-		is_disabled,
-		COUNT(*) OVER()
-		FROM sales_channel'
+fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised) (string, []firebird.Value) {
 	mut params := []firebird.Value{}
-	mut c := []string{}
+	mut conditions := []string{}
 	// Check if id array is not empty (we'll form a SQL IN clause).
 	if ph.ids.is_set {
-		c = arrays.concat(c, 'id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...ph.ids_bin)
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
+		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
 	// Add condition for name using LIKE with wildcards.
 	if ph.name.is_set {
-		c = arrays.concat(c, "name LIKE '%' || ? '%'")
+		conditions = arrays.concat(conditions, "name LIKE '%' || ? '%'")
 		params = arrays.concat(params, ph.name.v)
 	}
 
 	// Add condition for description if provided.
 	if ph.description.is_set {
-		c = arrays.concat(c, "description LIKE '%' || ? '%'")
+		conditions = arrays.concat(conditions, "description LIKE '%' || ? '%'")
 		params = arrays.concat(params, ph.description.v)
 	}
+
+	return get_where_conditions(conditions), params
+}
+
+fn model_sales_channel_retrieve_count(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) !i64 {
+	conditions, mut params := model_sales_channel_retrieve_conditions(ph)
+	data := tx.execute('SELECT COUNT(*) from sales_channel ${conditions}', ...params)!
+	rows := data.rows()
+	values := rows[0].values() // should always return one row
+	count, _ := values[0].get_i64()! // should always return one column
+	return count
+}
+
+fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) ![]SalesChannel {
+	conditions, mut params := model_sales_channel_retrieve_conditions(ph)
 
 	mut sorting := ''
 	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(ph.order)}')
@@ -123,19 +63,51 @@ fn (mut app App) list_sales_channels(mut tx firebird.Transaction, ph ListSalesCh
 		params = arrays.concat(params, get_fetch_amount(ph.fetch))
 	}
 
-	data := tx.execute('${base_query}${get_where_conditions(c)}${sorting}', ...params)!
+	data := tx.execute('SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		name,
+		description,
+		is_disabled
+		FROM sales_channel
+		${conditions}
+		${sorting}',
+		...params)!
 	rows := data.rows()
 
 	if rows.len == 0 {
-		return []SalesChannel{}, 0
+		return []SalesChannel{}
 	}
 
-	count, _ := rows[0].values()[7].get_i64()!
 	mut sales_channels := []SalesChannel{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		sales_channels[i] = parse_sales_channel(rows[i].values()[..7])!
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		created_at, _ := v[1].get_date_time()!
+		updated_at, _ := v[2].get_date_time()!
+		deleted_at, _ := v[3].get_date_time()!
+		name, _ := v[4].get_string()!
+		description, _ := v[5].get_string()!
+		is_disabled, _ := v[6].get_bool()!
+
+		id := id_bin_to_string(id_bin)!
+
+		sales_channels[i] = SalesChannel{
+			id:          id
+			id_bin:      id_bin
+			created_at:  created_at
+			updated_at:  updated_at
+			deleted_at:  deleted_at
+			name:        name
+			description: description
+			is_disabled: is_disabled
+		}
 	}
-	return sales_channels, count
+
+	return sales_channels
 }
 
 fn build_create_sales_channel_query(id_bin []u8, p NewSalesChannelData) !(string, []firebird.Value) {
@@ -197,26 +169,21 @@ fn (mut app App) add_products_to_sales_channel(id string, products_ids []string)
 	tx.commit()!
 }
 
-fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]SalesChannel {
-	data := tx.execute('SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		name,
-		description,
-		is_disabled
-		FROM sales_channel
-		WHERE EXISTS (
-			SELECT 1 FROM product_sales_channel psc
-			WHERE sales_channel.id = psc.sales_channel_id
-				AND psc.product_id IN (${get_placeholders(product_ids_bin)})
-		)',
+struct ProductSalesChannel {
+	product_id           string
+	product_id_bin       []u8
+	sales_channel_id     string
+	sales_channel_id_bin []u8
+}
+
+fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSalesChannel {
+	data := tx.execute('SELECT product_id, sales_channel_id FROM product_sales_channel
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
 		...workaround_24757(product_ids_bin))!
 
 	rows := data.rows()
 
-	mut product_sales_channels := []SalesChannel{len: rows.len}
+	mut product_sales_channels := []ProductSalesChannel{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
 

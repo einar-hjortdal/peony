@@ -168,8 +168,8 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 	conditions, params := model_product_retrieve_conditions(ph)
 	data := tx.execute('SELECT COUNT(*) FROM product ${conditions}', ...params)!
 	rows := data.rows()
-	values := rows[0].values() // this query should always return one row
-	count, _ := values[0].get_i64()! // this query should always return one column
+	values := rows[0].values() // should always return one row
+	count, _ := values[0].get_i64()! // should always return one column
 	return count
 }
 

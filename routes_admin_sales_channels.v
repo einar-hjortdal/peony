@@ -31,8 +31,14 @@ pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb
 	id_bin := id_string_to_bin(id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
-	ids_bin := [id_bin]
-	return conduit_sales_channels_get_by_id(mut app, mut ctx, ids_bin)
+
+	ph := ListSalesChannelsParamsHygienised{
+		ids:     ZeroArrayString{
+			is_set: true
+		}
+		ids_bin: [id_bin]
+	}
+	return conduit_sales_channels_get(mut app, mut ctx, ph)
 }
 
 // creates a sales channel

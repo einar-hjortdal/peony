@@ -30,12 +30,32 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 			translations[i])
 	}
 
-	sales_channels := model_sales_channel_retrieve(mut tx, product_ids_bin) or {
+	product_sales_channels := model_product_sales_channel_retrieve(mut tx, product_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product_sales_channel', err.msg())
+	}
+
+	// Get all the sales channels, there should not be many.
+	sales_channels := model_sales_channel_retrieve(mut tx, ListSalesChannelsParamsHygienised{}) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel', err.msg())
 	}
 
-	// sales_channels
+	mut sales_channels_map := map[string]SalesChannel{}
+	for i := 0; i < sales_channels.len; i++ {
+		id := sales_channels[i].id
+		sales_channels_map[id] = sales_channels[i]
+	}
+
+	for i := 0; i < product_sales_channels.len; i++ {
+		product_id := product_sales_channels[i].product_id
+		sales_channel_id := product_sales_channels[i].sales_channel_id
+		sales_channel := sales_channels_map[sales_channel_id]
+		old_sales_channels := product_map[product_id].sales_channels
+		new_sales_channels := arrays.concat(old_sales_channels, sales_channel)
+		product_map[product_id].sales_channels = new_sales_channels
+	}
+
 	// images
 	// variants
 	// inventory_items

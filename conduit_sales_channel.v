@@ -7,16 +7,21 @@ fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannels
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_sales_channels, count := app.list_sales_channels(mut tx, ph) or {
+	count := model_sales_channel_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve sales channels count', err.msg())
+	}
+
+	sales_channels := model_sales_channel_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve sales channels', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	mut external_sales_channels := []SalesChannelResponse{len: internal_sales_channels.len}
-	for i := 0; i < internal_sales_channels.len; i++ {
-		external_sales_channels[i] = format_sales_channel_response(internal_sales_channels[i])
+	mut external_sales_channels := []SalesChannelResponse{len: sales_channels.len}
+	for i := 0; i < sales_channels.len; i++ {
+		external_sales_channels[i] = format_sales_channel_response(sales_channels[i])
 	}
 
 	r := SalesChannelResponseEnvelope{
@@ -26,18 +31,4 @@ fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannels
 		fetch:          get_fetch_amount(ph.fetch)
 	}
 	return ctx.json(r)
-}
-
-fn conduit_sales_channels_get_by_id(mut app App, mut ctx Context, ids_bin [][]u8) veb.Result {
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	sales_channels := do_retrieve_sales_channels_by_ids(mut tx, ids_bin) or {
-		return handle_error_500(mut ctx, 'Could not retrieve sales channel data', err.msg())
-	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	return ctx.json(sales_channels)
 }
