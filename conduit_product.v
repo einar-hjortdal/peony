@@ -135,7 +135,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 			product_option_values_map[id].translations = new_translations
 		}
 
-		// assign complete product_option_value to options and variants
+		// assign complete product_option_value to product_options and product_variants
 		for i := 0; i < product_option_values.len; i++ {
 			product_option_value := product_option_values[i]
 			id := product_option_value.id
@@ -176,6 +176,16 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		old_images := product_map[product_id].images
 		new_images := arrays.concat(old_images, product_image)
 		product_map[product_id].images = new_images
+	}
+
+	// assign product_variants to product
+	mut complete_product_variants := []ProductVariant{len: product_variants.len}
+	for i := 0; i < product_variants.len; i++ {
+		variant := product_variants[i]
+		poduct_id := variant.product_id
+		old_variants := product_map[product_id].variants
+		new_variants := arrays.concat(old_variants, variant)
+		product_map[product_id].variants = new_variants
 	}
 
 	// new array, using original sorting order
