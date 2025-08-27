@@ -215,10 +215,10 @@ fn parse_product_option(v []firebird.Value) !ProductOption {
 	}
 }
 
-fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, ids_bin [][]u8) ![]ProductOption {
+fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductOption {
 	mut data := tx.execute('SELECT id, product_id FROM product_option
-			WHERE product_id IN (${get_placeholders(ids_bin)})',
-		...workaround_24757(ids_bin))!
+			WHERE product_id IN (${get_placeholders(product_ids_bin)})',
+		...workaround_24757(product_ids_bin))!
 
 	rows := data.rows()
 
@@ -233,6 +233,7 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, id
 		option_ids_bin[i] = options[i].id_bin
 	}
 
+	// TODO take out of here
 	translations := do_retrieve_product_option_translations(mut tx, option_ids_bin)!
 
 	for i := 0; i < translations.len; i++ {
