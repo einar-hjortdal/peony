@@ -52,8 +52,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		product_map[product_id].sales_channels = new_sales_channels
 	}
 
-	mut product_variants, _ := model_product_variants_retrieve_by_product_ids(mut tx,
-		product_ids_bin) or {
+	mut product_variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve product_variant', err.msg())
 	}
@@ -179,10 +178,9 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	}
 
 	// assign product_variants to product
-	mut complete_product_variants := []ProductVariant{len: product_variants.len}
 	for i := 0; i < product_variants.len; i++ {
 		variant := product_variants[i]
-		poduct_id := variant.product_id
+		product_id := variant.product_id
 		old_variants := product_map[product_id].variants
 		new_variants := arrays.concat(old_variants, variant)
 		product_map[product_id].variants = new_variants
@@ -297,6 +295,15 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 	product.translations = model_product_translation_retrieve(mut tx, ph.ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve product_translation', err.msg())
+	}
+
+	mut variants := model_product_variants_retrieve_by_product_ids(mut tx, ph.ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product_translation', err.msg())
+	}
+
+	if variants.len > 0 {
+		println(variants)
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
@@ -434,20 +441,32 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 	_, product_option_id_bin := app.new_id()
 
 	model_product_option_create(mut tx, product_option_id_bin, product_id_bin) or {
-		tx.rollback() or {} // ignore error
+		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_option', err.msg())
 	}
 
 	model_product_option_update(mut tx, product_option_id_bin, ph) or {
-		tx.rollback() or {} // ignore error
+		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
 			err.msg())
 	}
 
-	internal_variants, count := model_product_variants_retrieve_by_product_ids(mut tx,
-		[product_id_bin]) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variants',
+	vph := RetrieveProductVariantParamsHygienised{
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: [product_id_bin]
+	}
+
+	count := model_product_variants_retrieve_count(mut tx, vph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variant count',
+			err.msg())
+	}
+
+	internal_variants := model_product_variants_retrieve(mut tx, vph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variant',
 			err.msg())
 	}
 
@@ -495,9 +514,14 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	_, count := model_product_variants_retrieve_by_product_ids(mut tx, [
-		product_id_bin,
-	]) or {
+	ph := RetrieveProductVariantParamsHygienised{
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: [product_id_bin]
+	}
+
+	count := model_product_variants_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variants',
 			err.msg())

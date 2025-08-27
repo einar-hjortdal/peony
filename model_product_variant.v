@@ -24,39 +24,22 @@ mut:
 	option_values  []ProductOptionValue
 }
 
-// TODO take count out
-fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !([]ProductVariant, i64) {
-	base_query := 'SELECT 
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		product_id,
-		title,
-		barcode,
-		ean,
-		upc,
-		variant_rank,
-		metadata,
-		COUNT(*) OVER()
-		FROM product_variant'
-
+fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygienised) (string, []firebird.Value) {
 	mut params := []firebird.Value{}
-
-	mut c := []string{}
+	mut conditions := []string{}
 
 	if p.ids.is_set {
-		c = arrays.concat(c, 'id IN (${get_placeholders(p.ids.v)})')
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids.v)})')
 		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
 	if p.product_ids.is_set {
-		c = arrays.concat(c, 'product_id IN (${get_placeholders(p.product_ids_bin)})')
+		conditions = arrays.concat(conditions, 'product_id IN (${get_placeholders(p.product_ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
 	}
 
 	if p.allow_backorder.is_set {
-		c = arrays.concat(c, 'allow_backorder = ?')
+		conditions = arrays.concat(conditions, 'allow_backorder = ?')
 		params = arrays.concat(params, p.allow_backorder.v)
 	}
 
@@ -67,13 +50,28 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	// }
 
 	if p.title.is_set {
-		c = arrays.concat(c, 'title = ?') // TODO use LIKE
+		conditions = arrays.concat(conditions, 'title = ?') // TODO use LIKE?
 		params = arrays.concat(params, p.title)
 	}
 
 	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
-		c = arrays.concat(c, 'deleted_at IS NULL')
+		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
+
+	return get_where_conditions(conditions), params
+}
+
+fn model_product_variants_retrieve_count(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !i64 {
+	conditions, mut params := model_product_variants_retrieve_conditions(p)
+	data := tx.execute('SELECT COUNT(*) FROM product_variant ${conditions}', ...params)!
+	rows := data.rows()
+	values := rows[0].values() // should always return one row
+	count, _ := values[0].get_i64()! // should always return one column
+	return count
+}
+
+fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) ![]ProductVariant {
+	conditions, mut params := model_product_variants_retrieve_conditions(p)
 
 	mut sorting := ''
 	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
@@ -86,18 +84,33 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	params = arrays.concat(params, get_fetch_amount(p.fetch))
 
-	data := tx.execute('${base_query}${get_where_conditions(c)}${sorting}', ...params)!
+	data := tx.execute('SELECT 
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		product_id,
+		title,
+		barcode,
+		ean,
+		upc,
+		variant_rank,
+		metadata
+		FROM product_variant
+		${conditions}
+		${sorting}',
+		...params)!
 	rows := data.rows()
 
 	// exit early if no rows returned
 	if rows.len == 0 {
-		return []ProductVariant{}, 0
+		return []ProductVariant{}
 	}
 
 	mut variants := []ProductVariant{len: rows.len}
-	mut count := i64(0) // TODO will be 0 if offset bigger than count
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
+
 		id_bin, _ := v[0].get_array_u8()!
 		created_at, _ := v[1].get_date_time()!
 		updated_at, _ := v[2].get_date_time()!
@@ -128,20 +141,11 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 			variant_rank:   variant_rank
 			metadata:       metadata
 		}
-
-		if i == 0 {
-			count, _ = v[11].get_i64()!
-		}
 	}
-
-	// TODO variant_image
-	// TODO product_option_value, product_option_value_translations
-	// TODO product_variant_inventory_item
-
-	return variants, count
+	return variants
 }
 
-fn model_product_variants_retrieve_by_ids(mut tx firebird.Transaction, variant_ids_bin [][]u8) !([]ProductVariant, i64) {
+fn model_product_variants_retrieve_by_ids(mut tx firebird.Transaction, variant_ids_bin [][]u8) ![]ProductVariant {
 	vph := RetrieveProductVariantParamsHygienised{
 		ids:     ZeroArrayString{
 			is_set: true
@@ -151,7 +155,7 @@ fn model_product_variants_retrieve_by_ids(mut tx firebird.Transaction, variant_i
 	return model_product_variants_retrieve(mut tx, vph)
 }
 
-fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) !([]ProductVariant, i64) {
+fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductVariant {
 	vph := RetrieveProductVariantParamsHygienised{
 		product_ids:     ZeroArrayString{
 			is_set: true

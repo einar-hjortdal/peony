@@ -9,7 +9,12 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	product_variants, count := model_product_variants_retrieve(mut tx, ph) or {
+	count := model_product_variants_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant count', err.msg())
+	}
+
+	product_variants := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
 	}
@@ -78,14 +83,19 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	product_variants, count := model_product_variants_retrieve(mut tx, ph) or {
+	count := model_product_variants_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant count', err.msg())
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
 		return handle_error_404(mut ctx, 'No variant exists with the given id', 'count == 0')
+	}
+
+	product_variants := model_product_variants_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
 	}
 
 	mut product_variant := product_variants[0]
