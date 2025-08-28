@@ -37,7 +37,8 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		if err is SuiteError {
 			return err.handle_suite_error(mut ctx)
 		} else {
-			panic(err)
+			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+				err.msg())
 		}
 	}
 
@@ -179,7 +180,8 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		if err is SuiteError {
 			return err.handle_suite_error(mut ctx)
 		} else {
-			panic(err)
+			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+				err.msg())
 		}
 	}
 
