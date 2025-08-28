@@ -1,7 +1,5 @@
 module peony
 
-import arrays
-import log
 import veb
 
 fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -34,32 +32,13 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	}
 
 	mut products_map, product_ids_bin := make_product_map(products)
-	products_data := suite_product_data_get(mut tx, product_ids_bin)
-	if err := products_data.error {
-		return handle_error_500(mut ctx, err.message, err.details)
-	}
-
-	mut product_options_map, product_option_ids_bin := make_product_option_map(products_data.product_options)
-	product_options_data := suite_product_option_data_get(mut tx, product_option_ids_bin)
-	if err := product_options_data.error {
-		return handle_error_500(mut ctx, err.message, err.details)
-	}
-
-	mut product_option_values_map, product_option_value_ids_bin := make_product_option_value_map(product_options_data.product_option_values)
-	mut product_option_value_translations := []ProductOptionValueTranslation{}
-	if product_option_value_ids_bin.len > 0 {
-		product_option_value_translations = model_product_option_value_translations_retrieve(mut tx,
-			product_option_value_ids_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve product_option_value_translations',
-				err.msg())
+	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
+		tx.rollback() or {}
+		if err is SuiteError {
+			return err.handle_suite_error(mut ctx)
+		} else {
+			panic(err)
 		}
-	}
-
-	mut product_variants_map, product_variant_ids_bin := make_product_variant_map(products_data.product_variants)
-	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)
-	if err := variants_data.error {
-		return handle_error_500(mut ctx, err.message, err.details)
 	}
 
 	// get all sales channels, there shouldn't be that many.
@@ -70,21 +49,21 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	assign_product_variant_money_amounts(variants_data.money_amounts, mut product_variants_map)
-
-	assign_inventory_items(variants_data.inventory_items, mut product_variants_map)
+	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.product_variants_map)
+	assign_inventory_items(products_data.inventory_items, mut products_data.product_variants_map)
 
 	// TODO variant_image
 
-	assign_product_option_translations(product_options_data.product_option_translations, mut
-		product_options_map)
+	assign_product_option_translations(products_data.product_option_translations, mut
+		products_data.product_options_map)
+	assign_product_option_value_translations(products_data.product_option_value_translations, mut
+		products_data.product_option_values_map)
 
-	assign_product_option_value_translations(product_option_value_translations, mut product_option_values_map)
+	assign_product_option_values(products_data.product_option_values, products_data.product_option_values_map, mut
+		products_data.product_options_map, mut products_data.product_variants_map)
 
-	assign_product_option_values(product_options_data.product_option_values, product_option_values_map, mut
-		product_options_map, mut product_variants_map)
-
-	assign_product_options(products_data.product_options, product_options_map, mut products_map)
+	assign_product_options(products_data.product_options, products_data.product_options_map, mut
+		products_map)
 
 	assign_product_translations(products_data.product_translations, mut products_map)
 
@@ -94,7 +73,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	assign_product_sales_channels(products_data.product_sales_channels, sales_channels_map, mut
 		products_map)
 
-	assign_product_variants(products_data.product_variants, product_variants_map, mut
+	assign_product_variants(products_data.product_variants, products_data.product_variants_map, mut
 		products_map)
 
 	// new array, using original sorting order
@@ -195,32 +174,13 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 	}
 
 	mut product := products[0]
-	product_data := suite_product_data_get(mut tx, [product.id_bin])
-	if err := product_data.error {
-		return handle_error_500(mut ctx, err.message, err.details)
-	}
-
-	mut product_options_map, product_option_ids_bin := make_product_option_map(product_data.product_options)
-	product_options_data := suite_product_option_data_get(mut tx, product_option_ids_bin)
-	if err := product_options_data.error {
-		return handle_error_500(mut ctx, err.message, err.details)
-	}
-
-	mut product_option_values_map, product_option_value_ids_bin := make_product_option_value_map(product_options_data.product_option_values)
-	mut product_option_value_translations := []ProductOptionValueTranslation{}
-	if product_option_value_ids_bin.len > 0 {
-		product_option_value_translations = model_product_option_value_translations_retrieve(mut tx,
-			product_option_value_ids_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve product_option_value_translations',
-				err.msg())
+	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
+		tx.rollback() or {}
+		if err is SuiteError {
+			return err.handle_suite_error(mut ctx)
+		} else {
+			panic(err)
 		}
-	}
-
-	mut product_variants_map, product_variant_ids_bin := make_product_variant_map(product_data.product_variants)
-	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)
-	if err := variants_data.error {
-		return handle_error_500(mut ctx, err.message, err.details)
 	}
 
 	sales_channels := model_sales_channel_retrieve(mut tx, ListSalesChannelsParamsHygienised{}) or {
