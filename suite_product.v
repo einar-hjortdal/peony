@@ -10,6 +10,7 @@ struct SuiteProductData {
 	product_translations    []ProductTranslation
 	product_images          []ProductImage
 	product_sales_channels  []ProductSalesChannel
+	sales_channels          []SalesChannel
 	product_variants        []ProductVariant
 	product_variant_ids_bin [][]u8
 mut:
@@ -42,6 +43,13 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		return new_suite_error('Failed to retrieve product_sales_channel', err.msg())
 	}
 
+	scp := ListSalesChannelsParamsHygienised{
+		// TODO use product_sales_channels ids_bin (remove duplicates) or build new model function for this
+	}
+	sales_channels := model_sales_channel_retrieve(mut tx, scp) or {
+		return new_suite_error('Failed to retrieve sales_channel', err.msg())
+	}
+
 	product_variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
 		return new_suite_error('Failed to retrieve product_variant', err.msg())
 	}
@@ -58,6 +66,7 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		product_translations:    product_translations
 		product_images:          product_images
 		product_sales_channels:  product_sales_channels
+		sales_channels:          sales_channels
 		product_variants:        product_variants
 		product_variants_map:    product_variants_map
 		product_variant_ids_bin: product_variant_ids_bin

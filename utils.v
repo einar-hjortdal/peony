@@ -7,6 +7,15 @@ fn unwrap_option_or[T](option_type ?T, default_value T) T {
 	return default_value
 }
 
+fn keys[T](m map[string]T) []string {
+	r := []string{len: m.len}
+	mut i := 0
+	for k, _ in m {
+		r[i] = k
+		i++
+	}
+}
+
 fn make_product_map(p []Product) (map[string]Product, [][]u8) {
 	mut m := map[string]Product{}
 	mut a := [][]u8{len: p.len}

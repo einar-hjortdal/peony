@@ -42,12 +42,6 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		}
 	}
 
-	// get all sales channels, there shouldn't be that many.
-	sales_channels := model_sales_channel_retrieve(mut tx, ListSalesChannelsParamsHygienised{}) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel', err.msg())
-	}
-
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.product_variants_map)
@@ -70,7 +64,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 
 	assign_product_images(products_data.product_images, mut products_map)
 
-	sales_channels_map, _ := make_sales_channel_map(sales_channels)
+	sales_channels_map, _ := make_sales_channel_map(products_data.sales_channels)
 	assign_product_sales_channels(products_data.product_sales_channels, sales_channels_map, mut
 		products_map)
 
@@ -183,11 +177,6 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
 				err.msg())
 		}
-	}
-
-	sales_channels := model_sales_channel_retrieve(mut tx, ListSalesChannelsParamsHygienised{}) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
