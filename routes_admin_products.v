@@ -16,6 +16,14 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
 	}
 
+	category_ids_bin := zero_array_id_string_to_array_id_bin(p.category_ids) or {
+		return handle_error_400(mut ctx, 'Invalid category_id', err.msg())
+	}
+
+	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
+		return handle_error_400(mut ctx, 'Invalid sales_channel_id', err.msg())
+	}
+
 	ph := RetrieveProductParamsHygienised{
 		ids:            p.ids
 		ids_bin:        ids_bin
@@ -28,22 +36,22 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		// type_ids_bin:          p.type_id_bin
 		tag_ids: p.tag_ids
 		// tag_ids_bin:           p.tag_id_bin
-		title:        p.title
-		description:  p.description
-		category_ids: p.category_ids
-		// category_ids_bin:      p.category_id_bin
-		price_list_ids: p.price_list_ids
+		title:            p.title
+		description:      p.description
+		category_ids:     p.category_ids
+		category_ids_bin: category_ids_bin
+		price_list_ids:   p.price_list_ids
 		// price_list_ids_bin:    p.price_list_id_bin
-		sales_channel_ids: p.sales_channel_ids
-		// sales_channel_ids_bin: p.sales_channel_id_bin
-		region_id:     p.region_id
-		region_id_bin: region_id_bin
-		currency_code: p.currency_code
-		with_deleted:  p.with_deleted
-		offset:        p.offset
-		fetch:         p.fetch
-		order:         p.order
-		cart_id:       p.cart_id
+		sales_channel_ids:     p.sales_channel_ids
+		sales_channel_ids_bin: sales_channel_ids_bin
+		region_id:             p.region_id
+		region_id_bin:         region_id_bin
+		currency_code:         p.currency_code
+		with_deleted:          p.with_deleted
+		offset:                p.offset
+		fetch:                 p.fetch
+		order:                 p.order
+		cart_id:               p.cart_id
 		// cart_id_bin:           p.cart_id_bin
 	}
 
@@ -77,13 +85,10 @@ pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Resul
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	id_zas := ZeroArrayString{
-		v:      [id]
-		is_set: true
-	}
-
 	ph := RetrieveProductParamsHygienised{
-		ids:     id_zas
+		ids:     ZeroArrayString{
+			is_set: true
+		}
 		ids_bin: [id_bin]
 	}
 
