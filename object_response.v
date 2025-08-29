@@ -71,6 +71,10 @@ fn handle_error_login(mut ctx Context) veb.Result {
 		'No further details')
 }
 
+fn handle_fetch_zero(mut ctx Context) veb.Result {
+	return handle_error_400(mut ctx, 'Requested 0 results', 'fetch cannot be 0')
+}
+
 // count is the number of items, that match the filters, stored in the database.
 // offset is the number of items skipped.
 // fetch is the number of items requested.
@@ -78,7 +82,7 @@ struct ListResponse[T] {
 	items  []T
 	count  i64
 	offset i32
-	fetch  i32
+	fetch  i32 @[omitempty]
 }
 
 struct UserResponse {
@@ -125,7 +129,7 @@ struct LocaleResponseEnvelope {
 	locales []LocaleResponse
 	count   i64
 	offset  i32
-	fetch   i32
+	fetch   i32 @[omitempty]
 }
 
 struct CurrencyResponse {
@@ -153,7 +157,7 @@ struct CurrencyResponseEnvelope {
 	currencies []CurrencyResponse
 	count      i64
 	offset     i32
-	fetch      i32
+	fetch      i32 @[omitempty]
 }
 
 struct CountryResponse {
@@ -177,7 +181,7 @@ struct CountryResponseListEnvelope {
 	countries []CountryResponse
 	count     i64
 	offset    i32
-	fetch     i32
+	fetch     i32 @[omitempty]
 }
 
 struct StoreResponse {
@@ -491,7 +495,7 @@ struct RegionResponseListEnvelope {
 	regions []RegionResponse
 	count   i64
 	offset  i32
-	fetch   i32
+	fetch   i32 @[omitempty]
 }
 
 struct InventoryLevelResponse {
@@ -631,7 +635,7 @@ struct VariantResponseListEnvelope {
 	variants []ProductVariantResponse
 	count    i64
 	offset   i32
-	fetch    i32
+	fetch    i32 @[omitempty]
 }
 
 struct SalesChannelResponse {
@@ -660,7 +664,7 @@ struct SalesChannelResponseEnvelope {
 	sales_channels []SalesChannelResponse @[json: 'salesChannels']
 	count          i64
 	offset         i32
-	fetch          i32
+	fetch          i32 @[omitempty]
 }
 
 struct ProductResponse {
@@ -765,7 +769,7 @@ struct ProductResponseListEnvelope {
 	products []ProductResponse
 	count    i64
 	offset   i32
-	fetch    i32
+	fetch    i32 @[omitempty]
 }
 
 struct UploadsUploadResponseEnvelope {
@@ -802,7 +806,7 @@ struct ProductCategoryResponseListEnvelope {
 	product_categories []ProductCategoryResponse @[json: 'productCategories']
 	count              i64
 	offset             i32
-	fetch              i32
+	fetch              i32 @[omitempty]
 }
 
 fn format_product_category_response(p ProductCategory) ProductCategoryResponse {

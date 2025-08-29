@@ -6,6 +6,9 @@ import veb
 @['/store/products'; get]
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_store_products_params(ctx.query)
+	if p.fetch.is_set && p.fetch.v == 0 {
+		return handle_fetch_zero(mut ctx)
+	}
 
 	mut cart_id_bin := []u8{}
 	if p.cart_id.is_set {

@@ -14,6 +14,17 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		return handle_error_500(mut ctx, 'Could not retrieve product_variant count', err.msg())
 	}
 
+	if count == 0 {
+		tx.rollback() or {}
+		r := VariantResponseListEnvelope{
+			variants: []ProductVariantResponse{}
+			count:    count
+			offset:   get_offset_amount(ph.offset)
+			fetch:    ph.fetch.v
+		}
+		return ctx.json(r)
+	}
+
 	product_variants := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
@@ -72,9 +83,8 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		variants: external_variants
 		count:    count
 		offset:   get_offset_amount(ph.offset)
-		fetch:    get_fetch_amount(ph.fetch)
+		fetch:    ph.fetch.v
 	}
-
 	return ctx.json(r)
 }
 

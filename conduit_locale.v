@@ -23,7 +23,7 @@ fn conduit_locale_get(mut app App, mut ctx Context, p RetrieveLocalesParams) veb
 		locales: external_locales
 		count:   count
 		offset:  get_offset_amount(p.offset)
-		fetch:   get_fetch_amount(p.fetch)
+		fetch:   p.fetch.v
 	}
 	return ctx.json(r)
 }

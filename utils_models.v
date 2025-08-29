@@ -6,7 +6,6 @@ import einar_hjortdal.firebird
 const order_asc = 'ASC'
 const order_desc = 'DESC'
 const default_offset = 0
-const default_fetch = 15
 
 fn newln(ln string) string {
 	return '\n${ln}'
@@ -109,11 +108,11 @@ fn get_offset_amount(zi32 ZeroI32) i32 {
 	return default_offset
 }
 
-fn get_fetch_amount(zi32 ZeroI32) i32 {
+fn get_default_fetch_amount(zi32 ZeroI32, default i32) i32 {
 	if zi32.is_set {
 		return zi32.v
 	}
-	return default_fetch
+	return default
 }
 
 fn (mut app App) start_transaction() !&firebird.Transaction {

@@ -56,7 +56,7 @@ fn conduit_product_category_list(mut app App, mut ctx Context, ph ProductCategor
 		product_categories: external_product_categories
 		count:              count
 		offset:             get_offset_amount(ph.offset)
-		fetch:              get_fetch_amount(ph.fetch)
+		fetch:              ph.fetch.v
 	}
 
 	return ctx.json(r)

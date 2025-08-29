@@ -20,8 +20,10 @@ fn model_country_list(mut tx firebird.Transaction, p ListCountriesParams) !([]Co
 		params = arrays.concat(params, p.offset.v)
 	}
 
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, get_fetch_amount(p.fetch))
+	if p.fetch.is_set {
+		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+		params = arrays.concat(params, p.fetch.v)
+	}
 
 	data := tx.execute('${query}${sorting}', ...params)!
 	rows := data.rows()

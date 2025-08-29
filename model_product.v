@@ -184,8 +184,10 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		params = arrays.concat(params, ph.offset.v)
 	}
 
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, get_fetch_amount(ph.fetch))
+	if ph.fetch.is_set {
+		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+		params = arrays.concat(params, ph.fetch.v)
+	}
 
 	data := tx.execute('SELECT
 		id,

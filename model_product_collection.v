@@ -102,9 +102,10 @@ fn do_retrieve_collections(mut tx firebird.Transaction, p RetrieveCollectionsPar
 		params = arrays.concat(params, p.offset.v)
 	}
 
-	fetch := get_fetch_amount(p.fetch)
-	query = appendln(query, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, fetch)
+	if p.fetch.is_set {
+		query = appendln(query, 'FETCH NEXT ? ROWS ONLY')
+		params = arrays.concat(params, p.fetch.v)
+	}
 
 	mut data := tx.execute(query, ...params)!
 	mut rows := data.rows()

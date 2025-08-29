@@ -26,8 +26,7 @@ fn conduit_country_get(mut app App, mut ctx Context, p ListCountriesParams) veb.
 		countries: external_countries
 		count:     count
 		offset:    get_offset_amount(p.offset)
-		fetch:     get_fetch_amount(p.fetch)
+		fetch:     p.fetch.v
 	}
-
 	return ctx.json(r)
 }

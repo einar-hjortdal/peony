@@ -81,7 +81,6 @@
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
 - [ ] Transaction attempts
 - [ ] Soft-delete where needed, and only where needed
-- [ ] Fix usage of get_fetch_amount()
 
 ## Considerations
 

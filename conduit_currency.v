@@ -24,7 +24,7 @@ fn conduit_currency_get(mut app App, mut ctx Context, p RetrieveCurrenciesParams
 		currencies: external_currencies
 		count:      count
 		offset:     get_offset_amount(p.offset)
-		fetch:      get_fetch_amount(p.fetch)
+		fetch:      p.fetch.v
 	}
 	return ctx.json(r)
 }

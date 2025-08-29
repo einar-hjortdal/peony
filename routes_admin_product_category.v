@@ -7,6 +7,9 @@ import json
 @['/admin/product-categories'; get]
 pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 	p := extract_retrieve_product_category_params(ctx.query)
+	if p.fetch.is_set && p.fetch.v == 0 {
+		return handle_fetch_zero(mut ctx)
+	}
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'ids_bin')

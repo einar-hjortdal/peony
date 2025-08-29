@@ -51,8 +51,10 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 		params = arrays.concat(params, p.offset.v)
 	}
 
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, get_fetch_amount(p.fetch))
+	if p.fetch.is_set {
+		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+		params = arrays.concat(params, p.fetch.v)
+	}
 
 	data := tx.execute('${query}${conditions}${sorting}', ...params)!
 	rows := data.rows()

@@ -28,7 +28,7 @@ fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannels
 		sales_channels: external_sales_channels
 		count:          count
 		offset:         get_offset_amount(ph.offset)
-		fetch:          get_fetch_amount(ph.fetch)
+		fetch:          ph.fetch.v
 	}
 	return ctx.json(r)
 }

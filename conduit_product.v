@@ -20,7 +20,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 			products: []ProductResponse{}
 			count:    count
 			offset:   offset
-			fetch:    get_fetch_amount(ph.fetch)
+			fetch:    ph.fetch.v
 		}
 
 		return ctx.json(r)
@@ -64,7 +64,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		products: external_products
 		count:    count
 		offset:   get_offset_amount(ph.offset)
-		fetch:    get_fetch_amount(ph.fetch)
+		fetch:    ph.fetch.v
 	}
 
 	return ctx.json(r)
@@ -88,7 +88,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 			products: []ProductResponse{}
 			count:    count
 			offset:   offset
-			fetch:    get_fetch_amount(ph.fetch)
+			fetch:    ph.fetch.v
 		}
 
 		return ctx.json(r)
@@ -156,7 +156,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 		products: external_products
 		count:    count
 		offset:   get_offset_amount(ph.offset)
-		fetch:    get_fetch_amount(ph.fetch)
+		fetch:    ph.fetch.v
 	}
 
 	return ctx.json(r)
