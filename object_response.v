@@ -584,8 +584,8 @@ struct ProductVariantResponse {
 	prices             PricesResponse @[omitempty]
 }
 
-fn format_variant_response(v ProductVariant, variant_prices_map map[string]Prices) ProductVariantResponse {
-	inventory_item := format_inventory_item_response(v.inventory_item)
+fn format_variant_response(v ProductVariant, p Prices) ProductVariantResponse {
+	purchasable, inventory_quantity := get_variant_availability(v)
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
@@ -596,10 +596,6 @@ fn format_variant_response(v ProductVariant, variant_prices_map map[string]Price
 	for i := 0; i < v.money_amounts.len; i++ {
 		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
 	}
-
-	prices := format_prices_response(variant_prices_map[v.id])
-	inventory_quantity := i32(0) // TODO
-	purchasable := true // TODO
 
 	return ProductVariantResponse{
 		id:           v.id
@@ -612,19 +608,18 @@ fn format_variant_response(v ProductVariant, variant_prices_map map[string]Price
 		upc:          v.upc.value
 		variant_rank: v.variant_rank
 		metadata:     v.metadata.value
-		// image:
-		inventory_item:     inventory_item // TODO not needed in /store/
+		// TODO variant_image
+		inventory_item:     format_inventory_item_response(v.inventory_item) // TODO not for /store/
 		option_values:      option_values
 		money_amounts:      money_amounts
-		prices:             prices
-		inventory_quantity: inventory_quantity // TODO not needed in /admin/
-		purchasable:        purchasable        // TODO not needed in /admin/
+		prices:             format_prices_response(p) // TODO not for /admin/
+		inventory_quantity: inventory_quantity // TODO not for /admin/
+		purchasable:        purchasable        // TODO not for /admin/
 	}
 }
 
 fn format_product_variant_response_admin(v ProductVariant) !ProductVariantResponse {
-	variants_prices_map := map[string]Prices{}
-	return format_variant_response(v, variants_prices_map)
+	return format_variant_response(v, Prices{})
 }
 
 struct VariantResponseEnvelope {
@@ -688,7 +683,7 @@ struct ProductResponse {
 	// tags         []Tag                 @[omitempty]
 }
 
-fn format_product_response_store(p Product, variant_prices_map map[string]Prices) !ProductResponse {
+fn format_product_response_store(p Product, pctx PriceContext) !ProductResponse {
 	mut collection_id := ''
 	if !p.collection_id_bin.is_null {
 		collection_id = id_bin_to_string(p.collection_id_bin.value) or {
@@ -719,7 +714,9 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 
 	mut variants := []ProductVariantResponse{len: p.variants.len}
 	for i := 0; i < p.variants.len; i++ {
-		variants[i] = format_variant_response(p.variants[i], variant_prices_map)
+		variant := p.variants[i]
+		prices := calculate_price(variant, 1, pctx)
+		variants[i] = format_variant_response(variant, prices)
 	}
 
 	mut translations := []ProductTranslationResponse{len: p.translations.len}
@@ -757,8 +754,7 @@ fn format_product_response_store(p Product, variant_prices_map map[string]Prices
 }
 
 fn format_product_response_admin(p Product) !ProductResponse {
-	variant_prices_map := map[string]Prices{} // no prices needed here
-	return format_product_response_store(p, variant_prices_map)
+	return format_product_response_store(p, PriceContext{})
 }
 
 struct ProductResponseEnvelope {

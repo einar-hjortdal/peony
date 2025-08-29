@@ -55,9 +55,7 @@ fn model_sales_channel_retrieve_count(mut tx firebird.Transaction, ph ListSalesC
 
 fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) ![]SalesChannel {
 	conditions, mut params := model_sales_channel_retrieve_conditions(ph)
-
-	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(ph.order)}')
+	mut sorting := 'ORDER BY name ${get_sorting_order(ph.order)}'
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')

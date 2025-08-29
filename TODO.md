@@ -32,12 +32,12 @@
 ### Soon to be implemented
 
 - [ ] Multi-region
+- [ ] Multi-channel
+- [ ] Multi-warehouse
 - [ ] Taxes
 
 ### To be implement
 
-- [ ] Multi-channel
-- [ ] Multi-warehouse
 - [ ] Reservations
 - [ ] Price rules
 - [ ] Price lists
@@ -89,6 +89,8 @@
   and comparison but prevents order-related errors when select queries are modified. Otherwise parse 
   locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
+- In order to implement filtering by availability when requesting items, a redict cache layer needs 
+  to be introduced: periodically fetch and process the data from the database.
 - Consider modularizing price calculation.
 - Consider creating higher order functions to wrap conduit functions to provide tx.
 - Consider independent query for count.

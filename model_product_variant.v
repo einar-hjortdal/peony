@@ -72,9 +72,7 @@ fn model_product_variants_retrieve_count(mut tx firebird.Transaction, p Retrieve
 
 fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) ![]ProductVariant {
 	conditions, mut params := model_product_variants_retrieve_conditions(p)
-
-	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}')
+	mut sorting := 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}'
 
 	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')

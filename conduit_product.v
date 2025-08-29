@@ -147,7 +147,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	mut external_products := []ProductResponse{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
-		external_products[i] = format_product_response_store(complete_products[i], variant_prices_map) or {
+		external_products[i] = format_product_response_store(complete_products[i], pctx) or {
 			return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 		}
 	}
@@ -250,13 +250,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		// include_discount_prices
 	}
 
-	mut variant_prices_map := map[string]Prices{}
-	for k := 0; k < product.variants.len; k++ {
-		variant_prices_map[product.variants[k].id] = calculate_price(product.variants[k],
-			1, pctx)
-	}
-
-	external_product := format_product_response_store(product, variant_prices_map) or {
+	external_product := format_product_response_store(product, pctx) or {
 		return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 	}
 

@@ -175,9 +175,7 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 
 fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) ![]Product {
 	conditions, mut params := model_product_retrieve_conditions(ph)
-
-	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY created_at ${get_sorting_order(ph.order)}')
+	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)}'
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')

@@ -2,14 +2,13 @@ module peony
 
 // returns whether the product_variant is purchasable and its available amount.
 // if inventory is not managed by peony, the product_variant is always available.
-// what role does sales channel have? filter inventory items using sales_channel_location?
-fn get_variant_availability(v ProductVariant, sales_channel_id_bin []u8) (bool, i32) {
+fn get_variant_availability(v ProductVariant) (bool, i32) {
 	inventory_item := v.inventory_item
 	if !inventory_item.manage_inventory {
 		return true, 0
 	}
 
-	// TODO
+	// TODO only consider stock_location related to the sales_channel requested
 	// if sales_channel_id_bin.len == 0 {
 	// 	return false, 0
 	// }
@@ -33,13 +32,4 @@ fn get_variant_availability(v ProductVariant, sales_channel_id_bin []u8) (bool, 
 	}
 
 	return true, available_quantity
-}
-
-// for each variant:
-// 1) retrieve product_variant_inventory_item
-// 2) calculate available quantity of each variant in the stock locations related to the sales channel
-// 3) for each inventory_item calculate the maximum deliverable amount according to required_quantity of product_variant_inventory_item
-// 4) the smallest number of these maximum deliverable amounts is the availability for this variant
-fn get_variants_availability(v []ProductVariant, sales_channel_id_bin []u8) []i32 {
-	return []i32{}
 }
