@@ -1,36 +1,38 @@
 module peony
 
-// WIP
-// `product_variant` has a manage_inventory bool that indicates whether peony  manages the inventory.
-// When manage_inventory is false, peony always considers the product_variant to be in stock.
-// When manage_inventory is true, peony tracks the inventory of the product_variant. For example, when
-// a customer purchases a product_variant, peony decrements the stocked quantity of the product_variant.
+// returns whether the product_variant is purchasable and its available amount.
+// if inventory is not managed by peony, the product_variant is always available.
+// what role does sales channel have? filter inventory items using sales_channel_location?
+fn get_variant_availability(v ProductVariant, sales_channel_id_bin []u8) (bool, i32) {
+	inventory_item := v.inventory_item
+	if !inventory_item.manage_inventory {
+		return true, 0
+	}
 
-fn get_variant_availability(v ProductVariant, sales_channel_id_bin []u8) i32 {
-	// if !v.manage_inventory {
-	// 	return 0
-	// }
-
+	// TODO
 	// if sales_channel_id_bin.len == 0 {
-	// 	return 0
+	// 	return false, 0
 	// }
 
-	// why is it like this?
-	// inventory_items := TODO get all inventory_item or have them inside of Variant already
-	// if inventory_items.len == 0 {
-	// 	return true, 0
-	// }
+	inventory_levels := inventory_item.inventory_levels
+	if inventory_levels.len == 0 {
+		return false, 0
+	}
 
-	// for
-	available_quantity := i32(0) // TODO sum of all inventory items - reserved items
-	// if available_quantity == 0 {
-	// 	if v.allow_backorder {
-	// 		return 0
-	// 	}
-	// 	return 0
-	// }
+	mut available_quantity := i32(0) // TODO sum of all inventory items - reserved items
+	for i := 0; i < inventory_levels.len; i++ {
+		inventory_level := inventory_levels[i]
+		available_quantity += (inventory_level.stocked_quantity - inventory_level.reserved_quantity)
+	}
 
-	return available_quantity
+	if available_quantity == 0 {
+		if inventory_item.allow_backorder {
+			return true, 0
+		}
+		return false, 0
+	}
+
+	return true, available_quantity
 }
 
 // for each variant:
