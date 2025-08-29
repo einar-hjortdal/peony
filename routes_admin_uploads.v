@@ -58,7 +58,7 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 
 // workaround https://github.com/vlang/v/issues/24975
 // uploads one file to the file provider
-// Is this also broken? https://github.com/vlang/v/blob/7831fb0b82263ce0f2ac6795c5e7b12bd5ea3835/vlib/net/http/request.v#L456
+// Also broken https://github.com/vlang/v/issues/25191
 @['/admin/uploads/:filename'; post]
 pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
