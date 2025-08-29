@@ -29,7 +29,7 @@ fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygi
 	mut conditions := []string{}
 
 	if p.ids.is_set {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids.v)})')
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
