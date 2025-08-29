@@ -91,26 +91,26 @@ mut:
 
 fn model_inventory_item_retrieve(mut tx firebird.Transaction, product_variant_ids_bin [][]u8) ![]InventoryItem {
 	data := tx.execute('SELECT
-		id
-		created_at
-		updated_at
-		deleted_at
-		variant_id
-		sku
-		origin_country
-		hs_code
-		mid_code
-		material
-		weight
-		length
-		height
-		width
-		requires_shipping
-		manage_inventory
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		variant_id,
+		sku,
+		origin_country,
+		hs_code,
+		mid_code,
+		material,
+		weight,
+		length,
+		height,
+		width,
+		requires_shipping,
+		manage_inventory,
 		allow_backorder
 		FROM inventory_item
 		WHERE variant_id IN (${get_placeholders(product_variant_ids_bin)})',
-		workaround_24757(product_variant_ids_bin))!
+		...workaround_24757(product_variant_ids_bin))!
 
 	rows := data.rows()
 	mut inventory_items := []InventoryItem{len: rows.len}

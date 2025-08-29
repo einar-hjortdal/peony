@@ -35,7 +35,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
 		if err is SuiteError {
-			return err.handle_suite_error(mut ctx)
+			return handle_suite_error(mut ctx, err)
 		} else {
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
 				err.msg())
@@ -172,7 +172,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
 		tx.rollback() or {}
 		if err is SuiteError {
-			return err.handle_suite_error(mut ctx)
+			return handle_suite_error(mut ctx, err)
 		} else {
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
 				err.msg())

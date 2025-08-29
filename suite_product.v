@@ -44,7 +44,10 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	}
 
 	scp := ListSalesChannelsParamsHygienised{
-		// TODO use product_sales_channels ids_bin (remove duplicates) or build new model function for this
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: product_ids_bin
 	}
 	sales_channels := model_sales_channel_retrieve(mut tx, scp) or {
 		return new_suite_error('Failed to retrieve sales_channel', err.msg())

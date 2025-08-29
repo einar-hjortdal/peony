@@ -17,22 +17,28 @@ struct SalesChannel {
 fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised) (string, []firebird.Value) {
 	mut params := []firebird.Value{}
 	mut conditions := []string{}
-	// Check if id array is not empty (we'll form a SQL IN clause).
 	if ph.ids.is_set {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
-	// Add condition for name using LIKE with wildcards.
 	if ph.name.is_set {
 		conditions = arrays.concat(conditions, "name LIKE '%' || ? '%'")
 		params = arrays.concat(params, ph.name.v)
 	}
 
-	// Add condition for description if provided.
 	if ph.description.is_set {
 		conditions = arrays.concat(conditions, "description LIKE '%' || ? '%'")
 		params = arrays.concat(params, ph.description.v)
+	}
+
+	if ph.product_ids.is_set {
+		conditions = arrays.concat(conditions, 'EXISTS (
+			SELECT 1 FROM product_sales_channel psc
+			WHERE psc.sales_channel_id = sales_channel.id
+				AND product_id IN (${get_placeholders(ph.product_ids_bin)})
+			)')
+		params = arrays.concat(params, ...workaround_24757(ph.product_ids_bin))
 	}
 
 	return get_where_conditions(conditions), params
@@ -60,7 +66,7 @@ fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannel
 
 	if ph.fetch.is_set {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, get_fetch_amount(ph.fetch))
+		params = arrays.concat(params, ph.fetch.v)
 	}
 
 	data := tx.execute('SELECT

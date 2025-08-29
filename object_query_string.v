@@ -136,6 +136,7 @@ struct ListSalesChannelsParams {
 	ids         ZeroArrayString
 	name        ZeroString
 	description ZeroString
+	product_ids ZeroArrayString
 	offset      ZeroI32
 	fetch       ZeroI32
 	order       ZeroString
@@ -146,6 +147,7 @@ fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannels
 		ids:         zero_array_string(p, 'ids')
 		name:        zero_string(p, 'name')
 		description: zero_string(p, 'description')
+		product_ids: zero_array_string(p, 'product_ids')
 		offset:      zero_i32(p, 'offset')
 		fetch:       zero_i32(p, 'fetch')
 		order:       zero_string(p, 'order')
@@ -153,13 +155,15 @@ fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannels
 }
 
 struct ListSalesChannelsParamsHygienised {
-	ids         ZeroArrayString
-	ids_bin     [][]u8
-	name        ZeroString
-	description ZeroString
-	offset      ZeroI32
-	fetch       ZeroI32
-	order       ZeroString
+	ids             ZeroArrayString
+	ids_bin         [][]u8
+	name            ZeroString
+	description     ZeroString
+	product_ids     ZeroArrayString
+	product_ids_bin [][]u8
+	offset          ZeroI32
+	fetch           ZeroI32
+	order           ZeroString
 }
 
 struct RetrieveProductVariantParams {
