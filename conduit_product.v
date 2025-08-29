@@ -44,32 +44,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.product_variants_map)
-	assign_inventory_items(products_data.inventory_items, mut products_data.product_variants_map)
-
-	// TODO variant_image
-
-	assign_product_option_translations(products_data.product_option_translations, mut
-		products_data.product_options_map)
-	assign_product_option_value_translations(products_data.product_option_value_translations, mut
-		products_data.product_option_values_map)
-
-	assign_product_option_values(products_data.product_option_values, products_data.product_option_values_map, mut
-		products_data.product_options_map, mut products_data.product_variants_map)
-
-	assign_product_options(products_data.product_options, products_data.product_options_map, mut
-		products_map)
-
-	assign_product_translations(products_data.product_translations, mut products_map)
-
-	assign_product_images(products_data.product_images, mut products_map)
-
-	sales_channels_map, _ := make_sales_channel_map(products_data.sales_channels)
-	assign_product_sales_channels(products_data.product_sales_channels, sales_channels_map, mut
-		products_map)
-
-	assign_product_variants(products_data.product_variants, products_data.product_variants_map, mut
-		products_map)
+	assign_products_data(mut products_data, mut products_map)
 
 	// new array, using original sorting order
 	mut complete_products := []Product{len: products.len}
@@ -105,9 +80,34 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
 	}
 
-	internal_products := model_product_retrieve(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
+	offset := get_offset_amount(ph.offset)
+
+	if count == 0 || offset >= count {
+		tx.rollback() or {}
+		r := ProductResponseListEnvelope{
+			products: []ProductResponse{}
+			count:    count
+			offset:   offset
+			fetch:    get_fetch_amount(ph.fetch)
+		}
+
+		return ctx.json(r)
+	}
+
+	products := model_product_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve product', err.msg())
+	}
+
+	mut products_map, product_ids_bin := make_product_map(products)
+	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
+		tx.rollback() or {}
+		if err is SuiteError {
+			return handle_suite_error(mut ctx, err)
+		} else {
+			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+				err.msg())
+		}
 	}
 
 	mut currency_code := ''
@@ -123,23 +123,31 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
+	assign_products_data(mut products_data, mut products_map)
+
 	pctx := PriceContext{
 		region_id_bin: ph.region_id_bin
 		currency_code: currency_code
 		// TODO include_discount_prices
 	}
 
+	mut complete_products := []Product{len: products.len}
+	for i := 0; i < products.len; i++ {
+		id := products[i].id
+		complete_products[i] = products_map[id]
+	}
+
 	mut variant_prices_map := map[string]Prices{}
-	for i := 0; i < internal_products.len; i++ {
-		for k := 0; k < internal_products[i].variants.len; k++ {
-			variant_prices_map[internal_products[i].variants[k].id] = calculate_price(internal_products[i].variants[k],
+	for i := 0; i < complete_products.len; i++ {
+		for k := 0; k < complete_products[i].variants.len; k++ {
+			variant_prices_map[complete_products[i].variants[k].id] = calculate_price(complete_products[i].variants[k],
 				1, pctx)
 		}
 	}
 
-	mut external_products := []ProductResponse{len: internal_products.len}
-	for i := 0; i < internal_products.len; i++ {
-		external_products[i] = format_product_response_store(internal_products[i], variant_prices_map) or {
+	mut external_products := []ProductResponse{len: complete_products.len}
+	for i := 0; i < complete_products.len; i++ {
+		external_products[i] = format_product_response_store(complete_products[i], variant_prices_map) or {
 			return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 		}
 	}
@@ -181,8 +189,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	product.translations = product_data.product_translations
-	product.images = product_data.product_images
+	assign_product_data(mut product_data, mut product)
 
 	external_product := format_product_response_admin(product) or {
 		return handle_error_500(mut ctx, 'Failed to format response', err.msg())
@@ -200,18 +207,24 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	count := model_product_retrieve_count(mut tx, ph) or {
+	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
 	}
 
-	if count == 0 {
+	if products.len == 0 {
 		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
 	}
 
-	internal_products := model_product_retrieve(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
+	mut product := products[0]
+	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
+		tx.rollback() or {}
+		if err is SuiteError {
+			return handle_suite_error(mut ctx, err)
+		} else {
+			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+				err.msg())
+		}
 	}
 
 	mut currency_code := ''
@@ -227,6 +240,8 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
+	assign_product_data(mut product_data, mut product)
+
 	pctx := PriceContext{
 		// cart_id_bin
 		// customer_id_bin
@@ -236,14 +251,12 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	}
 
 	mut variant_prices_map := map[string]Prices{}
-	for i := 0; i < internal_products.len; i++ {
-		for k := 0; k < internal_products[i].variants.len; k++ {
-			variant_prices_map[internal_products[i].variants[k].id] = calculate_price(internal_products[i].variants[k],
-				1, pctx)
-		}
+	for k := 0; k < product.variants.len; k++ {
+		variant_prices_map[product.variants[k].id] = calculate_price(product.variants[k],
+			1, pctx)
 	}
 
-	external_product := format_product_response_store(internal_products[0], variant_prices_map) or {
+	external_product := format_product_response_store(product, variant_prices_map) or {
 		return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 	}
 

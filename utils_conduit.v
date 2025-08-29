@@ -107,3 +107,41 @@ fn assign_product_variants(product_variants []ProductVariant, product_variants_m
 		products_map[product_id].variants = arrays.concat(old, variant)
 	}
 }
+
+fn assign_products_data(mut products_data SuiteProductData, mut products_map map[string]Product) {
+	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.product_variants_map)
+	assign_inventory_items(products_data.inventory_items, mut products_data.product_variants_map)
+
+	// TODO variant_image
+
+	assign_product_option_translations(products_data.product_option_translations, mut
+		products_data.product_options_map)
+	assign_product_option_value_translations(products_data.product_option_value_translations, mut
+		products_data.product_option_values_map)
+
+	assign_product_option_values(products_data.product_option_values, products_data.product_option_values_map, mut
+		products_data.product_options_map, mut products_data.product_variants_map)
+
+	assign_product_options(products_data.product_options, products_data.product_options_map, mut
+		products_map)
+
+	assign_product_translations(products_data.product_translations, mut products_map)
+
+	assign_product_images(products_data.product_images, mut products_map)
+
+	sales_channels_map, _ := make_sales_channel_map(products_data.sales_channels)
+	assign_product_sales_channels(products_data.product_sales_channels, sales_channels_map, mut
+		products_map)
+
+	assign_product_variants(products_data.product_variants, products_data.product_variants_map, mut
+		products_map)
+}
+
+fn assign_product_data(mut product_data SuiteProductData, mut product Product) {
+	product_id := product.id
+	mut product_map := {
+		product_id: product
+	}
+	assign_products_data(mut product_data, mut product_map)
+	product = product_map[product.id]
+}
