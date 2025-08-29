@@ -18,11 +18,11 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_option_ids
 
 	product_option_translations := model_product_option_translations_retrieve(mut tx,
 		product_option_ids_bin) or {
-		return new_suite_error('Failed to retrieve product_option_translations', err.msg())
+		return new_peony_error('Failed to retrieve product_option_translations', err.msg())
 	}
 
 	product_option_values := model_product_option_values_retrieve(mut tx, product_option_ids_bin) or {
-		return new_suite_error('Failed to retrieve product_option_values', err.msg())
+		return new_peony_error('Failed to retrieve product_option_values', err.msg())
 	}
 
 	mut product_option_values_map, product_option_value_ids_bin := make_product_option_value_map(product_option_values)
@@ -30,7 +30,7 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_option_ids
 	if product_option_value_ids_bin.len > 0 {
 		product_option_value_translations = model_product_option_value_translations_retrieve(mut tx,
 			product_option_value_ids_bin) or {
-			return new_suite_error('Failed to retrieve product_option_value_translations',
+			return new_peony_error('Failed to retrieve product_option_value_translations',
 				err.msg())
 		}
 	}

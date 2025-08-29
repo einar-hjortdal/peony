@@ -3,8 +3,8 @@ module peony
 import arrays
 import veb
 
-fn handle_suite_error(mut ctx Context, se SuiteError) veb.Result {
-	return handle_error_500(mut ctx, se.message, se.details)
+fn handle_suite_error(mut ctx Context, pe PeonyError) veb.Result {
+	return handle_error_500(mut ctx, pe.message, pe.details)
 }
 
 fn assign_product_option_translations(product_option_translations []ProductOptionTranslation, mut product_options_map map[string]ProductOption) {

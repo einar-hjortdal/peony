@@ -13,11 +13,11 @@ fn suite_product_variant_data_get(mut tx firebird.Transaction, product_variant_i
 	}
 
 	money_amounts := model_product_variant_money_amount_retrieve(mut tx, product_variant_ids_bin) or {
-		return new_suite_error('Failed to retrieve product_variant_money_amount', err.msg())
+		return new_peony_error('Failed to retrieve product_variant_money_amount', err.msg())
 	}
 
 	inventory_items := model_inventory_item_retrieve(mut tx, product_variant_ids_bin) or {
-		return new_suite_error('Failed to retrieve inventory_items', err.msg())
+		return new_peony_error('Failed to retrieve inventory_items', err.msg())
 	}
 
 	return SuiteProductVariantData{

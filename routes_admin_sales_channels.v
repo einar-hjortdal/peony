@@ -84,21 +84,6 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) 
 	return ctx.text('OK')
 }
 
-// add products to a sales channel
-@['/admin/sales-channels/:id/products'; post]
-pub fn (mut app App) admin_sales_channels_id_products_post(mut ctx Context, id string) veb.Result {
-	data := json.decode(struct {
-		product_ids []string
-	}, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode request body', err.msg())
-	}
-	app.add_products_to_sales_channel(id, data.product_ids) or {
-		return handle_error_500(mut ctx, 'Could not associate products to sales channel',
-			err.msg())
-	}
-	return app.admin_sales_channels_id_get(mut ctx, id)
-}
-
 // remove products from a sales channel
 // associate stock location to a channel
 // remove stock location from a channel

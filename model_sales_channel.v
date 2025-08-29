@@ -161,18 +161,6 @@ fn (mut app App) delete_sales_channel(id string) ! {
 	tx.commit()!
 }
 
-fn (mut app App) add_products_to_sales_channel(id string, products_ids []string) ! {
-	id_bin := id_string_to_bin(id)!
-	mut tx := app.start_transaction()!
-	mut stmt := tx.prepare('INSERT INTO product_sales_channel (
-		product_id, sales_channel_id) VALUES (?, ?)')!
-	for i := 0; i < products_ids.len; i++ {
-		pid_bin := id_string_to_bin(products_ids[i])!
-		stmt.execute(pid_bin, id_bin)!
-	}
-	tx.commit()!
-}
-
 struct ProductSalesChannel {
 	product_id           string
 	product_id_bin       []u8

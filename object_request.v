@@ -104,6 +104,67 @@ mut:
 	translations ?[]ProductTranslationRequestHygienised
 }
 
+fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
+	collection_id_bin := option_id_string_to_id_bin(p.collection_id) or {
+		return new_peony_error(error_id_invalid, 'collection_id')
+	}
+
+	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
+		return new_peony_error(error_id_invalid, 'type_id')
+	}
+
+	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
+		return new_peony_error(error_id_invalid, 'tag_id')
+	}
+
+	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
+		return new_peony_error(error_id_invalid, 'sales_channel_id')
+	}
+
+	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
+		return new_peony_error(error_id_invalid, 'category_id')
+	}
+
+	mut ph := ProductRequestHygienised{
+		handle:                p.handle
+		is_giftcard:           p.is_giftcard
+		status:                p.status
+		thumbnail:             p.thumbnail
+		collection_id:         p.collection_id
+		collection_id_bin:     collection_id_bin
+		type_id:               p.type_id
+		type_id_bin:           type_id_bin
+		discountable:          p.discountable
+		metadata:              p.metadata
+		images:                p.images
+		tag_ids:               p.tag_ids
+		tag_ids_bin:           tag_ids_bin
+		sales_channel_ids:     p.sales_channel_ids
+		sales_channel_ids_bin: sales_channel_ids_bin
+		category_ids:          p.category_ids
+		category_ids_bin:      category_ids_bin
+	}
+
+	if translations := p.translations {
+		mut pth := []ProductTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return new_peony_error(error_id_invalid, 'locale_id')
+			}
+			pth[i] = ProductTranslationRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				title:         translation.title
+				subtitle:      translation.subtitle
+				description:   translation.description
+			}
+		}
+		ph.translations = pth
+	}
+	return ph
+}
+
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
 // for a region to limit the requests being sent to a tax provider.
 struct RegionCreateRequest {

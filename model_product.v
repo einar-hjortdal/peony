@@ -2,7 +2,6 @@ module peony
 
 import arrays
 import einar_hjortdal.firebird
-import einar_hjortdal.luuid
 
 const product_status_draft = 'draft'
 const product_status_proposed = 'proposed'
@@ -286,115 +285,57 @@ fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, pro
 	stmt.close()!
 }
 
-fn (mut app App) do_create_product(mut tx firebird.Transaction, p ProductRequest, product_id string, product_id_bin []u8) ! {
-	mut c := ['id', 'handle']
+fn model_product_create(mut tx firebird.Transaction, product_id string, product_id_bin []u8, ph ProductRequestHygienised) ! {
+	mut c := ['id']
 	mut params := [firebird.Value(product_id_bin)]
 
-	if handle := p.handle {
+	c = arrays.concat(c, 'handle')
+	if handle := ph.handle {
 		params = arrays.concat(params, handle)
 	} else {
 		params = arrays.concat(params, product_id)
 	}
 
-	if is_giftcard := p.is_giftcard {
+	if is_giftcard := ph.is_giftcard {
 		c = arrays.concat(c, 'is_giftcard')
 		params = arrays.concat(params, is_giftcard)
 	}
 
-	if status := p.status {
+	if status := ph.status {
 		c = arrays.concat(c, 'status')
 		params = arrays.concat(params, status)
 	}
 
-	if thumbnail := p.thumbnail {
+	if thumbnail := ph.thumbnail {
 		c = arrays.concat(c, 'thumbnail')
 		params = arrays.concat(params, thumbnail)
 	}
 
-	if collection_id := p.collection_id {
+	if _ := ph.collection_id {
 		c = arrays.concat(c, 'collection_id')
-		collection_id_bin := luuid.to_bytes(collection_id)!
-		params = arrays.concat(params, collection_id_bin)
+		params = arrays.concat(params, ph.collection_id_bin)
 	}
 
-	if type_id := p.type_id {
+	if _ := ph.type_id {
 		c = arrays.concat(c, 'type_id')
-		type_id_bin := luuid.to_bytes(type_id)!
-		params = arrays.concat(params, type_id_bin)
+		params = arrays.concat(params, ph.type_id_bin)
 	}
 
-	if discountable := p.discountable {
+	if discountable := ph.discountable {
 		c = arrays.concat(c, 'discountable')
 		params = arrays.concat(params, discountable)
 	}
 
-	if metadata := p.metadata {
+	if metadata := ph.metadata {
 		c = arrays.concat(c, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
 
-	tx.execute('INSERT INTO product ( ${get_columns(c)} ) VALUES ( ${get_placeholders(c)} )',
+	tx.execute('INSERT INTO product (${get_columns(c)}) VALUES (${get_placeholders(c)})',
 		...params)!
-
-	if translations := p.translations {
-		app.do_create_product_translations(mut tx, product_id_bin, translations)!
-	}
-
-	if images := p.images {
-		_, ids_bin := model_image_create(mut app, mut tx, images)!
-		app.do_create_product_images(mut tx, product_id_bin, ids_bin)!
-	}
-
-	// TODO tag_ids
-
-	if sales_channel_ids := p.sales_channel_ids {
-		mut stmt := tx.prepare('INSERT INTO product_sales_channel (product_id, sales_channel_id) VALUES (?, ?)')!
-		for i := 0; i < sales_channel_ids.len; i++ {
-			sales_channel_id_bin := id_string_to_bin(sales_channel_ids[i]) or {
-				stmt.close()!
-				return err
-			}
-			stmt.execute(product_id_bin, sales_channel_id_bin) or {
-				stmt.close()!
-				return err
-			}
-		}
-	} else {
-		tx.execute('INSERT INTO product_sales_channel (product_id, sales_channel_id) 
-		VALUES (?, (SELECT default_sales_channel_id FROM store))',
-			product_id_bin)!
-	}
-
-	// TODO merge statement?
-	if category_ids := p.category_ids {
-		mut stmt := tx.prepare('INSERT INTO product_category_product (
-					product_category_id, product_id) VALUES (?, ?)')!
-		for i := 0; i < category_ids.len; i++ {
-			category_id_bin := id_string_to_bin(category_ids[i]) or {
-				stmt.close()!
-				return err
-			}
-			stmt.execute(product_id_bin, category_id_bin) or {
-				stmt.close()!
-				return err
-			}
-		}
-	}
 }
 
-fn (mut app App) create_product(p ProductRequest) !string {
-	product_id, product_id_bin := app.new_id()
-	mut tx := app.start_transaction()!
-
-	app.do_create_product(mut tx, p, product_id, product_id_bin) or {
-		tx.rollback()!
-		return err
-	}
-	tx.commit()!
-	return product_id
-}
-
-fn model_product_update(mut tx firebird.Transaction, id_bin []u8, ph ProductRequestHygienised) ! {
+fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph ProductRequestHygienised) ! {
 	mut c := []string{}
 	mut params := []firebird.Value{}
 
@@ -438,11 +379,9 @@ fn model_product_update(mut tx firebird.Transaction, id_bin []u8, ph ProductRequ
 		params = arrays.concat(params, metadata)
 	}
 
-	if c.len != 0 {
-		query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
-		params = arrays.concat(params, firebird.Value(id_bin))
-		tx.execute(query, ...params)!
-	}
+	query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
+	params = arrays.concat(params, firebird.Value(product_id_bin))
+	tx.execute(query, ...params)!
 }
 
 fn (mut app App) delete_product(id string) ! {
