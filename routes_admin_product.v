@@ -69,7 +69,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	}
 
 	ph := hygienise_product_request(p) or {
-		if err is PeonyError {
+		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		} else {
 			return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
@@ -123,7 +123,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 	}
 
 	ph := hygienise_product_request(p) or {
-		if err is PeonyError {
+		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		} else {
 			return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
@@ -172,7 +172,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_500(mut ctx, 'Could not retrieve product options', err.msg())
 	}
 
-	store := do_retrieve_store(mut tx) or {
+	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product options', err.msg())
 	}

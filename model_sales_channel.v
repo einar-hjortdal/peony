@@ -200,7 +200,10 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bi
 	mut d := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < sales_channel_ids_bin.len; i++ {
-		d = appendln(d, 'SELECT ? AS product_id, ? AS sales_channel_id FROM RDB\$DATABASE')
+		d = appendln(d, 'SELECT 
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS sales_channel_id
+			FROM RDB\$DATABASE')
 		pa = arrays.concat(pa, product_id_bin, sales_channel_ids_bin[i])
 		if i != sales_channel_ids_bin.len - 1 {
 			d = appendln(d, 'UNION ALL')
@@ -215,6 +218,5 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bi
 				VALUES (s.product_id, s.sales_channel_id)
 				WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE'
 	pa = arrays.concat(pa, product_id_bin)
-
 	tx.execute(query, ...pa)!
 }

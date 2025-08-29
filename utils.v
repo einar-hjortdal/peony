@@ -1,5 +1,18 @@
 module peony
 
+struct InternalError {
+	Error
+	message string
+	details string
+}
+
+fn new_internal_error(message string, details string) InternalError {
+	return InternalError{
+		message: message
+		details: details
+	}
+}
+
 fn unwrap_option_or[T](option_type ?T, default_value T) T {
 	if some_value := option_type {
 		return some_value

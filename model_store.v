@@ -63,7 +63,8 @@ fn parse_store(v []firebird.Value) !Store {
 	}
 }
 
-fn do_retrieve_store(mut tx firebird.Transaction) !Store {
+// TODO separate queries (create suite)
+fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	store_data := tx.execute('SELECT
 		id,
 		created_at,
@@ -115,16 +116,6 @@ fn do_retrieve_store(mut tx firebird.Transaction) !Store {
 
 	store.currencies = currencies
 
-	return store
-}
-
-fn (mut app App) store_retrieve() !Store {
-	mut tx := app.start_transaction()!
-	store := do_retrieve_store(mut tx) or {
-		tx.rollback()!
-		return err
-	}
-	tx.rollback()!
 	return store
 }
 

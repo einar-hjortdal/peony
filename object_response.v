@@ -613,8 +613,8 @@ fn format_variant_response(v ProductVariant, p Prices) ProductVariantResponse {
 		option_values:      option_values
 		money_amounts:      money_amounts
 		prices:             format_prices_response(p) // TODO not for /admin/
-		inventory_quantity: inventory_quantity // TODO not for /admin/
-		purchasable:        purchasable        // TODO not for /admin/
+		inventory_quantity: inventory_quantity
+		purchasable:        purchasable // TODO not for /admin/
 	}
 }
 

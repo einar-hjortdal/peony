@@ -84,6 +84,25 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) 
 	return ctx.text('OK')
 }
 
-// remove products from a sales channel
+// updates products in the sales channel
+// @['/admin/sales-channels/:sales_channel_id/products'; post]
+// pub fn (mut app App) admin_sales_channels_id_products_post(mut ctx Context, sales_channel_id string) veb.Result {
+// 	p := json.decode(ProductSalesChannelRequest, ctx.req.data) or {
+// 		return handle_error_400(mut ctx, 'Could not decode ProductSalesChannelRequest',
+// 			err.msg())
+// 	}
+
+// 	ph := hygienise_product_sales_channel_request(p) or {
+// 		if err is InternalError {
+// 			return handle_error_400(mut ctx, err.message, err.details)
+// 		} else {
+// 			return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_sales_channel_request',
+// 				err.msg())
+// 		}
+// 	}
+
+// 	return conduit_product_sales_channel_update(sales_channel_id_bin, ph)
+// }
+
 // associate stock location to a channel
 // remove stock location from a channel

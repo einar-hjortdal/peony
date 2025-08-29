@@ -106,23 +106,23 @@ mut:
 
 fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 	collection_id_bin := option_id_string_to_id_bin(p.collection_id) or {
-		return new_peony_error(error_id_invalid, 'collection_id')
+		return new_internal_error(error_id_invalid, 'collection_id')
 	}
 
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_peony_error(error_id_invalid, 'type_id')
+		return new_internal_error(error_id_invalid, 'type_id')
 	}
 
 	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_peony_error(error_id_invalid, 'tag_id')
+		return new_internal_error(error_id_invalid, 'tag_id')
 	}
 
 	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_peony_error(error_id_invalid, 'sales_channel_id')
+		return new_internal_error(error_id_invalid, 'sales_channel_id')
 	}
 
 	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_peony_error(error_id_invalid, 'category_id')
+		return new_internal_error(error_id_invalid, 'category_id')
 	}
 
 	mut ph := ProductRequestHygienised{
@@ -150,7 +150,7 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_peony_error(error_id_invalid, 'locale_id')
+				return new_internal_error(error_id_invalid, 'locale_id')
 			}
 			pth[i] = ProductTranslationRequestHygienised{
 				locale_id:     translation.locale_id

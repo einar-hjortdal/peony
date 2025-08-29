@@ -13,6 +13,11 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygieni
 		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
 	}
 
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	}
+
 	if _ := ph.tag_ids {
 		// TODO
 	}
@@ -27,7 +32,15 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygieni
 	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product sales channel',
+			return handle_error_500(mut ctx, 'Failed to update product_sales_channel',
+				err.msg())
+		}
+	} else {
+		model_product_sales_channel_update(mut tx, product_id_bin, [
+			store.default_sales_channel_id_bin,
+		]) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product_sales_channel',
 				err.msg())
 		}
 	}
@@ -85,7 +98,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	mut products_map, product_ids_bin := make_product_map(products)
 	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
-		if err is PeonyError {
+		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
 		} else {
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
@@ -153,7 +166,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	mut products_map, product_ids_bin := make_product_map(products)
 	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
-		if err is PeonyError {
+		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
 		} else {
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
@@ -165,7 +178,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	if ph.currency_code.is_set {
 		currency_code = ph.currency_code.v
 	} else {
-		store := do_retrieve_store(mut tx) or {
+		store := model_store_retrieve(mut tx) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to retrieve store data', err.msg())
 		}
@@ -230,7 +243,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 	mut product := products[0]
 	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
 		tx.rollback() or {}
-		if err is PeonyError {
+		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
 		} else {
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
@@ -270,7 +283,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	mut product := products[0]
 	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
 		tx.rollback() or {}
-		if err is PeonyError {
+		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
 		} else {
 			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
@@ -282,7 +295,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	if ph.currency_code.is_set {
 		currency_code = ph.currency_code.v
 	} else {
-		store := do_retrieve_store(mut tx) or {
+		store := model_store_retrieve(mut tx) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to retrieve store data', err.msg())
 		}
