@@ -106,6 +106,20 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		}
 	}
 
+	mut sales_channel_ids_bin := [][]u8{len: products_data.sales_channels.len}
+	for i := 0; i < products_data.sales_channels.len; i++ {
+		sales_channel_ids_bin[i] = products_data.sales_channels[i].id_bin
+	}
+	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
+		sales_channel_ids_bin: sales_channel_ids_bin
+	}
+	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
+		model_sales_channel_stock_location_retrieve_params) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+			err.msg())
+	}
+
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	assign_products_data(mut products_data, mut products_map)
@@ -117,9 +131,23 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		complete_products[i] = products_map[id]
 	}
 
+	mut complete_product_variants := []ProductVariant{len: products_data.product_variants.len}
+	for i := 0; i < products_data.product_variants.len; i++ {
+		variant_id := products_data.product_variants[i].id
+		variant := products_data.product_variants_map[variant_id]
+		complete_product_variants[i] = variant
+	}
+
+	get_product_variants_availability_params := GetProductVariantsAvailabilityParams{
+		product_sales_channels:        products_data.product_sales_channels
+		sales_channel_stock_locations: sales_channel_stock_locations
+	}
+	product_variants_availability := get_product_variants_availability(complete_product_variants,
+		ph.sales_channel_ids_bin, get_product_variants_availability_params)
+
 	mut external_products := []ProductResponse{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
-		external_products[i] = format_product_response_admin(complete_products[i]) or {
+		external_products[i] = format_product_response_admin(complete_products[i], product_variants_availability) or {
 			return handle_error_500(mut ctx, 'Failed to format response', err.msg())
 		}
 	}
