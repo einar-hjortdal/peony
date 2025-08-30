@@ -24,9 +24,8 @@ fn parse_migration(v []firebird.Value) !Migration {
 	}
 }
 
-fn (mut app App) do_create_migration(mut tx firebird.Transaction, name string) ! {
-	_, id_bin := app.new_id()
-	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', id_bin, name)!
+fn model_migration_create(mut tx firebird.Transaction, migration_id_bin []u8, name string) ! {
+	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', migration_id_bin, name)!
 }
 
 fn (mut app App) retrieve_migrations() ![]Migration {
