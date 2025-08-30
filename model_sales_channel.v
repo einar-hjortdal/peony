@@ -224,6 +224,66 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bi
 	tx.execute(query, ...pa)!
 }
 
+struct SalesChannelStockLocation {
+	sales_channel_id      string
+	sales_channel_id_bin  []u8
+	stock_location_id     string
+	stock_location_id_bin []u8
+}
+
+struct ModelSalesChannelStockLocationRetrieveParams {
+	stock_location_ids_bin [][]u8
+	sales_channel_ids_bin  [][]u8
+}
+
+fn model_sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p ModelSalesChannelStockLocationRetrieveParams) ![]SalesChannelStockLocation {
+	if p.stock_location_ids_bin.len == 0 && p.sales_channel_ids_bin.len == 0 {
+		return []SalesChannelStockLocation{}
+	}
+
+	if p.stock_location_ids_bin.len > 0 && p.sales_channel_ids_bin.len > 0 {
+		return new_internal_error('received both stock_location_ids abd sales_channel_ids',
+			'model_sales_channel_stock_location_retrieve')
+	}
+
+	mut condition := ''
+	mut params := [][]u8{}
+	if p.sales_channel_ids_bin.len > 0 {
+		condition = 'sales_channel_id'
+		params = p.sales_channel_ids_bin.clone()
+	}
+
+	if p.stock_location_ids_bin.len > 0 {
+		condition = 'stock_location_id'
+		params = p.stock_location_ids_bin.clone()
+	}
+
+	data := tx.execute('SELECT sales_channel_id, stock_location_id 
+		FROM sales_channel_stock_location WHERE ${condition} IN (${get_placeholders(params)})',
+		...workaround_24757(params))!
+
+	rows := data.rows()
+
+	mut sales_channel_stock_locations := []SalesChannelStockLocation{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+
+		sales_channel_id_bin, _ := v[0].get_array_u8()!
+		stock_location_id_bin, _ := v[1].get_array_u8()!
+
+		sales_channel_id := id_bin_to_string(sales_channel_id_bin)!
+		stock_location_id := id_bin_to_string(stock_location_id_bin)!
+
+		sales_channel_stock_locations[i] = SalesChannelStockLocation{
+			sales_channel_id:      sales_channel_id
+			sales_channel_id_bin:  sales_channel_id_bin
+			stock_location_id:     stock_location_id
+			stock_location_id_bin: stock_location_id_bin
+		}
+	}
+	return sales_channel_stock_locations
+}
+
 fn model_sales_channel_stock_location_add(mut tx firebird.Transaction, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
 	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id) 
 		VALUES (?, ?)',
