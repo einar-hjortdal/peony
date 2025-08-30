@@ -12,6 +12,8 @@ struct SalesChannel {
 	name        string
 	description string
 	is_disabled bool
+	// mut:
+	// stock_locations []StockLocation
 }
 
 fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised) (string, []firebird.Value) {

@@ -1,28 +1,21 @@
 module peony
 
+import arrays
+
 struct ProductVariantAvailability {
 	purchasable        bool
 	available_quantity i32
 }
 
-// returns whether the product_variant is purchasable and its available amount.
-// if inventory is not managed by peony, the product_variant is always available.
-fn get_product_variant_availability(v ProductVariant, additional_var ToDecideType) ProductVariantAvailability {
-	inventory_item := v.inventory_item
+fn get_product_variant_availability(product_variant ProductVariant,
+	allowed_stock_locations [][]u8) ProductVariantAvailability {
+	inventory_item := product_variant.inventory_item
 	if !inventory_item.manage_inventory {
 		return ProductVariantAvailability{
 			purchasable:        true
 			available_quantity: 0
 		}
 	}
-
-	// TODO only consider stock_location related to the sales_channel requested
-	// To do that we need:
-	// the parent product's sales_channels property
-	// the sales_channel_stock_location relation
-	// 1) check if sales_channel_id is in the product.sales_channels list
-	// 2) if it is, get the stock_locations list for that sales_channel. If it isn't, availability is 0
-	// 3) if sales_channel stock_location use these ids when continuing execution. Otherwise availability is 0.
 
 	inventory_levels := inventory_item.inventory_levels
 	if inventory_levels.len == 0 {
@@ -32,10 +25,12 @@ fn get_product_variant_availability(v ProductVariant, additional_var ToDecideTyp
 		}
 	}
 
-	mut available_quantity := i32(0) // TODO sum of all inventory items - reserved items
+	mut available_quantity := i32(0)
 	for i := 0; i < inventory_levels.len; i++ {
 		inventory_level := inventory_levels[i]
-		available_quantity += (inventory_level.stocked_quantity - inventory_level.reserved_quantity)
+		if allowed_stock_locations.contains(inventory_level.stock_location_id_bin) {
+			available_quantity += (inventory_level.stocked_quantity - inventory_level.reserved_quantity)
+		}
 	}
 
 	if available_quantity == 0 {
@@ -62,29 +57,56 @@ struct GetProductVariantsAvailabilityParams {
 	sales_channel_stock_locations []SalesChannelStockLocation
 }
 
-// returns a mapping of product_variant id to its availability
+// get_product_variants_availability:
+//  1. Gathers all p.product_sales_channels entries where sales_channel_id_bin matches.
+//  2. Gathers all p.sales_channel_stock_locations entries where sales_channel_id_bin matches.
+//  3. For each v in product_variants:
+//     a) If v.product_id_bin not in products_in_channel:
+//          result[v.id] = ProductVariantAvailability{ purchasable: false, available_quantity: 0 }
+//     b) Else if v.inventory_item.manage_inventory == false:
+//          result[v.id] = ProductVariantAvailability{ purchasable: true, available_quantity: 0 }
+//     c) Else:
+//          i.  Filter v.inventory_item.inventory_levels by lvl.stock_location_id in allowed_locations.
+//         ii.  If filtered_levels.len == 0:
+//               result[v.id] = ProductVariantAvailability{ purchasable: false, available_quantity: 0 }
+//        iii.  Sum total_qty = Σ (lvl.stocked_quantity - lvl.reserved_quantity).
+//         iv.  If total_qty == 0 && v.inventory_item.allow_backorder:
+//               result[v.id] = ProductVariantAvailability{ purchasable: true, available_quantity: 0 }
+//          v.  Else if total_qty == 0:
+//               result[v.id] = ProductVariantAvailability{ purchasable: false, available_quantity: 0 }
+//         vi.  Else:
+//               result[v.id] = ProductVariantAvailability{ purchasable: true, available_quantity: total_qty }
+//  4. Return the result map.
 fn get_product_variants_availability(product_variants []ProductVariant,
-	sales_channel_id string, p GetProductVariantsAvailabilityParams) map[string]ProductVariantAvailability {
-	// what needs to be done:
-	// product_variant.product_id -> product_sales_channels.product_id
-	// product_sales_channels.product_id -> product_sales_channels.sales_channel_id
-	// sales_channel.id -> sales_channel_stock_locations.sales_channel_id
-	// sales_channel_stock_locations.stock_location_id -> product_variant.inventory_item.inventory_level.stock_location_id
+	sales_channel_id_bin []u8, p GetProductVariantsAvailabilityParams) map[string]ProductVariantAvailability {
+	mut products_in_sales_channel := [][]u8{}
+	for i := 0; i < p.product_sales_channels.len; i++ {
+		psc := p.product_sales_channels[i]
+		if psc.sales_channel_id_bin == sales_channel_id_bin {
+			products_in_sales_channel = arrays.concat(products_in_sales_channel, psc.product_id_bin)
+		}
+	}
 
-	mut allowed_stock_locations := map[string]bool{}
+	mut allowed_stock_locations := [][]u8{}
 	for i := 0; i < p.sales_channel_stock_locations.len; i++ {
 		scsl := p.sales_channel_stock_locations[i]
-		if scsl.sales_channel_id == sales_channel_id {
-			allowed_stock_locations[scsl.stock_location_id] = true
+		if scsl.sales_channel_id_bin == sales_channel_id_bin {
+			allowed_stock_locations = arrays.concat(allowed_stock_locations, scsl.stock_location_id_bin)
 		}
 	}
 
 	mut res := map[string]ProductVariantAvailability{}
-
 	for i := 0; i < product_variants.len; i++ {
-		v := product_variants[i]
-		availability := get_product_variant_availability(v, additional_var)
-		res[v.id] = availability
+		product_variant := product_variants[i]
+		if products_in_sales_channel.contains(product_variant.product_id_bin) {
+			res[product_variant.id] = get_product_variant_availability(product_variant,
+				allowed_stock_locations)
+		} else {
+			res[product_variant.id] = ProductVariantAvailability{
+				purchasable:        false
+				available_quantity: 0
+			}
+		}
 	}
 	return res
 }
