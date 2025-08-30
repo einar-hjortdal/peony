@@ -683,7 +683,7 @@ struct ProductResponse {
 	// tags         []Tag                 @[omitempty]
 }
 
-fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) !ProductResponse {
+fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
 	mut collection_id := ''
 	if !p.collection_id_bin.is_null {
 		collection_id = id_bin_to_string(p.collection_id_bin.value) or {
@@ -753,7 +753,7 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 	}
 }
 
-fn format_product_response_admin(p Product, product_variants_availability map[string]ProductVariantAvailability) !ProductResponse {
+fn format_product_response_admin(p Product, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
 	return format_product_response_store(p, PriceContext{}, product_variants_availability)
 }
 

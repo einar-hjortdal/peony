@@ -100,3 +100,11 @@ fn make_product_option_value_map(p []ProductOptionValue) (map[string]ProductOpti
 	}
 	return m, a
 }
+
+fn get_sales_channel_ids_bin(sales_channels []SalesChannel) [][]u8 {
+	mut sales_channel_ids_bin := [][]u8{len: sales_channels.len}
+	for i := 0; i < sales_channels.len; i++ {
+		sales_channel_ids_bin[i] = sales_channels[i].id_bin
+	}
+	return sales_channel_ids_bin
+}

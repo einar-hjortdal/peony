@@ -70,6 +70,7 @@
 
 ## Changes
 
+- [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
 - [ ] Better error handling
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
 
@@ -81,6 +82,7 @@
 - [ ] Return time.Time.format_rfc3339() instead of time.Time
 - [ ] Transaction attempts
 - [ ] Soft-delete where needed, and only where needed
+- [ ] Reduce boilerplating
 
 ## Considerations
 

@@ -53,6 +53,8 @@ fn get_product_variant_availability(product_variant ProductVariant,
 }
 
 struct GetProductVariantsAvailabilityParams {
+	product_variants              []ProductVariant
+	sales_channel_ids_bin         [][]u8
 	product_sales_channels        []ProductSalesChannel
 	sales_channel_stock_locations []SalesChannelStockLocation
 }
@@ -77,12 +79,11 @@ struct GetProductVariantsAvailabilityParams {
 //         vi.  Else:
 //               result[v.id] = ProductVariantAvailability{ purchasable: true, inventory_quantity: total_qty }
 //  4. Return the result map.
-fn get_product_variants_availability(product_variants []ProductVariant,
-	sales_channel_ids_bin [][]u8, p GetProductVariantsAvailabilityParams) map[string]ProductVariantAvailability {
+fn get_product_variants_availability(p GetProductVariantsAvailabilityParams) map[string]ProductVariantAvailability {
 	mut products_in_sales_channels := [][]u8{}
 	for i := 0; i < p.product_sales_channels.len; i++ {
 		psc := p.product_sales_channels[i]
-		if sales_channel_ids_bin.contains(psc.sales_channel_id_bin)
+		if p.sales_channel_ids_bin.contains(psc.sales_channel_id_bin)
 			&& !products_in_sales_channels.contains(psc.product_id_bin) {
 			products_in_sales_channels = arrays.concat(products_in_sales_channels, psc.product_id_bin)
 		}
@@ -91,15 +92,15 @@ fn get_product_variants_availability(product_variants []ProductVariant,
 	mut allowed_stock_locations := [][]u8{}
 	for i := 0; i < p.sales_channel_stock_locations.len; i++ {
 		scsl := p.sales_channel_stock_locations[i]
-		if sales_channel_ids_bin.contains(scsl.sales_channel_id_bin)
+		if p.sales_channel_ids_bin.contains(scsl.sales_channel_id_bin)
 			&& !allowed_stock_locations.contains(scsl.stock_location_id_bin) {
 			allowed_stock_locations = arrays.concat(allowed_stock_locations, scsl.stock_location_id_bin)
 		}
 	}
 
 	mut res := map[string]ProductVariantAvailability{}
-	for i := 0; i < product_variants.len; i++ {
-		product_variant := product_variants[i]
+	for i := 0; i < p.product_variants.len; i++ {
+		product_variant := p.product_variants[i]
 		if products_in_sales_channels.contains(product_variant.product_id_bin) {
 			res[product_variant.id] = get_product_variant_availability(product_variant,
 				allowed_stock_locations)
