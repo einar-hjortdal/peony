@@ -352,20 +352,15 @@ CREATE TABLE sales_channel (
   CONSTRAINT "0681493b-ad84-1ec7-0800-68d1ec89bf9e" PRIMARY KEY (id)
 );
 
-CREATE TABLE sales_channel_location (
-  id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
+CREATE TABLE sales_channel_stock_location (
   sales_channel_id BINARY(16) NOT NULL,
   stock_location_id BINARY(16) NOT NULL,
-  CONSTRAINT "068284bc-d74a-191b-3000-6dd35ee3e21b" PRIMARY KEY (id),
-  CONSTRAINT "068284bc-d74a-1a0b-c000-9f68490f9d3c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id),
-  CONSTRAINT "068284bc-d74a-1f78-5400-6820c274c28e" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id)
+  CONSTRAINT "068284bc-d74a-191b-3000-6dd35ee3e21b" PRIMARY KEY (sales_channel_id, stock_location_id),
+  CONSTRAINT "068284bc-d74a-1a0b-c000-9f68490f9d3c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id) ON DELETE CASCADE,
+  CONSTRAINT "068284bc-d74a-1f78-5400-6820c274c28e" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id) ON DELETE CASCADE
 );
 
-CREATE INDEX "068284bc-d74a-1c10-4400-318da191c938" ON sales_channel_location (sales_channel_id);
-CREATE INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b" ON sales_channel_location (stock_location_id);
+CREATE INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b" ON sales_channel_stock_location (stock_location_id);
 
 CREATE TABLE store (
   id BINARY(16) NOT NULL,

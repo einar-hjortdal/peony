@@ -29,9 +29,9 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 }
 
 // retrieves a sales channel by id
-@['/admin/sales-channels/:id'; get]
-pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb.Result {
-	id_bin := id_string_to_bin(id) or {
+@['/admin/sales-channels/:sales_channel_id'; get]
+pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_id string) veb.Result {
+	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
@@ -39,7 +39,7 @@ pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, id string) veb
 		ids:     ZeroArrayString{
 			is_set: true
 		}
-		ids_bin: [id_bin]
+		ids_bin: [sales_channel_id_bin]
 	}
 	return conduit_sales_channels_get(mut app, mut ctx, ph)
 }
@@ -59,25 +59,25 @@ pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 }
 
 // updates a sales channel
-@['/admin/sales-channels/:id'; post]
-pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, id string) veb.Result {
+@['/admin/sales-channels/:sales_channel_id'; post]
+pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel_id string) veb.Result {
 	p := NewSalesChannelData{
 		name:        ctx.query['name']
 		description: ctx.query['description']
 		is_disabled: parse_bool(ctx.query['is_disabled'])
 	}
 
-	app.update_sales_channel(id, p) or {
+	app.update_sales_channel(sales_channel_id, p) or {
 		return handle_error_500(mut ctx, 'Could not update sales channel data', err.msg())
 	}
 
-	return app.admin_sales_channels_id_get(mut ctx, id)
+	return app.admin_sales_channels_id_get(mut ctx, sales_channel_id)
 }
 
 // deletes a sales channel
-@['/admin/sales-channels/:id'; delete]
-pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) veb.Result {
-	app.delete_sales_channel(id) or {
+@['/admin/sales-channels/:sales_channel_id'; delete]
+pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_channel_id string) veb.Result {
+	app.delete_sales_channel(sales_channel_id) or {
 		return handle_error_500(mut ctx, 'Could not delete sales channel', err.msg())
 	}
 
@@ -104,5 +104,32 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, id string) 
 // 	return conduit_product_sales_channel_update(sales_channel_id_bin, ph)
 // }
 
-// associate stock location to a channel
-// remove stock location from a channel
+// associates stock location to a channel
+@['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; post]
+pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
+	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
+	}
+
+	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
+	}
+
+	return conduit_sales_channel_stock_location_add(mut app, mut ctx, sales_channel_id_bin,
+		stock_location_id_bin)
+}
+
+// removes stock location from a channel
+@['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; delete]
+pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
+	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
+	}
+
+	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
+	}
+
+	return conduit_sales_channel_stock_location_delete(mut app, mut ctx, sales_channel_id_bin,
+		stock_location_id_bin)
+}

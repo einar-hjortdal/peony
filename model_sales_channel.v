@@ -220,3 +220,14 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bi
 	pa = arrays.concat(pa, product_id_bin)
 	tx.execute(query, ...pa)!
 }
+
+fn model_sales_channel_stock_location_add(mut tx firebird.Transaction, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id) 
+		VALUES (?, ?)',
+		sales_channel_id_bin, stock_location_id_bin)!
+}
+
+fn model_sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+	tx.execute('DELETE FROM sales_channel_stock_location WHERE sales_channel_id = ? AND stock_location_id = ?)',
+		sales_channel_id_bin, stock_location_id_bin)!
+}

@@ -20,6 +20,7 @@
 - [x] Metadata
 - [x] Multi-currency
 - [x] Multi-language
+- [x] Multi-channel
 - [x] Prices
 - [x] Product categories
 - [x] Product variants
@@ -32,7 +33,6 @@
 ### Soon to be implemented
 
 - [ ] Multi-region
-- [ ] Multi-channel
 - [ ] Multi-warehouse
 - [ ] Taxes
 
