@@ -114,43 +114,46 @@ fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannel
 	return sales_channels
 }
 
-fn build_create_sales_channel_query(id_bin []u8, p NewSalesChannelData) !(string, []firebird.Value) {
-	mut col := ['id', 'name']
-	mut params := [firebird.Value(id_bin), p.name]
-	if p.description != '' {
-		col = arrays.concat(col, 'description')
-		params = arrays.concat(params, p.description)
-	}
-	if p.is_disabled {
-		col = arrays.concat(col, 'is_disabled')
-		params = arrays.concat(params, p.is_disabled)
+fn model_sales_channel_create(mut tx firebird.Transaction, sales_channel_id_bin []u8, p SalesChannelRequest) ! {
+	mut columns := ['id', 'name']
+	mut params := [firebird.Value(sales_channel_id_bin), p.name]
+
+	if description := p.description {
+		columns = arrays.concat(columns, 'description')
+		params = arrays.concat(params, description)
 	}
 
-	query := 'INSERT INTO sales_channel (${get_columns(col)}) VALUES (${get_placeholders(col)})'
+	if is_disabled := p.is_disabled {
+		columns = arrays.concat(columns, 'is_disabled')
+		params = arrays.concat(params, is_disabled)
+	}
 
-	return query, params
+	tx.execute('INSERT INTO sales_channel (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
+		...params)!
 }
 
-fn (mut app App) create_sales_channel(p NewSalesChannelData) !(string, []u8) {
-	id, id_bin := app.new_id()
-	query, params := build_create_sales_channel_query(id_bin, p)!
-	mut tx := app.start_transaction()!
-	tx.execute(query, ...params)!
-	tx.commit()!
-	return id, id_bin
-}
+fn model_sales_channel_update(mut tx firebird.Transaction, sales_channel_id_bin []u8, p SalesChannelUpdateRequest) ! {
+	mut columns := []string{}
+	mut params := []firebird.Value{}
 
-fn (mut app App) update_sales_channel(id string, p NewSalesChannelData) ! {
-	id_bin := id_string_to_bin(id)!
-	mut tx := app.start_transaction()!
-	tx.execute('UPDATE sales_channel SET 
-		name = ?
-		description = ?
-		is_disabled = ?
-		WHERE id = ?',
-		p.name, p.is_disabled, p.description, id_bin)!
-	tx.commit()!
-	return
+	if name := p.name {
+		columns = arrays.concat(columns, 'name')
+		params = arrays.concat(params, name)
+	}
+
+	if description := p.description {
+		columns = arrays.concat(columns, 'description')
+		params = arrays.concat(params, description)
+	}
+
+	if is_disabled := p.is_disabled {
+		columns = arrays.concat(columns, 'is_disabled')
+		params = arrays.concat(params, is_disabled)
+	}
+
+	params = arrays.concat(params, sales_channel_id_bin)
+
+	tx.execute('UPDATE sales_channel ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }
 
 fn (mut app App) delete_sales_channel(id string) ! {

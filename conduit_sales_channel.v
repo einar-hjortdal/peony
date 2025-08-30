@@ -2,6 +2,44 @@ module peony
 
 import veb
 
+fn conduit_sales_channel_create(mut app App, mut ctx Context, p SalesChannelRequest) veb.Result {
+	_, sales_channel_id_bin := app.new_id()
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_sales_channel_create(mut tx, sales_channel_id_bin, p) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not create sales_channel', err.msg())
+	}
+
+	tx.commit() or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, error_transaction_rollback, err.msg())
+	}
+
+	return success(mut ctx)
+}
+
+fn conduit_sales_channel_update(mut app App, mut ctx Context, sales_channel_id_bin []u8, p SalesChannelUpdateRequest) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_sales_channel_update(mut tx, sales_channel_id_bin, p) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not create sales_channel', err.msg())
+	}
+
+	tx.commit() or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, error_transaction_rollback, err.msg())
+	}
+
+	return success(mut ctx)
+}
+
 fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannelsParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

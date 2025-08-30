@@ -29,10 +29,16 @@ struct StoreRequestHygienised {
 	currency_codes                ?[]string
 }
 
-struct NewSalesChannelData {
+struct SalesChannelRequest {
 	name        string
-	description string @[omitempty]
-	is_disabled bool   @[json: 'isDisabled'; omitempty]
+	description ?string
+	is_disabled ?bool @[json: 'isDisabled']
+}
+
+struct SalesChannelUpdateRequest {
+	name        ?string
+	description ?string
+	is_disabled ?bool @[json: 'isDisabled']
 }
 
 struct NewUserData {

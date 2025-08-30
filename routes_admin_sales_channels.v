@@ -47,31 +47,36 @@ pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_
 // creates a sales channel
 @['/admin/sales-channels'; post]
 pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
-	data := json.decode(NewSalesChannelData, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode NewSalesChannelData', err.msg())
+	p := json.decode(SalesChannelRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode SalesChannelRequest', err.msg())
 	}
 
-	id, _ := app.create_sales_channel(data) or {
-		return handle_error_500(mut ctx, 'Could not create sales channel', err.msg())
+	if p.name == '' {
+		return handle_error_400(mut ctx, 'name is required', 'name is empty')
 	}
 
-	return app.admin_sales_channels_id_get(mut ctx, id)
+	return conduit_sales_channel_create(mut app, mut ctx, p)
 }
 
 // updates a sales channel
 @['/admin/sales-channels/:sales_channel_id'; post]
 pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel_id string) veb.Result {
-	p := NewSalesChannelData{
-		name:        ctx.query['name']
-		description: ctx.query['description']
-		is_disabled: parse_bool(ctx.query['is_disabled'])
+	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
 	}
 
-	app.update_sales_channel(sales_channel_id, p) or {
-		return handle_error_500(mut ctx, 'Could not update sales channel data', err.msg())
+	p := json.decode(SalesChannelUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode SalesChannelUpdateRequest',
+			err.msg())
 	}
 
-	return app.admin_sales_channels_id_get(mut ctx, sales_channel_id)
+	if name := p.name {
+		if name == '' {
+			return handle_error_400(mut ctx, 'name is required', 'name is empty')
+		}
+	}
+
+	return conduit_sales_channel_update(mut app, mut ctx, sales_channel_id_bin, p)
 }
 
 // deletes a sales channel
