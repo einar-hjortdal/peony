@@ -3,6 +3,7 @@ module peony
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
+const current_timestamp = 'CURRENT_TIMESTAMP'
 const order_asc = 'ASC'
 const order_desc = 'DESC'
 const default_offset = 0
@@ -127,14 +128,10 @@ fn id_bin_to_string(id_bin []u8) !string {
 	return luuid.from_bytes(id_bin)
 }
 
-fn new_id(mut g luuid.Generator) (string, []u8) {
-	id_string := g.v1().to_upper()
+fn (mut app App) new_id() (string, []u8) {
+	id_string := app.luuid_generator.v1().to_upper()
 	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
 	return id_string, id_bin
-}
-
-fn (mut app App) new_id() (string, []u8) {
-	return new_id(mut app.luuid_generator)
 }
 
 // https://github.com/vlang/v/issues/24757

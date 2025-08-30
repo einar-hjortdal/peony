@@ -379,6 +379,21 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 	return success(mut ctx)
 }
 
+fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_product_delete(mut tx, product_id_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to delete product', err.msg())
+	}
+
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	return success(mut ctx)
+}
+
 fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph []ProductOptionTranslationDataHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

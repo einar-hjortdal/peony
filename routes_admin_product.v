@@ -141,12 +141,12 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 }
 
 // deletes a product
-@['/admin/products/:id'; delete]
-pub fn (mut app App) admin_products_id_delete(mut ctx Context, id string) veb.Result {
-	app.delete_product(id) or {
-		return handle_error_500(mut ctx, 'Failed to delete product', err.msg())
+@['/admin/products/:product_id'; delete]
+pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
 	}
-	return ctx.json(new_peony_success())
+	return conduit_product_delete(mut app, mut ctx, product_id_bin)
 }
 
 // creates a product variant

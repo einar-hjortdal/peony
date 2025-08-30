@@ -31,42 +31,6 @@ mut:
 	// tags         []Tag
 }
 
-fn do_retrieve_products__option_values(mut tx firebird.Transaction, po []ProductOption) ![]ProductOptionValue {
-	mut option_ids_bin := [][]u8{}
-	for i := 0; i < po.len; i++ {
-		option_ids_bin = arrays.concat(option_ids_bin, po[i].id_bin)
-	}
-
-	option_values := model_product_option_values_retrieve(mut tx, option_ids_bin)!
-
-	if option_values.len == 0 {
-		return option_values
-	}
-
-	mut product_option_values_ids_bin := [][]u8{len: option_values.len}
-	mut option_values_map := map[string]ProductOptionValue{}
-	for i := 0; i < option_values.len; i++ {
-		product_option_values_ids_bin[i] = option_values[i].id_bin
-		option_value_id := option_values[i].id
-		option_values_map[option_value_id] = option_values[i]
-	}
-
-	translations := model_product_option_value_translations_retrieve(mut tx, product_option_values_ids_bin)!
-	for i := 0; i < translations.len; i++ {
-		option_value_id := translations[i].product_option_value_id
-		option_values_map[option_value_id].translations = arrays.concat(option_values_map[option_value_id].translations,
-			translations[i])
-	}
-
-	mut result_option_values := []ProductOptionValue{len: option_values.len}
-	for i := 0; i < option_values.len; i++ {
-		option_value_id := option_values[i].id
-		result_option_values[i] = option_values_map[option_value_id]
-	}
-
-	return result_option_values
-}
-
 fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
@@ -243,48 +207,6 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 	return products
 }
 
-fn (mut app App) do_create_product_translations(mut tx firebird.Transaction, product_id_bin []u8, translations []ProductTranslationRequest) ! {
-	c := [
-		'product_id',
-		'locale_id',
-		'title',
-		'subtitle',
-		'description',
-	]
-	mut stmt := tx.prepare('INSERT INTO product_translations (${get_columns(c)}) 
-		VALUES (${get_placeholders(c)})')!
-
-	p := [firebird.Value(product_id_bin)]
-	for i := 0; i < translations.len; i++ {
-		locale_id_bin := id_string_to_bin(translations[i].locale_id)! // TODO validate in controller
-		mut params := arrays.concat(p, locale_id_bin)
-		if title := translations[i].title {
-			params = arrays.concat(params, title)
-		} else {
-			params = arrays.concat(params, firebird.Null{})
-		}
-
-		if subtitle := translations[i].subtitle {
-			params = arrays.concat(params, subtitle)
-		} else {
-			params = arrays.concat(params, firebird.Null{})
-		}
-
-		if description := translations[i].description {
-			params = arrays.concat(params, description)
-		} else {
-			params = arrays.concat(params, firebird.Null{})
-		}
-
-		stmt.execute(...params) or {
-			stmt.close()!
-			return err
-		}
-	}
-
-	stmt.close()!
-}
-
 fn model_product_create(mut tx firebird.Transaction, product_id string, product_id_bin []u8, ph ProductRequestHygienised) ! {
 	mut c := ['id']
 	mut params := [firebird.Value(product_id_bin)]
@@ -335,6 +257,7 @@ fn model_product_create(mut tx firebird.Transaction, product_id string, product_
 		...params)!
 }
 
+// TODO set updated_at = current_timestamp
 fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph ProductRequestHygienised) ! {
 	mut c := []string{}
 	mut params := []firebird.Value{}
@@ -384,9 +307,6 @@ fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph Pro
 	tx.execute(query, ...params)!
 }
 
-fn (mut app App) delete_product(id string) ! {
-	id_bin := id_string_to_bin(id)!
-	mut tx := app.start_transaction()!
-	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
-	tx.commit()!
+fn model_product_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
+	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', product_id_bin)!
 }
