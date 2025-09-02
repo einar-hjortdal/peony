@@ -18,9 +18,9 @@
 
 - [x] Inventory items
 - [x] Metadata
+- [x] Multi-channel
 - [x] Multi-currency
 - [x] Multi-language
-- [x] Multi-channel
 - [x] Prices
 - [x] Product categories
 - [x] Product variants
@@ -35,6 +35,7 @@
 - [ ] Multi-region
 - [ ] Multi-warehouse
 - [ ] Taxes
+- [ ] Cache
 
 ### To be implement
 
@@ -48,8 +49,7 @@
 - [ ] Product collections
 - [ ] Product bundles
 - [ ] Posts
-- [ ] Pages
-- [ ] Tags
+- [ ] Post tags
 - [ ] Customer
 - [ ] Cart
 - [ ] Orders
@@ -57,7 +57,6 @@
 - [ ] User permissions
 - [ ] Variant images
 - [ ] API keys
-- [ ] Cache
 
 ### Modules:
 
