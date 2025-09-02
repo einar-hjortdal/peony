@@ -3,7 +3,10 @@ module peony
 import crypto.hmac
 import crypto.sha256
 import json
+import log
 import net.http
+
+const blobly_blobs_dirname = 'peony'
 
 pub struct Blobly {
 	url        string
@@ -11,15 +14,15 @@ pub struct Blobly {
 	secret_key string
 }
 
-pub fn new_provider_blob_blobly(url string, access_key string, secret_key string) Blobly {
-	return Blobly{
+pub fn new_provider_blob_blobly(url string, access_key string, secret_key string) !&Blobly {
+	bp := &Blobly{
 		url:        url
 		access_key: access_key
 		secret_key: secret_key
 	}
+	bp.init()!
+	return bp
 }
-
-const blobly_dirname = 'peony'
 
 struct BloblyError {
 	message string
@@ -32,6 +35,10 @@ struct BloblySuccess {
 	file_name_compressed string @[omitempty]
 }
 
+struct BloblyEntries {
+	entries []string
+}
+
 fn (b Blobly) new_signed_http_request(method http.Method, url string, data string) !http.Request {
 	signature := hmac.new(b.secret_key.bytes(), b.access_key.bytes(), sha256.sum, sha256.block_size)
 	header_content := '${b.access_key}$${signature.bytestr()}'
@@ -40,9 +47,39 @@ fn (b Blobly) new_signed_http_request(method http.Method, url string, data strin
 	return request
 }
 
-// TODO need to call create directory first.
+fn (b Blobly) blobs_dir_exist() !bool {
+	url := '${b.url}/api/directories'
+	request := b.new_signed_http_request(http.Method.get, url, '')!
+	response := request.do()!
+	if response.status_code != 200 {
+		return error(response.body)
+	}
+
+	body := json.decode(BloblyEntries, response.body)!
+	return body.entries.contains(blobly_blobs_dirname)
+}
+
+fn (b Blobly) create_blobs_dir() ! {
+	url := '${b.url}/api/files/${blobly_blobs_dirname}'
+	request := b.new_signed_http_request(http.Method.post, url, '')!
+	response := request.do()!
+	if response.status_code != 200 {
+		return error(response.body)
+	}
+}
+
+fn (b Blobly) init() ! {
+	if b.blobs_dir_exist()! {
+		log.info('[provider_blob_blobly] ready')
+	} else {
+		log.info('[provider_blob_blobly] creating directory')
+		b.create_blobs_dir()!
+	}
+}
+
+// fulfill BlobProvider interface
 fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
-	url := '${b.url}/api/files/${blobly_dirname}/${f.filename}'
+	url := '${b.url}/api/files/${blobly_blobs_dirname}/${f.filename}'
 	request := b.new_signed_http_request(http.Method.post, url, f.data)!
 	response := request.do()!
 
@@ -63,7 +100,7 @@ fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
 }
 
 fn (b Blobly) delete(filename string) ! {
-	url := '${b.url}/api/files/${blobly_dirname}/${filename}'
+	url := '${b.url}/api/files/${blobly_blobs_dirname}/${filename}'
 	request := b.new_signed_http_request(http.Method.delete, url, '')!
 	response := request.do()!
 	if response.status_code == 200 {

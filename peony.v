@@ -14,11 +14,11 @@ import einar_hjortdal.sessions
 @[heap]
 pub struct App {
 	veb.Middleware[Context]
-	blob_provider BlobProvider
-	// tax_provider TaxProvider
-	// email_provider EmailProvider
-	// payment_providers []PaymentProvider
-	// fulfillment_providers []FulfillmentProvider
+	blob_provider &BlobProvider
+	// tax_provider &TaxProvider
+	// email_provider &EmailProvider
+	// payment_providers []&PaymentProvider
+	// fulfillment_providers []&FulfillmentProvider
 mut:
 	luuid_generator &luuid.Generator
 	firebird        &firebird.Connection
@@ -44,7 +44,7 @@ fn set_log_level() {
 }
 
 // returns the initialized peony App, you can register your custom veb middleware on it.
-pub fn new_peony_app(blob_provider BlobProvider) &App {
+pub fn new_peony_app(blob_provider &BlobProvider) &App {
 	load_settings()
 	set_log_level()
 
