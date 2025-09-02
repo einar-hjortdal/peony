@@ -71,6 +71,16 @@ fn assign_product_images(product_images []ProductImage, mut products_map map[str
 	}
 }
 
+fn assign_product_categories(product_category_product []ProductCategoryProduct, product_category_map map[string]ProductCategory, mut products_map map[string]Product) {
+	for i := 0; i < product_category_product.len; i++ {
+		product_id := product_category_product[i].product_id
+		product_category_id := product_category_product[i].product_category_id
+		product_category := product_category_map[product_category_id]
+		old := products_map[product_id].categories
+		products_map[product_id].categories = arrays.concat(old, product_category)
+	}
+}
+
 fn assign_product_sales_channels(product_sales_channels []ProductSalesChannel, sales_channels_map map[string]SalesChannel, mut products_map map[string]Product) {
 	for i := 0; i < product_sales_channels.len; i++ {
 		product_id := product_sales_channels[i].product_id
@@ -126,6 +136,10 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 		products_map)
 
 	assign_product_translations(products_data.product_translations, mut products_map)
+
+	product_category_map := make_product_category_map(products_data.product_categories)
+	assign_product_categories(products_data.product_category_product, product_category_map, mut
+		products_map)
 
 	assign_product_images(products_data.product_images, mut products_map)
 

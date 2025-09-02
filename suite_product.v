@@ -43,7 +43,6 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	product_category_product := model_product_category_product_retrieve(mut tx, pcpp) or {
 		return new_internal_error('Failed to retrieve product_category_product', err.msg())
 	}
-	// TODO category translations
 
 	pcp := ProductCategoryParamsRetrieveHygienised{
 		product_ids:     ZeroArrayString{
@@ -54,6 +53,7 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	product_categories := model_product_category_retrieve(mut tx, pcp) or {
 		return new_internal_error('Failed to retrieve product_category', err.msg())
 	}
+	// TODO category translations
 
 	product_images := model_product_image_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_image', err.msg())
