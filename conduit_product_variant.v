@@ -63,17 +63,22 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 	}
 
 	// rebuild array using same sorting as original array
-	mut complete_variants := []ProductVariant{len: product_variants.len}
+	mut complete_product_variants := []ProductVariant{len: product_variants.len}
 	for i := 0; i < product_variants.len; i++ {
 		id := product_variants[i].id
-		complete_variants[i] = variant_map[id]
+		complete_product_variants[i] = variant_map[id]
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	mut external_variants := []ProductVariantResponse{len: complete_variants.len}
-	for i := 0; i < complete_variants.len; i++ {
-		external_variants[i] = format_product_variant_response_admin(complete_variants[i]) or {
+	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
+		product_variants: complete_product_variants
+	})
+
+	mut external_variants := []ProductVariantResponse{len: complete_product_variants.len}
+	for i := 0; i < complete_product_variants.len; i++ {
+		external_variants[i] = format_product_variant_response_admin(complete_product_variants[i],
+			product_variants_availability) or {
 			log.error('Failed to format ProductVariantResponse: ${err}')
 			return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 		}
@@ -129,7 +134,11 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	external_variant := format_product_variant_response_admin(product_variant) or {
+	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
+		product_variants: [product_variant]
+	})
+
+	external_variant := format_product_variant_response_admin(product_variant, product_variants_availability) or {
 		log.error('Failed to format ProductVariantResponse: ${err}')
 		return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 	}
