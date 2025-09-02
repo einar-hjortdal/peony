@@ -516,23 +516,23 @@ fn format_inventory_level_response(v InventoryLevel) InventoryLevelResponse {
 
 struct InventoryItemResponse {
 	id                string
-	created_at        time.Time @[json: 'createdAt']
-	updated_at        time.Time @[json: 'updatedAt']
-	deleted_at        time.Time @[json: 'deletedAt'; omitempty]
-	variant_id        string
-	sku               string @[omitempty]
-	origin_country    string @[omitempty]
-	hs_code           string @[omitempty]
-	mid_code          string @[omitempty]
-	material          string @[omitempty]
-	weight            i32    @[omitempty]
-	length            i32    @[omitempty]
-	height            i32    @[omitempty]
-	width             i32    @[omitempty]
-	requires_shipping bool
-	manage_inventory  bool
-	allow_backorder   bool
-	inventory_levels  []InventoryLevelResponse
+	created_at        time.Time                @[json: 'createdAt']
+	updated_at        time.Time                @[json: 'updatedAt']
+	deleted_at        time.Time                @[json: 'deletedAt'; omitempty]
+	variant_id        string                   @[json: 'variantId']
+	sku               string                   @[omitempty]
+	origin_country    string                   @[json: 'originCountry'; omitempty]
+	hs_code           string                   @[json: 'hsCode'; omitempty]
+	mid_code          string                   @[json: 'midCode'; omitempty]
+	material          string                   @[omitempty]
+	weight            i32                      @[omitempty]
+	length            i32                      @[omitempty]
+	height            i32                      @[omitempty]
+	width             i32                      @[omitempty]
+	requires_shipping bool                     @[json: 'requiresShipping']
+	manage_inventory  bool                     @[json: 'manageInventory']
+	allow_backorder   bool                     @[json: 'allowBackorder']
+	inventory_levels  []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
 }
 
 fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
@@ -640,7 +640,7 @@ struct SalesChannelResponse {
 	deleted_at  time.Time @[json: 'deletedAt'; omitempty]
 	name        string
 	description string @[omitempty]
-	is_disabled bool
+	is_disabled bool   @[json: 'isDisabled']
 }
 
 fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
