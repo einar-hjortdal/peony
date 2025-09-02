@@ -19,6 +19,8 @@ pub fn new_provider_blob_blobly(url string, access_key string, secret_key string
 	}
 }
 
+const blobly_dirname = 'peony'
+
 struct BloblyError {
 	message string
 	details string
@@ -38,8 +40,10 @@ fn (b Blobly) new_signed_http_request(method http.Method, url string, data strin
 	return request
 }
 
+// TODO need to call create directory first.
 fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
-	request := b.new_signed_http_request(http.Method.post, '${b.url}/${f.filename}', f.data)!
+	url := '${b.url}/api/files/${blobly_dirname}/${f.filename}'
+	request := b.new_signed_http_request(http.Method.post, url, f.data)!
 	response := request.do()!
 
 	if response.status_code == 200 {
@@ -58,8 +62,9 @@ fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
 	return error(data.message)
 }
 
-fn (b Blobly) delete(f string) ! {
-	request := b.new_signed_http_request(http.Method.delete, '${b.url}/${f}', '')!
+fn (b Blobly) delete(filename string) ! {
+	url := '${b.url}/api/files/${blobly_dirname}/${filename}'
+	request := b.new_signed_http_request(http.Method.delete, url, '')!
 	response := request.do()!
 	if response.status_code == 200 {
 		return
