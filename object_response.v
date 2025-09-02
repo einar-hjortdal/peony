@@ -603,6 +603,7 @@ fn format_product_variant_response(v ProductVariant, p Prices, product_variants_
 		updated_at:   v.updated_at.Time
 		deleted_at:   v.deleted_at.value.Time
 		product_id:   v.product_id
+		title:        v.title.value
 		barcode:      v.barcode.value
 		ean:          v.ean.value
 		upc:          v.upc.value

@@ -13,7 +13,6 @@ const uploads_field_name = 'files'
 
 // upload files to the file provider
 // accepts `multipart/form-data` payloads, files should be put in the 'files' field.
-// This endpoint is broken because of a bug in veb: https://github.com/vlang/v/issues/24975
 @['/admin/uploads'; post]
 pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
@@ -56,9 +55,7 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	return ctx.json(r)
 }
 
-// workaround https://github.com/vlang/v/issues/24975
 // uploads one file to the file provider
-// Also broken https://github.com/vlang/v/issues/25191
 @['/admin/uploads/:filename'; post]
 pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {

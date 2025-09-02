@@ -238,7 +238,7 @@ fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p
 		params = arrays.concat(params, metadata)
 	}
 
-	query = appendln(query, get_set_columns(columns))
+	query = appendln(query, get_set_columns_with_updated_at(columns))
 	query = appendln(query, 'WHERE id = ?')
 	params = arrays.concat(params, variant_id_bin)
 

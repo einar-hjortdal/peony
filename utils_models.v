@@ -3,7 +3,6 @@ module peony
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
-const current_timestamp = 'CURRENT_TIMESTAMP'
 const order_asc = 'ASC'
 const order_desc = 'DESC'
 const default_offset = 0
@@ -33,6 +32,10 @@ fn get_set_columns(c []string) string {
 		res[i] = '${c[i]} = ?'
 	}
 	return res.join(', ')
+}
+
+fn get_set_columns_with_updated_at(c []string) string {
+	return 'updated_at = CURRENT_TIMESTAMP, ${get_set_columns(c)}'
 }
 
 fn get_n_placeholders(n i32) string {
