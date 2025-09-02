@@ -328,6 +328,7 @@ struct ProductCategoryParamsRetrieve {
 	handles             ZeroArrayString
 	is_active           ZeroBool
 	is_internal         ZeroBool
+	product_ids         ZeroArrayString
 	parent_category_ids ZeroArrayString
 	with_deleted        ZeroBool
 	offset              ZeroI32
@@ -341,6 +342,7 @@ fn extract_retrieve_product_category_params(m map[string]string) ProductCategory
 		handles:             zero_array_string(m, 'handle')
 		is_active:           zero_bool(m, 'is_active')
 		is_internal:         zero_bool(m, 'is_internal')
+		product_ids:         zero_array_string(m, 'product_ids')
 		parent_category_ids: zero_array_string(m, 'parent_category_id')
 		with_deleted:        zero_bool(m, 'with_deleted')
 		offset:              zero_i32(m, 'offset')
@@ -355,6 +357,8 @@ struct ProductCategoryParamsRetrieveHygienised {
 	handles                 ZeroArrayString
 	is_active               ZeroBool
 	is_internal             ZeroBool
+	product_ids             ZeroArrayString
+	product_ids_bin         [][]u8
 	parent_category_ids     ZeroArrayString
 	parent_category_id_bins [][]u8
 	with_deleted            ZeroBool

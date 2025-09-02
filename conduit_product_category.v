@@ -8,13 +8,26 @@ fn conduit_product_category_list(mut app App, mut ctx Context, ph ProductCategor
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	internal_product_categories, count := model_product_category_get(mut tx, ph) or {
+	count := model_product_category_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category from database',
+		return handle_error_500(mut ctx, 'Could not retrieve product_category count',
 			err.msg())
 	}
 
-	// TODO use references to internal_product_categories to modify array elements in-place
+	if count == 0 {
+		return ctx.json(ProductCategoryResponseListEnvelope{
+			product_categories: []ProductCategoryResponse{}
+			count:              count
+			offset:             get_offset_amount(ph.offset)
+			fetch:              ph.fetch.v
+		})
+	}
+
+	internal_product_categories := model_product_category_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
+	}
+
 	mut ipc_map := map[string]ProductCategory{}
 	mut ipc_ids := []string{len: internal_product_categories.len}
 	mut ipc_ids_bin := [][]u8{len: internal_product_categories.len}
@@ -52,14 +65,12 @@ fn conduit_product_category_list(mut app App, mut ctx Context, ph ProductCategor
 		external_product_categories[i] = format_product_category_response(ipc[i])
 	}
 
-	r := ProductCategoryResponseListEnvelope{
+	return ctx.json(ProductCategoryResponseListEnvelope{
 		product_categories: external_product_categories
 		count:              count
 		offset:             get_offset_amount(ph.offset)
 		fetch:              ph.fetch.v
-	}
-
-	return ctx.json(r)
+	})
 }
 
 fn conduit_product_category_create(mut app App, mut ctx Context, ph ProductCategoryRequestHygienised, pcth []ProductCategoryTranslationRequestHygienised) veb.Result {

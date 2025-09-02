@@ -5,14 +5,16 @@ import einar_hjortdal.firebird
 struct SuiteProductData {
 	SuiteProductOptionData
 	SuiteProductVariantData
-	product_options         []ProductOption
-	product_option_ids_bin  [][]u8
-	product_translations    []ProductTranslation
-	product_images          []ProductImage
-	product_sales_channels  []ProductSalesChannel
-	sales_channels          []SalesChannel
-	product_variants        []ProductVariant
-	product_variant_ids_bin [][]u8
+	product_options          []ProductOption
+	product_option_ids_bin   [][]u8
+	product_translations     []ProductTranslation
+	product_category_product []ProductCategoryProduct
+	product_categories       []ProductCategory
+	product_images           []ProductImage
+	product_sales_channels   []ProductSalesChannel
+	sales_channels           []SalesChannel
+	product_variants         []ProductVariant
+	product_variant_ids_bin  [][]u8
 mut:
 	product_options_map  map[string]ProductOption
 	product_variants_map map[string]ProductVariant
@@ -33,6 +35,24 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 
 	product_translations := model_product_translation_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_translation', err.msg())
+	}
+
+	pcpp := ProductCategoryProductRetrieveParams{
+		product_ids_bin: product_ids_bin
+	}
+	product_category_product := model_product_category_product_retrieve(mut tx, pcpp) or {
+		return new_internal_error('Failed to retrieve product_category_product', err.msg())
+	}
+	// TODO category translations
+
+	pcp := ProductCategoryParamsRetrieveHygienised{
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: product_ids_bin
+	}
+	product_categories := model_product_category_retrieve(mut tx, pcp) or {
+		return new_internal_error('Failed to retrieve product_category', err.msg())
 	}
 
 	product_images := model_product_image_retrieve(mut tx, product_ids_bin) or {
@@ -61,17 +81,19 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)!
 
 	return SuiteProductData{
-		SuiteProductOptionData:  product_options_data
-		SuiteProductVariantData: variants_data
-		product_options:         product_options
-		product_options_map:     product_options_map
-		product_option_ids_bin:  product_option_ids_bin
-		product_translations:    product_translations
-		product_images:          product_images
-		product_sales_channels:  product_sales_channels
-		sales_channels:          sales_channels
-		product_variants:        product_variants
-		product_variants_map:    product_variants_map
-		product_variant_ids_bin: product_variant_ids_bin
+		SuiteProductOptionData:   product_options_data
+		SuiteProductVariantData:  variants_data
+		product_options:          product_options
+		product_options_map:      product_options_map
+		product_option_ids_bin:   product_option_ids_bin
+		product_translations:     product_translations
+		product_category_product: product_category_product
+		product_categories:       product_categories
+		product_images:           product_images
+		product_sales_channels:   product_sales_channels
+		sales_channels:           sales_channels
+		product_variants:         product_variants
+		product_variants_map:     product_variants_map
+		product_variant_ids_bin:  product_variant_ids_bin
 	}
 }

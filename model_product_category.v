@@ -173,26 +173,27 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 		...params)!
 }
 
-fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !([]ProductCategory, i64) {
-	mut query := ''
-	mut conditions := []string{}
-	mut params := []firebird.Value{}
-
+fn model_product_category_retrieve_cte(ph ProductCategoryParamsRetrieveHygienised) (string, []firebird.Value) {
 	if ph.parent_category_ids.is_set {
-		query = appendln(query, 'WITH RECURSIVE descendants (id) AS (
+		return 'WITH RECURSIVE descendants (id) AS (
 			SELECT id FROM product_category
 				WHERE parent_category_id IN (${get_placeholders(ph.parent_category_id_bins)})
 			UNION ALL
 			SELECT pc.id
 				FROM product_category pc JOIN descendants d
 				ON pc.parent_category_id = d.id
-			)')
-		params = arrays.concat(params, ...ph.parent_category_id_bins)
+			)', workaround_24757(ph.parent_category_id_bins)
 	}
+	return '', []firebird.Value{}
+}
+
+fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHygienised) (string, []firebird.Value) {
+	mut conditions := []string{}
+	mut params := []firebird.Value{}
 
 	if ph.ids.is_set {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...ph.ids_bin)
+		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
 	if ph.handles.is_set {
@@ -210,22 +211,54 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 		params = arrays.concat(params, ph.is_internal.v)
 	}
 
-	if !ph.with_deleted.is_set || ph.with_deleted.v {
-		conditions = arrays.concat(conditions, 'deleted_at IS NOT NULL')
+	if ph.product_ids.is_set {
+		conditions = arrays.concat(conditions, 'EXISTS (
+		SELECT 1 FROM product_category_product pcp
+		WHERE pcp.product_category_id = product_category.id
+			AND pcp.product_id IN (${get_placeholders(ph.product_ids_bin)})
+		)')
+		params = arrays.concat(params, ...workaround_24757(ph.product_ids_bin))
 	}
 
-	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY created_at ${get_sorting_order(ph.order)},
-		category_rank ${get_sorting_order(ph.order)}')
+	if !ph.with_deleted.is_set || ph.with_deleted.v {
+		conditions = arrays.concat(conditions, 'deleted_at IS NOT NULL')
+	} else {
+		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
+	}
+
+	return get_where_conditions(conditions), params
+}
+
+fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !i64 {
+	cte, cte_params := model_product_category_retrieve_cte(ph)
+	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
+	data := tx.execute(appendln(cte, 'SELECT COUNT(*) FROM product_variant ${conditions}'),
+		...arrays.append(cte_params, conditions_params))!
+	rows := data.rows()
+	values := rows[0].values() // should always return one row
+	count, _ := values[0].get_i64()! // should always return one column
+	return count
+}
+
+fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) ![]ProductCategory {
+	cte, cte_params := model_product_category_retrieve_cte(ph)
+	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
+
+	mut params := arrays.append(cte_params, conditions_params)
+	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)},
+		category_rank ${get_sorting_order(ph.order)}'
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
 		params = arrays.concat(params, ph.offset.v)
 	}
 
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	if ph.fetch.is_set {
+		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+		params = arrays.concat(params, ph.fetch.v)
+	}
 
-	query = appendln(query, 'SELECT
+	data := tx.execute('${cte} SELECT
 		id,
 		created_at,
 		updated_at,
@@ -235,14 +268,11 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 		is_internal,
 		parent_category_id,
 		category_rank,
-		metadata,
-		COUNT(*) OVER()
-		FROM product_category ${get_where_conditions(conditions)}${sorting}')
-
-	data := tx.execute(query, ...params)!
+		metadata
+		FROM product_category ${conditions} ${sorting}',
+		...params)!
 
 	rows := data.rows()
-	mut count := i64(0)
 
 	mut product_categories := []ProductCategory{len: rows.len}
 	for i := 0; i < rows.len; i++ {
@@ -279,13 +309,9 @@ fn model_product_category_get(mut tx firebird.Transaction, ph ProductCategoryPar
 			parent_category_id_bin: parent_category_id_bin
 			metadata:               metadata
 		}
-
-		if i == 0 {
-			count, _ = v[10].get_i64()!
-		}
 	}
 
-	return product_categories, count
+	return product_categories
 }
 
 fn model_product_category_delete(mut tx firebird.Transaction, product_category_id_bin []u8) ! {
@@ -294,6 +320,66 @@ fn model_product_category_delete(mut tx firebird.Transaction, product_category_i
 }
 
 // TODO get tranlsations
+
+struct ProductCategoryProduct {
+	product_category_id     string
+	product_category_id_bin []u8
+	product_id              string
+	product_id_bin          []u8
+}
+
+struct ProductCategoryProductRetrieveParams {
+	product_category_ids_bin [][]u8
+	product_ids_bin          [][]u8
+}
+
+fn model_product_category_product_retrieve(mut tx firebird.Transaction,
+	p ProductCategoryProductRetrieveParams) ![]ProductCategoryProduct {
+	if p.product_category_ids_bin.len == 0 && p.product_ids_bin.len == 0 {
+		return []ProductCategoryProduct{}
+	}
+
+	if p.product_category_ids_bin.len > 0 && p.product_ids_bin.len > 0 {
+		return new_internal_error('received both product_category_ids_bin abd product_ids_bin',
+			'model_product_category_product_retrieve')
+	}
+
+	mut condition := ''
+	mut params := []firebird.Value{}
+	if p.product_category_ids_bin.len > 0 {
+		condition = 'product_category_id'
+		params = workaround_24757(p.product_category_ids_bin)
+	}
+
+	if p.product_ids_bin.len > 0 {
+		condition = 'product_id'
+		params = workaround_24757(p.product_ids_bin)
+	}
+
+	data := tx.execute('SELECT product_category_id, product_id
+		FROM product_category_product WHERE ${condition} IN (${get_placeholders(params)})',
+		...params)!
+
+	rows := data.rows()
+
+	mut product_category_products := []ProductCategoryProduct{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+		product_category_id_bin, _ := v[0].get_array_u8()!
+		product_id_bin, _ := v[1].get_array_u8()!
+
+		product_category_id := id_bin_to_string(product_category_id_bin)!
+		product_id := id_bin_to_string(product_id_bin)!
+
+		product_category_products[i] = ProductCategoryProduct{
+			product_category_id_bin: product_category_id_bin
+			product_category_id:     product_category_id
+			product_id_bin:          product_id_bin
+			product_id:              product_id
+		}
+	}
+	return product_category_products
+}
 
 fn model_product_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
 	mut src := []string{len: category_ids_bin.len}

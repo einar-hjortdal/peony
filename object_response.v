@@ -676,6 +676,7 @@ struct ProductResponse {
 	type_id        string @[json: 'typeId'; omitempty]
 	discountable   bool
 	metadata       string                       @[omitempty]
+	categories     []ProductCategoryResponse    @[omitempty]
 	images         []ProductImageResponse       @[omitempty]
 	options        []ProductOptionResponse      @[omitempty]
 	variants       []ProductVariantResponse     @[omitempty]
