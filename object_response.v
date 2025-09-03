@@ -75,16 +75,6 @@ fn handle_fetch_zero(mut ctx Context) veb.Result {
 	return handle_error_400(mut ctx, 'Requested 0 results', 'fetch cannot be 0')
 }
 
-// count is the number of items, that match the filters, stored in the database.
-// offset is the number of items skipped.
-// fetch is the number of items requested.
-struct ListResponse[T] {
-	items  []T
-	count  i64
-	offset i32
-	fetch  i32 @[omitempty]
-}
-
 struct UserResponse {
 	id         string
 	handle     string
@@ -96,6 +86,10 @@ struct UserResponse {
 	first_name string    @[json: 'firstName'; omitempty]
 	last_name  string    @[json: 'lastName'; omitempty]
 	metadata   string    @[omitempty]
+}
+
+struct UserResponseEnvelope {
+	user UserResponse
 }
 
 fn format_user_response(u User) UserResponse {

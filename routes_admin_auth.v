@@ -9,7 +9,9 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 	user := app.retrieve_user_by_id(ctx.user_session_values.id_bin) or {
 		return handle_error_500(mut ctx, 'Could not retrieve user data', err.msg())
 	}
-	return ctx.json(format_user_response(user))
+	return ctx.json(UserResponseEnvelope{
+		user: format_user_response(user)
+	})
 }
 
 // log in user

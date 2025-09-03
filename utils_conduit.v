@@ -137,7 +137,7 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 
 	assign_product_translations(products_data.product_translations, mut products_map)
 
-	product_category_map := make_product_category_map(products_data.product_categories)
+	product_category_map, _ := make_product_category_map(products_data.product_categories)
 	assign_product_categories(products_data.product_category_product, product_category_map, mut
 		products_map)
 
