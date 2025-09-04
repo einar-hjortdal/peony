@@ -95,7 +95,18 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 
 	mut locales := []Locale{len: locale_rows.len}
 	for i := 0; i < locale_rows.len; i++ {
-		locales[i] = parse_locale(locale_rows[i].values())!
+		v := locale_rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		code, _ := v[1].get_string()!
+
+		id := id_bin_to_string(id_bin)!
+
+		locales[i] = Locale{
+			id:     id
+			id_bin: id_bin
+			code:   code
+		}
 	}
 
 	store.locales = locales
