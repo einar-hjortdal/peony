@@ -95,6 +95,7 @@
 - Consider modularizing price calculation.
 - Consider creating higher order functions to wrap conduit functions to provide tx.
 - Consider independent query for count.
+- Need an alternative strategy on merge statements when source rows > 250
 
 ## Documentation
 

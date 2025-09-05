@@ -21,7 +21,7 @@ fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised)
 	mut conditions := []string{}
 	if ph.ids.is_set {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ph.ids_bin)
+		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
 	if ph.name.is_set {
@@ -40,7 +40,7 @@ fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised)
 			WHERE psc.sales_channel_id = sales_channel.id
 				AND product_id IN (${get_placeholders(ph.product_ids_bin)})
 			)')
-		params = arrays.concat(params, ph.product_ids_bin)
+		params = arrays.concat(params, ...workaround_24757(ph.product_ids_bin))
 	}
 
 	return get_where_conditions(conditions), params
