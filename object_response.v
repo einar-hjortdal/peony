@@ -670,6 +670,9 @@ struct ProductResponse {
 	type_id        string @[json: 'typeId'; omitempty]
 	discountable   bool
 	metadata       string                       @[omitempty]
+	title          string                       @[omitempty]
+	subtitle       string                       @[omitempty]
+	description    string                       @[omitempty]
 	categories     []ProductCategoryResponse    @[omitempty]
 	images         []ProductImageResponse       @[omitempty]
 	options        []ProductOptionResponse      @[omitempty]
@@ -740,6 +743,9 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		type_id:        type_id
 		discountable:   p.discountable
 		metadata:       p.metadata.value
+		title:          p.title.value
+		subtitle:       p.subtitle.value
+		description:    p.description.value
 		images:         images
 		options:        options
 		variants:       variants

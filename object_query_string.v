@@ -229,6 +229,7 @@ struct RetrieveProductParams {
 	fetch             ZeroI32
 	order             ZeroString
 	cart_id           ZeroString
+	locale_id         ZeroString
 }
 
 fn extract_retrieve_admin_products_params(m map[string]string) RetrieveProductParams {
@@ -248,6 +249,7 @@ fn extract_retrieve_admin_products_params(m map[string]string) RetrieveProductPa
 		tag_ids:           zero_array_string(m, 'tag_id')
 		title:             zero_string(m, 'title')
 		type_ids:          zero_array_string(m, 'type_id')
+		locale_id:         zero_string(m, 'locale_id')
 	}
 }
 
@@ -280,6 +282,8 @@ struct RetrieveProductParamsHygienised {
 	order                 ZeroString
 	cart_id               ZeroString
 	cart_id_bin           []u8
+	locale_id             ZeroString
+	locale_id_bin         []u8
 }
 
 fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductParams {
@@ -302,6 +306,7 @@ fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductPa
 		tag_ids:           zero_array_string(m, 'tag_id')
 		title:             zero_string(m, 'title')
 		type_ids:          zero_array_string(m, 'type_id')
+		locale_id:         zero_string(m, 'locale_id')
 	}
 }
 
@@ -317,6 +322,7 @@ fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string s
 		ids:               id
 		region_id:         zero_string(m, 'region_id')
 		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
+		locale_id:         zero_string(m, 'locale_id')
 	}
 }
 

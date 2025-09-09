@@ -27,6 +27,10 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Invalid sales_channel_id', err.msg())
 	}
 
+	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
+		return handle_error_400(mut ctx, 'Invalid locale_id', err.msg())
+	}
+
 	ph := RetrieveProductParamsHygienised{
 		ids:            p.ids
 		ids_bin:        ids_bin
@@ -56,6 +60,8 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		order:                 p.order
 		cart_id:               p.cart_id
 		// cart_id_bin:           p.cart_id_bin
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
 	}
 
 	return conduit_products_get(mut app, mut ctx, ph)

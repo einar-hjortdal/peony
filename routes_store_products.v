@@ -10,18 +10,16 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		return handle_fetch_zero(mut ctx)
 	}
 
-	mut cart_id_bin := []u8{}
-	if p.cart_id.is_set {
-		cart_id_bin = id_string_to_bin(p.cart_id.v) or {
-			return handle_error_400(mut ctx, 'Invalid cart id', err.msg())
-		}
+	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
+		return handle_error_400(mut ctx, 'Invalid cart_id', err.msg())
 	}
 
-	mut region_id_bin := []u8{}
-	if p.region_id.is_set {
-		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
-		}
+	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
+		return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
+	}
+
+	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
+		return handle_error_400(mut ctx, 'Invalid locale_id', err.msg())
 	}
 
 	ph := RetrieveProductParamsHygienised{
@@ -29,6 +27,8 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		region_id_bin: region_id_bin
 		cart_id:       p.cart_id
 		cart_id_bin:   cart_id_bin
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
 	}
 
 	return conduit_products_get_store(mut app, mut ctx, ph)
@@ -41,18 +41,16 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Re
 
 	p := extract_retrieve_store_products_by_id_params(ctx.query, id)
 
-	mut cart_id_bin := []u8{}
-	if p.cart_id.is_set {
-		cart_id_bin = id_string_to_bin(p.cart_id.v) or {
-			return handle_error_400(mut ctx, 'Invalid cart id', err.msg())
-		}
+	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
+		return handle_error_400(mut ctx, 'Invalid cart_id', err.msg())
 	}
 
-	mut region_id_bin := []u8{}
-	if p.region_id.is_set {
-		region_id_bin = id_string_to_bin(p.region_id.v) or {
-			return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
-		}
+	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
+		return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
+	}
+
+	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
+		return handle_error_400(mut ctx, 'Invalid locale_id', err.msg())
 	}
 
 	ph := RetrieveProductParamsHygienised{
@@ -62,6 +60,8 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, id string) veb.Re
 		region_id_bin: region_id_bin
 		cart_id:       p.cart_id
 		cart_id_bin:   cart_id_bin
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
 	}
 
 	return conduit_products_get_by_id_store(mut app, mut ctx, ph)

@@ -160,6 +160,9 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	})
 }
 
+// TODO: store endpoints do not need all the data admin endpoints need.
+// do not fetch translations
+// do not fetch sales channels
 fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

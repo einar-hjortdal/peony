@@ -22,8 +22,12 @@ struct Product {
 	type_id_bin       firebird.NullArrayU8
 	discountable      bool
 	metadata          firebird.NullString
+	// from product_translations were locale_id = store.default_locale_id
+	title       firebird.NullString
+	subtitle    firebird.NullString
+	description firebird.NullString
 mut:
-	categories     []ProductCategory // TODO get
+	categories     []ProductCategory
 	images         []ProductImage
 	options        []ProductOption
 	sales_channels []SalesChannel
@@ -37,43 +41,43 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	mut params := []firebird.Value{}
 
 	if !ph.with_deleted.is_set || (ph.with_deleted.is_set && !ph.with_deleted.v) {
-		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
+		conditions = arrays.concat(conditions, 'p.deleted_at IS NULL')
 	}
 
 	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
+		conditions = arrays.concat(conditions, 'p.id IN (${get_placeholders(ph.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
 	if ph.handle.is_set {
-		conditions = arrays.concat(conditions, 'handle = ?')
+		conditions = arrays.concat(conditions, 'p.handle = ?')
 		params = arrays.concat(params, ph.handle.v)
 	}
 
 	if ph.is_giftcard.is_set {
-		conditions = arrays.concat(conditions, 'is_giftcard = ?')
+		conditions = arrays.concat(conditions, 'p.is_giftcard = ?')
 		params = arrays.concat(params, ph.is_giftcard.v)
 	}
 
 	if ph.status.is_set {
-		conditions = arrays.concat(conditions, 'status = ?')
+		conditions = arrays.concat(conditions, 'p.status = ?')
 		params = arrays.concat(params, ph.status.v)
 	}
 
 	if ph.collection_ids.is_set {
-		conditions = arrays.concat(conditions, 'collection_id IN ${get_placeholders(ph.collection_ids_bin)}')
+		conditions = arrays.concat(conditions, 'p.collection_id IN ${get_placeholders(ph.collection_ids_bin)}')
 		params = arrays.concat(params, ...workaround_24757(ph.collection_ids_bin))
 	}
 
 	if ph.type_ids.is_set {
-		conditions = arrays.concat(conditions, 'type_id IN ${get_placeholders(ph.type_ids_bin)}')
+		conditions = arrays.concat(conditions, 'p.type_id IN ${get_placeholders(ph.type_ids_bin)}')
 		params = arrays.concat(params, ...workaround_24757(ph.type_ids_bin))
 	}
 
 	if ph.tag_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM product_tag_product pt
-			WHERE pt.product_id = product.id
+			WHERE pt.product_id = p.id
 				AND pt.tag_id IN (${get_placeholders(ph.tag_ids_bin)})
 			)')
 		params = arrays.concat(params, ...ph.tag_ids_bin)
@@ -82,7 +86,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	if ph.title.is_set {
 		conditions = arrays.concat(conditions, "EXISTS (
 			SELECT 1 FROM product_translations ptr
-			WHERE ptr.product_id = product.id
+			WHERE ptr.product_id = p.id
 				AND UPPER(ptr.title) LIKE UPPER('%' || ? || '%')
 			)")
 		params = arrays.concat(params, ph.title.v)
@@ -91,7 +95,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	if ph.description.is_set {
 		conditions = arrays.concat(conditions, "EXISTS (
 			SELECT 1 FROM product_translations ptr
-			WHERE ptr.product_id = product.id
+			WHERE ptr.product_id = p.id
 				AND UPPER(ptr.description) LIKE UPPER('%' || ? || '%')
 			)")
 		params = arrays.concat(params, ph.description.v)
@@ -100,7 +104,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	if ph.category_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM product_category_product pcp
-			WHERE pcp.product_id = product.id
+			WHERE pcp.product_id = p.id
 				AND pcp.product_category_id IN (${get_placeholders(ph.category_ids_bin)})
 			')
 		params = arrays.concat(params, ...workaround_24757(ph.category_ids_bin))
@@ -119,7 +123,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	if ph.sales_channel_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM product_sales_channel psc
-			WHERE psc.product_id = product.id
+			WHERE psc.product_id = p.id
 				AND sales_channel_id IN (${get_placeholders(ph.sales_channel_ids_bin)})
 			)')
 		params = arrays.concat(params, ...ph.sales_channel_ids_bin)
@@ -130,7 +134,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 
 fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) !i64 {
 	conditions, params := model_product_retrieve_conditions(ph)
-	data := tx.execute('SELECT COUNT(*) FROM product ${conditions}', ...params)!
+	data := tx.execute('SELECT COUNT(*) FROM product p ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
@@ -140,6 +144,12 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) ![]Product {
 	conditions, mut params := model_product_retrieve_conditions(ph)
 	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)}'
+
+	if ph.locale_id.is_set {
+		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin)
+	} else {
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
+	}
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
@@ -152,19 +162,31 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 	}
 
 	data := tx.execute('SELECT
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		handle,
-		is_giftcard,
-		status,
-		thumbnail,
-		collection_id,
-		type_id,
-		discountable,
-		metadata
-		FROM product
+		p.id,
+		p.created_at,
+		p.updated_at,
+		p.deleted_at,
+		p.handle,
+		p.is_giftcard,
+		p.status,
+		p.thumbnail,
+		p.collection_id,
+		p.type_id,
+		p.discountable,
+		p.metadata,
+		COALESCE(pt_requested.title, pt_default.title) AS title,
+		COALESCE(pt_requested.subtitle, pt_default.subtitle) AS subtitle,
+		COALESCE(pt_requested.description, pt_default.description) AS description
+		FROM product p
+		LEFT JOIN product_translations AS pt_default
+			ON pt_default.product_id = p.id
+			AND pt_default.locale_id = (
+				SELECT default_locale_id FROM store
+			)
+		LEFT JOIN product_translations AS pt_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND pt_requested.product_id = p.id
+			AND pt_requested.locale_id = ?
 		${conditions}
 		${sorting}',
 		...params)!
@@ -186,6 +208,9 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		type_id_bin := v[9].get_null_array_u8()!
 		discountable, _ := v[10].get_bool()!
 		metadata := v[11].get_null_string()!
+		title := v[12].get_null_string()!
+		subtitle := v[13].get_null_string()!
+		description := v[14].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
@@ -203,6 +228,9 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 			type_id_bin:       type_id_bin
 			discountable:      discountable
 			metadata:          metadata
+			title:             title
+			subtitle:          subtitle
+			description:       description
 		}
 	}
 	return products
