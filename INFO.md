@@ -6,8 +6,23 @@
 
 #### product_category
 
-A `product_category` allows to categorize `product`. A `product_category` can describe a hierarchical 
-structure thanks to the `parent_category_id` field. The `category_rank` field allows for sorting.
+A `product_category` allows to categorize `product`. A `product` can have many `product_category`. A 
+`product_category` can describe a hierarchical structure thanks to the `parent_category_id` field. The 
+`category_rank` field allows for sorting.
+
+#### product_collection (WIP)
+
+A `collection` is a group of `product`. A `product` can be part of many `collection`. Unlike `product_category`,
+a `collection` is not hierarchical. These are useful to group together products for the purpose of a 
+marketing campaign.
+
+#### product_type (WIP)
+
+A `product_type` is a group of `product`. A `product` can be of one `product_type`. For example: `physical`,
+`digital`, `service`. 
+
+A `product_type` is also used to control the tax rates for all `product` that share it. For example: 
+a shop may need to apply different taxes to all `product` of `product_type` with value `service`.
 
 ### metadata
 
