@@ -69,8 +69,8 @@
 
 ## Changes
 
+- [ ] handle default-locale translations as fields of their entity (join + coalesce queries)
 - [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
-- [ ] Better error handling
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
 
 ## Internals
