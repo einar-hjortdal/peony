@@ -234,7 +234,8 @@ fn model_inventory_item_update(mut tx firebird.Transaction, inventory_item_id_bi
 
 	params = arrays.concat(params, inventory_item_id_bin)
 
-	tx.execute('UPDATE inventory_item ${get_set_columns(columns)} WHERE id = ?', ...params)!
+	tx.execute('UPDATE inventory_item ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
+		...params)!
 }
 
 fn model_inventory_item_delete(mut tx firebird.Transaction, inventory_item_id_bin []u8) ! {

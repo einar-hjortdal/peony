@@ -156,7 +156,8 @@ fn model_sales_channel_update(mut tx firebird.Transaction, sales_channel_id_bin 
 
 	params = arrays.concat(params, sales_channel_id_bin)
 
-	tx.execute('UPDATE sales_channel ${get_set_columns(columns)} WHERE id = ?', ...params)!
+	tx.execute('UPDATE sales_channel ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
+		...params)!
 }
 
 fn (mut app App) delete_sales_channel(id string) ! {

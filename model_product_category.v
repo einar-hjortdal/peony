@@ -169,7 +169,7 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 		params = arrays.concat(params, category_rank)
 	}
 
-	tx.execute('UPDATE product_category SET ${get_set_columns(columns)} WHERE id = ?',
+	tx.execute('UPDATE product_category SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
 }
 

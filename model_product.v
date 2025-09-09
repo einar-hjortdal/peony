@@ -331,7 +331,7 @@ fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph Pro
 		params = arrays.concat(params, metadata)
 	}
 
-	query := 'UPDATE product SET ${get_set_columns(c)} WHERE id = ?'
+	query := 'UPDATE product SET ${get_set_columns_with_updated_at(c)} WHERE id = ?'
 	params = arrays.concat(params, firebird.Value(product_id_bin))
 	tx.execute(query, ...params)!
 }

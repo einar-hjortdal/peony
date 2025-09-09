@@ -201,7 +201,8 @@ fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8
 
 	params = arrays.concat(params, region_id_bin)
 
-	tx.execute('UPDATE region SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
+	tx.execute('UPDATE region SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
+		...params)!
 
 	// workaround_24757
 	if country_codes := d.country_codes {

@@ -167,7 +167,8 @@ fn model_user_update(mut tx firebird.Transaction, id_bin []u8, p UpdateUserData)
 
 	params = arrays.concat(params, id_bin)
 
-	tx.execute('UPDATE app_user SET (${get_set_columns(columns)}) WHERE id = ?', ...params)!
+	tx.execute('UPDATE app_user SET (${get_set_columns_with_updated_at(columns)}) WHERE id = ?',
+		...params)!
 }
 
 fn model_user_delete(mut tx firebird.Transaction, id_bin []u8) ! {
