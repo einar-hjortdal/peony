@@ -84,17 +84,12 @@
 - [ ] Reduce boilerplating
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
+- [ ] Remove `parse_` functions from methods
 
 ## Considerations
 
-- Currently select queries must respect the order of the variables in `parse_` functions, instead consider 
-  rewriting `parse_` functions to check and match column names. This introduces string normalization 
-  and comparison but prevents order-related errors when select queries are modified. Otherwise parse 
-  locally so the order is obvious, or use function parameters instead of an array of values.
 - Consider setting a default region id on store.
-- Consider modularizing price calculation.
 - Consider creating higher order functions to wrap conduit functions to provide tx.
-- Consider independent query for count.
 - Need an alternative strategy on merge statements when source rows > 250
 
 ## Documentation
