@@ -287,6 +287,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 	}
 
 	if products.len == 0 {
+		tx.rollback() or {} // ignore error
 		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
 	}
 
@@ -308,10 +309,10 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
+		tx.rollback() or {} // ignore error
 		if err is InternalError {
 			return handle_error_500(mut ctx, err.message, err.details)
 		} else {
-			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
 				err.msg())
 		}

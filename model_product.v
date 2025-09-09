@@ -142,14 +142,17 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 }
 
 fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) ![]Product {
-	conditions, mut params := model_product_retrieve_conditions(ph)
-	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)}'
-
+	mut params := []firebird.Value{}
 	if ph.locale_id.is_set {
 		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin)
 	} else {
 		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
 	}
+
+	conditions, condition_params := model_product_retrieve_conditions(ph)
+	params = arrays.append(params, condition_params)
+
+	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)}'
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
