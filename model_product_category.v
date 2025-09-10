@@ -13,15 +13,16 @@ struct ProductCategoryTranslation {
 }
 
 fn model_product_category_translations_merge(mut tx firebird.Transaction, product_category_id_bin []u8, ph []ProductCategoryTranslationRequestHygienised) ! {
+	println(ph)
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
-		src[i] = '(
-			CAST(? AS BINARY(16)),
-			CAST(? AS BINARY(16)),
-			CAST(? AS VARCHAR(63))),
-			CAST(? as BLOB SUB_TYPE TEXT
-		)'
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_category_id,
+			CAST(? AS BINARY(16)) AS locale_id,
+			CAST(? AS VARCHAR(63)) AS name,
+			CAST(? as BLOB SUB_TYPE TEXT) AS description
+			FROM RDB\$DATABASE'
 		params[i * 4] = product_category_id_bin
 		params[i * 4 + 1] = ph[i].locale_id_bin
 		params[i * 4 + 2] = ph[i].name
@@ -32,10 +33,10 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 			params[i * 4 + 3] = firebird.Null{}
 		}
 	}
-	params[ph.len] = product_category_id_bin
+	params[ph.len * 4] = product_category_id_bin
 
 	tx.execute('MERGE INTO product_category_translations t
-		USING (VALUES ${src.join(',')}) s (product_category_id, locale_id, name)
+		USING (${get_merge_source(src)}) s
 		ON (t.product_category_id = s.product_category_id AND t.locale_id = s.locale_id)
 		WHEN MATCHED THEN
 			UPDATE SET name = s.name
@@ -48,7 +49,8 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 }
 
 fn model_product_category_translations_get(mut tx firebird.Transaction, product_category_ids_bin [][]u8) ![]ProductCategoryTranslation {
-	data := tx.execute('SELECT product_category_id, locale_id, name, description FROM product_category_translations
+	data := tx.execute('SELECT product_category_id, locale_id, name, description
+		FROM product_category_translations
 		WHERE product_category_id IN (${get_placeholders(product_category_ids_bin)})',
 		workaround_24757(product_category_ids_bin))!
 

@@ -84,7 +84,6 @@ pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	println('pass')
 	return conduit_product_category_create(mut app, mut ctx, ph, pcth)
 }
 
