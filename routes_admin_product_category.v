@@ -51,6 +51,10 @@ pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Translations missing', 'Provide at least one translation')
 	}
 
+	if translations.len == 1 {
+		// TODO verify it is default locale
+	}
+
 	mut parent_category_id_bin := []u8{}
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
@@ -68,7 +72,7 @@ pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 	}
 
 	mut pcth := []ProductCategoryTranslationRequestHygienised{len: translations.len}
-	for i := 0; translations.len; i++ {
+	for i := 0; i < translations.len; i++ {
 		translation := translations[i]
 		locale_id_bin := id_string_to_bin(translation.locale_id) or {
 			return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
@@ -80,6 +84,7 @@ pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 		}
 	}
 
+	println('pass')
 	return conduit_product_category_create(mut app, mut ctx, ph, pcth)
 }
 

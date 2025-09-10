@@ -22,10 +22,9 @@ struct Product {
 	type_id_bin       firebird.NullArrayU8
 	discountable      bool
 	metadata          firebird.NullString
-	// from product_translations were locale_id = store.default_locale_id
-	title       firebird.NullString
-	subtitle    firebird.NullString
-	description firebird.NullString
+	title             firebird.NullString
+	subtitle          firebird.NullString
+	description       firebird.NullString
 mut:
 	categories     []ProductCategory
 	images         []ProductImage
@@ -143,6 +142,8 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 
 fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) ![]Product {
 	mut params := []firebird.Value{}
+
+	// left join params
 	if ph.locale_id.is_set {
 		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin)
 	} else {
@@ -289,7 +290,6 @@ fn model_product_create(mut tx firebird.Transaction, product_id string, product_
 		...params)!
 }
 
-// TODO set updated_at = current_timestamp
 fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph ProductRequestHygienised) ! {
 	mut c := []string{}
 	mut params := []firebird.Value{}

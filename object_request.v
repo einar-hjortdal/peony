@@ -306,7 +306,7 @@ struct InventoryLevelRequest {
 }
 
 struct ProductCategoryTranslationRequest {
-	locale_id   string
+	locale_id   string @[json: 'localeId']
 	name        string
 	description ?string
 }

@@ -90,6 +90,7 @@
 
 - Consider setting a default region id on store.
 - Consider creating higher order functions to wrap conduit functions to provide tx.
+- Query builder to keep select columns together with their referenced table aliases.
 - Need an alternative strategy on merge statements when source rows > 250
 
 ## Documentation
