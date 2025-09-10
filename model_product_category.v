@@ -51,7 +51,7 @@ fn model_product_category_translations_get(mut tx firebird.Transaction, product_
 	data := tx.execute('SELECT product_category_id, locale_id, name, description
 		FROM product_category_translations
 		WHERE product_category_id IN (${get_placeholders(product_category_ids_bin)})',
-		workaround_24757(product_category_ids_bin))!
+		...workaround_24757(product_category_ids_bin))!
 
 	rows := data.rows()
 	mut product_category_translations := []ProductCategoryTranslation{len: rows.len}
@@ -60,8 +60,8 @@ fn model_product_category_translations_get(mut tx firebird.Transaction, product_
 
 		product_category_id_bin, _ := translation[0].get_array_u8()!
 		locale_id_bin, _ := translation[1].get_array_u8()!
-		name, _ := translation[1].get_string()!
-		description := translation[1].get_null_string()!
+		name, _ := translation[2].get_string()!
+		description := translation[3].get_null_string()!
 
 		product_category_id := id_bin_to_string(product_category_id_bin)!
 		locale_id := id_bin_to_string(locale_id_bin)!
@@ -222,8 +222,6 @@ fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHy
 	}
 
 	if !ph.with_deleted.is_set || ph.with_deleted.v {
-		conditions = arrays.concat(conditions, 'deleted_at IS NOT NULL')
-	} else {
 		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 
@@ -233,7 +231,7 @@ fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHy
 fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !i64 {
 	cte, cte_params := model_product_category_retrieve_cte(ph)
 	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
-	data := tx.execute(appendln(cte, 'SELECT COUNT(*) FROM product_variant ${conditions}'),
+	data := tx.execute(appendln(cte, '${cte}SELECT COUNT(*) FROM product_category ${conditions}'),
 		...arrays.append(cte_params, conditions_params))!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
