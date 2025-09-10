@@ -182,12 +182,12 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		COALESCE(pt_requested.subtitle, pt_default.subtitle) AS subtitle,
 		COALESCE(pt_requested.description, pt_default.description) AS description
 		FROM product p
-		LEFT JOIN product_translations AS pt_default
+		LEFT JOIN product_translations pt_default
 			ON pt_default.product_id = p.id
 			AND pt_default.locale_id = (
 				SELECT default_locale_id FROM store
 			)
-		LEFT JOIN product_translations AS pt_requested
+		LEFT JOIN product_translations pt_requested
 			ON CAST(? AS BINARY(16)) IS NOT NULL
 			AND pt_requested.product_id = p.id
 			AND pt_requested.locale_id = ?

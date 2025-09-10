@@ -797,6 +797,8 @@ struct ProductCategoryResponse {
 	parent_category_id string @[json: 'parentCategoryId'; omitempty]
 	category_rank      i32    @[json: 'categoryRank']
 	metadata           string @[omitempty]
+	name               string @[omitempty]
+	description        string @[omitempty]
 	translations       []ProductCategoryTranslationResponse
 }
 
@@ -830,6 +832,8 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 		parent_category_id: p.parent_category_id
 		category_rank:      p.category_rank
 		metadata:           p.metadata.value
+		name:               p.name.value
+		description:        p.description.value
 		translations:       tr
 	}
 }

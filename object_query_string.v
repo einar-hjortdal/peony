@@ -340,6 +340,7 @@ struct ProductCategoryParamsRetrieve {
 	offset              ZeroI32
 	fetch               ZeroI32
 	order               ZeroString
+	locale_id           ZeroString
 }
 
 fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryParamsRetrieve {
@@ -354,6 +355,7 @@ fn extract_retrieve_product_category_params(m map[string]string) ProductCategory
 		offset:              zero_i32(m, 'offset')
 		fetch:               zero_i32(m, 'fetch')
 		order:               zero_string(m, 'order')
+		locale_id:           zero_string(m, 'locale_id')
 	}
 }
 
@@ -371,4 +373,6 @@ struct ProductCategoryParamsRetrieveHygienised {
 	offset                  ZeroI32
 	fetch                   ZeroI32
 	order                   ZeroString
+	locale_id               ZeroString
+	locale_id_bin           []u8
 }

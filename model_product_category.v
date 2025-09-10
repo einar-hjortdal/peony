@@ -91,6 +91,8 @@ struct ProductCategory {
 	parent_category_id     string
 	parent_category_id_bin firebird.NullArrayU8
 	metadata               firebird.NullString
+	name                   firebird.NullString
+	description            firebird.NullString
 mut:
 	translations []ProductCategoryTranslation
 }
@@ -240,10 +242,19 @@ fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph Product
 }
 
 fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) ![]ProductCategory {
+	mut params := []firebird.Value{}
 	cte, cte_params := model_product_category_retrieve_cte(ph)
-	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
+	params = arrays.append(params, cte_params)
 
-	mut params := arrays.append(cte_params, conditions_params)
+	if ph.locale_id.is_set {
+		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin)
+	} else {
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
+	}
+
+	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
+	params = arrays.append(params, conditions_params)
+
 	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)},
 		category_rank ${get_sorting_order(ph.order)}'
 
@@ -258,17 +269,29 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCatego
 	}
 
 	data := tx.execute('${cte} SELECT
-		id,
-		created_at,
-		updated_at,
-		deleted_at,
-		handle,
-		is_active,
-		is_internal,
-		parent_category_id,
-		category_rank,
-		metadata
-		FROM product_category ${conditions} ${sorting}',
+		pc.id,
+		pc.created_at,
+		pc.updated_at,
+		pc.deleted_at,
+		pc.handle,
+		pc.is_active,
+		pc.is_internal,
+		pc.parent_category_id,
+		pc.category_rank,
+		pc.metadata,
+		COALESCE(pct_requested.name, pct_default.name) AS name,
+		COALESCE(pct_requested.description, pct_default.description) AS description
+		FROM product_category pc
+		LEFT JOIN product_category_translations pct_default
+			ON pct_default.product_category_id = pc.id
+			AND pct_default.locale_id = (
+				SELECT default_locale_id FROM store
+			)
+		LEFT JOIN product_category_translations pct_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND pct_requested.product_category_id = pc.id
+			AND pct_requested.locale_id = ?
+		${conditions} ${sorting}',
 		...params)!
 
 	rows := data.rows()
@@ -286,6 +309,8 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCatego
 		parent_category_id_bin := v[7].get_null_array_u8()!
 		category_rank, _ := v[8].get_i32()!
 		metadata := v[9].get_null_string()!
+		name := v[10].get_null_string()!
+		description := v[11].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
@@ -307,6 +332,8 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCatego
 			parent_category_id:     parent_category_id
 			parent_category_id_bin: parent_category_id_bin
 			metadata:               metadata
+			name:                   name
+			description:            description
 		}
 	}
 
