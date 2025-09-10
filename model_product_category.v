@@ -13,7 +13,6 @@ struct ProductCategoryTranslation {
 }
 
 fn model_product_category_translations_merge(mut tx firebird.Transaction, product_category_id_bin []u8, ph []ProductCategoryTranslationRequestHygienised) ! {
-	println(ph)
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
