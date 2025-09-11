@@ -233,9 +233,12 @@ fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHy
 fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !i64 {
 	cte, cte_params := model_product_category_retrieve_cte(ph)
 	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
-	data := tx.execute(appendln(cte, '${cte}SELECT COUNT(*)
-		FROM product_category pc ${conditions}'),
-		...arrays.append(cte_params, conditions_params))!
+
+	query := appendln(cte, '${cte} SELECT COUNT(*) FROM product_category pc ${conditions}')
+	params := arrays.append(cte_params, conditions_params)
+
+	data := tx.execute(query, ...params)!
+
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
