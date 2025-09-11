@@ -435,8 +435,7 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 	}
 
 	if ph.handle != none || ph.is_giftcard != none || ph.status != none || ph.thumbnail != none
-		|| ph.collection_id != none || ph.type_id != none || ph.discountable != none
-		|| ph.metadata != none {
+		|| ph.type_id != none || ph.discountable != none || ph.metadata != none {
 		model_product_update(mut tx, product_id_bin, ph) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to update product', err.msg())
@@ -468,6 +467,10 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 			return handle_error_500(mut ctx, 'Failed to update product category relation',
 				err.msg())
 		}
+	}
+
+	if _ := ph.collection_ids {
+		// TODO
 	}
 
 	if translations := ph.translations {

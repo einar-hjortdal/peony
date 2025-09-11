@@ -43,18 +43,6 @@ CREATE TABLE image (
   CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
 );
 
-CREATE TABLE product_collection (
-  id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
-  handle VARCHAR(63) NOT NULL,
-  metadata BLOB SUB_TYPE TEXT,
-  CONSTRAINT "0681493b-ad7f-1197-4400-3f49d8a69649" PRIMARY KEY (id)
-);
-
-CREATE UNIQUE INDEX "0681493b-ad7f-1288-2400-e97020611535" ON product_collection (handle) WHERE deleted_at IS NULL;
-
 CREATE TABLE product_tag (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -166,13 +154,11 @@ CREATE TABLE product (
   is_giftcard BOOLEAN DEFAULT false NOT NULL,
   status VARCHAR(9) DEFAULT 'draft' NOT NULL,
   thumbnail BLOB SUB_TYPE TEXT,
-  collection_id BINARY(16),
   type_id BINARY(16),
   discountable BOOLEAN DEFAULT true NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad81-1b60-4400-c6c74051e5fb" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad81-1baf-9800-2b10d817dc21" CHECK (status IN ('draft', 'proposed', 'published', 'rejected')),
-  CONSTRAINT "0681493b-ad81-1c4e-8400-20e03827959a" FOREIGN KEY (collection_id) REFERENCES product_collection (id),
   CONSTRAINT "0681493b-ad81-1c9b-6000-de3e24ed7e4a" FOREIGN KEY (type_id) REFERENCES product_type (id)
 );
 
@@ -270,6 +256,21 @@ CREATE TABLE product_category (
 );
 
 CREATE UNIQUE INDEX "0681493b-ad83-1ca3-9800-9478574f1e92" ON product_category (handle) WHERE deleted_at IS NULL;
+
+CREATE TABLE product_collection (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  handle VARCHAR(63) NOT NULL,
+  is_active BOOLEAN DEFAULT true NOT NULL,
+  is_internal BOOLEAN DEFAULT false NOT NULL,
+  metadata BLOB SUB_TYPE TEXT,
+  CONSTRAINT "0681493b-ad7f-1197-4400-3f49d8a69649" PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX "0681493b-ad7f-1288-2400-e97020611535" ON product_collection (handle) WHERE deleted_at IS NULL;
+
 
 CREATE TABLE product_tax_rate (
   product_id BINARY(16) NOT NULL,
@@ -388,6 +389,17 @@ CREATE TABLE product_category_product (
 
 CREATE INDEX "0681493b-ad85-17b5-1c00-77a1a1ff2a8c" ON product_category_product (product_id);
 
+
+CREATE TABLE product_collection_product (
+  product_collection_id BINARY(16) NOT NULL,
+  product_id BINARY(16) NOT NULL,
+  CONSTRAINT "0686cd40-3322-1ed6-e800-43d173f8e3f6" PRIMARY KEY (product_collection_id, product_id),
+  CONSTRAINT "0686cd40-3322-1f2f-7400-69727ceab86a" FOREIGN KEY (product_collection_id) REFERENCES product_collection (id) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "0686cd40-3323-107f-5400-28c37c59c7a0" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE INDEX "0686cd40-3323-10d8-9800-144ed53aad80" ON product_collection_product (product_id);
+
 CREATE TABLE product_image (
   product_id BINARY(16) NOT NULL,
   image_id BINARY(16) NOT NULL,
@@ -493,6 +505,16 @@ CREATE TABLE product_category_translations (
   CONSTRAINT "0681493b-ad88-159c-1000-e7761236ae70" FOREIGN KEY (locale_id) REFERENCES locale (id)
 );
 
+CREATE TABLE product_collection_translations (
+  product_collection_id BINARY(16) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
+  name VARCHAR(63) NOT NULL,
+  description BLOB SUB_TYPE TEXT,
+  CONSTRAINT "0686cd40-331f-1376-4000-ba40352c1687" PRIMARY KEY (product_collection_id, locale_id),
+  CONSTRAINT "0681493b-ad88-1d0b-9400-99972b894202" FOREIGN KEY (product_collection_id) REFERENCES product_collection (id) ON DELETE CASCADE,
+  CONSTRAINT "0681493b-ad88-1d59-0800-759be0f51dae" FOREIGN KEY (locale_id) REFERENCES locale (id)
+);
+
 CREATE TABLE product_translations (
   product_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,
@@ -505,13 +527,4 @@ CREATE TABLE product_translations (
   CONSTRAINT "0686cd40-331e-1b64-1000-989986ca4207" PRIMARY KEY (product_id, locale_id),
   CONSTRAINT "0681493b-ad88-1976-f800-fa9ffcccbf8c" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
   CONSTRAINT "0681493b-ad88-19ce-8800-37968a334b2f" FOREIGN KEY (locale_id) REFERENCES locale (id)
-);
-
-CREATE TABLE product_collection_translations (
-  product_collection_id BINARY(16) NOT NULL,
-  locale_id BINARY(16) NOT NULL,
-  title VARCHAR(63) NOT NULL,
-  CONSTRAINT "0686cd40-331f-1376-4000-ba40352c1687" PRIMARY KEY (product_collection_id, locale_id),
-  CONSTRAINT "0681493b-ad88-1d0b-9400-99972b894202" FOREIGN KEY (product_collection_id) REFERENCES product_collection (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad88-1d59-0800-759be0f51dae" FOREIGN KEY (locale_id) REFERENCES locale (id)
 );

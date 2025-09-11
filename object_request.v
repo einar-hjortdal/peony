@@ -77,7 +77,6 @@ struct ProductRequest {
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
 	thumbnail         ?string
-	collection_id     ?string @[json: 'collectionId']
 	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
 	metadata          ?string
@@ -85,6 +84,7 @@ struct ProductRequest {
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
+	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
 }
 
@@ -93,8 +93,6 @@ struct ProductRequestHygienised {
 	is_giftcard           ?bool
 	status                ?string
 	thumbnail             ?string
-	collection_id         ?string
-	collection_id_bin     []u8
 	type_id               ?string
 	type_id_bin           []u8
 	discountable          ?bool
@@ -106,15 +104,13 @@ struct ProductRequestHygienised {
 	sales_channel_ids_bin [][]u8
 	category_ids          ?[]string
 	category_ids_bin      [][]u8
+	collection_ids        ?[]string
+	collection_ids_bin    [][]u8
 mut:
 	translations ?[]ProductTranslationRequestHygienised
 }
 
 fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
-	collection_id_bin := option_id_string_to_id_bin(p.collection_id) or {
-		return new_internal_error(error_id_invalid, 'collection_id')
-	}
-
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
 		return new_internal_error(error_id_invalid, 'type_id')
 	}
@@ -131,13 +127,15 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 		return new_internal_error(error_id_invalid, 'category_id')
 	}
 
+	collection_id_bin := option_array_id_string_to_array_id_bin(p.collection_ids) or {
+		return new_internal_error(error_id_invalid, 'collection_id')
+	}
+
 	mut ph := ProductRequestHygienised{
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status
 		thumbnail:             p.thumbnail
-		collection_id:         p.collection_id
-		collection_id_bin:     collection_id_bin
 		type_id:               p.type_id
 		type_id_bin:           type_id_bin
 		discountable:          p.discountable
@@ -149,6 +147,8 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 		sales_channel_ids_bin: sales_channel_ids_bin
 		category_ids:          p.category_ids
 		category_ids_bin:      category_ids_bin
+		collection_ids:        p.collection_ids
+		collection_ids_bin:    collection_id_bin
 	}
 
 	if translations := p.translations {

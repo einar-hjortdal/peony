@@ -9,22 +9,21 @@ const product_status_published = 'published'
 const product_status_rejected = 'rejected'
 
 struct Product {
-	id                string
-	id_bin            []u8
-	created_at        firebird.DateTime
-	updated_at        firebird.DateTime
-	deleted_at        firebird.NullDateTime
-	handle            string
-	is_giftcard       bool
-	status            string
-	thumbnail         firebird.NullString
-	collection_id_bin firebird.NullArrayU8
-	type_id_bin       firebird.NullArrayU8
-	discountable      bool
-	metadata          firebird.NullString
-	title             firebird.NullString
-	subtitle          firebird.NullString
-	description       firebird.NullString
+	id           string
+	id_bin       []u8
+	created_at   firebird.DateTime
+	updated_at   firebird.DateTime
+	deleted_at   firebird.NullDateTime
+	handle       string
+	is_giftcard  bool
+	status       string
+	thumbnail    firebird.NullString
+	type_id_bin  firebird.NullArrayU8
+	discountable bool
+	metadata     firebird.NullString
+	title        firebird.NullString
+	subtitle     firebird.NullString
+	description  firebird.NullString
 mut:
 	categories     []ProductCategory
 	images         []ProductImage
@@ -64,8 +63,9 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	}
 
 	if ph.collection_ids.is_set {
-		conditions = arrays.concat(conditions, 'p.collection_id IN ${get_placeholders(ph.collection_ids_bin)}')
-		params = arrays.concat(params, ...workaround_24757(ph.collection_ids_bin))
+		// TODO
+		// conditions = arrays.concat(conditions, 'p.collection_id IN (${get_placeholders(ph.collection_ids_bin)})')
+		// params = arrays.concat(params, ...workaround_24757(ph.collection_ids_bin))
 	}
 
 	if ph.type_ids.is_set {
@@ -174,7 +174,6 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		p.is_giftcard,
 		p.status,
 		p.thumbnail,
-		p.collection_id,
 		p.type_id,
 		p.discountable,
 		p.metadata,
@@ -208,33 +207,31 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		is_giftcard, _ := v[5].get_bool()!
 		status, _ := v[6].get_string()!
 		thumbnail := v[7].get_null_string()!
-		collection_id_bin := v[8].get_null_array_u8()!
-		type_id_bin := v[9].get_null_array_u8()!
-		discountable, _ := v[10].get_bool()!
-		metadata := v[11].get_null_string()!
-		title := v[12].get_null_string()!
-		subtitle := v[13].get_null_string()!
-		description := v[14].get_null_string()!
+		type_id_bin := v[8].get_null_array_u8()!
+		discountable, _ := v[9].get_bool()!
+		metadata := v[10].get_null_string()!
+		title := v[11].get_null_string()!
+		subtitle := v[12].get_null_string()!
+		description := v[13].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
 		products[i] = Product{
-			id:                id
-			id_bin:            id_bin
-			created_at:        created_at
-			updated_at:        updated_at
-			deleted_at:        deleted_at
-			handle:            handle
-			is_giftcard:       is_giftcard
-			status:            status
-			thumbnail:         thumbnail
-			collection_id_bin: collection_id_bin
-			type_id_bin:       type_id_bin
-			discountable:      discountable
-			metadata:          metadata
-			title:             title
-			subtitle:          subtitle
-			description:       description
+			id:           id
+			id_bin:       id_bin
+			created_at:   created_at
+			updated_at:   updated_at
+			deleted_at:   deleted_at
+			handle:       handle
+			is_giftcard:  is_giftcard
+			status:       status
+			thumbnail:    thumbnail
+			type_id_bin:  type_id_bin
+			discountable: discountable
+			metadata:     metadata
+			title:        title
+			subtitle:     subtitle
+			description:  description
 		}
 	}
 	return products
@@ -264,11 +261,6 @@ fn model_product_create(mut tx firebird.Transaction, product_id string, product_
 	if thumbnail := ph.thumbnail {
 		c = arrays.concat(c, 'thumbnail')
 		params = arrays.concat(params, thumbnail)
-	}
-
-	if _ := ph.collection_id {
-		c = arrays.concat(c, 'collection_id')
-		params = arrays.concat(params, ph.collection_id_bin)
 	}
 
 	if _ := ph.type_id {
@@ -312,11 +304,6 @@ fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph Pro
 	if thumbnail := ph.thumbnail {
 		c = arrays.concat(c, 'thumbnail')
 		params = arrays.concat(params, thumbnail)
-	}
-
-	if _ := ph.collection_id {
-		c = arrays.concat(c, 'collection_id')
-		params = arrays.concat(params, ph.collection_id_bin)
 	}
 
 	if _ := ph.type_id {

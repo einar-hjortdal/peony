@@ -658,22 +658,22 @@ struct SalesChannelResponseEnvelope {
 }
 
 struct ProductResponse {
-	id             string
-	created_at     time.Time @[json: 'createdAt']
-	updated_at     time.Time @[json: 'updatedAt']
-	deleted_at     time.Time @[json: 'deletedAt'; omitempty]
-	handle         string
-	is_giftcard    bool @[json: 'isGiftcard']
-	status         string
-	thumbnail      string @[omitempty]
-	collection_id  string @[json: 'collectionId'; omitempty]
-	type_id        string @[json: 'typeId'; omitempty]
-	discountable   bool
-	metadata       string                       @[omitempty]
-	title          string                       @[omitempty]
-	subtitle       string                       @[omitempty]
-	description    string                       @[omitempty]
-	categories     []ProductCategoryResponse    @[omitempty]
+	id           string
+	created_at   time.Time @[json: 'createdAt']
+	updated_at   time.Time @[json: 'updatedAt']
+	deleted_at   time.Time @[json: 'deletedAt'; omitempty]
+	handle       string
+	is_giftcard  bool @[json: 'isGiftcard']
+	status       string
+	thumbnail    string @[omitempty]
+	type_id      string @[json: 'typeId'; omitempty]
+	discountable bool
+	metadata     string                    @[omitempty]
+	title        string                    @[omitempty]
+	subtitle     string                    @[omitempty]
+	description  string                    @[omitempty]
+	categories   []ProductCategoryResponse @[omitempty]
+	// collections    []ProductCollectionResponse  @[omitempty]
 	images         []ProductImageResponse       @[omitempty]
 	options        []ProductOptionResponse      @[omitempty]
 	variants       []ProductVariantResponse     @[omitempty]
@@ -683,15 +683,6 @@ struct ProductResponse {
 }
 
 fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
-	mut collection_id := ''
-	if !p.collection_id_bin.is_null {
-		collection_id = id_bin_to_string(p.collection_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('product.collection_id is invalid')
-			''
-		}
-	}
-
 	mut type_id := ''
 	if !p.type_id_bin.is_null {
 		type_id = id_bin_to_string(p.type_id_bin.value) or {
@@ -728,6 +719,16 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		sales_channels[i] = format_sales_channel_response(p.sales_channels[i])
 	}
 
+	mut categories := []ProductCategoryResponse{len: p.categories.len}
+	for i := 0; i < p.categories.len; i++ {
+		categories[i] = format_product_category_response(p.categories[i])
+	}
+
+	// mut collections := []ProductCollectionResponse{len: p.collections.len}
+	// for i := 0; i < p.collections.len; i++ {
+	// 	collections[i] = format_product_collection_response(p.collections[i])
+	// }
+
 	// TODO tags
 
 	return ProductResponse{
@@ -739,7 +740,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		is_giftcard:    p.is_giftcard
 		status:         p.status
 		thumbnail:      p.thumbnail.value
-		collection_id:  collection_id
 		type_id:        type_id
 		discountable:   p.discountable
 		metadata:       p.metadata.value
@@ -751,6 +751,8 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		variants:       variants
 		translations:   translations
 		sales_channels: sales_channels
+		categories:     categories
+		// collections:    collections
 		// tags:          tags
 	}
 }
