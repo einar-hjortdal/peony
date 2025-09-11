@@ -179,7 +179,7 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 fn model_product_category_retrieve_cte(ph ProductCategoryParamsRetrieveHygienised) (string, []firebird.Value) {
 	if ph.parent_category_ids.is_set {
 		return 'WITH RECURSIVE descendants (id) AS (
-			SELECT id FROM product_category
+			SELECT id FROM product_category pc
 				WHERE parent_category_id IN (${get_placeholders(ph.parent_category_id_bins)})
 			UNION ALL
 			SELECT pc.id
@@ -195,36 +195,36 @@ fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHy
 	mut params := []firebird.Value{}
 
 	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
+		conditions = arrays.concat(conditions, 'pc.id IN (${get_placeholders(ph.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
 	if ph.handles.is_set {
-		conditions = arrays.concat(conditions, 'handle IN (${get_placeholders(ph.handles.v)})')
+		conditions = arrays.concat(conditions, 'pc.handle IN (${get_placeholders(ph.handles.v)})')
 		params = arrays.concat(params, ...ph.handles.v)
 	}
 
 	if ph.is_active.is_set {
-		conditions = arrays.concat(conditions, 'is_active = ?')
+		conditions = arrays.concat(conditions, 'pc.is_active = ?')
 		params = arrays.concat(params, ph.is_active.v)
 	}
 
 	if ph.is_internal.is_set {
-		conditions = arrays.concat(conditions, 'is_internal = ?')
+		conditions = arrays.concat(conditions, 'pc.is_internal = ?')
 		params = arrays.concat(params, ph.is_internal.v)
 	}
 
 	if ph.product_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
 		SELECT 1 FROM product_category_product pcp
-		WHERE pcp.product_category_id = product_category.id
+		WHERE pcp.product_category_id = pc.id
 			AND pcp.product_id IN (${get_placeholders(ph.product_ids_bin)})
 		)')
 		params = arrays.concat(params, ...workaround_24757(ph.product_ids_bin))
 	}
 
 	if !ph.with_deleted.is_set || ph.with_deleted.v {
-		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
+		conditions = arrays.concat(conditions, 'pc.deleted_at IS NULL')
 	}
 
 	return get_where_conditions(conditions), params
@@ -233,7 +233,8 @@ fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHy
 fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !i64 {
 	cte, cte_params := model_product_category_retrieve_cte(ph)
 	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
-	data := tx.execute(appendln(cte, '${cte}SELECT COUNT(*) FROM product_category ${conditions}'),
+	data := tx.execute(appendln(cte, '${cte}SELECT COUNT(*)
+		FROM product_category pc ${conditions}'),
 		...arrays.append(cte_params, conditions_params))!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -255,8 +256,8 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCatego
 	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
 	params = arrays.append(params, conditions_params)
 
-	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)},
-		category_rank ${get_sorting_order(ph.order)}'
+	mut sorting := 'ORDER BY pc.created_at ${get_sorting_order(ph.order)},
+		pc.category_rank ${get_sorting_order(ph.order)}'
 
 	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
