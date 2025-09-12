@@ -12,9 +12,9 @@ A `product_category` allows to categorize `product`. A `product` can have many `
 
 #### product_collection (WIP)
 
-A `collection` is a group of `product`. A `product` can be part of many `collection`. Unlike `product_category`,
-a `collection` is not hierarchical. These are useful to group together products for the purpose of a 
-marketing campaign.
+A `product_collection` is a group of `product`. A `product` can be part of many `product_collection`. 
+Unlike `product_category`, a `product_collection` is not hierarchical. These are useful to group together 
+products for the purpose of a marketing campaign.
 
 #### product_type (WIP)
 

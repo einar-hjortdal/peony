@@ -234,8 +234,8 @@ struct RetrieveProductParams {
 
 fn extract_retrieve_admin_products_params(m map[string]string) RetrieveProductParams {
 	return RetrieveProductParams{
-		category_ids:      zero_array_string(m, 'category_id')
-		collection_ids:    zero_array_string(m, 'collection_id')
+		category_ids:      zero_array_string(m, 'category_ids')
+		collection_ids:    zero_array_string(m, 'collection_ids')
 		description:       zero_string(m, 'description')
 		fetch:             zero_i32(m, 'fetch')
 		handle:            zero_string(m, 'handle')
@@ -289,7 +289,7 @@ struct RetrieveProductParamsHygienised {
 fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductParams {
 	return RetrieveProductParams{
 		cart_id:           zero_string(m, 'cart_id')
-		category_ids:      zero_array_string(m, 'category_id')
+		category_ids:      zero_array_string(m, 'category_ids')
 		collection_ids:    zero_array_string(m, 'collection_id')
 		currency_code:     zero_string(m, 'currency_code')
 		description:       zero_string(m, 'description')
