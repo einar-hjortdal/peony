@@ -105,7 +105,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 			SELECT 1 FROM product_category_product pcp
 			WHERE pcp.product_id = p.id
 				AND pcp.product_category_id IN (${get_placeholders(ph.category_ids_bin)})
-			')
+			)')
 		params = arrays.concat(params, ...workaround_24757(ph.category_ids_bin))
 	}
 
