@@ -2,7 +2,7 @@
 
 ## Basics
 
-- [x] Read and validate settings~~ <!-- Always panic on startup, never during runtime -->
+- [x] Read and validate settings <!-- Always panic on startup, never during runtime -->
 - [x] Write a database-friendly uuid library <!-- https://github.com/einar-hjortdal/lexical_uuid -->
 - [x] Write a FirebirdSQL connector <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a Redict library <!-- https://github.com/einar-hjortdal/redict -->
@@ -78,7 +78,7 @@
 - [x] Keep response structs separate from internal structs
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
-- [ ] Return time.Time.format_rfc3339() instead of time.Time
+- [ ] Firebird connection management
 - [ ] Transaction attempts
 - [ ] Soft-delete where needed, and only where needed
 - [ ] Reduce boilerplating
