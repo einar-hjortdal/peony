@@ -426,18 +426,22 @@ fn model_product_category_product_update(mut tx firebird.Transaction, product_id
 	mut src := []string{len: category_ids_bin.len}
 	mut params := []firebird.Value{len: category_ids_bin.len * 2 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < category_ids_bin.len; i++ {
-		src[i] = 'SELECT ? AS product_id, ? AS product_category_id FROM RDB\$DATABASE'
+		src[i] = 'SELECT 
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS product_category_id
+			FROM RDB\$DATABASE'
 		params[i * 2] = product_id_bin
 		params[i * 2 + 1] = category_ids_bin[i]
 	}
 	params[category_ids_bin.len * 2] = product_id_bin
 
 	tx.execute('MERGE INTO product_category_product t
-			USING (${get_merge_source(src)}) s (product_id, product_category_id)
+			USING (${get_merge_source(src)}) s
 			ON (t.product_id = s.product_id AND t.product_category_id = s.product_category_id)
 			WHEN NOT MATCHED THEN
 				INSERT (product_id, product_category_id)
 				VALUES (s.product_id, s.product_category_id)
-			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE',
+			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN 
+				DELETE',
 		...params)!
 }

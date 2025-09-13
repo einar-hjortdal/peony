@@ -173,6 +173,5 @@ pub fn (mut app App) admin_product_category_delete(mut ctx Context, product_cate
 		return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
 	}
 
-	// TODO implement
 	return conduit_product_category_delete(mut app, mut ctx, product_category_id_bin)
 }
