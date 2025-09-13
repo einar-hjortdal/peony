@@ -12,11 +12,15 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 	}
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'ids_bin')
+		return handle_error_400(mut ctx, error_id_invalid, 'ids')
 	}
 
 	parent_category_ids_bin := zero_array_id_string_to_array_id_bin(p.parent_category_ids) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'parent_category_ids')
+	}
+
+	product_ids_bin := zero_array_id_string_to_array_id_bin(p.product_ids) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'product_ids')
 	}
 
 	ph := ProductCategoryParamsRetrieveHygienised{
@@ -27,6 +31,8 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 		is_internal:             p.is_internal
 		parent_category_ids:     p.parent_category_ids
 		parent_category_id_bins: parent_category_ids_bin
+		product_ids:             p.product_ids
+		product_ids_bin:         product_ids_bin
 		with_deleted:            p.with_deleted
 		offset:                  p.offset
 		fetch:                   p.fetch
