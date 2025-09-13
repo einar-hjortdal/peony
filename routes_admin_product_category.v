@@ -81,6 +81,7 @@ pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
 			locale_id:     translation.locale_id
 			locale_id_bin: locale_id_bin
 			name:          translation.name
+			description:   translation.description
 		}
 	}
 
@@ -149,6 +150,7 @@ pub fn (mut app App) admin_product_category_update(mut ctx Context, product_cate
 				locale_id:     translation.locale_id
 				locale_id_bin: locale_id_bin
 				name:          translation.name
+				description:   translation.description
 			}
 		}
 		ph.translations = pcth

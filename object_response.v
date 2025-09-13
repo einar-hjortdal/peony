@@ -784,7 +784,7 @@ struct UploadsDeleteResponse {
 struct ProductCategoryTranslationResponse {
 	product_category_id string @[json: 'productCategoryId']
 	locale_id           string @[json: 'localeId']
-	name                string
+	name                string @[omitempty]
 	description         string @[omitempty]
 }
 
@@ -818,7 +818,7 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 		tr[i] = ProductCategoryTranslationResponse{
 			product_category_id: translation.product_category_id
 			locale_id:           translation.locale_id
-			name:                translation.name
+			name:                translation.name.value
 			description:         translation.description.value
 		}
 	}

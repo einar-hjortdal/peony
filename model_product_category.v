@@ -8,7 +8,7 @@ struct ProductCategoryTranslation {
 	product_category_id_bin []u8
 	locale_id               string
 	locale_id_bin           []u8
-	name                    string
+	name                    firebird.NullString
 	description             firebird.NullString
 }
 
@@ -22,9 +22,15 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 			CAST(? AS VARCHAR(63)) AS name,
 			CAST(? as BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE'
+
 		params[i * 4] = product_category_id_bin
 		params[i * 4 + 1] = ph[i].locale_id_bin
-		params[i * 4 + 2] = ph[i].name
+
+		if name := ph[i].name {
+			params[i * 4 + 2] = name
+		} else {
+			params[i * 4 + 2] = firebird.Null{}
+		}
 
 		if description := ph[i].description {
 			params[i * 4 + 3] = description
@@ -32,13 +38,16 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 			params[i * 4 + 3] = firebird.Null{}
 		}
 	}
+
 	params[ph.len * 4] = product_category_id_bin
 
 	tx.execute('MERGE INTO product_category_translations t
 		USING (${get_merge_source(src)}) s
 		ON (t.product_category_id = s.product_category_id AND t.locale_id = s.locale_id)
 		WHEN MATCHED THEN
-			UPDATE SET name = s.name
+			UPDATE SET 
+				name = s.name,
+				description = s.description
 		WHEN NOT MATCHED THEN
 			INSERT (product_category_id, locale_id, name)
 			VALUES (s.product_category_id, s.locale_id, s.name)
@@ -60,7 +69,7 @@ fn model_product_category_translations_get(mut tx firebird.Transaction, product_
 
 		product_category_id_bin, _ := translation[0].get_array_u8()!
 		locale_id_bin, _ := translation[1].get_array_u8()!
-		name, _ := translation[2].get_string()!
+		name := translation[2].get_null_string()!
 		description := translation[3].get_null_string()!
 
 		product_category_id := id_bin_to_string(product_category_id_bin)!
@@ -171,6 +180,8 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 		columns = arrays.concat(columns, 'category_rank')
 		params = arrays.concat(params, category_rank)
 	}
+
+	params = arrays.concat(params, product_category_id_bin)
 
 	tx.execute('UPDATE product_category SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!

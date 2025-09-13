@@ -307,25 +307,25 @@ struct InventoryLevelRequest {
 
 struct ProductCategoryTranslationRequest {
 	locale_id   string @[json: 'localeId']
-	name        string
+	name        ?string
 	description ?string
 }
 
 struct ProductCategoryTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8
-	name          string
+	name          ?string
 	description   ?string
 }
 
 struct ProductCategoryRequest {
-	translations       ?[]ProductCategoryTranslationRequest
 	handle             ?string
-	is_internal        ?bool
-	is_active          ?bool
-	parent_category_id ?string
-	category_rank      ?i32
+	is_internal        ?bool   @[json: 'isInternal']
+	is_active          ?bool   @[json: 'isActive']
+	parent_category_id ?string @[json: 'parentCategoryId']
+	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string
+	translations       ?[]ProductCategoryTranslationRequest
 }
 
 struct ProductCategoryRequestHygienised {
