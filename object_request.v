@@ -47,14 +47,14 @@ struct NewUserData {
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
-	metadata   ?string
+	metadata   ?string @[raw]
 }
 
 struct UpdateUserData {
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
-	metadata   ?string
+	metadata   ?string @[raw]
 }
 
 struct ProductTranslationRequest {
@@ -79,7 +79,7 @@ struct ProductRequest {
 	thumbnail         ?string
 	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
-	metadata          ?string
+	metadata          ?string @[raw]
 	images            ?[]string
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
@@ -258,8 +258,8 @@ struct ProductVariantRequest {
 	ean           ?string
 	upc           ?string
 	barcode       ?string
-	variant_rank  ?i32 @[json: 'variantRank']
-	metadata      ?string
+	variant_rank  ?i32                         @[json: 'variantRank']
+	metadata      ?string                      @[raw]
 	money_amounts ?[]MoneyAmountRequest        @[json: 'moneyAmounts']
 	option_values ?[]ProductOptionValueRequest @[json: 'optionValues']
 }
@@ -324,7 +324,7 @@ struct ProductCategoryRequest {
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
 	category_rank      ?i32    @[json: 'categoryRank']
-	metadata           ?string
+	metadata           ?string @[raw]
 	translations       ?[]ProductCategoryTranslationRequest
 }
 

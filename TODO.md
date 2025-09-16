@@ -85,6 +85,7 @@
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
 - [ ] Remove `parse_` functions from methods
+- [ ] Graceful shutdown
 
 ## Considerations
 
