@@ -49,9 +49,9 @@ fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_i
 }
 
 fn do_delete_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
-	params := arrays.concat([firebird.Value(product_id_bin)], ...ids_bin)
+	params := arrays.concat([firebird.Value(product_id_bin)], ...workaround_24757(ids_bin))
 	tx.execute('DELETE FROM product_image WHERE product_id = ?
-		AND image_id IN (${get_placeholders(ids_bin)}));',
+		AND image_id IN (${get_placeholders(ids_bin)})',
 		...params)!
 }
 
@@ -104,85 +104,68 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 }
 
 fn model_product_images_update(mut app App, mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
-	pi := model_product_image_retrieve(mut tx, [product_id_bin])!
+	// always delete all images
+	tx.execute('DELETE FROM image i
+		WHERE EXISTS (
+			SELECT 1
+				FROM product_image pi
+				WHERE pi.product_id = ?
+				AND pi.image_id = i.id
+		)',
+		product_id_bin)!
 
-	// delete all product_images with url missing from the given array
-	mut ids_bin_to_prune := [][]u8{}
-	for i := 0; i < pi.len; i++ {
-		mut found := false
-		for k := 0; k < urls.len; k++ {
-			if urls[k] == pi[i].url {
-				found = true
-				break
-			}
-		}
-		if !found {
-			ids_bin_to_prune = arrays.concat(ids_bin_to_prune, pi[i].id_bin)
-		}
+	// early return when nothing else to do
+	if urls.len == 0 {
+		return
 	}
 
-	do_delete_product_images(mut tx, product_id_bin, ids_bin_to_prune)!
-
-	// create image for urls that don't exist in the image table yet
-	mut images_to_create := []string{}
+	mut image_ids_bin := [][]u8{len: urls.len}
 	for i := 0; i < urls.len; i++ {
-		mut found := false
-		for k := 0; k < pi.len; k++ {
-			if urls[i] == pi[k].url {
-				found = true
-				break
-			}
-		}
-		if !found {
-			images_to_create = arrays.concat(images_to_create, urls[i])
-		}
+		_, id_bin := app.new_id()
+		image_ids_bin[i] = id_bin
 	}
 
-	_, created_ids_bin := model_image_create(mut app, mut tx, images_to_create)!
-
-	// sort ids_bin according to urls array to obtain the correct image_rank order
-	mut sorted_ids_bin := [][]u8{}
+	// insert new images
+	mut src := []string{len: urls.len}
+	mut params := []firebird.Value{len: urls.len * 2, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < urls.len; i++ {
-		url := urls[i]
-		mut found := false
-
-		for k := 0; k < pi.len; k++ {
-			if pi[k].url == url {
-				sorted_ids_bin = arrays.concat(sorted_ids_bin, pi[k].id_bin)
-				found = true
-				break
-			}
-		}
-
-		if found {
-			continue
-		}
-
-		for k := 0; k < images_to_create.len; k++ {
-			if images_to_create[k] == url {
-				sorted_ids_bin = arrays.concat(sorted_ids_bin, created_ids_bin[k])
-				break
-			}
-		}
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BLOB SUB_TYPE TEXT) AS url
+			FROM RDB\$DATABASE'
+		params[i * 2] = image_ids_bin[i]
+		params[i * 2 + 1] = urls[i]
 	}
 
-	mut s := ''
-	mut params := []firebird.Value{}
-	for i := 0; i < sorted_ids_bin.len; i++ {
-		image_rank := i
-		s = appendln(s, 'SELECT ? AS product_id, ? AS image_id, ? AS image_rank FROM RDB\$DATABASE')
-		params = arrays.concat(params, product_id_bin, sorted_ids_bin[i], image_rank)
-		if i < sorted_ids_bin.len - 1 {
-			s = appendln(s, 'UNION ALL')
-		}
+	tx.execute('MERGE INTO image t
+		USING (${get_merge_source(src)}) s
+			ON (t.id = s.id)
+			WHEN NOT MATCHED THEN
+				INSERT (id, url)
+				VALUES (s.id, s.url)',
+		...params)!
+
+	// insert product_image relation
+	src = []string{len: urls.len}
+	params = []firebird.Value{len: urls.len * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < urls.len; i++ {
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS image_id,
+			CAST(? AS INTEGER) AS image_rank
+			FROM RDB\$DATABASE'
+
+		params[i * 3] = product_id_bin
+		params[i * 3 + 1] = image_ids_bin[i]
+		params[i * 3 + 2] = i
 	}
 
+	// TODO this merge hangs. What did I do wrong?
 	tx.execute('MERGE INTO product_image t
-		USING (${s}) s
+		USING (${get_merge_source(src)}) s
 			ON (t.product_id = s.product_id AND t.image_id = s.image_id)
-			WHEN MATCHED THEN UPDATE SET image_rank = s.image_rank
 			WHEN NOT MATCHED THEN
 				INSERT (product_id, image_id, image_rank)
-				VALUES (s.product_id, s.image_id, s.image_rank);',
+				VALUES (s.product_id, s.image_id, s.image_rank)',
 		...params)!
 }

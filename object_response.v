@@ -776,6 +776,10 @@ struct UploadsUploadResponseEnvelope {
 	uploads []BlobProviderFileData
 }
 
+struct UploadsUploadOneResponseEnvelope {
+	upload BlobProviderFileData
+}
+
 struct UploadsDeleteResponse {
 	id      string
 	deleted bool

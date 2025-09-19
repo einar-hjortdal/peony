@@ -49,10 +49,9 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 		files_data[i] = file_data
 	}
 
-	r := UploadsUploadResponseEnvelope{
+	return ctx.json(UploadsUploadResponseEnvelope{
 		uploads: files_data
-	}
-	return ctx.json(r)
+	})
 }
 
 // uploads one file to the file provider
@@ -72,10 +71,9 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 		return handle_error_500(mut ctx, 'Failed to upload file', err.msg())
 	}
 
-	r := UploadsUploadResponseEnvelope{
-		uploads: [file_data]
-	}
-	return ctx.json(r)
+	return ctx.json(UploadsUploadOneResponseEnvelope{
+		upload: file_data
+	})
 }
 
 // delete files from the file provider
@@ -85,9 +83,8 @@ pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Res
 		return handle_error_500(mut ctx, 'Failed to delete file', err.msg())
 	}
 
-	r := UploadsDeleteResponse{
+	return ctx.json(UploadsDeleteResponse{
 		id:      id
 		deleted: true
-	}
-	return ctx.json(r)
+	})
 }
