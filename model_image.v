@@ -130,29 +130,23 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 	mut params := []firebird.Value{len: urls.len * 2, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < urls.len; i++ {
 		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS id,
-			CAST(? AS BLOB SUB_TYPE TEXT) AS url
+			CAST(? AS BINARY(16)),
+			CAST(? AS BLOB SUB_TYPE TEXT)
 			FROM RDB\$DATABASE'
 		params[i * 2] = image_ids_bin[i]
 		params[i * 2 + 1] = urls[i]
 	}
 
-	tx.execute('MERGE INTO image t
-		USING (${get_merge_source(src)}) s
-			ON (t.id = s.id)
-			WHEN NOT MATCHED THEN
-				INSERT (id, url)
-				VALUES (s.id, s.url)',
-		...params)!
+	tx.execute('INSERT INTO image (id, url) ${get_merge_source(src)}', ...params)!
 
 	// insert product_image relation
 	src = []string{len: urls.len}
 	params = []firebird.Value{len: urls.len * 3, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < urls.len; i++ {
 		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS product_id,
-			CAST(? AS BINARY(16)) AS image_id,
-			CAST(? AS INTEGER) AS image_rank
+			CAST(? AS BINARY(16)),
+			CAST(? AS BINARY(16)),
+			CAST(? AS INTEGER)
 			FROM RDB\$DATABASE'
 
 		params[i * 3] = product_id_bin
@@ -161,11 +155,6 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 	}
 
 	// TODO this merge hangs. What did I do wrong?
-	tx.execute('MERGE INTO product_image t
-		USING (${get_merge_source(src)}) s
-			ON (t.product_id = s.product_id AND t.image_id = s.image_id)
-			WHEN NOT MATCHED THEN
-				INSERT (product_id, image_id, image_rank)
-				VALUES (s.product_id, s.image_id, s.image_rank)',
+	tx.execute('INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}',
 		...params)!
 }
