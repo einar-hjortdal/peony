@@ -222,9 +222,6 @@ struct StoreResponseEnvelope {
 
 struct ProductImageResponse {
 	id         string
-	created_at time.Time @[json: 'createdAt']
-	updated_at time.Time @[json: 'updatedAt']
-	deleted_at time.Time @[json: 'deletedAt'; omitempty]
 	url        string
 	product_id string
 	image_rank i32 @[json: 'imageRank']
@@ -233,9 +230,6 @@ struct ProductImageResponse {
 fn format_product_image_response(i ProductImage) ProductImageResponse {
 	return ProductImageResponse{
 		id:         i.id
-		created_at: i.created_at.Time
-		updated_at: i.updated_at.Time
-		deleted_at: i.deleted_at.value.Time
 		url:        i.url
 		product_id: i.product_id
 		image_rank: i.image_rank

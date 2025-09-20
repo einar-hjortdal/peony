@@ -26,9 +26,6 @@ fn model_image_create(mut app App, mut tx firebird.Transaction, urls []string) !
 struct ProductImage {
 	id             string
 	id_bin         []u8
-	created_at     firebird.DateTime
-	updated_at     firebird.DateTime
-	deleted_at     firebird.NullDateTime
 	url            string
 	image_rank     i32
 	product_id     string
@@ -58,9 +55,6 @@ fn do_delete_product_images(mut tx firebird.Transaction, product_id_bin []u8, id
 fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
 	data := tx.execute('SELECT
 		i.id,
-		i.created_at,
-		i.updated_at,
-		i.deleted_at,
 		i.url,
 		pi.image_rank,
 		pi.product_id
@@ -77,12 +71,9 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 		v := rows[i].values()
 
 		id_bin, _ := v[0].get_array_u8()!
-		created_at, _ := v[1].get_date_time()!
-		updated_at, _ := v[2].get_date_time()!
-		deleted_at := v[3].get_null_date_time()!
-		url, _ := v[4].get_string()!
-		image_rank, _ := v[5].get_i32()!
-		product_id_bin, _ := v[6].get_array_u8()!
+		url, _ := v[1].get_string()!
+		image_rank, _ := v[2].get_i32()!
+		product_id_bin, _ := v[3].get_array_u8()!
 
 		id := id_bin_to_string(id_bin)!
 		product_id := id_bin_to_string(product_id_bin)!
@@ -90,9 +81,6 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 		product_images[i] = ProductImage{
 			id:             id
 			id_bin:         id_bin
-			created_at:     created_at
-			updated_at:     updated_at
-			deleted_at:     deleted_at
 			url:            url
 			image_rank:     image_rank
 			product_id:     product_id

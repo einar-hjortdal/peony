@@ -36,9 +36,6 @@ CREATE TABLE currency (
 
 CREATE TABLE image (
   id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
   url BLOB SUB_TYPE TEXT NOT NULL,
   CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
 );
@@ -450,6 +447,15 @@ CREATE TABLE store_currencies (
 );
 
 CREATE INDEX "0681493b-ad86-159d-b800-173af620b0b4" ON store_currencies (currency_code);
+
+CREATE TABLE image_translations (
+  image_id BINARY(16) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
+  alt VARCHAR(191) NOT NULL,
+  CONSTRAINT "0686cd40-3323-13d1-8800-7d2adc8ea415" PRIMARY KEY (image_id, locale_id),
+  CONSTRAINT "0686cd40-3323-1431-e000-e409cd4362d5" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3323-1588-6000-3ba7b1076afb" FOREIGN KEY (locale_id) REFERENCES locale (id)
+);
 
 CREATE TABLE store_locales (
   store_id BINARY(16) NOT NULL,
