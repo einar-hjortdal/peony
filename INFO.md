@@ -4,9 +4,9 @@
 
 ### Translations
 
-Translation tables define the text values exposed by the `/store/` API. Each field in these tables may 
-be set to null when a locale hasn’t provided its own version of that string. To assemble the final display 
-text, the peony app must:
+Translation tables define the text values exposed by the `/store/` API. Each translation column in these 
+tables may be set to null when a locale hasn’t provided its own version of that string. To assemble 
+the final display text, the peony app must:
 1. Load the default translations by looking up `store.default_locale_id`
 2. When a client requests a specific `locale_id`, fetch those rows and override the default translations 
   with the non-null fields of the requested translation.
@@ -18,6 +18,11 @@ Although updating `store.default_locale_id` is rare, it carries three important 
 - Existing translations for the newly chosen default `locale_id` are utilized immediately.
 - All existing translations for the previous default `locale_id` are preserved.
 - Any null values in the new default locale will surface as missing until backfilled.
+
+Note: A translation should never be set as an empty string. If a `_translations` table contains only 
+one translation column, this column should not be nullable. To remove a translation, delete a row. If 
+a translations table contains many translation columns, these columns should be nullable. If all of 
+them are null, the row should be deleted.
 
 ### product
 
