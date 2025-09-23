@@ -131,7 +131,6 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 	src = []string{len: urls.len}
 	params = []firebird.Value{len: urls.len * 3, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < urls.len; i++ {
-		x := i // https://github.com/vlang/v/issues/25354
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)),
 			CAST(? AS BINARY(16)),
@@ -140,10 +139,9 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 
 		params[i * 3] = product_id_bin
 		params[i * 3 + 1] = image_ids_bin[i]
-		params[i * 3 + 2] = x
+		params[i * 3 + 2] = i32(i)
 	}
 
-	// TODO this merge hangs. What did I do wrong?
 	tx.execute('INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}',
 		...params)!
 }
