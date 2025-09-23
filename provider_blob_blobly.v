@@ -89,7 +89,7 @@ fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
 		}
 		return BlobProviderFileData{
 			id:  data.file_name
-			url: '${b.url}/public/${data.file_name}'
+			url: '${b.url}/public/${blobly_blobs_dirname}/${data.file_name}'
 		}
 	}
 
