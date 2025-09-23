@@ -57,6 +57,54 @@ struct UpdateUserData {
 	metadata   ?string @[raw]
 }
 
+struct ImageTranslationRequest {
+	locale_id string @[json: 'localeId']
+	alt       string
+}
+
+struct ImageTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	alt           string
+}
+
+fn hygienise_image_translation_request(i ImageTranslationRequest) !ImageTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(i.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+	return ImageTranslationRequestHygienised{
+		locale_id:     i.locale_id
+		locale_id_bin: locale_id_bin
+		alt:           i.alt
+	}
+}
+
+struct ImageRequest {
+	url          string
+	translations ?[]ImageTranslationRequest
+}
+
+struct ImageRequestHygienised {
+	url string
+mut:
+	translations []ImageTranslationRequestHygienised
+}
+
+fn hygienise_image_request(p ImageRequest) !ImageRequestHygienised {
+	mut image := ImageRequestHygienised{
+		url: p.url
+	}
+
+	if translations := p.translations {
+		mut itrh := []ImageTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			itrh[i] = hygienise_image_translation_request(translations[i])!
+		}
+		image.translations = itrh
+	}
+	return image
+}
+
 struct ProductTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	title       ?string
@@ -79,13 +127,13 @@ struct ProductRequest {
 	thumbnail         ?string
 	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
-	metadata          ?string @[raw]
-	images            ?[]string
+	metadata          ?string   @[raw]
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
+	images            ?[]ImageRequest
 }
 
 struct ProductRequestHygienised {
@@ -97,7 +145,6 @@ struct ProductRequestHygienised {
 	type_id_bin           []u8
 	discountable          ?bool
 	metadata              ?string
-	images                ?[]string
 	tag_ids               ?[]string
 	tag_ids_bin           [][]u8
 	sales_channel_ids     ?[]string
@@ -108,6 +155,7 @@ struct ProductRequestHygienised {
 	collection_ids_bin    [][]u8
 mut:
 	translations ?[]ProductTranslationRequestHygienised
+	images       ?[]ImageRequestHygienised
 }
 
 fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
@@ -140,7 +188,6 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 		type_id_bin:           type_id_bin
 		discountable:          p.discountable
 		metadata:              p.metadata
-		images:                p.images
 		tag_ids:               p.tag_ids
 		tag_ids_bin:           tag_ids_bin
 		sales_channel_ids:     p.sales_channel_ids
@@ -168,6 +215,15 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 		}
 		ph.translations = pth
 	}
+
+	if images := p.images {
+		mut irh := []ImageRequestHygienised{len: images.len}
+		for i := 0; i < images.len; i++ {
+			irh[i] = hygienise_image_request(images[i])!
+		}
+		ph.images = irh
+	}
+
 	return ph
 }
 

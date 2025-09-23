@@ -1,26 +1,13 @@
 module peony
 
-import arrays
 import einar_hjortdal.firebird
 
-fn model_image_create(mut app App, mut tx firebird.Transaction, urls []string) !([]string, [][]u8) {
-	mut c := ['id', 'url']
-	mut stmt := tx.prepare('INSERT INTO image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
-
-	mut ids := []string{len: urls.len}
-	mut ids_bin := [][]u8{len: urls.len}
-
-	for i := 0; i < urls.len; i++ {
-		id, id_bin := app.new_id()
-		ids[i] = id
-		ids_bin[i] = id_bin
-		stmt.execute(id_bin, urls[i]) or {
-			stmt.close()!
-			return err
-		}
-	}
-	stmt.close()!
-	return ids, ids_bin
+struct ImageTranslation {
+	image_id      string
+	image_id_bin  []u8
+	locale_id     string
+	locale_id_bin []u8
+	alt           string
 }
 
 struct ProductImage {
@@ -30,26 +17,9 @@ struct ProductImage {
 	image_rank     i32
 	product_id     string
 	product_id_bin []u8
-}
-
-fn (mut app App) do_create_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
-	c := ['product_id', 'image_id', 'image_rank']
-	mut stmt := tx.prepare('INSERT INTO product_image (${get_columns(c)}) VALUES (${get_placeholders(c)})')!
-	for i := 0; i < ids_bin.len; i++ {
-		rank := i
-		stmt.execute(product_id_bin, ids_bin[i], rank) or {
-			stmt.close()!
-			return err
-		}
-	}
-	stmt.close()!
-}
-
-fn do_delete_product_images(mut tx firebird.Transaction, product_id_bin []u8, ids_bin [][]u8) ! {
-	params := arrays.concat([firebird.Value(product_id_bin)], ...workaround_24757(ids_bin))
-	tx.execute('DELETE FROM product_image WHERE product_id = ?
-		AND image_id IN (${get_placeholders(ids_bin)})',
-		...params)!
+	alt            firebird.NullString
+mut:
+	translations []ImageTranslation
 }
 
 fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
@@ -91,7 +61,7 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 	return product_images
 }
 
-fn model_product_images_update(mut app App, mut tx firebird.Transaction, product_id_bin []u8, urls []string) ! {
+fn model_product_images_update(mut app App, mut tx firebird.Transaction, product_id_bin []u8, images []ImageRequestHygienised) ! {
 	// always delete all images
 	tx.execute('DELETE FROM image i
 		WHERE EXISTS (
@@ -103,34 +73,34 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 		product_id_bin)!
 
 	// early return when nothing else to do
-	if urls.len == 0 {
+	if images.len == 0 {
 		return
 	}
 
-	mut image_ids_bin := [][]u8{len: urls.len}
-	for i := 0; i < urls.len; i++ {
+	mut image_ids_bin := [][]u8{len: images.len}
+	for i := 0; i < images.len; i++ {
 		_, id_bin := app.new_id()
 		image_ids_bin[i] = id_bin
 	}
 
 	// insert new images
-	mut src := []string{len: urls.len}
-	mut params := []firebird.Value{len: urls.len * 2, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < urls.len; i++ {
+	mut src := []string{len: images.len}
+	mut params := []firebird.Value{len: images.len * 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < images.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)),
 			CAST(? AS BLOB SUB_TYPE TEXT)
 			FROM RDB\$DATABASE'
 		params[i * 2] = image_ids_bin[i]
-		params[i * 2 + 1] = urls[i]
+		params[i * 2 + 1] = images[i].url
 	}
 
 	tx.execute('INSERT INTO image (id, url) ${get_merge_source(src)}', ...params)!
 
 	// insert product_image relation
-	src = []string{len: urls.len}
-	params = []firebird.Value{len: urls.len * 3, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < urls.len; i++ {
+	src = []string{len: images.len}
+	params = []firebird.Value{len: images.len * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < images.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)),
 			CAST(? AS BINARY(16)),
