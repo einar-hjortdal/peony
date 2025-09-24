@@ -162,10 +162,11 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 				locale_id := translation.locale_id
 				alt := translation.alt
 				src = arrays.concat(src, 'SELECT
-			CAST(? AS BINARY(16)),
-			CAST(? AS BINARY(16)),
-			CAST(? AS VARCHAR(191))
-			FROM RDB\$DATABASE')
+					CAST(? AS BINARY(16)),
+					CAST(? AS BINARY(16)),
+					CAST(? AS VARCHAR(191))
+					FROM RDB\$DATABASE')
+
 				params = arrays.concat(params, image_id, locale_id, alt)
 			}
 		}
