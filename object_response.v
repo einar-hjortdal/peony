@@ -221,8 +221,8 @@ struct StoreResponseEnvelope {
 }
 
 struct ImageTranslationResponse {
-	image_id  string
-	locale_id string
+	image_id  string @[json: 'imageId']
+	locale_id string @[json: 'localeId']
 	alt       string
 }
 
@@ -237,7 +237,7 @@ fn format_image_translation_response(p ImageTranslation) ImageTranslationRespons
 struct ProductImageResponse {
 	id           string
 	url          string
-	product_id   string
+	product_id   string                     @[json: 'productId']
 	image_rank   i32                        @[json: 'imageRank']
 	alt          string                     @[omitempty]
 	translations []ImageTranslationResponse @[omitempty]

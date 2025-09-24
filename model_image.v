@@ -150,6 +150,32 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 
 	tx.execute('INSERT INTO image (id, url) ${get_merge_source(src)}', ...params)!
 
+	// insert translations
+	src = []string{}
+	params = []firebird.Value{}
+	for i := 0; i < images.len; i++ {
+		image_id := image_ids_bin[i]
+		translations := images[i].translations
+		if translations.len > 0 {
+			for k := 0; k < translations.len; k++ {
+				translation := translations[k]
+				locale_id := translation.locale_id
+				alt := translation.alt
+				src = arrays.concat(src, 'SELECT
+			CAST(? AS BINARY(16)),
+			CAST(? AS BINARY(16)),
+			CAST(? AS VARCHAR(191))
+			FROM RDB\$DATABASE')
+				params = arrays.concat(params, image_id, locale_id, alt)
+			}
+		}
+	}
+
+	if src.len > 0 {
+		tx.execute('INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}',
+			...params)!
+	}
+
 	// insert product_image relation
 	src = []string{len: images.len}
 	params = []firebird.Value{len: images.len * 3, init: firebird.Value(firebird.Null{})}
