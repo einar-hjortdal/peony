@@ -125,6 +125,20 @@ struct ProductTranslationRequestHygienised {
 	description   ?string
 }
 
+fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return ProductTranslationRequestHygienised{
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+		title:         p.title
+		subtitle:      p.subtitle
+		description:   p.description
+	}
+}
+
 struct ProductRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
@@ -206,17 +220,7 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 	if translations := p.translations {
 		mut pth := []ProductTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_internal_error(error_id_invalid, 'locale_id')
-			}
-			pth[i] = ProductTranslationRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				title:         translation.title
-				subtitle:      translation.subtitle
-				description:   translation.description
-			}
+			pth[i] = hygienise_product_translation_request(translations[i])!
 		}
 		ph.translations = pth
 	}
@@ -303,6 +307,18 @@ struct ProductOptionValueTranslationRequestHygienised {
 	name          string
 }
 
+fn hygienise_product_option_value_translation_request(p ProductOptionValueTranslationRequest) !ProductOptionValueTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return ProductOptionValueTranslationRequestHygienised{
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+		name:          p.name
+	}
+}
+
 struct ProductOptionValueRequest {
 	option_id    string @[json: 'optionId']
 	translations []ProductOptionValueTranslationRequest
@@ -326,16 +342,15 @@ struct ProductVariantRequest {
 }
 
 fn hygienise_product_option_value_request(povr ProductOptionValueRequest) !ProductOptionValueRequestHygienised {
-	option_id_bin := id_string_to_bin(povr.option_id)!
+	option_id_bin := id_string_to_bin(povr.option_id) or {
+		return new_internal_error(error_id_invalid, 'option_id')
+	}
+
 	mut translations := []ProductOptionValueTranslationRequestHygienised{len: povr.translations.len}
 	for i := 0; i < povr.translations.len; i++ {
-		locale_id_bin := id_string_to_bin(povr.translations[i].locale_id)!
-		translations[i] = ProductOptionValueTranslationRequestHygienised{
-			locale_id:     povr.translations[i].locale_id
-			locale_id_bin: locale_id_bin
-			name:          povr.translations[i].name
-		}
+		translations[i] = hygienise_product_option_value_translation_request(povr.translations[i])!
 	}
+
 	return ProductOptionValueRequestHygienised{
 		option_id:     povr.option_id
 		option_id_bin: option_id_bin
