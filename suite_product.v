@@ -55,9 +55,10 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	}
 	// TODO category translations
 
-	product_images := model_product_image_retrieve(mut tx, product_ids_bin) or {
+	product_images := model_product_image_retrieve(mut tx, []u8{}, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_image', err.msg())
 	}
+	// TODO image translations
 
 	product_sales_channels := model_product_sales_channel_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_sales_channel', err.msg())

@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import einar_hjortdal.firebird
 
 struct ImageTranslation {
@@ -8,6 +9,36 @@ struct ImageTranslation {
 	locale_id     string
 	locale_id_bin []u8
 	alt           string
+}
+
+fn model_image_translation_retrieve(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]ImageTranslation {
+	data := tx.execute('SELECT image_id, locale_id, alt FROM image_translations
+		WHERE image_id IN (${get_placeholders(image_ids_bin)})',
+		...workaround_24757(image_ids_bin))!
+
+	rows := data.rows()
+
+	mut image_translations := []ImageTranslation{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+
+		image_id_bin, _ := v[0].get_array_u8()!
+		locale_id_bin, _ := v[1].get_array_u8()!
+		alt, _ := v[2].get_string()!
+
+		image_id := id_bin_to_string(image_id_bin)!
+		locale_id := id_bin_to_string(locale_id_bin)!
+
+		image_translations[i] = ImageTranslation{
+			image_id:      image_id
+			image_id_bin:  image_id_bin
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			alt:           alt
+		}
+	}
+
+	return image_translations
 }
 
 struct ProductImage {
@@ -22,17 +53,37 @@ mut:
 	translations []ImageTranslation
 }
 
-fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
+fn model_product_image_retrieve(mut tx firebird.Transaction, locale_id_bin []u8, product_ids_bin [][]u8) ![]ProductImage {
+	mut params := []firebird.Value{}
+
+	if locale_id_bin.len > 0 {
+		params = arrays.concat(params, locale_id_bin, locale_id_bin)
+	} else {
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
+	}
+
+	params = arrays.concat(params, ...workaround_24757(product_ids_bin))
+
 	data := tx.execute('SELECT
 		i.id,
 		i.url,
 		pi.image_rank,
-		pi.product_id
+		pi.product_id,
+		COALESCE(it_requested.alt, it_default.alt) AS alt
 		FROM product_image pi
 		LEFT JOIN image i ON id = image_id
+		LEFT JOIN image_translations it_default
+			ON it_default.image_id = i.id
+			AND it_default.locale_id = (
+				SELECT default_locale_id FROM store
+			)
+		LEFT JOIN image_translations it_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND it_requested.image_id = i.id
+			AND it_requested.locale_id = ?
 		WHERE pi.product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY pi.image_rank',
-		...workaround_24757(product_ids_bin))!
+		...params)!
 
 	rows := data.rows()
 
@@ -44,6 +95,7 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 		url, _ := v[1].get_string()!
 		image_rank, _ := v[2].get_i32()!
 		product_id_bin, _ := v[3].get_array_u8()!
+		alt := v[4].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 		product_id := id_bin_to_string(product_id_bin)!
@@ -55,6 +107,7 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 			image_rank:     image_rank
 			product_id:     product_id
 			product_id_bin: product_id_bin
+			alt:            alt
 		}
 	}
 

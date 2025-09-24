@@ -220,19 +220,45 @@ struct StoreResponseEnvelope {
 	store StoreResponse
 }
 
-struct ProductImageResponse {
-	id         string
-	url        string
-	product_id string
-	image_rank i32 @[json: 'imageRank']
+struct ImageTranslationResponse {
+	image_id  string
+	locale_id string
+	alt       string
 }
 
-fn format_product_image_response(i ProductImage) ProductImageResponse {
+fn format_image_translation_response(p ImageTranslation) ImageTranslationResponse {
+	return ImageTranslationResponse{
+		image_id:  p.image_id
+		locale_id: p.locale_id
+		alt:       p.alt
+	}
+}
+
+struct ProductImageResponse {
+	id           string
+	url          string
+	product_id   string
+	image_rank   i32                        @[json: 'imageRank']
+	alt          string                     @[omitempty]
+	translations []ImageTranslationResponse @[omitempty]
+}
+
+fn format_product_image_response(p ProductImage) ProductImageResponse {
+	mut translations := []ImageTranslationResponse{}
+	if p.translations.len > 0 {
+		translations = []ImageTranslationResponse{len: p.translations.len}
+		for i := 0; i < p.translations.len; i++ {
+			translations[i] = format_image_translation_response(p.translations[i])
+		}
+	}
+
 	return ProductImageResponse{
-		id:         i.id
-		url:        i.url
-		product_id: i.product_id
-		image_rank: i.image_rank
+		id:           p.id
+		url:          p.url
+		product_id:   p.product_id
+		image_rank:   p.image_rank
+		alt:          p.alt.value
+		translations: translations
 	}
 }
 
