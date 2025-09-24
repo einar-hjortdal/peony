@@ -5,6 +5,8 @@ import net.http
 import time
 import veb
 
+const error_empty_field = 'Field cannot be empty'
+const error_empty_object = 'Received all empty fields'
 const error_id_invalid = 'Invalid id'
 const error_id_generation = 'Failed to generate id'
 const error_header_missing = 'Missing header'

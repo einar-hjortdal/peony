@@ -72,6 +72,11 @@ fn hygienise_image_translation_request(i ImageTranslationRequest) !ImageTranslat
 	locale_id_bin := id_string_to_bin(i.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
+
+	if i.alt == '' {
+		return new_internal_error(error_empty_field, 'alt')
+	}
+
 	return ImageTranslationRequestHygienised{
 		locale_id:     i.locale_id
 		locale_id_bin: locale_id_bin
