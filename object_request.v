@@ -7,12 +7,12 @@ struct AuthRequest {
 
 struct StoreRequest {
 	name                      ?string
-	default_locale_id         ?string @[json: 'defaultLocaleId']
-	default_currency_code     ?string @[json: 'defaultCurrencyCode']
-	default_stock_location_id ?string @[json: 'defaultStockLocationId']
-	default_sales_channel_id  ?string @[json: 'defaultSalesChannelId']
-	locale_ids                ?[]string
-	currency_codes            ?[]string
+	default_locale_id         ?string   @[json: 'defaultLocaleId']
+	default_currency_code     ?string   @[json: 'defaultCurrencyCode']
+	default_stock_location_id ?string   @[json: 'defaultStockLocationId']
+	default_sales_channel_id  ?string   @[json: 'defaultSalesChannelId']
+	locale_ids                ?[]string @[json: 'localeIds']
+	currency_codes            ?[]string @[json: 'currencyCodes']
 }
 
 struct StoreRequestHygienised {
@@ -139,6 +139,10 @@ fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTr
 	}
 }
 
+// TODO add []ProductOptionRequest
+// TODO add []ProductVariantRequest
+// automatically create a default variant when a product is created and no variant data is provided.
+// otherwise create variants according to provided data
 struct ProductRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
