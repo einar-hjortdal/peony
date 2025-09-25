@@ -77,10 +77,9 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	ph := hygienise_product_request(p) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
-		} else {
-			return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
-				err.msg())
 		}
+		return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
+			err.msg())
 	}
 
 	if translations := ph.translations {
@@ -131,10 +130,9 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 	ph := hygienise_product_request(p) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
-		} else {
-			return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
-				err.msg())
 		}
+		return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
+			err.msg())
 	}
 
 	if translations := ph.translations {

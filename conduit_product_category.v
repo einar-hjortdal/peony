@@ -3,7 +3,7 @@ module peony
 import arrays
 import veb
 
-fn conduit_product_category_list(mut app App, mut ctx Context, ph ProductCategoryParamsRetrieveHygienised) veb.Result {
+fn conduit_product_category_list(mut app App, mut ctx Context, ph ProductCategoryParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}

@@ -100,10 +100,9 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		tx.rollback() or {}
 		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
-		} else {
-			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+			err.msg())
 	}
 
 	// product_variants_availability
@@ -113,13 +112,12 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
+		tx.rollback() or {}
 		if err is InternalError {
 			return handle_error_500(mut ctx, err.message, err.details)
-		} else {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+			err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
@@ -197,10 +195,9 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 		tx.rollback() or {}
 		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
-		} else {
-			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+			err.msg())
 	}
 
 	mut currency_code := ''
@@ -221,13 +218,12 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
+		tx.rollback() or {}
 		if err is InternalError {
 			return handle_error_500(mut ctx, err.message, err.details)
-		} else {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+			err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
@@ -296,10 +292,9 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		tx.rollback() or {}
 		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
-		} else {
-			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+			err.msg())
 	}
 
 	// product_variants_availability
@@ -312,10 +307,9 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		tx.rollback() or {} // ignore error
 		if err is InternalError {
 			return handle_error_500(mut ctx, err.message, err.details)
-		} else {
-			return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+			err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
@@ -362,10 +356,9 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		tx.rollback() or {}
 		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
-		} else {
-			return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
-				err.msg())
 		}
+		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+			err.msg())
 	}
 
 	mut currency_code := ''
@@ -388,11 +381,10 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		model_sales_channel_stock_location_retrieve_params) or {
 		if err is InternalError {
 			return handle_error_500(mut ctx, err.message, err.details)
-		} else {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
-				err.msg())
 		}
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+			err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }

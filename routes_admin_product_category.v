@@ -11,32 +11,12 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 		return handle_fetch_zero(mut ctx)
 	}
 
-	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'ids')
-	}
-
-	parent_category_ids_bin := zero_array_id_string_to_array_id_bin(p.parent_category_ids) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'parent_category_ids')
-	}
-
-	product_ids_bin := zero_array_id_string_to_array_id_bin(p.product_ids) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_ids')
-	}
-
-	ph := ProductCategoryParamsRetrieveHygienised{
-		ids:                     p.ids
-		ids_bin:                 ids_bin
-		handles:                 p.handles
-		is_active:               p.is_active
-		is_internal:             p.is_internal
-		parent_category_ids:     p.parent_category_ids
-		parent_category_id_bins: parent_category_ids_bin
-		product_ids:             p.product_ids
-		product_ids_bin:         product_ids_bin
-		with_deleted:            p.with_deleted
-		offset:                  p.offset
-		fetch:                   p.fetch
-		order:                   p.order
+	ph := hygienise_product_category_params(p) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_category_params',
+			err.msg())
 	}
 
 	return conduit_product_category_list(mut app, mut ctx, ph)
@@ -105,7 +85,7 @@ pub fn (mut app App) admin_product_category_get(mut ctx Context, product_categor
 		'ids': product_category_id
 	}
 	p := extract_retrieve_product_category_params(m)
-	ph := ProductCategoryParamsRetrieveHygienised{
+	ph := ProductCategoryParamsHygienised{
 		ids:     p.ids
 		ids_bin: [product_category_id_bin]
 	}

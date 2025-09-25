@@ -329,7 +329,7 @@ fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string s
 // handles expects a string that is a single handle, or many comma-separated handles.
 // parent_category_ids expects a string that is a single id, or many comma-separated ids. All children
 // of these will be returned.
-struct ProductCategoryParamsRetrieve {
+struct ProductCategoryParams {
 	ids                 ZeroArrayString
 	handles             ZeroArrayString
 	is_active           ZeroBool
@@ -343,8 +343,8 @@ struct ProductCategoryParamsRetrieve {
 	locale_id           ZeroString
 }
 
-fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryParamsRetrieve {
-	return ProductCategoryParamsRetrieve{
+fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryParams {
+	return ProductCategoryParams{
 		ids:                 zero_array_string(m, 'ids')
 		handles:             zero_array_string(m, 'handle')
 		is_active:           zero_bool(m, 'is_active')
@@ -359,7 +359,7 @@ fn extract_retrieve_product_category_params(m map[string]string) ProductCategory
 	}
 }
 
-struct ProductCategoryParamsRetrieveHygienised {
+struct ProductCategoryParamsHygienised {
 	ids                     ZeroArrayString
 	ids_bin                 [][]u8
 	handles                 ZeroArrayString
@@ -375,4 +375,34 @@ struct ProductCategoryParamsRetrieveHygienised {
 	order                   ZeroString
 	locale_id               ZeroString
 	locale_id_bin           []u8
+}
+
+fn hygienise_product_category_params(p ProductCategoryParams) !ProductCategoryParamsHygienised {
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return new_internal_error(error_id_invalid, 'ids')
+	}
+
+	parent_category_ids_bin := zero_array_id_string_to_array_id_bin(p.parent_category_ids) or {
+		return new_internal_error(error_id_invalid, 'parent_category_ids')
+	}
+
+	product_ids_bin := zero_array_id_string_to_array_id_bin(p.product_ids) or {
+		return new_internal_error(error_id_invalid, 'product_ids')
+	}
+
+	return ProductCategoryParamsHygienised{
+		ids:                     p.ids
+		ids_bin:                 ids_bin
+		handles:                 p.handles
+		is_active:               p.is_active
+		is_internal:             p.is_internal
+		parent_category_ids:     p.parent_category_ids
+		parent_category_id_bins: parent_category_ids_bin
+		product_ids:             p.product_ids
+		product_ids_bin:         product_ids_bin
+		with_deleted:            p.with_deleted
+		offset:                  p.offset
+		fetch:                   p.fetch
+		order:                   p.order
+	}
 }

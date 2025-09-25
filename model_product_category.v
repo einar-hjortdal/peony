@@ -187,7 +187,7 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 		...params)!
 }
 
-fn model_product_category_retrieve_cte(ph ProductCategoryParamsRetrieveHygienised) (string, []firebird.Value) {
+fn model_product_category_retrieve_cte(ph ProductCategoryParamsHygienised) (string, []firebird.Value) {
 	if ph.parent_category_ids.is_set {
 		return 'WITH RECURSIVE descendants (id) AS (
 			SELECT id FROM product_category pc
@@ -201,7 +201,7 @@ fn model_product_category_retrieve_cte(ph ProductCategoryParamsRetrieveHygienise
 	return '', []firebird.Value{}
 }
 
-fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHygienised) (string, []firebird.Value) {
+fn model_product_category_retrieve_conditions(ph ProductCategoryParamsHygienised) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
@@ -241,7 +241,7 @@ fn model_product_category_retrieve_conditions(ph ProductCategoryParamsRetrieveHy
 	return get_where_conditions(conditions), params
 }
 
-fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) !i64 {
+fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsHygienised) !i64 {
 	cte, cte_params := model_product_category_retrieve_cte(ph)
 	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
 
@@ -256,7 +256,7 @@ fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph Product
 	return count
 }
 
-fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCategoryParamsRetrieveHygienised) ![]ProductCategory {
+fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCategoryParamsHygienised) ![]ProductCategory {
 	mut params := []firebird.Value{}
 	cte, cte_params := model_product_category_retrieve_cte(ph)
 	params = arrays.append(params, cte_params)
