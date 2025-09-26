@@ -15,14 +15,10 @@ const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
 const error_database_data_malformed = 'Data retrieved from database is malformed'
 
-fn new_peony_success() PeonySuccess {
-	return PeonySuccess{
-		success: true
-	}
-}
-
 fn success(mut ctx Context) veb.Result {
-	return ctx.json(new_peony_success())
+	return ctx.json(PeonySuccess{
+		success: true
+	})
 }
 
 fn new_peony_error(message string, details string) PeonyError {

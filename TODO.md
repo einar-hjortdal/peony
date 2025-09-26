@@ -78,15 +78,20 @@
 - [x] Keep response structs separate from internal structs
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
-- [ ] Firebird connection management
-- [ ] Transaction attempts
 - [ ] Soft-delete where needed, and only where needed
 - [ ] Reduce boilerplating
+- [ ] Reduce usage of option types
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
 - [ ] Remove `parse_` functions from methods
 - [ ] Merge hygienise functions with extraction functions for object_query_string objects
 - [ ] Graceful shutdown
+
+## Upstream
+
+- [ ] Firebird connection pooling
+- [ ] Firebird connection management
+- [ ] Firebird transaction attempts
 
 ## Considerations
 

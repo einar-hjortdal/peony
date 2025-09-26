@@ -52,5 +52,5 @@ fn conduit_store_update(mut app App, mut ctx Context, id_bin []u8, ph StoreReque
 		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
 	}
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }

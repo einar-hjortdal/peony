@@ -185,7 +185,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	return ctx.json(new_peony_success())
+	return success(mut ctx)
 }
 
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest, povh []ProductOptionValueRequestHygienised, mah []MoneyAmountRequestHygienised) veb.Result {

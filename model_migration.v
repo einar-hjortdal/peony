@@ -9,21 +9,6 @@ struct Migration {
 	name       string
 }
 
-fn parse_migration(v []firebird.Value) !Migration {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	name, _ := v[2].get_string()!
-
-	id := id_bin_to_string(id_bin)!
-
-	return Migration{
-		id:         id
-		id_bin:     id_bin
-		created_at: created_at
-		name:       name
-	}
-}
-
 fn model_migration_create(mut tx firebird.Transaction, migration_id_bin []u8, name string) ! {
 	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', migration_id_bin, name)!
 }
@@ -36,7 +21,19 @@ fn (mut app App) retrieve_migrations() ![]Migration {
 
 	mut migrations := []Migration{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		migrations[i] = parse_migration(rows[i].values())!
+		v := rows[i].values()
+		id_bin, _ := v[0].get_array_u8()!
+		created_at, _ := v[1].get_date_time()!
+		name, _ := v[2].get_string()!
+
+		id := id_bin_to_string(id_bin)!
+
+		migrations[i] = Migration{
+			id:         id
+			id_bin:     id_bin
+			created_at: created_at
+			name:       name
+		}
 	}
 	return migrations
 }

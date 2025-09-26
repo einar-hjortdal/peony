@@ -122,7 +122,17 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 
 	mut currencies := []Currency{len: currency_rows.len}
 	for i := 0; i < currency_rows.len; i++ {
-		currencies[i] = parse_currency(currency_rows[i].values())!
+		v := currency_rows[i].values()
+
+		code, _ := v[0].get_string()!
+		decimal_digits := v[1].get_null_i32()!
+		includes_tax, _ := v[2].get_bool()!
+
+		currencies[i] = Currency{
+			code:           code
+			decimal_digits: decimal_digits
+			includes_tax:   includes_tax
+		}
 	}
 
 	store.currencies = currencies
