@@ -85,6 +85,7 @@
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
 - [ ] Remove `parse_` functions from methods
+- [ ] Merge hygienise functions with extraction functions for object_query_string objects
 - [ ] Graceful shutdown
 
 ## Considerations
