@@ -19,51 +19,8 @@ struct Store {
 mut:
 	locales    []Locale
 	currencies []Currency
-	// stock locations
-	// sales_channels
 }
 
-fn parse_store(v []firebird.Value) !Store {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	updated_at, _ := v[2].get_date_time()!
-	name, _ := v[3].get_string()!
-	default_locale_id_bin, _ := v[4].get_array_u8()!
-	default_currency_code, _ := v[5].get_string()!
-	default_stock_location_id_bin, default_stock_location_id_bin_is_null := v[6].get_array_u8()!
-	default_sales_channel_id_bin, default_sales_channel_id_bin_is_null := v[7].get_array_u8()!
-
-	id := id_bin_to_string(id_bin)!
-	default_locale_id := id_bin_to_string(default_locale_id_bin)!
-
-	mut default_stock_location_id := ''
-	mut default_sales_channel_id := ''
-
-	if !default_stock_location_id_bin_is_null {
-		default_stock_location_id = id_bin_to_string(default_stock_location_id_bin)!
-	}
-
-	if !default_sales_channel_id_bin_is_null {
-		default_sales_channel_id = id_bin_to_string(default_sales_channel_id_bin)!
-	}
-
-	return Store{
-		id:                            id
-		id_bin:                        id_bin
-		created_at:                    created_at
-		updated_at:                    updated_at
-		name:                          name
-		default_locale_id:             default_locale_id
-		default_locale_id_bin:         default_locale_id_bin
-		default_currency_code:         default_currency_code
-		default_stock_location_id:     default_stock_location_id
-		default_stock_location_id_bin: default_stock_location_id_bin
-		default_sales_channel_id:      default_sales_channel_id
-		default_sales_channel_id_bin:  default_sales_channel_id_bin
-	}
-}
-
-// TODO separate queries (create suite)
 fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	store_data := tx.execute('SELECT
 		id,
@@ -82,20 +39,47 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 		return error(format_error_message('No entries in table store'))
 	}
 
-	mut store := parse_store(store_rows[0].values())!
+	v := store_rows[0].values()
 
-	locale_data := tx.execute('SELECT locale_id, l.code
-		FROM store_locales
-		LEFT JOIN locale l ON locale_id = l.id
-		WHERE store_id = ?
-		ORDER BY l.code',
-		store.id_bin)!
+	id_bin, _ := v[0].get_array_u8()!
+	created_at, _ := v[1].get_date_time()!
+	updated_at, _ := v[2].get_date_time()!
+	name, _ := v[3].get_string()!
+	default_locale_id_bin, _ := v[4].get_array_u8()!
+	default_currency_code, _ := v[5].get_string()!
+	default_stock_location_id_bin, _ := v[6].get_array_u8()!
+	default_sales_channel_id_bin, _ := v[7].get_array_u8()!
 
-	locale_rows := locale_data.rows()
+	id := id_bin_to_string(id_bin)!
+	default_locale_id := id_bin_to_string(default_locale_id_bin)!
+	default_stock_location_id := id_bin_to_string(default_stock_location_id_bin)!
+	default_sales_channel_id := id_bin_to_string(default_sales_channel_id_bin)!
 
-	mut locales := []Locale{len: locale_rows.len}
-	for i := 0; i < locale_rows.len; i++ {
-		v := locale_rows[i].values()
+	return Store{
+		id:                            id
+		id_bin:                        id_bin
+		created_at:                    created_at
+		updated_at:                    updated_at
+		name:                          name
+		default_locale_id:             default_locale_id
+		default_locale_id_bin:         default_locale_id_bin
+		default_currency_code:         default_currency_code
+		default_stock_location_id:     default_stock_location_id
+		default_stock_location_id_bin: default_stock_location_id_bin
+		default_sales_channel_id:      default_sales_channel_id
+		default_sales_channel_id_bin:  default_sales_channel_id_bin
+	}
+}
+
+fn model_store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
+	data := tx.execute('SELECT id, code FROM locale l WHERE EXISTS (
+		SELECT 1 FROM store_locales sl WHERE sl.locale_id = l.id)')!
+
+	rows := data.rows()
+
+	mut locales := []Locale{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
 
 		id_bin, _ := v[0].get_array_u8()!
 		code, _ := v[1].get_string()!
@@ -109,20 +93,18 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 		}
 	}
 
-	store.locales = locales
+	return locales
+}
 
-	currency_data := tx.execute('SELECT currency_code, c.decimal_digits, c.includes_tax 
-		FROM store_currencies
-		LEFT JOIN currency c ON currency_code = c.code
-		WHERE store_id = ?
-		ORDER BY c.code',
-		store.id_bin)!
+fn model_store_currencies_retrieve(mut tx firebird.Transaction) ![]Currency {
+	data := tx.execute('SELECT code, decimal_digits, includes_tax from currency c WHERE EXISTS (
+	SELECT 1 from store_currencies sc WHERE sc.currency_code = c.code)')!
 
-	currency_rows := currency_data.rows()
+	rows := data.rows()
 
-	mut currencies := []Currency{len: currency_rows.len}
-	for i := 0; i < currency_rows.len; i++ {
-		v := currency_rows[i].values()
+	mut currencies := []Currency{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
 
 		code, _ := v[0].get_string()!
 		decimal_digits := v[1].get_null_i32()!
@@ -135,9 +117,7 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 		}
 	}
 
-	store.currencies = currencies
-
-	return store
+	return currencies
 }
 
 fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_ids_bin [][]u8) ! {
