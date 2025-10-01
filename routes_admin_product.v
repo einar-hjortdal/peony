@@ -84,10 +84,10 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 
 	if translations := ph.translations {
 		if translations.len == 0 {
-			return handle_error_400(mut ctx, 'A product name is required', 'translations')
+			return handle_error_400(mut ctx, 'A product title is required', 'translations')
 		}
 	} else {
-		return handle_error_400(mut ctx, 'A product name is required', 'translations')
+		return handle_error_400(mut ctx, 'A product title is required', 'translations')
 	}
 
 	return conduit_product_create(mut app, mut ctx, ph)
@@ -178,7 +178,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product options', err.msg())
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }

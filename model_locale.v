@@ -9,29 +9,42 @@ struct Locale {
 	code   string
 }
 
-fn model_locale_retrieve_count(mut tx firebird.Transaction, p LocaleRetrieveParams) !i64 {
-	data := tx.execute('SELECT COUNT(*) FROM locale')!
+fn conditions_locale_retrieve(ph LocaleRetrieveParamsHygienised) (string, []firebird.Value) {
+	mut conditions := []string{}
+	mut params := []firebird.Value{}
+
+	if ph.ids.is_set {
+		conditions = arrays.concat(conditions, 'WHERE id IN (${get_placeholders(ph.ids_bin)})')
+		params = arrays.concat(params, workaround_24757(ph.ids_bin))
+	}
+
+	return get_where_conditions(conditions), params
+}
+
+fn model_locale_retrieve_count(mut tx firebird.Transaction, ph LocaleRetrieveParamsHygienised) !i64 {
+	conditions, params := conditions_locale_retrieve(ph)
+	data := tx.execute('SELECT COUNT(*) FROM locale ${conditions}', params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
 	return count
 }
 
-fn model_locale_retrieve(mut tx firebird.Transaction, p LocaleRetrieveParams) ![]Locale {
-	mut params := []firebird.Value{}
-	mut sorting := 'ORDER BY code ${get_sorting_order(p.order)}'
+fn model_locale_retrieve(mut tx firebird.Transaction, ph LocaleRetrieveParamsHygienised) ![]Locale {
+	conditions, mut params := conditions_locale_retrieve(ph)
+	mut sorting := 'ORDER BY code ${get_sorting_order(ph.order)}'
 
-	if p.offset.is_set {
+	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
+		params = arrays.concat(params, ph.offset.v)
 	}
 
-	if p.fetch.is_set {
+	if ph.fetch.is_set {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch.v)
+		params = arrays.concat(params, ph.fetch.v)
 	}
 
-	data := tx.execute('SELECT id, code FROM locale ${sorting}', ...params)!
+	data := tx.execute('SELECT id, code FROM locale ${conditions} ${sorting}', ...params)!
 	rows := data.rows()
 
 	mut locales := []Locale{len: rows.len}

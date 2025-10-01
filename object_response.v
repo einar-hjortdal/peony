@@ -35,6 +35,10 @@ struct LocaleResponse {
 }
 
 struct LocaleResponseEnvelope {
+	locale LocaleResponse
+}
+
+struct ListLocaleResponseEnvelope {
 	locales []LocaleResponse
 	count   i64
 	offset  i32

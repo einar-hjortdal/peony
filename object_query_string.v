@@ -49,19 +49,10 @@ fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesPar
 }
 
 struct LocaleRetrieveParams {
-	store_id ZeroString // internal
-	offset   ZeroI32
-	fetch    ZeroI32
-	order    ZeroString
-}
-
-fn extract_retrieve_locales_params(m map[string]string) LocaleRetrieveParams {
-	return LocaleRetrieveParams{
-		store_id: zero_string(m, 'store_id')
-		offset:   zero_i32(m, 'offset')
-		fetch:    zero_i32(m, 'fetch')
-		order:    zero_string(m, 'order')
-	}
+	ids    ZeroArrayString
+	offset ZeroI32
+	fetch  ZeroI32
+	order  ZeroString
 }
 
 struct ListSalesChannelsParams {

@@ -47,7 +47,7 @@ fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised)
 }
 
 fn model_sales_channel_retrieve_count(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) !i64 {
-	conditions, mut params := model_sales_channel_retrieve_conditions(ph)
+	conditions, params := model_sales_channel_retrieve_conditions(ph)
 	data := tx.execute('SELECT COUNT(*) from sales_channel ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row

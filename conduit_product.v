@@ -206,7 +206,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	} else {
 		store := model_store_retrieve(mut tx) or {
 			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to retrieve store data', err.msg())
+			return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 		}
 		currency_code = store.default_currency_code
 	}
@@ -367,7 +367,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	} else {
 		store := model_store_retrieve(mut tx) or {
 			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to retrieve store data', err.msg())
+			return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 		}
 		currency_code = store.default_currency_code
 	}
