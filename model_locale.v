@@ -23,7 +23,7 @@ fn conditions_locale_retrieve(ph LocaleRetrieveParamsHygienised) (string, []fire
 
 fn model_locale_retrieve_count(mut tx firebird.Transaction, ph LocaleRetrieveParamsHygienised) !i64 {
 	conditions, params := conditions_locale_retrieve(ph)
-	data := tx.execute('SELECT COUNT(*) FROM locale ${conditions}', params)!
+	data := tx.execute('SELECT COUNT(*) FROM locale ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
