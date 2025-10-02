@@ -14,8 +14,8 @@ fn conditions_locale_retrieve(ph LocaleRetrieveParamsHygienised) (string, []fire
 	mut params := []firebird.Value{}
 
 	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'WHERE id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, workaround_24757(ph.ids_bin))
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
+		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
 	return get_where_conditions(conditions), params

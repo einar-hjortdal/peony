@@ -108,7 +108,5 @@ fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin 
 				UPDATE SET deleted_at = CURRENT_TIMESTAMP'
 	params[ph.len * 5] = product_id_bin
 
-	println(params)
-
 	tx.execute(query, ...params)!
 }
