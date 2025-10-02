@@ -1,6 +1,5 @@
 module peony
 
-import arrays
 import einar_hjortdal.firebird
 
 struct ProductTranslation {
@@ -65,46 +64,37 @@ fn model_product_translation_retrieve(mut tx firebird.Transaction, product_ids_b
 	return translations
 }
 
-fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin []u8, d []ProductTranslationRequestHygienised) ! {
-	mut s := ''
-	mut pa := []firebird.Value{}
-	for i := 0; i < d.len; i++ {
-		s = appendln(s, 'SELECT
+fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin []u8, ph []ProductTranslationRequestHygienised) ! {
+	mut src := []string{len: ph.len}
+	mut params := []firebird.Value{len: ph.len * 5 + 1, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < ph.len; i++ {
+		translation := ph[i]
+		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS product_id,
-			CAST(? AS BINARY(163)) AS locale_id,
+			CAST(? AS BINARY(16)) AS locale_id,
 			CAST(? AS VARCHAR(63)) AS title,
 			CAST(? AS VARCHAR(191)) AS subtitle,
 			CAST(? AS BLOB SUB_TYPE TEXT) AS description
-			FROM RDB\$DATABASE')
+			FROM RDB\$DATABASE'
 
-		locale_id_bin := id_string_to_bin(d[i].locale_id)! // TODO validate in controller
-		pa = arrays.concat(pa, product_id_bin, locale_id_bin)
+		params[i * 5] = product_id_bin
+		params[i * 5 + 1] = translation.locale_id_bin
 
-		if title := d[i].title {
-			pa = arrays.concat(pa, title)
-		} else {
-			pa = arrays.concat(pa, firebird.Null{})
+		if title := translation.title {
+			params[i * 5 + 2] = title
 		}
 
-		if subtitle := d[i].subtitle {
-			pa = arrays.concat(pa, subtitle)
-		} else {
-			pa = arrays.concat(pa, firebird.Null{})
+		if subtitle := translation.subtitle {
+			params[i * 5 + 2] = subtitle
 		}
 
-		if description := d[i].description {
-			pa = arrays.concat(pa, description)
-		} else {
-			pa = arrays.concat(pa, firebird.Null{})
-		}
-
-		if i != d.len - 1 {
-			s = appendln(s, 'UNION ALL')
+		if description := translation.description {
+			params[i * 5 + 2] = description
 		}
 	}
 
 	query := 'MERGE INTO product_translations t
-			USING (${s}) s (product_id, locale_id, title, subtitle, description)
+			USING (${get_merge_source(src)}) s (product_id, locale_id, title, subtitle, description)
 			ON (t.product_id = s.product_id AND t.locale_id = s.locale_id)
 			WHEN MATCHED THEN UPDATE SET 
 				title = s.title,
@@ -116,7 +106,9 @@ fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin 
 				VALUES (s.product_id, s.locale_id, s.title, s.subtitle, s.description)
 			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN
 				UPDATE SET deleted_at = CURRENT_TIMESTAMP'
-	pa = arrays.concat(pa, product_id_bin)
+	params[ph.len * 5] = product_id_bin
 
-	tx.execute(query, ...pa)!
+	println(params)
+
+	tx.execute(query, ...params)!
 }
