@@ -524,9 +524,6 @@ CREATE TABLE product_collection_translations (
 CREATE TABLE product_translations (
   product_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  deleted_at TIMESTAMP,
   title VARCHAR(63),
   subtitle VARCHAR(191),
   description BLOB SUB_TYPE TEXT,

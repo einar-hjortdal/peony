@@ -167,9 +167,6 @@ fn format_product_translation_response(p ProductTranslation) ProductTranslationR
 	return ProductTranslationResponse{
 		product_id:  p.product_id
 		locale_id:   p.locale_id
-		created_at:  p.created_at.Time
-		updated_at:  p.updated_at.Time
-		deleted_at:  p.deleted_at.Time
 		title:       p.title
 		subtitle:    p.subtitle
 		description: p.description

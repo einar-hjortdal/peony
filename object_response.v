@@ -103,14 +103,11 @@ struct ProductImageResponse {
 }
 
 struct ProductTranslationResponse {
-	product_id  string    @[json: 'productId']
-	locale_id   string    @[json: 'localeId']
-	created_at  time.Time @[json: 'createdAt']
-	updated_at  time.Time @[json: 'updatedAt']
-	deleted_at  time.Time @[json: 'deletedAt'; omitempty]
-	title       string    @[omitempty]
-	subtitle    string    @[omitempty]
-	description string    @[omitempty]
+	product_id  string @[json: 'productId']
+	locale_id   string @[json: 'localeId']
+	title       string @[omitempty]
+	subtitle    string @[omitempty]
+	description string @[omitempty]
 }
 
 struct ProductOptionValueTranslationResponse {

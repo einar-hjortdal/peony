@@ -7,9 +7,6 @@ struct ProductTranslation {
 	product_id_bin []u8
 	locale_id      string
 	locale_id_bin  []u8
-	created_at     firebird.DateTime
-	updated_at     firebird.DateTime
-	deleted_at     firebird.DateTime
 	title          string
 	subtitle       string
 	description    string
@@ -19,9 +16,6 @@ fn model_product_translation_retrieve(mut tx firebird.Transaction, product_ids_b
 	data := tx.execute('SELECT
 		product_id,
 		locale_id,
-		created_at,
-		updated_at,
-		deleted_at,
 		title,
 		subtitle,
 		description
@@ -37,12 +31,9 @@ fn model_product_translation_retrieve(mut tx firebird.Transaction, product_ids_b
 
 		product_id_bin, _ := v[0].get_array_u8()!
 		locale_id_bin, _ := v[1].get_array_u8()!
-		created_at, _ := v[2].get_date_time()!
-		updated_at, _ := v[3].get_date_time()!
-		deleted_at, _ := v[4].get_date_time()!
-		title, _ := v[5].get_string()!
-		subtitle, _ := v[6].get_string()!
-		description, _ := v[7].get_string()!
+		title, _ := v[2].get_string()!
+		subtitle, _ := v[3].get_string()!
+		description, _ := v[4].get_string()!
 
 		product_id := id_bin_to_string(product_id_bin)!
 		locale_id := id_bin_to_string(locale_id_bin)!
@@ -52,9 +43,6 @@ fn model_product_translation_retrieve(mut tx firebird.Transaction, product_ids_b
 			product_id_bin: product_id_bin
 			locale_id:      locale_id
 			locale_id_bin:  locale_id_bin
-			created_at:     created_at
-			updated_at:     updated_at
-			deleted_at:     deleted_at
 			title:          title
 			subtitle:       subtitle
 			description:    description
@@ -99,13 +87,12 @@ fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin 
 			WHEN MATCHED THEN UPDATE SET 
 				title = s.title,
 				subtitle = s.subtitle,
-				description = s.description,
-				updated_at = CURRENT_TIMESTAMP
+				description = s.description
 			WHEN NOT MATCHED THEN
 				INSERT (product_id, locale_id, title, subtitle, description)
 				VALUES (s.product_id, s.locale_id, s.title, s.subtitle, s.description)
 			WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN
-				UPDATE SET deleted_at = CURRENT_TIMESTAMP'
+				DELETE'
 	params[ph.len * 5] = product_id_bin
 
 	tx.execute(query, ...params)!
