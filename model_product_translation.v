@@ -85,11 +85,11 @@ fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin 
 		}
 
 		if subtitle := translation.subtitle {
-			params[i * 5 + 2] = subtitle
+			params[i * 5 + 3] = subtitle
 		}
 
 		if description := translation.description {
-			params[i * 5 + 2] = description
+			params[i * 5 + 4] = description
 		}
 	}
 
