@@ -342,14 +342,16 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	for i := 0; i < product_variants.len; i++ {
-		if product_variants[i].id == variant_id {
-			if product_variants.len == 1 {
-				return handle_error_400(mut ctx, 'Cannot delete product_variant', 'A product must have at least 1 variant')
-			}
-
-			inventory_item_id_bin := product_variants[0].inventory_item.id_bin
-			return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin, inventory_item_id_bin)
+		if product_variants[i].id != variant_id {
+			continue
 		}
+
+		if product_variants.len == 1 {
+			return handle_error_400(mut ctx, 'Cannot delete product_variant', 'A product must have at least 1 variant')
+		}
+
+		inventory_item_id_bin := product_variants[i].inventory_item.id_bin
+		return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin, inventory_item_id_bin)
 	}
 
 	return handle_error_404(mut ctx, 'product_variant does not exist', 'no product_variant with provided id')
