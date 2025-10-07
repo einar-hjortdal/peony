@@ -303,6 +303,58 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		p, povh, mah)
 }
 
+// deletes a product variant
+@['/admin/products/:product_id/variants/:variant_id'; delete]
+pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+	}
+
+	variant_id_bin := id_string_to_bin(variant_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'variant_id')
+	}
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	ph := RetrieveProductVariantParamsHygienised{
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: [product_id_bin]
+	}
+
+	count := model_product_variants_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
+	}
+
+	if count == 0 {
+		return handle_error_500(mut ctx, 'product_variant does not exist', 'count == 0')
+	}
+
+	product_variants := model_product_variants_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	for i := 0; i < product_variants.len; i++ {
+		if product_variants[i].id == variant_id {
+			if product_variants.len == 1 {
+				return handle_error_400(mut ctx, 'Cannot delete product_variant', 'A product must have at least 1 variant')
+			}
+
+			inventory_item_id_bin := product_variants[0].inventory_item.id_bin
+			return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin, inventory_item_id_bin)
+		}
+	}
+
+	return handle_error_404(mut ctx, 'product_variant does not exist', 'no product_variant with provided id')
+}
+
 // creates a product option
 @['/admin/products/:id/options'; post]
 pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) veb.Result {

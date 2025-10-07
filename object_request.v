@@ -61,9 +61,7 @@ struct ProductTranslationRequest {
 	description ?string
 }
 
-// TODO add []ProductOptionRequest
-// TODO add []ProductVariantRequest
-// automatically create a default variant when a product is created and no variant data is provided.
+// TODO automatically create a default variant when a product is created and no variant data is provided.
 // otherwise create variants according to provided data
 struct ProductRequest {
 	handle            ?string
@@ -78,6 +76,8 @@ struct ProductRequest {
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
+	options           ?[]ProductOptionRequest
+	variants          ?[]ProductVariantRequest
 	images            ?[]ImageRequest
 }
 
