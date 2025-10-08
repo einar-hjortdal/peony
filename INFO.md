@@ -26,6 +26,10 @@ them are null, the row should be deleted.
 
 ### product
 
+#### product_variant
+
+Each `product` must have at least one `product_variant`.
+
 #### product_category
 
 A `product_category` allows to categorize `product`. A `product` can have many `product_category`. A 

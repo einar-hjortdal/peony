@@ -27,31 +27,33 @@ struct SalesChannelUpdateRequest {
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
-struct NewUserData {
+struct ImageRequest {
+	url          string
+	translations ?[]ImageTranslationRequest
+}
+
+struct UserCreateRequest {
 	email      string
 	password   string
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
+	image      ?ImageRequest
 	metadata   ?string @[raw]
 }
 
-struct UpdateUserData {
+struct UserUpdateRequest {
 	email      ?string
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
+	image      ?ImageRequest
 	metadata   ?string @[raw]
 }
 
 struct ImageTranslationRequest {
 	locale_id string @[json: 'localeId']
 	alt       string
-}
-
-struct ImageRequest {
-	url          string
-	translations ?[]ImageTranslationRequest
 }
 
 struct ProductTranslationRequest {

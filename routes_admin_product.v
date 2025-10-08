@@ -342,7 +342,7 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	for i := 0; i < product_variants.len; i++ {
-		if product_variants[i].id != variant_id {
+		if product_variants[i].id_bin != variant_id_bin {
 			continue
 		}
 

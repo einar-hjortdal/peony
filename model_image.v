@@ -41,6 +41,15 @@ fn model_image_translation_retrieve(mut tx firebird.Transaction, image_ids_bin [
 	return image_translations
 }
 
+struct UserImage {
+	id     string
+	id_bin []u8
+	url    string
+	alt    firebird.NullString
+mut:
+	translations []ImageTranslation
+}
+
 struct ProductImage {
 	id             string
 	id_bin         []u8

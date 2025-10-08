@@ -5,6 +5,12 @@ CREATE TABLE migration (
   CONSTRAINT "06828532-0de2-15f4-6c00-263bdaf3d865" PRIMARY KEY (id)
 );
 
+CREATE TABLE image (
+  id BINARY(16) NOT NULL,
+  url BLOB SUB_TYPE TEXT NOT NULL,
+  CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
+);
+
 CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,
@@ -17,11 +23,13 @@ CREATE TABLE app_user (
   deleted_at TIMESTAMP,
   first_name VARCHAR(63),
   last_name VARCHAR(63),
+  image_id BINARY(16),
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7e-15e0-f000-68e91e4d68b9" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad7e-163b-a800-88be23fc406a" CHECK ( role IN (
     'admin', 'member', 'developer', 'author', 'contributor')
-  )
+  ),
+  CONSTRAINT "0686cd40-3323-15dc-7000-c90d894e0798" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE SET NULL
 );
 
 CREATE UNIQUE INDEX "0681493b-ad7e-17e0-d000-774707c2de94" ON app_user (email) WHERE deleted_at IS NULL;
@@ -32,12 +40,6 @@ CREATE TABLE currency (
   decimal_digits INTEGER,
   includes_tax BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT "0681493b-ad7e-1a2b-8c00-0137fed805b7" PRIMARY KEY (code)
-);
-
-CREATE TABLE image (
-  id BINARY(16) NOT NULL,
-  url BLOB SUB_TYPE TEXT NOT NULL,
-  CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
 );
 
 CREATE TABLE product_tag (

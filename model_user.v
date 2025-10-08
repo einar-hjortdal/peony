@@ -23,6 +23,8 @@ struct User {
 	first_name    string
 	last_name     string
 	metadata      firebird.NullString
+mut:
+	image UserImage
 }
 
 fn parse_user_data(v []firebird.Value) !User {
@@ -57,34 +59,34 @@ fn parse_user_data(v []firebird.Value) !User {
 	}
 }
 
-fn model_user_create(mut tx firebird.Transaction, d NewUserData, id string, id_bin []u8) ! {
-	password_hash, password_salt := hash_password(d.password)!
+fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id string, user_id_bin []u8) ! {
+	password_hash, password_salt := hash_password(p.password)!
 
 	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
-	mut params := [firebird.Value(id_bin), id, d.email, password_hash, password_salt]
+	mut params := [firebird.Value(user_id_bin), user_id, p.email, password_hash, password_salt]
 
-	if role := d.role {
+	if role := p.role {
 		c = arrays.concat(c, 'role')
 		params = arrays.concat(params, role)
 	}
 
-	if first_name := d.first_name {
+	if first_name := p.first_name {
 		c = arrays.concat(c, 'first_name')
 		params = arrays.concat(params, first_name)
 	}
 
-	if last_name := d.last_name {
+	if last_name := p.last_name {
 		c = arrays.concat(c, 'last_name')
 		params = arrays.concat(params, last_name)
 	}
 
-	if metadata := d.metadata {
+	if metadata := p.metadata {
 		c = arrays.concat(c, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
 
 	tx.execute('INSERT INTO app_user (${get_columns(c)}) VALUES (${get_placeholders(c)})',
-		arrays.concat([firebird.Value(id)], params))!
+		arrays.concat([firebird.Value(user_id)], params))!
 }
 
 fn (mut app App) retrieve_user_by_id(id_bin []u8) !User {
@@ -141,7 +143,7 @@ fn (mut app App) retrieve_user_by_email(email string) !User {
 	return parse_user_data(rows[0].values())!
 }
 
-fn model_user_update(mut tx firebird.Transaction, id_bin []u8, p UpdateUserData) ! {
+fn model_user_update(mut tx firebird.Transaction, user_id_bin []u8, p UserUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -165,12 +167,12 @@ fn model_user_update(mut tx firebird.Transaction, id_bin []u8, p UpdateUserData)
 		params = arrays.concat(params, metadata)
 	}
 
-	params = arrays.concat(params, id_bin)
+	params = arrays.concat(params, user_id_bin)
 
 	tx.execute('UPDATE app_user SET (${get_set_columns_with_updated_at(columns)}) WHERE id = ?',
 		...params)!
 }
 
-fn model_user_delete(mut tx firebird.Transaction, id_bin []u8) ! {
-	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
+fn model_user_delete(mut tx firebird.Transaction, user_id_bin []u8) ! {
+	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id_bin)!
 }
