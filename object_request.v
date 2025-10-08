@@ -63,8 +63,6 @@ struct ProductTranslationRequest {
 	description ?string
 }
 
-// TODO automatically create a default variant when a product is created and no variant data is provided.
-// otherwise create variants according to provided data
 struct ProductRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']

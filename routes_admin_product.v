@@ -96,7 +96,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 // retrieves a list of tags and the amount of times each tag is being used by products
 @['/admin/products/tag-usage'; get]
 pub fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
-	return ctx.text('TODO')
+	return ctx.json('TODO')
 }
 
 // get a product

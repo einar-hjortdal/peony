@@ -13,6 +13,13 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygieni
 		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
 	}
 
+	// TODO handle product_option
+	// TODO handle product_variant
+	// - if product.variants.len == 0 create default variant
+	// - first create product.option so when a variant is created it will get it as default
+	// - if product.variants.len > 0 expect product.options > 0 or return error
+	// - then check variants have different product.option_value or return errror
+
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
@@ -464,6 +471,9 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 	if _ := ph.collection_ids {
 		// TODO
 	}
+
+	// TODO handle product_option
+	// TODO handle product_variant
 
 	if translations := ph.translations {
 		model_product_translation_update(mut tx, product_id_bin, translations) or {
