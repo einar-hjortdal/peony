@@ -30,7 +30,6 @@ pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 		allow_backorder: p.allow_backorder
 		region_id:       p.region_id
 		region_id_bin:   region_id_bin
-		currency_code:   p.currency_code
 		title:           p.title
 		with_deleted:    p.with_deleted
 		offset:          p.offset

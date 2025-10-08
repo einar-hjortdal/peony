@@ -6,7 +6,6 @@ struct PriceContext {
 	cart_id_bin             []u8
 	customer_id_bin         []u8
 	region_id_bin           []u8
-	currency_code           string
 	include_discount_prices bool
 }
 
@@ -24,10 +23,9 @@ struct Prices {
 }
 
 // use app.tax_provider when necessary
-fn calculate_taxes() {
-}
+fn calculate_taxes() {}
 
-fn is_original_price(ma MoneyAmount, currency_code string, region_id_bin []u8) bool {
+fn is_original_price(ma MoneyAmount, region_id_bin []u8) bool {
 	return ma.min_quantity.is_null && ma.max_quantity.is_null
 		&& (region_id_bin.len == 0 || ma.region_id_bin.value == region_id_bin)
 }
@@ -60,10 +58,9 @@ fn select_original_price(original_prices []MoneyAmount) MoneyAmount {
 	return lowest
 }
 
-fn is_valid_price(ma MoneyAmount, quantity i32, currency_code string, region_id_bin []u8) bool {
+fn is_valid_price(ma MoneyAmount, quantity i32, region_id_bin []u8) bool {
 	return (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
 		&& (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
-		&& (currency_code == '' || ma.currency_code == currency_code)
 		&& (region_id_bin.len == 0 || ma.region_id_bin.value == region_id_bin)
 }
 
@@ -78,25 +75,23 @@ fn calculate_price(variant ProductVariant, quantity i32, pctx PriceContext) Pric
 	mut original_prices := []MoneyAmount{}
 	mut valid_money_amounts := []MoneyAmount{}
 	for i := 0; i < variant.money_amounts.len; i++ {
-		if is_original_price(variant.money_amounts[i], pctx.currency_code, pctx.region_id_bin) {
+		if is_original_price(variant.money_amounts[i], pctx.region_id_bin) {
 			original_prices = arrays.concat(original_prices, variant.money_amounts[i])
 		}
 
-		if is_valid_price(variant.money_amounts[i], quantity, pctx.currency_code, pctx.region_id_bin) {
+		if is_valid_price(variant.money_amounts[i], quantity, pctx.region_id_bin) {
 			valid_money_amounts = arrays.concat(valid_money_amounts, variant.money_amounts[i])
 		}
 	}
 
 	if original_prices.len == 0 {
-		return Prices{
-			currency_code: pctx.currency_code
-		}
+		return Prices{}
 	}
 
 	original_price := select_original_price(original_prices)
 
 	return Prices{
-		currency_code:  pctx.currency_code
+		currency_code:  original_price.currency_code
 		original_price: original_price.amount
 		// original_price_does_include_tax:
 		// original_price_excluding_tax:

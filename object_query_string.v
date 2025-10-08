@@ -127,27 +127,6 @@ struct RetrieveProductParams {
 	locale_id         ZeroString
 }
 
-fn extract_retrieve_admin_products_params(m map[string]string) RetrieveProductParams {
-	return RetrieveProductParams{
-		category_ids:      zero_array_string(m, 'category_ids')
-		collection_ids:    zero_array_string(m, 'collection_ids')
-		description:       zero_string(m, 'description')
-		fetch:             zero_i32(m, 'fetch')
-		handle:            zero_string(m, 'handle')
-		ids:               zero_array_string(m, 'id')
-		is_giftcard:       zero_bool(m, 'is_giftcard')
-		offset:            zero_i32(m, 'offset')
-		order:             zero_string(m, 'order')
-		price_list_ids:    zero_array_string(m, 'price_list_id')
-		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
-		status:            zero_string(m, 'status')
-		tag_ids:           zero_array_string(m, 'tag_id')
-		title:             zero_string(m, 'title')
-		type_ids:          zero_array_string(m, 'type_id')
-		locale_id:         zero_string(m, 'locale_id')
-	}
-}
-
 fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductParams {
 	return RetrieveProductParams{
 		cart_id:           zero_string(m, 'cart_id')

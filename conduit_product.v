@@ -207,17 +207,6 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 			err.msg())
 	}
 
-	mut currency_code := ''
-	if ph.currency_code.is_set {
-		currency_code = ph.currency_code.v
-	} else {
-		store := model_store_retrieve(mut tx) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-		}
-		currency_code = store.default_currency_code
-	}
-
 	// product_variants_availability
 	sales_channel_ids_bin := get_sales_channel_ids_bin(products_data.sales_channels)
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
@@ -239,7 +228,6 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	pctx := PriceContext{
 		region_id_bin: ph.region_id_bin
-		currency_code: currency_code
 		// TODO include_discount_prices
 	}
 
@@ -368,17 +356,6 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 			err.msg())
 	}
 
-	mut currency_code := ''
-	if ph.currency_code.is_set {
-		currency_code = ph.currency_code.v
-	} else {
-		store := model_store_retrieve(mut tx) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-		}
-		currency_code = store.default_currency_code
-	}
-
 	// product_variants_availability
 	sales_channel_ids_bin := get_sales_channel_ids_bin(product_data.sales_channels)
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
@@ -402,7 +379,6 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		// cart_id_bin
 		// customer_id_bin
 		region_id_bin: ph.region_id_bin
-		currency_code: currency_code
 		// include_discount_prices
 	}
 
@@ -593,13 +569,13 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 
 	count := model_product_variants_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variants',
+		return handle_error_500(mut ctx, 'Could not delee product_option: could not retrieve product_variant',
 			err.msg())
 	}
 
 	if count > 1 {
 		tx.rollback() or {} // ignore error
-		return handle_error_400(mut ctx, 'Refusing to delete product_option: first delete all variants',
+		return handle_error_400(mut ctx, 'Could not delete product_option: there exist more than one product_variant',
 			'more than one variant exist')
 	}
 

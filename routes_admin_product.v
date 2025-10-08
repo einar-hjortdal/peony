@@ -6,62 +6,16 @@ import veb
 // lists products
 @['/admin/products'; get]
 pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
-	p := extract_retrieve_admin_products_params(ctx.query)
-	if p.fetch.is_set && p.fetch.v == 0 {
+	ph := hygienise_retrieve_product_params(ctx.query) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_request',
+			err.msg())
+	}
+
+	if ph.fetch.is_set && ph.fetch.v == 0 {
 		return handle_fetch_zero(mut ctx)
-	}
-
-	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
-	}
-
-	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
-		return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
-	}
-
-	category_ids_bin := zero_array_id_string_to_array_id_bin(p.category_ids) or {
-		return handle_error_400(mut ctx, 'Invalid category_id', err.msg())
-	}
-
-	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return handle_error_400(mut ctx, 'Invalid sales_channel_id', err.msg())
-	}
-
-	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
-		return handle_error_400(mut ctx, 'Invalid locale_id', err.msg())
-	}
-
-	ph := RetrieveProductParamsHygienised{
-		ids:            p.ids
-		ids_bin:        ids_bin
-		handle:         p.handle
-		is_giftcard:    p.is_giftcard
-		status:         p.status
-		collection_ids: p.collection_ids
-		// collection_ids_bin:    p.collection_id_bin
-		type_ids: p.type_ids
-		// type_ids_bin:          p.type_id_bin
-		tag_ids: p.tag_ids
-		// tag_ids_bin:           p.tag_id_bin
-		title:            p.title
-		description:      p.description
-		category_ids:     p.category_ids
-		category_ids_bin: category_ids_bin
-		price_list_ids:   p.price_list_ids
-		// price_list_ids_bin:    p.price_list_id_bin
-		sales_channel_ids:     p.sales_channel_ids
-		sales_channel_ids_bin: sales_channel_ids_bin
-		region_id:             p.region_id
-		region_id_bin:         region_id_bin
-		currency_code:         p.currency_code
-		with_deleted:          p.with_deleted
-		offset:                p.offset
-		fetch:                 p.fetch
-		order:                 p.order
-		cart_id:               p.cart_id
-		// cart_id_bin:           p.cart_id_bin
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
 	}
 
 	return conduit_products_get(mut app, mut ctx, ph)
@@ -78,7 +32,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_request',
 			err.msg())
 	}
 
@@ -444,6 +398,10 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 	product_option_id_bin := id_string_to_bin(product_option_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
+
+	// TODO Product does not exist
+	// TODO Option does not exist
+	// TODO Can't delete option with multiple values
 
 	return conduit_product_option_delete(mut app, mut ctx, product_id, product_id_bin,
 		product_option_id, product_option_id_bin)
