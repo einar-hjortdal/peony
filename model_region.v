@@ -26,8 +26,33 @@ mut:
 	tax_rates []TaxRate
 }
 
-// TODO separate count
-fn model_region_retrieve(mut tx firebird.Transaction, p ListRegionParams) !([]Region, i64) {
+fn conditions_region_retrieve(ph ListRegionParamsHygienised) (string, []firebird.Value) {
+	mut conditions := []string{}
+	mut params := []firebird.Value{}
+
+	if ph.ids.is_set {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
+		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
+	}
+
+	if ph.name.is_set {
+		conditions = arrays.concat(conditions, "name LIKE '%' || ? || '%'")
+		params = arrays.concat(params, ph.name.v)
+	}
+
+	return get_where_conditions(conditions), params
+}
+
+fn model_region_retrieve_count(mut tx firebird.Transaction, ph ListRegionParamsHygienised) !i64 {
+	conditions, params := conditions_region_retrieve(ph)
+	data := tx.execute('SELECT COUNT(*) FROM region ${conditions}', ...params)!
+	rows := data.rows()
+	values := rows[0].values() // should always return one row
+	count, _ := values[0].get_i64()! // should always return one column
+	return count
+}
+
+fn model_region_retrieve(mut tx firebird.Transaction, ph ListRegionParamsHygienised) ![]Region {
 	base_query := 'SELECT
 		id,
 		name,
@@ -37,30 +62,24 @@ fn model_region_retrieve(mut tx firebird.Transaction, p ListRegionParams) !([]Re
 		currency_code,
 		includes_tax,
 		gift_cards_taxable,
-		automatic_taxes,
-		COUNT(*) OVER()
+		automatic_taxes
 		FROM region'
-	mut params := []firebird.Value{}
-	mut conditions := ''
-	if p.name.is_set {
-		conditions = appendln(conditions, "WHERE name LIKE '%' || ? || '%'")
-		params = arrays.concat(params, p.name.v)
-	}
 
-	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY name ${get_sorting_order(p.order)}')
+	mut conditions, mut params := conditions_region_retrieve(ph)
 
-	if p.offset.is_set {
+	mut sorting := 'ORDER BY name ${get_sorting_order(ph.order)}'
+
+	if ph.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
+		params = arrays.concat(params, ph.offset.v)
 	}
 
-	if p.fetch.is_set {
+	if ph.fetch.is_set {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch.v)
+		params = arrays.concat(params, ph.fetch.v)
 	}
 
-	data := tx.execute('${base_query}${conditions}${sorting}', ...params)!
+	data := tx.execute('${base_query} ${conditions} ${sorting}', ...params)!
 
 	rows := data.rows()
 
@@ -94,13 +113,7 @@ fn model_region_retrieve(mut tx firebird.Transaction, p ListRegionParams) !([]Re
 		}
 	}
 
-	mut count := i64(0)
-	if regions.len > 0 {
-		c, _ := rows[0].values()[1].get_i64()!
-		count = c
-	}
-
-	return regions, count
+	return regions
 }
 
 fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {

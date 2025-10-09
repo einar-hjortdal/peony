@@ -2,30 +2,32 @@ module peony
 
 import veb
 
-fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Result {
+fn conduit_region_list(mut app App, mut ctx Context, ph ListRegionParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	mut internal_regions, count := model_region_retrieve(mut tx, p) or {
+	count := model_region_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve region count', err.msg())
+	}
+
+	if count == 0 {
+		tx.rollback() or {} // ignore error
+		return ctx.json(RegionResponseListEnvelope{
+			offset: get_offset_amount(ph.offset)
+			fetch:  ph.fetch.v
+		})
+	}
+
+	mut regions := model_region_retrieve(mut tx, ph) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
 	}
 
-	if internal_regions.len == 0 {
-		tx.rollback() or {} // ignore error
-		r := RegionResponseListEnvelope{
-			regions: []RegionResponse{}
-			count:   count
-			offset:  get_offset_amount(p.offset)
-			fetch:   p.fetch.v
-		}
-		return ctx.json(r)
-	}
-
-	mut region_ids_bin := [][]u8{len: internal_regions.len}
-	for i := 0; i < internal_regions.len; i++ {
-		region_ids_bin[i] = internal_regions[i].id_bin
+	mut region_ids_bin := [][]u8{len: regions.len}
+	for i := 0; i < regions.len; i++ {
+		region_ids_bin[i] = regions[i].id_bin
 	}
 
 	// TODO consider changing approach, sleect region_id with tax_rate in one query
@@ -60,22 +62,21 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		region_to_tax_rate_map[region_id] = rates
 	}
 
-	for i := 0; i < internal_regions.len; i++ {
-		internal_regions[i].tax_rates = region_to_tax_rate_map[internal_regions[i].id]
+	for i := 0; i < regions.len; i++ {
+		regions[i].tax_rates = region_to_tax_rate_map[regions[i].id]
 	}
 
-	mut external_regions := []RegionResponse{len: internal_regions.len}
-	for i := 0; i < internal_regions.len; i++ {
-		external_regions[i] = foramt_region_response(internal_regions[i])
+	mut external_regions := []RegionResponse{len: regions.len}
+	for i := 0; i < regions.len; i++ {
+		external_regions[i] = format_region_response(regions[i])
 	}
 
-	r := RegionResponseListEnvelope{
+	return ctx.json(RegionResponseListEnvelope{
 		regions: external_regions
 		count:   count
-		offset:  get_offset_amount(p.offset)
-		fetch:   p.fetch.v
-	}
-	return ctx.json(r)
+		offset:  get_offset_amount(ph.offset)
+		fetch:   ph.fetch.v
+	})
 }
 
 fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Result {
@@ -83,7 +84,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 		return handle_error_400(mut ctx, 'Could not find region', err.msg())
 	}
 
-	external_region := foramt_region_response(internal_region)
+	external_region := format_region_response(internal_region)
 
 	r := RegionResponseEnvelope{
 		region: external_region

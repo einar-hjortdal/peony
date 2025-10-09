@@ -291,7 +291,7 @@ fn format_prices_response(p Prices) PricesResponse {
 	}
 }
 
-fn foramt_region_response(r Region) RegionResponse {
+fn format_region_response(r Region) RegionResponse {
 	mut tax_rates := []TaxRateResponse{len: r.tax_rates.len}
 	for i := 0; i < r.tax_rates.len; i++ {
 		tax_rates[i] = format_tax_rate_response(r.tax_rates[i])

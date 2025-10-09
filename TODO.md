@@ -61,6 +61,7 @@
 #### Low-priority
 
 - [ ] Multi-currency regions
+- [ ] Sub-divisions of country
 
 ### Modules:
 
