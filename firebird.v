@@ -10,6 +10,7 @@ const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_file = $embed_file('migrations/seed-currency.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
+const seed_default_region_name = 'default region'
 const seed_default_stock_location_name = 'default stock location'
 const seed_default_sales_channel_name = 'default sales channel'
 const seed_default_store_name = 'peony store'
@@ -110,12 +111,27 @@ fn firebird_insert_default_sales_channel_stock_location(mut tx firebird.Transact
 		sales_channel_id_bin, stock_location_id_bin)!
 }
 
-fn firebird_insert_default_store(mut tx firebird.Transaction, store_id_bin []u8, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+fn firebird_insert_default_store(mut tx firebird.Transaction, region_id_bin []u8, store_id_bin []u8, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
 	log.debug('insert_default_store')
-	tx.execute('INSERT INTO store (
-	id, name, default_locale_id, default_currency_code, default_stock_location_id, default_sales_channel_id)
-	VALUES (?, ?, (SELECT id FROM locale WHERE code = ?), ?, ?, ?)',
-		store_id_bin, seed_default_store_name, seed_default_locale_code, seed_default_currency_code,
+	tx.execute('INSERT INTO store 
+		(
+			id,
+			name,
+			default_locale_id,
+			default_region_id,
+			default_stock_location_id,
+			default_sales_channel_id
+		)
+		VALUES
+		(
+			?,
+			?,
+			(SELECT id FROM locale WHERE code = ?),
+			?,
+			?,
+			?
+		)',
+		store_id_bin, seed_default_store_name, seed_default_locale_code, region_id_bin,
 		stock_location_id_bin, sales_channel_id_bin)!
 }
 
@@ -126,10 +142,16 @@ fn firebird_insert_default_store_locale(mut tx firebird.Transaction, store_id_bi
 		store_id_bin, seed_default_locale_code)!
 }
 
-fn firebird_insert_default_store_currency(mut tx firebird.Transaction, store_id_bin []u8) ! {
-	log.debug('insert_default_store_currency')
+fn firebird_insert_default_store_currencies(mut tx firebird.Transaction, store_id_bin []u8) ! {
+	log.debug('insert_default_store_currencies')
 	tx.execute('INSERT INTO store_currencies (store_id, currency_code) VALUES (?, ?)',
 		store_id_bin, seed_default_currency_code)!
+}
+
+fn firebird_insert_default_region(mut tx firebird.Transaction, region_id_bin []u8) ! {
+	log.debug('insert_default_region')
+	tx.execute('INSERT INTO region (id, name, currency_code) VALUES (?, ?, ?)', region_id_bin,
+		seed_default_region_name, seed_default_currency_code)!
 }
 
 fn firebird_create_schema(mut conn firebird.Connection) ! {
@@ -146,21 +168,24 @@ fn firebird_create_schema(mut conn firebird.Connection) ! {
 	}
 }
 
-fn firebird_rollback_schema(mut conn firebird.Connection) ! {
+fn firebird_rollback_schema(mut conn firebird.Connection) {
 	log.debug('rollback_schema')
 	rollback_queries := firebird_get_schema_rollback_queries()
 	for i := 0; i < rollback_queries.len; i++ {
 		q := rollback_queries[i]
+
 		mut tx := conn.start_transaction(firebird.isolation_level_read_commited) or {
-			log.error('Could not rollback schema, manual intervention may be required.')
-			log.debug('Failed to start transaction')
-			return err
+			log.debug('Failed to rollback schema. Failed to start transaction. Manual intervention may be required.')
+			log.error(err.msg())
+			return
 		}
+
 		tx.execute(q) or { log.debug('Failed to execute query: ${q}') } // ignore error
+
 		tx.commit() or {
-			log.error('Could not rollback schema, manual intervention may be required.')
-			log.debug('Failed to commit changes')
-			return err
+			log.debug('Failed to rollback schema. Failed to commit changes. Manual intervention may be required.')
+			log.error(err.msg())
+			return
 		}
 	}
 	log.debug('Rollback complete')
@@ -169,6 +194,7 @@ fn firebird_rollback_schema(mut conn firebird.Connection) ! {
 fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	user_id, user_id_bin := app.new_id()
 	_, stock_location_id_bin := app.new_id()
+	_, region_id_bin := app.new_id()
 	_, sales_channel_id_bin := app.new_id()
 	_, store_id_bin := app.new_id()
 	_, migration_id_bin := app.new_id()
@@ -177,13 +203,15 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	firebird_insert_currency_data(mut tx)!
 	firebird_insert_locale_codes(mut app, mut tx)!
 	firebird_insert_default_user(mut tx, user_id, user_id_bin)!
+	firebird_insert_default_region(mut tx, region_id_bin)!
 	firebird_insert_default_stock_location(mut tx, stock_location_id_bin)!
 	firebird_insert_default_sales_channel(mut tx, sales_channel_id_bin)!
 	firebird_insert_default_sales_channel_stock_location(mut tx, sales_channel_id_bin,
 		stock_location_id_bin)!
-	firebird_insert_default_store(mut tx, store_id_bin, sales_channel_id_bin, stock_location_id_bin)!
+	firebird_insert_default_store(mut tx, region_id_bin, store_id_bin, sales_channel_id_bin,
+		stock_location_id_bin)!
 	firebird_insert_default_store_locale(mut tx, store_id_bin)!
-	firebird_insert_default_store_currency(mut tx, store_id_bin)!
+	firebird_insert_default_store_currencies(mut tx, store_id_bin)!
 	model_migration_create(mut tx, migration_id_bin, seed_migration_name)!
 }
 
@@ -218,9 +246,7 @@ fn (mut app App) prepare_db() {
 
 	firebird_create_schema(mut app.firebird) or {
 		log.error('Failed to create schema, rolling back...')
-		firebird_rollback_schema(mut app.firebird) or {
-			log.error('Failed to rollback schema, manual intervention may be required')
-		}
+		firebird_rollback_schema(mut app.firebird)
 		panic(err)
 	}
 
@@ -232,9 +258,7 @@ fn (mut app App) prepare_db() {
 	app.add_data(mut tx) or {
 		log.error('Failed to add default data to database, rolling back...')
 		tx.rollback() or { log.error('Failed to rollback transaction') }
-		firebird_rollback_schema(mut app.firebird) or {
-			log.error('Failed to rollback schema, manual intervention may be required')
-		}
+		firebird_rollback_schema(mut app.firebird)
 		panic(err)
 	}
 

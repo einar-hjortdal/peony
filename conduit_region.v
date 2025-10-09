@@ -7,7 +7,7 @@ fn conduit_region_list(mut app App, mut ctx Context, p ListRegionParams) veb.Res
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	mut internal_regions, count := do_retrieve_regions(mut tx, p) or {
+	mut internal_regions, count := model_region_retrieve(mut tx, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
 	}

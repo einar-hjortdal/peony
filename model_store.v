@@ -11,11 +11,13 @@ struct Store {
 	name                          string
 	default_locale_id             string
 	default_locale_id_bin         []u8
-	default_currency_code         string
+	default_region_id             string
+	default_region_id_bin         []u8
 	default_stock_location_id     string
 	default_stock_location_id_bin []u8
 	default_sales_channel_id      string
 	default_sales_channel_id_bin  []u8
+	default_currency_code         string
 mut:
 	locales    []Locale
 	currencies []Currency
@@ -23,15 +25,17 @@ mut:
 
 fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	store_data := tx.execute('SELECT
-		id,
-		created_at,
-		updated_at,
-		name,
-		default_locale_id,
-		default_currency_code,
-		default_stock_location_id,
-		default_sales_channel_id
-		FROM store')!
+		s.id,
+		s.created_at,
+		s.updated_at,
+		s.name,
+		s.default_locale_id,
+		s.default_region_id,
+		s.default_stock_location_id,
+		s.default_sales_channel_id,
+		r.currency_code
+		FROM store s
+		LEFT JOIN region r ON r.id = s.default_region_id')!
 
 	store_rows := store_data.rows()
 
@@ -46,12 +50,14 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	updated_at, _ := v[2].get_date_time()!
 	name, _ := v[3].get_string()!
 	default_locale_id_bin, _ := v[4].get_array_u8()!
-	default_currency_code, _ := v[5].get_string()!
+	default_region_id_bin, _ := v[5].get_array_u8()!
 	default_stock_location_id_bin, _ := v[6].get_array_u8()!
 	default_sales_channel_id_bin, _ := v[7].get_array_u8()!
+	default_currency_code, _ := v[8].get_string()!
 
 	id := id_bin_to_string(id_bin)!
 	default_locale_id := id_bin_to_string(default_locale_id_bin)!
+	default_region_id := id_bin_to_string(default_region_id_bin)!
 	default_stock_location_id := id_bin_to_string(default_stock_location_id_bin)!
 	default_sales_channel_id := id_bin_to_string(default_sales_channel_id_bin)!
 
@@ -63,11 +69,13 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 		name:                          name
 		default_locale_id:             default_locale_id
 		default_locale_id_bin:         default_locale_id_bin
-		default_currency_code:         default_currency_code
+		default_region_id:             default_region_id
+		default_region_id_bin:         default_region_id_bin
 		default_stock_location_id:     default_stock_location_id
 		default_stock_location_id_bin: default_stock_location_id_bin
 		default_sales_channel_id:      default_sales_channel_id
 		default_sales_channel_id_bin:  default_sales_channel_id_bin
+		default_currency_code:         default_currency_code
 	}
 }
 
@@ -189,36 +197,34 @@ fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin 
 }
 
 fn (mut app App) do_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreRequestHygienised) ! {
-	mut query := 'UPDATE store SET'
+	mut columns := []string{}
 	mut params := []firebird.Value{}
 
 	if name := ph.name {
-		query = appendln(query, 'name = ?')
+		columns = arrays.concat(columns, 'name')
 		params = arrays.concat(params, name)
 	}
 
-	if ph.default_locale_id != none {
-		query = appendln(query, 'default_locale_id = ?')
+	if _ := ph.default_locale_id {
+		columns = arrays.concat(columns, 'default_locale_id')
 		params = arrays.concat(params, ph.default_locale_id_bin)
 	}
 
-	if default_currency_code := ph.default_currency_code {
-		query = appendln(query, 'default_currency_code = ?')
-		params = arrays.concat(params, default_currency_code)
+	if _ := ph.default_region_id {
+		columns = arrays.concat(columns, 'default_region_id')
+		params = arrays.concat(params, ph.default_region_id_bin)
 	}
 
-	if ph.default_stock_location_id != none {
-		query = appendln(query, 'default_stock_location_id = ?')
+	if _ := ph.default_stock_location_id {
+		columns = arrays.concat(columns, 'default_stock_location_id')
 		params = arrays.concat(params, ph.default_stock_location_id_bin)
 	}
 
-	if ph.default_sales_channel_id != none {
-		query = appendln(query, 'default_sales_channel_id = ?')
+	if _ := ph.default_sales_channel_id {
+		columns = arrays.concat(columns, 'default_sales_channel_id')
 		params = arrays.concat(params, ph.default_sales_channel_id_bin)
 	}
 
-	conditions := 'WHERE id = ?'
-	query = appendln(query, conditions)
 	params = arrays.concat(params, id_bin)
-	tx.execute(query, ...params)!
+	tx.execute('UPDATE store ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }

@@ -4,7 +4,8 @@ struct StoreRequestHygienised {
 	name                          ?string
 	default_locale_id             ?string
 	default_locale_id_bin         []u8
-	default_currency_code         ?string
+	default_region_id             ?string
+	default_region_id_bin         []u8
 	default_stock_location_id     ?string
 	default_stock_location_id_bin []u8
 	default_sales_channel_id      ?string
@@ -12,6 +13,43 @@ struct StoreRequestHygienised {
 	locale_ids                    ?[]string
 	locale_ids_bin                [][]u8
 	currency_codes                ?[]string
+}
+
+fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
+	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
+		return new_internal_error(error_id_invalid, 'default_locale_id')
+	}
+
+	default_region_id_bin := option_id_string_to_id_bin(p.default_region_id) or {
+		return new_internal_error(error_id_invalid, 'default_region_id')
+	}
+
+	default_stock_location_id_bin := option_id_string_to_id_bin(p.default_stock_location_id) or {
+		return new_internal_error(error_id_invalid, 'default_stock_location_id')
+	}
+
+	locale_ids_bin := option_array_id_string_to_array_id_bin(p.locale_ids) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	default_sales_channel_id_bin := option_id_string_to_id_bin(p.default_sales_channel_id) or {
+		return new_internal_error(error_id_invalid, 'default_sales_channel_id')
+	}
+
+	return StoreRequestHygienised{
+		name:                          p.name
+		default_locale_id:             p.default_locale_id
+		default_locale_id_bin:         default_locale_id_bin
+		default_region_id:             p.default_region_id
+		default_region_id_bin:         default_region_id_bin
+		default_stock_location_id:     p.default_stock_location_id
+		default_stock_location_id_bin: default_stock_location_id_bin
+		default_sales_channel_id:      p.default_sales_channel_id
+		default_sales_channel_id_bin:  default_sales_channel_id_bin
+		locale_ids:                    p.locale_ids
+		locale_ids_bin:                locale_ids_bin
+		currency_codes:                p.currency_codes
+	}
 }
 
 struct ImageTranslationRequestHygienised {

@@ -8,7 +8,7 @@ struct AuthRequest {
 struct StoreRequest {
 	name                      ?string
 	default_locale_id         ?string   @[json: 'defaultLocaleId']
-	default_currency_code     ?string   @[json: 'defaultCurrencyCode']
+	default_region_id         ?string   @[json: 'defaultRegionId']
 	default_stock_location_id ?string   @[json: 'defaultStockLocationId']
 	default_sales_channel_id  ?string   @[json: 'defaultSalesChannelId']
 	locale_ids                ?[]string @[json: 'localeIds']

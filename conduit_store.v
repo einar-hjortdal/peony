@@ -32,8 +32,8 @@ fn conduit_store_update(mut app App, mut ctx Context, id_bin []u8, ph StoreReque
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	if ph.name != none || ph.default_locale_id != none || ph.default_currency_code != none
-		|| ph.default_stock_location_id != none || ph.default_sales_channel_id != none {
+	if ph.name != none || ph.default_locale_id != none || ph.default_stock_location_id != none
+		|| ph.default_sales_channel_id != none {
 		app.do_store_update(mut tx, id_bin, ph) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Could not update store data', err.msg())

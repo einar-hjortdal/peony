@@ -368,13 +368,13 @@ CREATE TABLE store (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   name VARCHAR(63) NOT NULL,
   default_locale_id BINARY(16) NOT NULL,
-  default_currency_code CHAR(3) NOT NULL,
+  default_region_id BINARY(16) NOT NULL,
   default_stock_location_id BINARY(16) NOT NULL,
   default_sales_channel_id BINARY(16) NOT NULL,
   CONSTRAINT "0681493b-ad85-127e-3400-14796fb97f61" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad85-12d1-5000-235e3c958344" UNIQUE (default_sales_channel_id),
   CONSTRAINT "0681493b-ad85-1328-8400-e0abfb402420" FOREIGN KEY (default_locale_id) REFERENCES locale (id),
-  CONSTRAINT "0681493b-ad85-1380-5800-df5849d73408" FOREIGN KEY (default_currency_code) REFERENCES currency (code),
+  CONSTRAINT "0686cd40-3323-177c-3c00-44b89aa9d0d7" FOREIGN KEY (default_region_id) REFERENCES region (id),
   CONSTRAINT "0681493b-ad85-13d4-e400-43e4b8fcbb08" FOREIGN KEY (default_sales_channel_id) REFERENCES sales_channel (id)
 );
 

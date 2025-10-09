@@ -3,7 +3,7 @@ module peony
 import crypto.rand
 import crypto.scrypt
 
-const scrypt_n = 65_536 // 1 << 16
+const scrypt_n = 1 << 14
 const scrypt_r = 8
 const scrypt_p = 1
 const scrypt_salt_length = 32

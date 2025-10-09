@@ -127,8 +127,9 @@ fn format_store_response(s Store) StoreResponse {
 		created_at:                s.created_at.Time
 		updated_at:                s.updated_at.Time
 		name:                      s.name
-		default_locale_id:         s.default_locale_id
 		default_currency_code:     s.default_currency_code
+		default_locale_id:         s.default_locale_id
+		default_region_id:         s.default_region_id
 		default_stock_location_id: s.default_stock_location_id
 		default_sales_channel_id:  s.default_sales_channel_id
 		locales:                   locales

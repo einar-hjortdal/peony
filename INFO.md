@@ -64,12 +64,20 @@ boolean or null).
 ### Countries, regions, currencies and prices
 
 One `country` can only be in one `region`. One `region` can only have one `currency`. Therefore one 
-`country` can only have one `currency`. By default, a `store` has no `region`.
+`country` can only have one `currency`.
 
-A `product_variant` can be given many `money_amount`. If a `region` is created, a `product_variant` 
-can have a `money_amount` that is related to a `region`. In this case, if the customer is from this 
-`region`, the regional `money_amount` is prioritized: the customer will get the regional `money_amount` 
-in its currency.
+By default, a `store` has one default `region`, this region determines the default `currency`.
+
+A `product_variant` may have a `money_amount` that is related to a `region`.
+
+When a `product_variant` is requested, the request may contain a `region_id` parameter.
+
+If it does: `money_amount` with the `currency` of the `region` of the matching `region_id` are considered.
+If the `product_variant` has a `money_amount` related to this `region`, then it will be prioritized during
+price calculation.
+
+If the request does not contain a `region_id` parameter, `money_amount` of the default `region` are 
+considered when calculating the price, and the price will be in the `currency` of this region.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 

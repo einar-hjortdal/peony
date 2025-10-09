@@ -4,7 +4,7 @@ import einar_hjortdal.firebird
 
 struct Migration {
 	id         string
-	id_bin     []u8 @[json: '-']
+	id_bin     []u8
 	created_at firebird.DateTime
 	name       string
 }

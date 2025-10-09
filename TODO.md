@@ -29,10 +29,10 @@
 
 ### Currently being implemented
 
+- [ ] Multi-region
 
 ### Soon to be implemented
 
-- [ ] Multi-region
 - [ ] Multi-warehouse
 - [ ] Taxes
 - [ ] Cache
@@ -58,6 +58,10 @@
 - [ ] Variant images
 - [ ] API keys
 
+#### Low-priority
+
+- [ ] Multi-currency regions
+
 ### Modules:
 
 - [x] Make peony a module
@@ -72,6 +76,7 @@
 - [ ] handle default-locale translations as fields of their entity (join + coalesce queries)
 - [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
+- [ ] Rewrite product_option_value handling: do not allow duplicate values
 
 ## Internals
 
@@ -95,10 +100,8 @@
 
 ## Considerations
 
-- Consider setting a default region id on store.
 - Consider creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
-- Need an alternative strategy on merge statements when source rows > 250
 
 ## Documentation
 

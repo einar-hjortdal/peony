@@ -18,34 +18,7 @@ mut:
 	tax_rates []TaxRate
 }
 
-fn parse_region(v []firebird.Value) !Region {
-	id_bin, _ := v[0].get_array_u8()!
-	name, _ := v[1].get_string()!
-	created_at, _ := v[2].get_date_time()!
-	updated_at, _ := v[3].get_date_time()!
-	deleted_at := v[4].get_null_date_time()!
-	currency_code, _ := v[5].get_string()!
-	includes_tax, _ := v[6].get_bool()!
-	gift_cards_taxable, _ := v[7].get_bool()!
-	automatic_taxes, _ := v[8].get_bool()!
-
-	id := id_bin_to_string(id_bin)!
-
-	return Region{
-		id:                 id
-		id_bin:             id_bin
-		name:               name
-		created_at:         created_at
-		updated_at:         updated_at
-		deleted_at:         deleted_at
-		currency_code:      currency_code
-		includes_tax:       includes_tax
-		gift_cards_taxable: gift_cards_taxable
-		automatic_taxes:    automatic_taxes
-	}
-}
-
-fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) !([]Region, i64) {
+fn model_region_retrieve(mut tx firebird.Transaction, p ListRegionParams) !([]Region, i64) {
 	base_query := 'SELECT
 		id,
 		name,
@@ -79,11 +52,37 @@ fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) !([]Regi
 	}
 
 	data := tx.execute('${base_query}${conditions}${sorting}', ...params)!
+
 	rows := data.rows()
-	mut regions := []Region{}
+
+	mut regions := []Region{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		region := parse_region(rows[i].values())!
-		regions = arrays.concat(regions, region)
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		name, _ := v[1].get_string()!
+		created_at, _ := v[2].get_date_time()!
+		updated_at, _ := v[3].get_date_time()!
+		deleted_at := v[4].get_null_date_time()!
+		currency_code, _ := v[5].get_string()!
+		includes_tax, _ := v[6].get_bool()!
+		gift_cards_taxable, _ := v[7].get_bool()!
+		automatic_taxes, _ := v[8].get_bool()!
+
+		id := id_bin_to_string(id_bin)!
+
+		regions[i] = Region{
+			id:                 id
+			id_bin:             id_bin
+			name:               name
+			created_at:         created_at
+			updated_at:         updated_at
+			deleted_at:         deleted_at
+			currency_code:      currency_code
+			includes_tax:       includes_tax
+			gift_cards_taxable: gift_cards_taxable
+			automatic_taxes:    automatic_taxes
+		}
 	}
 
 	mut count := i64(0)
@@ -96,32 +95,7 @@ fn do_retrieve_regions(mut tx firebird.Transaction, p ListRegionParams) !([]Regi
 }
 
 fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
-	mut tx := app.start_transaction()!
-	data := tx.execute('SELECT 
-		id,
-		name
-		created_at
-		updated_at
-		deleted_at
-		currency_code
-		tax_rate
-		tax_code
-		includes_tax
-		gift_cards_taxable
-		automatic_taxes
-		FROM region WHERE id = ?',
-		id_bin) or {
-		tx.rollback()!
-		return err
-	}
-	tx.rollback()!
-
-	rows := data.rows()
-	if rows.len == 0 {
-		return error(format_error_message('No region found'))
-	}
-
-	return parse_region(rows[0].values())!
+	return error('TODO')
 }
 
 // fn (mut app App) add_country(code string, region_id string) ! {
@@ -146,6 +120,7 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 // }
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
+// TODO verify currency_code is in store_currencies before insert.
 fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionCreateRequest) ! {
 	_, id_bin := app.new_id()
 
@@ -214,3 +189,6 @@ fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8
 			...params)!
 	}
 }
+
+// TODO delete region
+// Refuse to delete if default region
