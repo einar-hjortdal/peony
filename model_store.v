@@ -128,7 +128,7 @@ fn model_store_currencies_retrieve(mut tx firebird.Transaction) ![]Currency {
 	return currencies
 }
 
-fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u8, locale_ids_bin [][]u8) ! {
+fn model_store_locales_update(mut tx firebird.Transaction, id_bin []u8, locale_ids_bin [][]u8) ! {
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
 		CAST(? AS BINARY(16)) AS locale_id
@@ -162,7 +162,7 @@ fn (mut app App) do_update_store_locales(mut tx firebird.Transaction, id_bin []u
 	tx.execute(query, ...params)!
 }
 
-fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
+fn model_store_currencies_update(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
 	s := 'SELECT
 		CAST(? AS BINARY(16)) AS store_id,
 		CAST(? AS CHAR(3)) AS currency_code
@@ -196,7 +196,7 @@ fn (mut app App) do_update_store_currencies(mut tx firebird.Transaction, id_bin 
 	tx.execute(query, ...params)!
 }
 
-fn (mut app App) do_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreRequestHygienised) ! {
+fn model_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
