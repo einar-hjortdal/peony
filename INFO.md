@@ -63,10 +63,12 @@ boolean or null).
 
 ### Countries, regions, currencies and prices
 
+A `region` is a group of one or more `country`. A `region` may have zero, one or many `tax_rate`.
+
 One `country` can only be in one `region`. One `region` can only have one `currency`. Therefore one 
 `country` can only have one `currency`.
 
-By default, a `store` has one default `region`, this region determines the default `currency`.
+By default, a `store` has one `region`, this region determines the default `currency`.
 
 A `product_variant` may have a `money_amount` that is related to a `region`.
 

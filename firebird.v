@@ -15,6 +15,7 @@ const seed_default_stock_location_name = 'default stock location'
 const seed_default_sales_channel_name = 'default sales channel'
 const seed_default_store_name = 'peony store'
 const seed_default_locale_code = 'en'
+const seed_default_region_country = 'NL'
 const seed_default_currency_code = 'EUR'
 const seed_migration_name = 'seed'
 
@@ -92,6 +93,13 @@ fn firebird_insert_default_user(mut tx firebird.Transaction, user_id string, use
 		user_id_bin, user_id, email, password_hash, password_salt, role_admin)!
 }
 
+fn firebird_insert_default_region(mut tx firebird.Transaction, region_id_bin []u8) ! {
+	log.debug('insert_default_region')
+	tx.execute('INSERT INTO region (id, name, currency_code) VALUES (?, ?, ?)', region_id_bin,
+		seed_default_region_name, seed_default_currency_code)!
+	tx.execute('UPDATE country SET region_id = ?', region_id_bin)!
+}
+
 fn firebird_insert_default_stock_location(mut tx firebird.Transaction, stock_location_id_bin []u8) ! {
 	log.debug('insert_default_stock_location')
 	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', stock_location_id_bin,
@@ -146,12 +154,6 @@ fn firebird_insert_default_store_currencies(mut tx firebird.Transaction, store_i
 	log.debug('insert_default_store_currencies')
 	tx.execute('INSERT INTO store_currencies (store_id, currency_code) VALUES (?, ?)',
 		store_id_bin, seed_default_currency_code)!
-}
-
-fn firebird_insert_default_region(mut tx firebird.Transaction, region_id_bin []u8) ! {
-	log.debug('insert_default_region')
-	tx.execute('INSERT INTO region (id, name, currency_code) VALUES (?, ?, ?)', region_id_bin,
-		seed_default_region_name, seed_default_currency_code)!
 }
 
 fn firebird_create_schema(mut conn firebird.Connection) ! {

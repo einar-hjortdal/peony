@@ -3,6 +3,14 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
+// a region will eventually affect:
+// - discounts
+// - gift cards
+// - payment providers
+// - fulfillment providers
+// and will be associated with:
+// - carts
+// - orders
 struct Region {
 	id                 string
 	id_bin             []u8
@@ -18,6 +26,7 @@ mut:
 	tax_rates []TaxRate
 }
 
+// TODO separate count
 fn model_region_retrieve(mut tx firebird.Transaction, p ListRegionParams) !([]Region, i64) {
 	base_query := 'SELECT
 		id,
