@@ -206,4 +206,4 @@ fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d Region
 }
 
 // TODO delete region
-// Refuse to delete if default region
+// Cannot delete default region

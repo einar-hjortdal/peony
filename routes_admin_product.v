@@ -110,86 +110,52 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 // creates a product variant
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id string) veb.Result {
-	p := json.decode(ProductVariantRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode VariantRequest ', err.msg())
-	}
-
 	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	// Must perform a database operation to verify if all options have been provided with a value
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	p := json.decode(ProductVariantRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode VariantRequest ', err.msg())
 	}
 
-	existing_options := model_product_options_retrieve_by_product_ids(mut tx, [
-		product_id_bin,
-	]) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product options', err.msg())
+	ph := hygienise_product_variant_request(p) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
 	}
 
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	if ph.title == none {
+		return handle_error_400(mut ctx, 'title is required', 'title not provided')
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	if title := ph.title {
+		if title == '' {
+			return handle_error_400(mut ctx, 'title is required', 'title not provided')
+		}
+	}
 
-	if option_values := p.option_values {
-		if option_values.len != existing_options.len {
-			return handle_error_422(mut ctx, 'Missing product_option_value', 'All existing product_option must be given a value')
+	if option_value_ids := ph.option_value_ids {
+		mut tx := app.start_transaction() or {
+			return handle_error_500(mut ctx, error_transaction_start, err.msg())
 		}
 
-		// verify that each option.id exists in existing_options[i].id
-		for i := 0; i < option_values.len; i++ {
-			mut found := false
-			for j := 0; j < existing_options.len; j++ {
-				if option_values[i].option_id == existing_options[j].id {
-					found = true
-					break
-				}
-			}
-			if !found {
-				return handle_error_422(mut ctx, error_id_invalid, 'option_id does not exist')
-			}
+		existing_options := model_product_options_retrieve_by_product_ids(mut tx, [
+			product_id_bin,
+		]) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not retrieve product options', err.msg())
 		}
 
-		// verify that each option.translation[index].locale_id exists in store.locales
-		for i := 0; i < option_values.len; i++ {
-			translations := option_values[i].translations
-			for k := 0; k < translations.len; k++ {
-				locale_id := translations[k].locale_id
-				mut found := false
-				for j := 0; j < store.locales.len; j++ {
-					if locale_id == store.locales[j].id {
-						found = true
-						break
-					}
-				}
-				if !found {
-					return handle_error_422(mut ctx, error_id_invalid, 'locale_id does not exist')
-				}
-			}
-		}
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-		mut povh := []ProductOptionValueRequestHygienised{len: option_values.len}
-		for i := 0; i < option_values.len; i++ {
-			povh[i] = hygienise_product_option_value_request(option_values[i]) or {
-				return handle_error_400(mut ctx, error_id_invalid, 'While hygienising options')
-			}
-		}
-
-		return conduit_product_variant_create(mut app, mut ctx, product_id_bin, p, povh)
+		// verify:
+		// they exist in product_option_value table
+		// there is exactly one for each product_option
+		// there isn't one variant with the same ones already
 	}
 
-	if existing_options.len != 0 {
-		return handle_error_422(mut ctx, 'No product_option_value provided', 'All existing product_option must be given a value')
-	}
-
-	povh := []ProductOptionValueRequestHygienised{}
-	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, p, povh)
+	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
 }
 
 // updates a product variant
@@ -207,54 +173,15 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest', err.msg())
 	}
 
-	mut povh := []ProductOptionValueRequestHygienised{}
-	if option_values := p.option_values {
-		povh = []ProductOptionValueRequestHygienised{len: option_values.len}
-		for i := 0; i < option_values.len; i++ {
-			povh[i] = hygienise_product_option_value_request(option_values[i]) or {
-				return handle_error_400(mut ctx, error_id_invalid, 'at hygienise_product_option_value_request')
-			}
+	ph := hygienise_product_variant_request(p) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
 		}
-	}
-
-	// TODO validate all ids in ProductVariantRequest
-	mut mah := []MoneyAmountRequestHygienised{}
-	if money_amounts := p.money_amounts {
-		mah = []MoneyAmountRequestHygienised{len: money_amounts.len}
-		for i := 0; i < money_amounts.len; i++ {
-			if money_amounts[i].currency_code == none && money_amounts[i].region_id == none {
-				return handle_error_400(mut ctx, 'invalid moneyAmount', 'currencyCode or regionId is required')
-			}
-
-			mut money_amount_id_bin := []u8{}
-			if money_amount_id := money_amounts[i].id {
-				money_amount_id_bin = id_string_to_bin(money_amount_id) or {
-					return handle_error_400(mut ctx, 'Invalid id', err.msg())
-				}
-			}
-
-			mut region_id_bin := []u8{}
-			if region_id := money_amounts[i].region_id {
-				region_id_bin = id_string_to_bin(region_id) or {
-					return handle_error_400(mut ctx, 'Invalid regionId', err.msg())
-				}
-			}
-
-			mah[i] = MoneyAmountRequestHygienised{
-				amount:        money_amounts[i].amount
-				currency_code: money_amounts[i].currency_code
-				id:            money_amounts[i].id
-				id_bin:        money_amount_id_bin
-				max_quantity:  money_amounts[i].max_quantity
-				min_quantity:  money_amounts[i].min_quantity
-				region_id:     money_amounts[i].region_id
-				region_id_bin: region_id_bin
-			}
-		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
 	}
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
-		p, povh, mah)
+		ph)
 }
 
 // deletes a product variant
@@ -326,22 +253,12 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 		return handle_error_400(mut ctx, 'product_option must have a title', 'No translations provided')
 	}
 
-	mut ph := []ProductOptionTranslationDataHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
-		if translation.title == '' {
-			return handle_error_400(mut ctx, 'Invalid title', 'empty strings are not valid product_option titles')
+	ph := hygienise_product_option_request(p) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
 		}
-
-		locale_id_bin := id_string_to_bin(translation.locale_id) or {
-			return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
-		}
-
-		ph[i] = ProductOptionTranslationDataHygienised{
-			title:         translation.title
-			locale_id:     translation.locale_id
-			locale_id_bin: locale_id_bin
-		}
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_option_request',
+			err.msg())
 	}
 
 	return conduit_product_option_create(mut app, mut ctx, id, id_bin, ph)
@@ -358,30 +275,21 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	p := json.decode(ProductOptionRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductOptionRequest', err.msg())
+	p := json.decode(ProductOptionUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductOptionUpdateRequest',
+			err.msg())
 	}
 
 	if p.translations.len == 0 {
 		return handle_error_400(mut ctx, 'product_option must have a title', 'No translations provided')
 	}
 
-	mut ph := []ProductOptionTranslationDataHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
-		if translation.title == '' {
-			return handle_error_400(mut ctx, 'Invalid title', 'empty strings are not valid product_option titles')
+	ph := hygienise_product_option_update_request(p) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
 		}
-
-		locale_id_bin := id_string_to_bin(translation.locale_id) or {
-			return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
-		}
-
-		ph[i] = ProductOptionTranslationDataHygienised{
-			title:         translation.title
-			locale_id:     translation.locale_id
-			locale_id_bin: locale_id_bin
-		}
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_option_update_request',
+			err.msg())
 	}
 
 	return conduit_product_option_update(mut app, mut ctx, product_id, product_id_bin,
@@ -389,7 +297,7 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 }
 
 // deletes a product option
-@['/admin/products/:product_id/options/:option_id'; delete]
+@['/admin/products/:product_id/options/:product_option_id'; delete]
 pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id string, product_option_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
@@ -405,4 +313,14 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 
 	return conduit_product_option_delete(mut app, mut ctx, product_id, product_id_bin,
 		product_option_id, product_option_id_bin)
+}
+
+@['/admin/products/:product_id/options/:product_option_id/values/:product_value_id'; post]
+pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_id string, product_option_id string, product_value_id string) veb.Result {
+	return ctx.json('TODO')
+}
+
+@['/admin/products/:product_id/options/:product_option_id/values/:product_value_id'; delete]
+pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_id string, product_option_id string, product_value_id string) veb.Result {
+	return ctx.json('TODO')
 }

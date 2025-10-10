@@ -63,6 +63,66 @@ struct ProductTranslationRequest {
 	description ?string
 }
 
+struct ProductOptionValueTranslationRequest {
+	locale_id string @[json: 'localeId']
+	name      string
+}
+
+struct ProductOptionValueRequest {
+	translations []ProductOptionValueTranslationRequest
+}
+
+struct ProductOptionTranslationRequest {
+	title     string
+	locale_id string @[json: 'localeId']
+}
+
+struct ProductOptionRequest {
+	translations []ProductOptionTranslationRequest
+	values       []ProductOptionValueRequest
+}
+
+struct ProductOptionUpdateRequest {
+	translations []ProductOptionTranslationRequest
+}
+
+// max_quantity the maximum quantity required to be added to the cart for the price to be used.
+// min_quantity the minimum quantity required to be added to the cart for the price to be used.
+struct MoneyAmountRequest {
+	amount        i32
+	region_id     string @[json: 'regionId']
+	currency_code string @[json: 'currencyCode']
+	max_quantity  ?i32   @[json: 'maxQuantity']
+	min_quantity  ?i32   @[json: 'minQuantity']
+}
+
+struct InventoryItemRequest {
+	sku               ?string
+	origin_country    ?string @[json: 'originCountry']
+	hs_code           ?string @[json: 'hsCode']
+	mid_code          ?string @[json: 'midCode']
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool @[json: 'requiresShipping']
+	manage_inventory  ?bool @[json: 'manageInventory']
+	allow_backorder   ?bool @[json: 'allowBackorder']
+}
+
+struct ProductVariantRequest {
+	title            ?string
+	ean              ?string
+	upc              ?string
+	barcode          ?string
+	variant_rank     ?i32                  @[json: 'variantRank']
+	inventory_item   ?InventoryItemRequest @[json: 'inventoryItem']
+	money_amounts    ?[]MoneyAmountRequest @[json: 'moneyAmounts']
+	option_value_ids ?[]string             @[json: 'optionValues']
+	metadata         ?string               @[raw]
+}
+
 struct ProductRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
@@ -101,67 +161,8 @@ struct RegionUpdateRequest {
 	//  taxes
 }
 
-// id: if provided, the existing price will be updated. otherwise, a new price will be created.
-// currency_code: required if region_id is not provided, ignored when region_id or id is provided.
-// region_id: required if currency_code is not provided, ignored when id is provided.
-// max_quantity the maximum quantity required to be added to the cart for the price to be used.
-// min_quantity the minimum quantity required to be added to the cart for the price to be used.
-struct MoneyAmountRequest {
-	amount        i32
-	currency_code ?string @[json: 'currencyCode']
-	id            ?string
-	max_quantity  ?i32    @[json: 'maxQuantity']
-	min_quantity  ?i32    @[json: 'minQuantity']
-	region_id     ?string @[json: 'regionId']
-}
-
-struct ProductOptionTranslationData {
-	title     string
-	locale_id string @[json: 'localeId']
-}
-
-struct ProductOptionRequest {
-	translations []ProductOptionTranslationData
-}
-
-struct ProductOptionValueTranslationRequest {
-	locale_id string @[json: 'localeId']
-	name      string
-}
-
-struct ProductOptionValueRequest {
-	option_id    string @[json: 'optionId']
-	translations []ProductOptionValueTranslationRequest
-}
-
-struct ProductVariantRequest {
-	title         ?string
-	ean           ?string
-	upc           ?string
-	barcode       ?string
-	variant_rank  ?i32                         @[json: 'variantRank']
-	metadata      ?string                      @[raw]
-	money_amounts ?[]MoneyAmountRequest        @[json: 'moneyAmounts']
-	option_values ?[]ProductOptionValueRequest @[json: 'optionValues']
-}
-
 struct NewCurrencyData {
 	includes_tax bool @[json: 'includesTax']
-}
-
-struct InventoryItemRequest {
-	sku               ?string
-	origin_country    ?string @[json: 'originCountry']
-	hs_code           ?string @[json: 'hsCode']
-	mid_code          ?string @[json: 'midCode']
-	material          ?string
-	weight            ?i32
-	length            ?i32
-	height            ?i32
-	width             ?i32
-	requires_shipping ?bool @[json: 'requiresShipping']
-	manage_inventory  ?bool @[json: 'manageInventory']
-	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
 struct InventoryLevelRequest {

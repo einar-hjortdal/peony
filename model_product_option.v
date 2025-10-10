@@ -42,23 +42,42 @@ fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction,
 }
 
 struct ProductOptionValue {
-	id             string
-	id_bin         []u8
-	option_id      string
-	option_id_bin  []u8
-	variant_id     string
-	variant_id_bin []u8
+	id            string
+	id_bin        []u8
+	option_id     string
+	option_id_bin []u8
+	name          string
 mut:
 	translations []ProductOptionValueTranslation
 }
 
-fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionValue {
-	data := tx.execute('SELECT pov.id, pov.option_id, pov.variant_id 
-		FROM product_option_value pov
-		LEFT JOIN product_variant pv ON pov.variant_id = pv.id
-		WHERE option_id IN (${get_placeholders(product_option_ids_bin)})
-		AND pv.deleted_at IS NULL',
-		...workaround_24757(product_option_ids_bin))!
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, locale_id_bin []u8, product_option_ids_bin [][]u8) ![]ProductOptionValue {
+	mut params := []firebird.Value{}
+
+	params = arrays.concat(params, ...workaround_24757(product_option_ids_bin))
+
+	if locale_id_bin.len > 0 {
+		params = arrays.concat(params, locale_id_bin, locale_id_bin)
+	} else {
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
+	}
+
+	params = arrays.concat(params, ...workaround_24757(product_option_ids_bin))
+
+	data := tx.execute('SELECT
+			pov.id,
+			pov.option_id,
+			COALESCE(povt_requested.name, povt_default.name) AS name,
+		FROM product_option_value pov,
+		LEFT JOIN product_option_value_translations povt_default
+			ON povt_default.product_option_value_id = pov.id
+			AND povt_default.locale_id = (SELECT default_locale_id FROM store)
+		LEFT JOIN product_option_value_translations povt_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND povt_requested.product_option_value_id = pov.id
+			AND povt_requested.locale_id = ?
+		WHERE pov.option_id IN (${get_placeholders(product_option_ids_bin)})',
+		...params)!
 
 	rows := data.rows()
 
@@ -68,26 +87,24 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 
 		id_bin, _ := v[0].get_array_u8()!
 		option_id_bin, _ := v[1].get_array_u8()!
-		variant_id_bin, _ := v[2].get_array_u8()!
+		name, _ := v[2].get_string()!
 
 		id := id_bin_to_string(id_bin)!
 		option_id := id_bin_to_string(option_id_bin)!
-		variant_id := id_bin_to_string(variant_id_bin)!
 
 		product_option_values[i] = ProductOptionValue{
-			id:             id
-			id_bin:         id_bin
-			option_id:      option_id
-			option_id_bin:  option_id_bin
-			variant_id:     variant_id
-			variant_id_bin: variant_id_bin
+			id:            id
+			id_bin:        id_bin
+			option_id:     option_id
+			option_id_bin: option_id_bin
+			name:          name
 		}
 	}
 
 	return product_option_values
 }
 
-fn model_product_option_value_update(mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductOptionValueRequestHygienised) ! {
+fn model_product_option_value_translations_update(mut tx firebird.Transaction, ph []ProductOptionValueRequestHygienised) ! {
 	mut src_row_count := ph.len
 	for i := 0; i < ph.len; i++ {
 		if ph[i].translations.len > 1 {
@@ -229,7 +246,7 @@ fn model_product_option_create(mut tx firebird.Transaction, id_bin []u8, product
 }
 
 // note: does not protect from deleting default_locale_id translations.
-fn model_product_option_update(mut tx firebird.Transaction, id_bin []u8, ph []ProductOptionTranslationDataHygienised) ! {
+fn model_product_option_translations_update(mut tx firebird.Transaction, id_bin []u8, ph []ProductOptionTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 3 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {

@@ -224,20 +224,29 @@ CREATE TABLE product_option (
   id BINARY(16) NOT NULL,
   product_id BINARY(16) NOT NULL,
   CONSTRAINT "0681493b-ad82-1d8f-b800-748d549c42a0" PRIMARY KEY (id),
-  CONSTRAINT "0681493b-ad82-1ddc-3c00-22ac1e0ada28" FOREIGN KEY (product_id) REFERENCES product (id)
+  CONSTRAINT "0681493b-ad82-1ddc-3c00-22ac1e0ada28" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE
 );
+
+CREATE INDEX "0686cd40-3324-1029-9c00-b6e2d46d32b1" ON product_option (product_id);
 
 CREATE TABLE product_option_value (
   id BINARY(16) NOT NULL,
   option_id BINARY(16) NOT NULL,
-  variant_id BINARY(16) NOT NULL,
   CONSTRAINT "0681493b-ad83-1117-7000-26b3a822eacc" PRIMARY KEY (id),
-  CONSTRAINT "0681493b-ad83-1167-7400-d94a180e5015" FOREIGN KEY (option_id) REFERENCES product_option (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad83-11b6-1000-41c33b5cfc23" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE
+  CONSTRAINT "0681493b-ad83-1167-7400-d94a180e5015" FOREIGN KEY (option_id) REFERENCES product_option (id) ON DELETE CASCADE
 );
 
 CREATE INDEX "0681493b-ad83-1296-6c00-1cc6ce4f275a" ON product_option_value (option_id);
-CREATE INDEX "0681493b-ad83-12e7-ec00-3a79d6b54baf" ON product_option_value (variant_id);
+
+CREATE TABLE product_option_value_product_variant (
+  option_value_id BINARY(16) NOT NULL,
+  variant_id BINARY(16) NOT NULL,
+  CONSTRAINT "0686cd40-3323-1b78-a800-0cc5d4486b6f" PRIMARY KEY (option_value_id, variant_id),
+  CONSTRAINT "0686cd40-3323-17d3-6000-fc3b4739d2f9" FOREIGN KEY (option_value_id) REFERENCES product_option_value (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3323-1f6e-9800-afb257a57fd7" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE
+);
+
+CREATE INDEX "0686cd40-3323-1fcc-2400-0cc6d0092801" ON product_option_value_product_variant (variant_id);
 
 CREATE TABLE product_category (
   id BINARY(16) NOT NULL,

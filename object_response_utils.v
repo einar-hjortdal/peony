@@ -53,6 +53,10 @@ fn handle_error_500(mut ctx Context, message string, details string) veb.Result 
 	return handle_error(mut ctx, http.Status.internal_server_error, message, details)
 }
 
+fn handle_error_unhandled(mut ctx Context, message string, fn_name string) veb.Result {
+	return handle_error_500(mut ctx, 'Unhandled error at ${fn_name}', message)
+}
+
 fn handle_error_login(mut ctx Context) veb.Result {
 	return handle_error(mut ctx, http.Status.unauthorized, 'Invalid email or password',
 		'No further details')
@@ -191,7 +195,6 @@ fn format_product_option_value_response(p ProductOptionValue) ProductOptionValue
 	return ProductOptionValueResponse{
 		id:           p.id
 		option_id:    p.option_id
-		variant_id:   p.variant_id
 		translations: translations
 	}
 }

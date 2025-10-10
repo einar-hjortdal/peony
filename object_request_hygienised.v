@@ -117,6 +117,159 @@ fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTr
 	}
 }
 
+struct ProductOptionTranslationRequestHygienised {
+	title         string
+	locale_id     string
+	locale_id_bin []u8
+}
+
+fn hygienise_product_option_translation_request(p ProductOptionTranslationRequest) !ProductOptionTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+	return ProductOptionTranslationRequestHygienised{
+		title:         p.title
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+	}
+}
+
+struct ProductOptionValueTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	name          string
+}
+
+fn hygienise_product_option_value_translation_request(p ProductOptionValueTranslationRequest) !ProductOptionValueTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return ProductOptionValueTranslationRequestHygienised{
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+		name:          p.name
+	}
+}
+
+struct ProductOptionValueRequestHygienised {
+	translations []ProductOptionValueTranslationRequestHygienised
+}
+
+fn hygienise_product_option_value_request(p ProductOptionValueRequest) !ProductOptionValueRequestHygienised {
+	mut translations := []ProductOptionValueTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = hygienise_product_option_value_translation_request(p.translations[i])!
+	}
+
+	return ProductOptionValueRequestHygienised{
+		translations: translations
+	}
+}
+
+struct ProductOptionRequestHygienised {
+	translations []ProductOptionTranslationRequestHygienised
+	values       []ProductOptionValueRequestHygienised
+}
+
+fn hygienise_product_option_request(p ProductOptionRequest) !ProductOptionRequestHygienised {
+	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
+	}
+
+	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
+	for i := 0; i < p.translations.len; i++ {
+		values[i] = hygienise_product_option_value_request(p.values[i])!
+	}
+
+	return ProductOptionRequestHygienised{
+		translations: translations
+		values:       values
+	}
+}
+
+struct ProductOptionUpdateRequestHygienised {
+	translations []ProductOptionTranslationRequestHygienised
+}
+
+fn hygienise_product_option_update_request(p ProductOptionUpdateRequest) !ProductOptionUpdateRequestHygienised {
+	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
+	}
+
+	return ProductOptionUpdateRequestHygienised{
+		translations: translations
+	}
+}
+
+struct MoneyAmountRequestHygienised {
+	amount        i32
+	region_id     ?string
+	region_id_bin []u8
+	currency_code ?string
+	max_quantity  ?i32
+	min_quantity  ?i32
+}
+
+fn hygienise_money_amount_request(p MoneyAmountRequest) !MoneyAmountRequestHygienised {
+	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
+		return new_internal_error(error_id_invalid, 'region_id')
+	}
+
+	return MoneyAmountRequestHygienised{
+		amount:        p.amount
+		region_id:     p.region_id
+		region_id_bin: region_id_bin
+		currency_code: p.currency_code
+		max_quantity:  p.max_quantity
+		min_quantity:  p.min_quantity
+	}
+}
+
+struct ProductVariantRequestHygienised {
+	title                ?string
+	ean                  ?string
+	upc                  ?string
+	barcode              ?string
+	variant_rank         ?i32
+	inventory_item       ?InventoryItemRequest
+	option_value_ids     ?[]string
+	option_value_ids_bin [][]u8
+	metadata             ?string
+mut:
+	money_amounts ?[]MoneyAmountRequestHygienised
+}
+
+fn hygienise_product_variant_request(p ProductVariantRequest) !ProductVariantRequestHygienised {
+	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
+		return new_internal_error(error_id_invalid, 'ids_bin')
+	}
+
+	mut ph := ProductVariantRequestHygienised{
+		title:                p.title
+		ean:                  p.ean
+		upc:                  p.upc
+		barcode:              p.barcode
+		variant_rank:         p.variant_rank
+		inventory_item:       p.inventory_item
+		option_value_ids:     p.option_value_ids
+		option_value_ids_bin: option_value_ids_bin
+		metadata:             p.metadata
+	}
+
+	if money_amounts := p.money_amounts {
+		mut h := []MoneyAmountRequestHygienised{len: money_amounts.len}
+		for i := 0; i < money_amounts.len; i++ {
+			h[i] = hygienise_money_amount_request(money_amounts[i])!
+		}
+		ph.money_amounts = h
+	}
+
+	return ph
+}
+
 struct ProductRequestHygienised {
 	handle                ?string
 	is_giftcard           ?bool
@@ -135,6 +288,8 @@ struct ProductRequestHygienised {
 	collection_ids        ?[]string
 	collection_ids_bin    [][]u8
 mut:
+	options      ?[]ProductOptionRequestHygienised
+	variants     ?[]ProductVariantRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
 }
@@ -179,81 +334,39 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 		collection_ids_bin:    collection_id_bin
 	}
 
-	if translations := p.translations {
-		mut pth := []ProductTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			pth[i] = hygienise_product_translation_request(translations[i])!
+	if options := p.options {
+		mut h := []ProductOptionRequestHygienised{len: options.len}
+		for i := 0; i < options.len; i++ {
+			h[i] = hygienise_product_option_request(options[i])!
 		}
-		ph.translations = pth
+		ph.options = h
+	}
+
+	if variants := p.variants {
+		mut h := []ProductVariantRequestHygienised{len: variants.len}
+		for i := 0; i < variants.len; i++ {
+			h[i] = hygienise_product_variant_request(variants[i])!
+		}
+		ph.variants = h
+	}
+
+	if translations := p.translations {
+		mut h := []ProductTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			h[i] = hygienise_product_translation_request(translations[i])!
+		}
+		ph.translations = h
 	}
 
 	if images := p.images {
-		mut irh := []ImageRequestHygienised{len: images.len}
+		mut h := []ImageRequestHygienised{}
 		for i := 0; i < images.len; i++ {
-			irh[i] = hygienise_image_request(images[i])!
+			h[i] = hygienise_image_request(images[i])!
 		}
-		ph.images = irh
+		ph.images = h
 	}
 
 	return ph
-}
-
-struct MoneyAmountRequestHygienised {
-	amount        i32
-	currency_code ?string
-	id            ?string
-	id_bin        []u8
-	max_quantity  ?i32
-	min_quantity  ?i32
-	region_id     ?string
-	region_id_bin []u8
-}
-
-struct ProductOptionTranslationDataHygienised {
-	title         string
-	locale_id     string
-	locale_id_bin []u8
-}
-
-struct ProductOptionValueTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	name          string
-}
-
-fn hygienise_product_option_value_translation_request(p ProductOptionValueTranslationRequest) !ProductOptionValueTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
-	}
-
-	return ProductOptionValueTranslationRequestHygienised{
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-		name:          p.name
-	}
-}
-
-struct ProductOptionValueRequestHygienised {
-	option_id     string
-	option_id_bin []u8
-	translations  []ProductOptionValueTranslationRequestHygienised
-}
-
-fn hygienise_product_option_value_request(povr ProductOptionValueRequest) !ProductOptionValueRequestHygienised {
-	option_id_bin := id_string_to_bin(povr.option_id) or {
-		return new_internal_error(error_id_invalid, 'option_id')
-	}
-
-	mut translations := []ProductOptionValueTranslationRequestHygienised{len: povr.translations.len}
-	for i := 0; i < povr.translations.len; i++ {
-		translations[i] = hygienise_product_option_value_translation_request(povr.translations[i])!
-	}
-
-	return ProductOptionValueRequestHygienised{
-		option_id:     povr.option_id
-		option_id_bin: option_id_bin
-		translations:  translations
-	}
 }
 
 struct ProductCategoryTranslationRequestHygienised {

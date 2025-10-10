@@ -13,13 +13,6 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygieni
 		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
 	}
 
-	// TODO handle product_option
-	// TODO handle product_variant
-	// - if product.variants.len == 0 create default variant
-	// - first create product.option so when a variant is created it will get it as default
-	// - if product.variants.len > 0 expect product.options > 0 or return error
-	// - then check variants have different product.option_value or return errror
-
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
@@ -67,6 +60,13 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygieni
 				err.msg())
 		}
 	}
+
+	// TODO handle product_option
+	// TODO handle product_variant
+	// - if product.variants.len == 0 create default variant
+	// - first create product.option so when a variant is created it will get it as default
+	// - if product.variants.len > 0 expect product.options > 0 or return error
+	// - then check variants have different product.option_value or return errror
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
@@ -479,7 +479,7 @@ fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb
 	return success(mut ctx)
 }
 
-fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph []ProductOptionTranslationDataHygienised) veb.Result {
+fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph ProductOptionRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -491,7 +491,7 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 		return handle_error_500(mut ctx, 'Could not create product_option', err.msg())
 	}
 
-	model_product_option_update(mut tx, product_option_id_bin, ph) or {
+	model_product_option_translations_update(mut tx, product_option_id_bin, ph.translations) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
 			err.msg())
@@ -537,12 +537,12 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 	return success(mut ctx)
 }
 
-fn conduit_product_option_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8, ph []ProductOptionTranslationDataHygienised) veb.Result {
+fn conduit_product_option_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8, ph ProductOptionUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_option_update(mut tx, product_option_id_bin, ph) or {
+	model_product_option_translations_update(mut tx, product_option_id_bin, ph.translations) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
 			err.msg())
