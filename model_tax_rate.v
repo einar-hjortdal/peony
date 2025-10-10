@@ -10,6 +10,7 @@ const tax_compounding = 'compounding'
 // TODO replace join tables with region_id product_id product_type_id columns
 // make the app delete tax_rate when any product/region/product_type is deleted
 // app ensures no tax_rate is created with more than one of these 3 columns
+
 struct TaxRate {
 	id         string
 	id_bin     []u8
@@ -22,32 +23,7 @@ struct TaxRate {
 	tax_type   string
 }
 
-fn parse_tax_rate(v []firebird.Value) !TaxRate {
-	id_bin, _ := v[0].get_array_u8()!
-	created_at, _ := v[1].get_date_time()!
-	updated_at, _ := v[2].get_date_time()!
-	deleted_at := v[3].get_null_date_time()!
-	rate, _ := v[4].get_f32()!
-	code := v[5].get_null_string()!
-	name, _ := v[6].get_string()!
-	tax_type, _ := v[7].get_string()!
-
-	id := id_bin_to_string(id_bin)!
-
-	return TaxRate{
-		id:         id
-		id_bin:     id_bin
-		created_at: created_at
-		updated_at: updated_at
-		deleted_at: deleted_at
-		rate:       rate
-		code:       code
-		name:       name
-		tax_type:   tax_type
-	}
-}
-
-fn do_retrieve_tax_rates_by_id(mut tx firebird.Transaction, tax_rate_ids_bin [][]u8) ![]TaxRate {
+fn model_tax_rate_retrieve(mut tx firebird.Transaction, tax_rate_ids_bin [][]u8) ![]TaxRate {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -65,12 +41,34 @@ fn do_retrieve_tax_rates_by_id(mut tx firebird.Transaction, tax_rate_ids_bin [][
 
 	mut tax_rates := []TaxRate{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		tax_rates[i] = parse_tax_rate(rows[i].values())!
+		v := rows[i].values()
+		id_bin, _ := v[0].get_array_u8()!
+		created_at, _ := v[1].get_date_time()!
+		updated_at, _ := v[2].get_date_time()!
+		deleted_at := v[3].get_null_date_time()!
+		rate, _ := v[4].get_f32()!
+		code := v[5].get_null_string()!
+		name, _ := v[6].get_string()!
+		tax_type, _ := v[7].get_string()!
+
+		id := id_bin_to_string(id_bin)!
+
+		tax_rates[i] = TaxRate{
+			id:         id
+			id_bin:     id_bin
+			created_at: created_at
+			updated_at: updated_at
+			deleted_at: deleted_at
+			rate:       rate
+			code:       code
+			name:       name
+			tax_type:   tax_type
+		}
 	}
 	return tax_rates
 }
 
-fn do_retrieve_region_tax_rates(mut tx firebird.Transaction, region_ids_bin [][]u8) !([][]u8, map[string][][]u8) {
+fn model_region_tax_rate_retrieve(mut tx firebird.Transaction, region_ids_bin [][]u8) !([][]u8, map[string][][]u8) {
 	data := tx.execute('SELECT region_id, rate_id FROM region_tax_rate
 	WHERE region_id IN (${get_placeholders(region_ids_bin)})',
 		...workaround_24757(region_ids_bin))!

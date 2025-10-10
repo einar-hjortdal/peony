@@ -81,6 +81,12 @@ price calculation.
 If the request does not contain a `region_id` parameter, `money_amount` of the default `region` are 
 considered when calculating the price, and the price will be in the `currency` of this region.
 
+### Taxes (WIP)
+
+Some entities may have a `tax_rate`. Each `region` must have at least one `tax_rate`. The default `region` 
+defines the default `tax_rate`(s). If any other entity has defined `tax_rate` these will be included 
+in the calculation according to the `tax_rate.type`.
+
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 
 A `product` represents a good or service offered by the `store`

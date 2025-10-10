@@ -116,10 +116,6 @@ fn model_region_retrieve(mut tx firebird.Transaction, ph ListRegionParamsHygieni
 	return regions
 }
 
-fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
-	return error('TODO')
-}
-
 // fn (mut app App) add_country(code string, region_id string) ! {
 // 	region_id_bin := id_string_to_bin(region_id)!
 // 	mut tx := app.start_transaction()!
@@ -143,11 +139,9 @@ fn (mut app App) retrieve_region_by_id(id_bin []u8) !Region {
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
 // TODO verify currency_code is in store_currencies before insert.
-fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionCreateRequest) ! {
-	_, id_bin := app.new_id()
-
+fn model_region_create(mut tx firebird.Transaction, region_id_bin []u8, d RegionCreateRequest) ! {
 	mut columns := ['id', 'currency_code', 'name']
-	mut params := [firebird.Value(id_bin), d.currency_code, d.name]
+	mut params := [firebird.Value(region_id_bin), d.currency_code, d.name]
 
 	if automatic_taxes := d.automatic_taxes {
 		columns = arrays.concat(columns, 'automatic_taxes')
@@ -171,8 +165,7 @@ fn do_region_create(mut app App, mut tx firebird.Transaction, d RegionCreateRequ
 		...params)!
 }
 
-// TODO handle tax rate
-fn do_region_update(mut app App, mut tx firebird.Transaction, region_id_bin []u8, d RegionUpdateRequest) ! {
+fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d RegionUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
