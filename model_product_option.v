@@ -118,7 +118,8 @@ fn model_product_option_value_translations_update(mut tx firebird.Transaction, p
 	for i := 0; i < ph.len; i++ {
 		for j := 0; j < ph[i].translations.len; j++ {
 			src[idx] = 'SELECT
-				( SELECT id FROM product_option_value
+				( 
+					SELECT id FROM product_option_value
 					WHERE option_id = CAST(? AS BINARY(16))
 					AND variant_id = CAST(? AS BINARY(16))
 				) AS product_option_value_id,

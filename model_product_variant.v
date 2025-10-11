@@ -165,35 +165,35 @@ fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, p
 	return model_product_variants_retrieve(mut tx, vph)
 }
 
-fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequest) ! {
+fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantRequestHygienised) ! {
 	mut columns := ['id', 'product_id']
 	mut params := [firebird.Value(variant_id_bin), product_id_bin]
-	if title := p.title {
+	if title := ph.title {
 		columns = arrays.concat(columns, 'title')
 		params = arrays.concat(params, title)
 	}
 
-	if barcode := p.barcode {
+	if barcode := ph.barcode {
 		columns = arrays.concat(columns, 'barcode')
 		params = arrays.concat(params, barcode)
 	}
 
-	if ean := p.ean {
+	if ean := ph.ean {
 		columns = arrays.concat(columns, 'ean')
 		params = arrays.concat(params, ean)
 	}
 
-	if upc := p.upc {
+	if upc := ph.upc {
 		columns = arrays.concat(columns, 'upc')
 		params = arrays.concat(params, upc)
 	}
 
-	if variant_rank := p.variant_rank {
+	if variant_rank := ph.variant_rank {
 		columns = arrays.concat(columns, 'variant_rank')
 		params = arrays.concat(params, variant_rank)
 	}
 
-	if metadata := p.metadata {
+	if metadata := ph.metadata {
 		columns = arrays.concat(columns, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
@@ -203,109 +203,122 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 		...params)!
 }
 
-fn do_update_product_variant(mut tx firebird.Transaction, variant_id_bin []u8, p ProductVariantRequest) ! {
-	mut query := 'UPDATE product_variant SET'
+fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, ph ProductVariantRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
-	if title := p.title {
+	if title := ph.title {
 		columns = arrays.concat(columns, 'title')
 		params = arrays.concat(params, title)
 	}
 
-	if barcode := p.barcode {
+	if barcode := ph.barcode {
 		columns = arrays.concat(columns, 'barcode')
 		params = arrays.concat(params, barcode)
 	}
 
-	if ean := p.ean {
+	if ean := ph.ean {
 		columns = arrays.concat(columns, 'ean')
 		params = arrays.concat(params, ean)
 	}
 
-	if upc := p.upc {
+	if upc := ph.upc {
 		columns = arrays.concat(columns, 'upc')
 		params = arrays.concat(params, upc)
 	}
 
-	if variant_rank := p.variant_rank {
+	if variant_rank := ph.variant_rank {
 		columns = arrays.concat(columns, 'variant_rank')
 		params = arrays.concat(params, variant_rank)
 	}
 
-	if metadata := p.metadata {
+	if metadata := ph.metadata {
 		columns = arrays.concat(columns, 'metadata')
 		params = arrays.concat(params, metadata)
 	}
 
-	query = appendln(query, get_set_columns_with_updated_at(columns))
-	query = appendln(query, 'WHERE id = ?')
 	params = arrays.concat(params, variant_id_bin)
 
-	tx.execute(query, ...params)!
+	tx.execute('UPDATE product_variant ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
+		...params)!
 }
 
-// TODO handle region (when region_id is provided, select currency_code from region where id = region_id)
-// TODO handle min_amount and max_amount
-// TODO merge statement at the end
-fn do_update_product_variant_money_amount(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, data []MoneyAmountRequestHygienised) ! {
-	// TODO early exit is data.len == 0 (delete all money_amounts)
-	// Delete all money_amounts that are not given by the user and that have no related price_list
-	mut persisting_ids := [][]u8{}
-	for i := 0; i < data.len; i++ {
-		ma := data[i]
-		if ma_id_string := ma.id {
-			persisting_id := id_string_to_bin(ma_id_string)!
-			arrays.concat(persisting_ids, persisting_id)
-		}
+fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []MoneyAmountRequestHygienised) ! {
+	mut money_amount_ids_bin := [][]u8{len: ph.len}
+	for i := 0; i < ph.len; i++ {
+		_, id_bin := app.new_id()
+		money_amount_ids_bin[i] = id_bin
 	}
 
-	if persisting_ids.len == 0 {
-		tx.execute('DELETE FROM money_amount
+	tx.execute('DELETE FROM money_amount
 			WHERE price_list_id IS NULL
-			AND id IN (
-				SELECT money_amount_id
-				FROM product_variant_money_amount
-				WHERE variant_id = ?
-			)',
-			variant_id_bin)!
-	} else {
-		mut persisting_ids_bin := [][]u8{len: persisting_ids.len}
-		for i := 0; i < persisting_ids.len; i++ {
-			persisting_id_bin := persisting_ids[i]
-			persisting_ids_bin[i] = persisting_id_bin
-		}
+			AND id IN
+				(
+					SELECT money_amount_id
+					FROM product_variant_money_amount
+					WHERE variant_id = ?
+				)',
+		variant_id_bin)!
 
-		tx.execute('DELETE FROM money_amount
-			WHERE price_list_id IS NULL
-			AND id IN (
-				SELECT money_amount_id
-				FROM product_variant_money_amount
-				WHERE variant_id = ?
-				AND money_amount_id NOT IN (${get_placeholders(persisting_ids_bin)})
-			)',
-			...workaround_24757(arrays.concat([variant_id_bin], ...persisting_ids_bin)))!
+	if ph.len == 0 {
+		return
 	}
 
-	for i := 0; i < data.len; i++ {
-		ma := data[i]
-		if ma.id_bin.len != 0 {
-			tx.execute('UPDATE money_amount SET amount = ? WHERE id = ?', ma.amount, ma.id_bin)!
+	mut src := []string{len: ph.len}
+	mut params := []firebird.Value{len: ph.len * 6, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < ph.len; i++ {
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) as id,
+			CAST(? AS CHAR(3)) as currency_code,
+			CAST(? AS INTEGER) as amount,
+			CAST(? AS INTEGER) as min_quantity,
+			CAST(? AS INTEGER) as max_quantity,
+			CAST(? AS BINARY(16)) as region_id
+			FROM RDB\$DATABASE'
+		params[i * 6] = money_amount_ids_bin[i]
+		params[i * 6 + 1] = ph[i].currency_code
+		params[i * 6 + 2] = ph[i].amount
+
+		if min_quantity := ph[i].min_quantity {
+			params[i * 6 + 3] = min_quantity
 		} else {
-			_, money_amount_id_bin := app.new_id()
-			if ma.region_id_bin.len != 0 {
-				tx.execute('INSERT INTO money_amount (id, currency_code, amount, region_id) 
-					VALUES (?, (SELECT currency_code FROM region WHERE id = ?), ?, ?)',
-					money_amount_id_bin, ma.region_id_bin, ma.amount, ma.region_id_bin)!
-			} else if currency_code := ma.currency_code {
-				tx.execute('INSERT INTO money_amount (id, currency_code, amount) VALUES (?, ?, ?)',
-					money_amount_id_bin, currency_code, ma.amount)!
-			}
-
-			tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id) VALUES (?, ?)',
-				variant_id_bin, money_amount_id_bin)!
+			params[i * 6 + 3] = firebird.Null{}
 		}
+
+		if max_quantity := ph[i].max_quantity {
+			params[i * 6 + 4] = max_quantity
+		} else {
+			params[i * 6 + 4] = firebird.Null{}
+		}
+
+		params[i * 6 + 5] = ph[i].region_id_bin
 	}
+
+	tx.execute('INSERT INTO money_amount
+		(
+			id,
+			currency_code,
+			amount,
+			min_quantity,
+			max_quantity,
+			region_id
+		) ${get_merge_source(src)}',
+		...params)!
+
+	src = []string{len: money_amount_ids_bin.len}
+	params = []firebird.Value{len: money_amount_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < money_amount_ids_bin.len; i++ {
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) as variant_id,
+			CAST(? AS BINARY(16)) as money_amount_id,
+			FROM RDB\$DATABASE'
+		params[i * 2] = variant_id_bin
+		params[i * 2 + 1] = money_amount_ids_bin[i]
+	}
+
+	tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)
+		${get_merge_source(src)}',
+		...params)!
 }
 
 fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {

@@ -150,7 +150,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	return ctx.json(r)
 }
 
-fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, p ProductVariantRequestHygienised) veb.Result {
+fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
 	_, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
 
@@ -158,7 +158,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_variant_create(mut tx, product_id_bin, variant_id_bin, p) or {
+	model_product_variant_create(mut tx, product_id_bin, variant_id_bin, ph) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_variant', err.msg())
 	}
@@ -169,49 +169,34 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 			err.msg())
 	}
 
-	if povh.len != 0 {
-		mut ids_bin := [][]u8{len: povh.len}
-		for i := 0; i < povh.len; i++ {
-			_, id_bin := app.new_id()
-			ids_bin[i] = id_bin
-		}
-
-		model_product_option_values_create(mut tx, variant_id_bin, povh, ids_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not create product_option_value or product_option_value_translation',
-				err.msg())
-		}
-	}
-
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, p ProductVariantRequestHygienised) veb.Result {
+fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	if p.title != none || p.ean != none || p.upc != none || p.barcode != none
-		|| p.variant_rank != none {
-		do_update_product_variant(mut tx, variant_id_bin, p) or {
+	if ph.title != none || ph.ean != none || ph.upc != none || ph.barcode != none
+		|| ph.variant_rank != none {
+		model_product_variant_update(mut tx, variant_id_bin, ph) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Could not update product_variant', err.msg())
 		}
 	}
 
-	if povh.len != 0 {
-		// TODO
-		// model_product_option_value_update(mut tx, variant_id_bin, povh) or {
-		// 	tx.rollback() or {}
-		// 	return handle_error_500(mut ctx, 'Could not update product_option_value',
-		// 		err.msg())
-		// }
+	if ph.option_value_ids_bin.len > 0 {
+		model_product_option_value_product_variant_update(mut tx, variant_id_bin, ph.option_value_ids_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update product_option_value',
+				err.msg())
+		}
 	}
 
-	if mah.len != 0 {
-		do_update_product_variant_money_amount(mut app, mut tx, variant_id_bin, mah) or {
+	if money_amounts := ph.money_amounts {
+		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Could not update product_variant money_amount',
 				err.msg())

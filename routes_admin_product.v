@@ -125,14 +125,12 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
 	}
 
-	if ph.title == none {
-		return handle_error_400(mut ctx, 'title is required', 'title not provided')
-	}
-
 	if title := ph.title {
 		if title == '' {
 			return handle_error_400(mut ctx, 'title is required', 'title not provided')
 		}
+	} else {
+		return handle_error_400(mut ctx, 'title is required', 'title not provided')
 	}
 
 	if option_value_ids := ph.option_value_ids {
@@ -149,10 +147,15 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-		// verify:
+		// TODO verify:
 		// they exist in product_option_value table
 		// there is exactly one for each product_option
 		// there isn't one variant with the same ones already
+	} else {
+		// peony automatically creates the first variant with no options.
+		// There should not exist the chance to create a second variant with no options.
+		return handle_error_400(mut ctx, 'Values for each existing product_option must be provided',
+			'No product_option_value provided')
 	}
 
 	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
@@ -178,6 +181,13 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
+	}
+
+	if option_value_ids := ph.option_value_ids {
+		// TODO verify:
+		// they exist in product_option_value table
+		// there is exactly one for each product_option
+		// there isn't one variant with the same ones already
 	}
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
@@ -261,6 +271,8 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 			err.msg())
 	}
 
+	// TODO verify locale_id exists
+
 	return conduit_product_option_create(mut app, mut ctx, id, id_bin, ph)
 }
 
@@ -292,6 +304,8 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			err.msg())
 	}
 
+	// TODO verify locale_id exists
+
 	return conduit_product_option_update(mut app, mut ctx, product_id, product_id_bin,
 		product_option_id, product_option_id_bin, ph)
 }
@@ -322,5 +336,6 @@ pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_
 
 @['/admin/products/:product_id/options/:product_option_id/values/:product_value_id'; delete]
 pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_id string, product_option_id string, product_value_id string) veb.Result {
+	// TODO Can't delete last value: an option must have at least one value
 	return ctx.json('TODO')
 }
