@@ -229,6 +229,7 @@ fn hygienise_money_amount_request(p MoneyAmountRequest) !MoneyAmountRequestHygie
 }
 
 // TODO solve design issue: id cannot be provided during creation because options have yet to be created
+// Handle it in the browser: first create product, then create options, then values, then variants
 struct ProductVariantRequestHygienised {
 	title                ?string
 	ean                  ?string
