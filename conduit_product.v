@@ -524,12 +524,6 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 			_, product_option_value_id_bin := app.new_id()
 			product_option_value_ids_bin[i] = product_option_value_id_bin
 		}
-		model_product_option_value_create_default(mut tx, product_option_id_bin, product_option_value_ids_bin,
-			product_variant_ids_bin) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Could not add default option value to variant',
-				err.msg())
-		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

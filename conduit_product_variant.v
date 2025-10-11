@@ -16,13 +16,10 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 
 	if count == 0 {
 		tx.rollback() or {}
-		r := VariantResponseListEnvelope{
-			variants: []ProductVariantResponse{}
-			count:    count
-			offset:   get_offset_amount(ph.offset)
-			fetch:    ph.fetch.v
-		}
-		return ctx.json(r)
+		return ctx.json(VariantResponseListEnvelope{
+			offset: get_offset_amount(ph.offset)
+			fetch:  ph.fetch.v
+		})
 	}
 
 	product_variants := model_product_variants_retrieve(mut tx, ph) or {
@@ -84,13 +81,12 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		}
 	}
 
-	r := VariantResponseListEnvelope{
+	return ctx.json(VariantResponseListEnvelope{
 		variants: external_variants
 		count:    count
 		offset:   get_offset_amount(ph.offset)
 		fetch:    ph.fetch.v
-	}
-	return ctx.json(r)
+	})
 }
 
 fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
@@ -143,11 +139,9 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 		return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
 	}
 
-	r := VariantResponseEnvelope{
+	return ctx.json(VariantResponseEnvelope{
 		variant: external_variant
-	}
-
-	return ctx.json(r)
+	})
 }
 
 fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
@@ -163,10 +157,18 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 		return handle_error_500(mut ctx, 'Could not create product_variant', err.msg())
 	}
 
-	model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create inventory_item for product_variant',
-			err.msg())
+	if inventory_item := ph.inventory_item {
+		model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, inventory_item) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not create inventory_item for product_variant',
+				err.msg())
+		}
+	} else {
+		model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, InventoryItemRequest{}) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not create inventory_item for product_variant',
+				err.msg())
+		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }

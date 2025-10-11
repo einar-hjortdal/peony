@@ -137,6 +137,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		mut tx := app.start_transaction() or {
 			return handle_error_500(mut ctx, error_transaction_start, err.msg())
 		}
+		println(option_value_ids) // TODO remove
 
 		existing_options := model_product_options_retrieve_by_product_ids(mut tx, [
 			product_id_bin,
@@ -144,6 +145,8 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Could not retrieve product options', err.msg())
 		}
+
+		println(existing_options) // TODO remove
 
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 

@@ -25,19 +25,37 @@ fn assign_product_option_value_translations(product_option_value_translations []
 	}
 }
 
-fn assign_product_option_values(product_option_values []ProductOptionValue, product_option_values_map map[string]ProductOptionValue, mut product_options_map map[string]ProductOption, mut product_variants_map map[string]ProductVariant) {
+fn assign_product_option_values(product_option_values []ProductOptionValue, product_option_value_product_variant []ProductOptionValueProductVariant, product_option_values_map map[string]ProductOptionValue, mut product_options_map map[string]ProductOption, mut product_variants_map map[string]ProductVariant) {
+	mut product_option_value_product_variant_map := map[string][]string{}
+	for i := 0; i < product_option_value_product_variant.len; i++ {
+		product_option_value_id := product_option_value_product_variant[i].option_value_id
+		variant_id := product_option_value_product_variant[i].variant_id
+		old_variants := product_option_value_product_variant_map[product_option_value_id]
+		new_variants := arrays.concat(old_variants, variant_id)
+		product_option_value_product_variant_map[product_option_value_id] = new_variants
+	}
+
+	for product_option_value_id, product_variant_ids in product_option_value_product_variant_map {
+		product_option_value := product_option_values_map[product_option_value_id]
+		for i := 0; i < product_variant_ids.len; i++ {
+			product_variant_id := product_variant_ids[i]
+			mut product_variant := product_variants_map[product_variant_id]
+			values_old := product_variant.option_values
+			values_new := arrays.concat(values_old, product_option_value)
+			product_variant.option_values = values_new
+			product_variants_map[product_variant_id] = product_variant
+		}
+	}
+
 	for i := 0; i < product_option_values.len; i++ {
 		product_option_value := product_option_values[i]
 		id := product_option_value.id
 		option_id := product_option_value.option_id
-		variant_id := product_option_value.variant_id
+
 		complete_product_option_value := product_option_values_map[id]
 
 		option_old := product_options_map[option_id].values
 		product_options_map[option_id].values = arrays.concat(option_old, complete_product_option_value)
-
-		variant_old := product_variants_map[variant_id].option_values
-		product_variants_map[variant_id].option_values = arrays.concat(variant_old, complete_product_option_value)
 	}
 }
 
@@ -129,8 +147,9 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 	assign_product_option_value_translations(products_data.product_option_value_translations, mut
 		products_data.product_option_values_map)
 
-	assign_product_option_values(products_data.product_option_values, products_data.product_option_values_map, mut
-		products_data.product_options_map, mut products_data.product_variants_map)
+	assign_product_option_values(products_data.product_option_values, products_data.product_option_value_product_variant,
+		products_data.product_option_values_map, mut products_data.product_options_map, mut
+		products_data.product_variants_map)
 
 	assign_product_options(products_data.product_options, products_data.product_options_map, mut
 		products_map)

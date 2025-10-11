@@ -7,6 +7,7 @@ struct SuiteProductData {
 	SuiteProductVariantData
 	product_options          []ProductOption
 	product_option_ids_bin   [][]u8
+	product_option_values    []ProductOptionValue
 	product_translations     []ProductTranslation
 	product_category_product []ProductCategoryProduct
 	product_categories       []ProductCategory
@@ -24,6 +25,8 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	if product_ids_bin.len == 0 {
 		return SuiteProductData{}
 	}
+
+	// locale_id_bin := [][]u8{} // TODO provide request context
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_option', err.msg())
