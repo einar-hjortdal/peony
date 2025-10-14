@@ -228,8 +228,10 @@ fn hygienise_money_amount_request(p MoneyAmountRequest) !MoneyAmountRequestHygie
 	}
 }
 
-// TODO solve design issue: id cannot be provided during creation because options have yet to be created
-// Handle it in the browser: first create product, then create options, then values, then variants
+// Because option ids cannot be provided during product creation, as they have yet to be created, variants
+// cannot be created at the same time as a product is created.
+// This can be handled by the frontend application in a non-atomic way, as these operations happen sequentially
+// outside of a database transaction.
 struct ProductVariantRequestHygienised {
 	title                ?string
 	ean                  ?string
@@ -291,7 +293,6 @@ struct ProductRequestHygienised {
 	collection_ids_bin    [][]u8
 mut:
 	options      ?[]ProductOptionRequestHygienised
-	variants     ?[]ProductVariantRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
 }
@@ -342,14 +343,6 @@ fn hygienise_product_request(p ProductRequest) !ProductRequestHygienised {
 			h[i] = hygienise_product_option_request(options[i])!
 		}
 		ph.options = h
-	}
-
-	if variants := p.variants {
-		mut h := []ProductVariantRequestHygienised{len: variants.len}
-		for i := 0; i < variants.len; i++ {
-			h[i] = hygienise_product_variant_request(variants[i])!
-		}
-		ph.variants = h
 	}
 
 	if translations := p.translations {

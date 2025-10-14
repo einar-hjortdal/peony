@@ -61,12 +61,20 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygieni
 		}
 	}
 
-	// TODO handle product_option
-	// TODO handle product_variant
-	// - if product.variants.len == 0 create default variant
-	// - first create product.option so when a variant is created it will get it as default
-	// - if product.variants.len > 0 expect product.options > 0 or return error
-	// - then check variants have different product.option_value or return errror
+	if product_options := ph.options {
+		model_product_variant_create_default_with_options(mut app, mut tx, product_id_bin,
+			product_options) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to create default product_variant with provided options',
+				err.msg())
+		}
+	} else {
+		model_product_variant_create_default(mut app, mut tx, product_id_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to create default product_variant',
+				err.msg())
+		}
+	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
@@ -486,7 +494,7 @@ fn conduit_product_option_create(mut app App, mut ctx Context, product_id string
 
 	_, product_option_id_bin := app.new_id()
 
-	model_product_option_create(mut tx, product_option_id_bin, product_id_bin) or {
+	model_product_option_create(mut tx, product_id_bin, [product_option_id_bin]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_option', err.msg())
 	}

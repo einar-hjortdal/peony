@@ -213,26 +213,55 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, pr
 	return options
 }
 
-// does not delete rows when a product_option exists in product_option_value.
-// to delete a product_option first remove it from all variants.
-// ideally: send an error to the client when a product_option that should be deleted is in use.
-fn (mut app App) do_delete_product_options(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('DELETE FROM product_option po
-		WHERE product_id = ? 
-		AND NOT EXISTS (
-			SELECT 1 
-			FROM product_option_value pov
-			WHERE pov.option_id = po.id
-		)',
-		product_id_bin)!
+// require translation and one value with translation on creation -> include queries
+fn model_product_option_create(mut tx firebird.Transaction, product_id_bin []u8, product_option_ids_bin [][]u8) ! {
+	mut src := []string{len: product_option_ids_bin.len}
+	mut params := []firebird.Value{len: product_option_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < product_option_ids_bin.len; i++ {
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS product_option_id
+			FROM RDB\$DATABASE'
+		params[i * 2] = product_id_bin
+		params[i * 2 + 1] = product_option_ids_bin[i]
+	}
+	tx.execute('INSERT INTO product_option (id, product_id) ${get_merge_source(src)}',
+		...params)!
 }
 
-fn model_product_option_create(mut tx firebird.Transaction, id_bin []u8, product_id_bin []u8) ! {
-	tx.execute('INSERT INTO product_option (id, product_id) VALUES(?, ?)', id_bin, product_id_bin)!
+fn model_product_option_translations_create(mut tx firebird.Transaction, product_option_ids_bin [][]u8, ph []ProductOptionRequestHygienised) ! {
+	mut n_translations := 0
+	for i := 0; i < ph.len; i++ {
+		n_translations += ph[i].translations.len
+	}
+
+	mut src := []string{len: n_translations}
+	mut params := []firebird.Value{len: n_translations * 3, init: firebird.Value(firebird.Null{})}
+	mut n_iteration := 0
+	for i := 0; i < ph.len; i++ {
+		translations := ph[i].translations
+		id_bin := product_option_ids_bin[i]
+		for j := 0; j < translations.len; j++ {
+			translation := translations[j]
+			src[n_iteration] = 'SELECT
+				CAST(? AS BINARY(16)) AS product_option_id,
+				CAST(? AS BINARY(16)) AS locale_id,
+				CAST(? AS VARCHAR(63)) AS title
+				FROM RDB\$DATABASE'
+
+			params[n_iteration * 3] = id_bin
+			params[n_iteration * 3 + 1] = translation.locale_id_bin
+			params[n_iteration * 3 + 2] = translation.title
+			n_iteration++
+		}
+	}
+
+	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title) ${get_merge_source(src)}',
+		...params)!
 }
 
 // note: does not protect from deleting default_locale_id translations.
-fn model_product_option_translations_update(mut tx firebird.Transaction, id_bin []u8, ph []ProductOptionTranslationRequestHygienised) ! {
+fn model_product_option_translations_update(mut tx firebird.Transaction, product_option_id_bin []u8, ph []ProductOptionTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 3 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
@@ -241,13 +270,13 @@ fn model_product_option_translations_update(mut tx firebird.Transaction, id_bin 
 			CAST(? AS VARCHAR(63)) AS title,
 			CAST(? AS BINARY(16)) AS locale_id
 			FROM RDB\$DATABASE'
-		params[i * 3] = id_bin
+		params[i * 3] = product_option_id_bin
 		params[i * 3 + 1] = ph[i].title
 		params[i * 3 + 2] = ph[i].locale_id_bin
 	}
-	params[ph.len * 3] = id_bin
+	params[ph.len * 3] = product_option_id_bin
 
-	query := 'MERGE INTO product_option_translations t
+	tx.execute('MERGE INTO product_option_translations t
 		USING (${get_merge_source(src)}) s (product_option_id, title, locale_id)
 		ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
 		WHEN NOT MATCHED THEN
@@ -255,9 +284,8 @@ fn model_product_option_translations_update(mut tx firebird.Transaction, id_bin 
 			VALUES (s.product_option_id, s.locale_id, s.title)
 		WHEN NOT MATCHED BY SOURCE
 			AND t.product_option_id = ?
-		THEN DELETE'
-
-	tx.execute(query, ...params)!
+		THEN DELETE',
+		...params)!
 }
 
 fn model_product_option_delete(mut tx firebird.Transaction, id_bin []u8) ! {
