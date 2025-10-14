@@ -28,7 +28,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
 
-	ph := hygienise_product_request(p) or {
+	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -36,12 +36,67 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 			err.msg())
 	}
 
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
 	if translations := ph.translations {
 		if translations.len == 0 {
-			return handle_error_400(mut ctx, 'A product title is required', 'translations')
+			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is empty')
+		}
+
+		mut found := false
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			if translation.locale_id_bin == store.default_locale_id_bin {
+				found = true
+			}
+		}
+		if found == false {
+			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array does not contain default_locale_id translation')
 		}
 	} else {
-		return handle_error_400(mut ctx, 'A product title is required', 'translations')
+		return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is not set')
+	}
+
+	if options := ph.options {
+		for i := 0; i < options.len; i++ {
+			option_translations := options[i].translations
+			values := options[i].values
+
+			mut found := false
+			for j := 0; j < option_translations.len; j++ {
+				translation := option_translations[j]
+				if translation.locale_id_bin == store.default_locale_id_bin {
+					found = true
+				}
+			}
+			if found == false {
+				return handle_error_400(mut ctx, error_missing_default_translation, 'a product_option lacks a translation in the default_locale_id')
+			}
+
+			for j := 0; j < values.len; j++ {
+				found = false
+				option_value_translations := values[j].translations
+				for k := 0; k < option_value_translations.len; k++ {
+					translation := option_value_translations[k]
+					if translation.locale_id_bin == store.default_locale_id_bin {
+						found = true
+					}
+				}
+				if found == false {
+					return handle_error_400(mut ctx, error_missing_default_translation,
+						'a product_option_value lacks a translation in the default_locale_id')
+				}
+			}
+		}
 	}
 
 	return conduit_product_create(mut app, mut ctx, ph)
@@ -81,7 +136,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
 
-	ph := hygienise_product_request(p) or {
+	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -187,10 +242,55 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	if option_value_ids := ph.option_value_ids {
-		// TODO verify:
-		// they exist in product_option_value table
-		// there is exactly one for each product_option
-		// there isn't one variant with the same ones already
+		mut tx := app.start_transaction() or {
+			return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		}
+
+		options := model_product_options_retrieve_by_product_ids(mut tx, [
+			product_id_bin,
+		]) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+		}
+
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+		// Verify ids exist in the database and are related to this product
+		mut existing_option_value_map := map[string]ProductOptionValue{}
+		mut value_i := 0
+		for i := 0; i < options.len; i++ {
+			values := options[i].values
+			for j := 0; j < values.len; j++ {
+				value := values[j]
+				id := value.id
+				existing_option_value_map[id] = value
+				value_i++
+			}
+		}
+
+		for i := 0; i < option_value_ids.len; i++ {
+			option_value_id := option_value_ids[i]
+			if option_value_id !in existing_option_value_map {
+				return handle_error_400(mut ctx, error_id_invalid, 'One of the option_value_id does not exist or does not belong to this product')
+			}
+		}
+
+		// Verify there is exactly one id for each product_option
+		mut option_value_parent_id_map := map[string]bool{}
+		for i := 0; i < option_value_ids.len; i++ {
+			option_value_id := option_value_ids[i]
+			option_id := existing_option_value_map[option_value_id].option_id
+			if option_id in option_value_parent_id_map {
+				return handle_error_400(mut ctx, 'Duplicate value for product_option',
+					'Exactly one value for each product_option must be provided')
+			}
+			option_value_parent_id_map[option_id] = true
+		}
+		if option_value_parent_id_map.len != options.len {
+			return handle_error_400(mut ctx, 'Value missing for product_option', 'Exactly one value for each product_option must be provided')
+		}
+
+		// TODO verify there isn't one variant with the same ones already
 	}
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,

@@ -123,24 +123,6 @@ struct ProductVariantRequest {
 	metadata         ?string               @[raw]
 }
 
-struct ProductRequest {
-	handle            ?string
-	is_giftcard       ?bool @[json: 'isGiftcard']
-	status            ?string
-	thumbnail         ?string
-	type_id           ?string @[json: 'typeId']
-	discountable      ?bool
-	metadata          ?string   @[raw]
-	tag_ids           ?[]string @[json: 'tagIds']
-	sales_channel_ids ?[]string @[json: 'salesChannelIds']
-	category_ids      ?[]string @[json: 'categoryIds']
-	collection_ids    ?[]string @[json: 'collectionIds']
-	translations      ?[]ProductTranslationRequest
-	options           ?[]ProductOptionRequest
-	variants          ?[]ProductVariantRequest
-	images            ?[]ImageRequest
-}
-
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
 // for a region to limit the requests being sent to a tax provider.
 struct RegionCreateRequest {

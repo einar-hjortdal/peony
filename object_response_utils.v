@@ -14,6 +14,7 @@ const error_transaction_start = 'Failed to start transaction'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
 const error_database_data_malformed = 'Data retrieved from database is malformed'
+const error_missing_default_translation = 'Default translation is required'
 
 fn success(mut ctx Context) veb.Result {
 	return ctx.json(PeonySuccess{

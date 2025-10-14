@@ -8,32 +8,6 @@ const product_status_proposed = 'proposed'
 const product_status_published = 'published'
 const product_status_rejected = 'rejected'
 
-struct Product {
-	id           string
-	id_bin       []u8
-	created_at   firebird.DateTime
-	updated_at   firebird.DateTime
-	deleted_at   firebird.NullDateTime
-	handle       string
-	is_giftcard  bool
-	status       string
-	thumbnail    firebird.NullString
-	type_id_bin  firebird.NullArrayU8
-	discountable bool
-	metadata     firebird.NullString
-	title        firebird.NullString
-	subtitle     firebird.NullString
-	description  firebird.NullString
-mut:
-	categories     []ProductCategory
-	images         []ProductImage
-	options        []ProductOption
-	sales_channels []SalesChannel
-	translations   []ProductTranslation
-	variants       []ProductVariant
-	// tags         []Tag
-}
-
 fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
