@@ -5,9 +5,6 @@ import einar_hjortdal.firebird
 struct SuiteProductData {
 	SuiteProductOptionData
 	SuiteProductVariantData
-	product_options          []ProductOption
-	product_option_ids_bin   [][]u8
-	product_option_values    []ProductOptionValue
 	product_translations     []ProductTranslation
 	product_category_product []ProductCategoryProduct
 	product_categories       []ProductCategory
@@ -17,7 +14,6 @@ struct SuiteProductData {
 	product_variants         []ProductVariant
 	product_variant_ids_bin  [][]u8
 mut:
-	product_options_map  map[string]ProductOption
 	product_variants_map map[string]ProductVariant
 }
 
@@ -28,13 +24,7 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 
 	// locale_id_bin := [][]u8{} // TODO provide request context
 
-	product_options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_option', err.msg())
-	}
-
-	product_options_map, product_option_ids_bin := make_product_option_map(product_options)
-
-	product_options_data := suite_product_option_data_get(mut tx, product_option_ids_bin)!
+	product_options_data := suite_product_option_data_get(mut tx, product_ids_bin)!
 
 	product_translations := model_product_translation_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_translation', err.msg())
@@ -87,9 +77,6 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	return SuiteProductData{
 		SuiteProductOptionData:   product_options_data
 		SuiteProductVariantData:  variants_data
-		product_options:          product_options
-		product_options_map:      product_options_map
-		product_option_ids_bin:   product_option_ids_bin
 		product_translations:     product_translations
 		product_category_product: product_category_product
 		product_categories:       product_categories

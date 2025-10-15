@@ -44,6 +44,11 @@ fn handle_error_404(mut ctx Context, message string, details string) veb.Result 
 	return handle_error(mut ctx, http.Status.not_found, message, details)
 }
 
+// 409 conflict
+fn handle_error_409(mut ctx Context, message string, details string) veb.Result {
+	return handle_error(mut ctx, http.Status.conflict, message, details)
+}
+
 // 422 unprocessable content
 fn handle_error_422(mut ctx Context, message string, details string) veb.Result {
 	return handle_error(mut ctx, http.Status.unprocessable_entity, message, details)

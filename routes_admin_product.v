@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import json
 import veb
 
@@ -246,16 +247,27 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			return handle_error_500(mut ctx, error_transaction_start, err.msg())
 		}
 
-		options := model_product_options_retrieve_by_product_ids(mut tx, [
+		mut product_option_data := suite_product_option_data_get(mut tx, [
 			product_id_bin,
 		]) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+			if err is InternalError {
+				return handle_suite_error(mut ctx, err)
+			}
+			return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
 		}
 
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 		// Verify ids exist in the database and are related to this product
+		product_option_data.build_product_options()
+		mut options := []ProductOption{len: product_option_data.product_options_map.len}
+		mut idx := 0
+		for _, option in product_option_data.product_options_map {
+			options[idx] = option
+			idx++
+		}
+
 		mut existing_option_value_map := map[string]ProductOptionValue{}
 		mut value_i := 0
 		for i := 0; i < options.len; i++ {
@@ -290,7 +302,32 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			return handle_error_400(mut ctx, 'Value missing for product_option', 'Exactly one value for each product_option must be provided')
 		}
 
-		// TODO verify there isn't one variant with the same ones already
+		// Verify one variant with the same product_option_value does not exist already
+		mut product_variant_product_option_value_map := map[string][][]u8{}
+		for i := 0; i < product_option_data.product_option_value_product_variant.len; i++ {
+			product_option_value_product_variant := product_option_data.product_option_value_product_variant[i]
+
+			product_variant_id := product_option_value_product_variant.variant_id
+			product_option_value_id_bin := product_option_value_product_variant.option_value_id_bin
+
+			old := product_variant_product_option_value_map[product_variant_id]
+			new := arrays.concat(old, product_option_value_id_bin)
+			product_variant_product_option_value_map[product_variant_id] = new
+		}
+
+		for _, product_option_value_ids_bin in product_variant_product_option_value_map {
+			mut variant_exists := true
+			for i := 0; i < product_option_value_ids_bin.len; i++ {
+				product_option_value_id_bin := product_option_value_ids_bin[i]
+				if !ph.option_value_ids_bin.contains(product_option_value_id_bin) {
+					variant_exists = false
+					break
+				}
+			}
+			if variant_exists {
+				return handle_error_409(mut ctx, 'Variant already exists', 'A variant with the same product_option_value combination already exists.')
+			}
+		}
 	}
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
