@@ -11,6 +11,11 @@ CREATE TABLE image (
   CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
 );
 
+create table seo (
+  id BINARY(16) NOT NULL,
+  CONSTRAINT "0686cd40-3324-10d8-2000-2ceefbb44687" PRIMARY KEY (id)
+);
+
 CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,
@@ -155,14 +160,18 @@ CREATE TABLE product (
   thumbnail BLOB SUB_TYPE TEXT,
   type_id BINARY(16),
   discountable BOOLEAN DEFAULT true NOT NULL,
+  seo_id BINARY(16) NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad81-1b60-4400-c6c74051e5fb" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad81-1baf-9800-2b10d817dc21" CHECK (status IN ('draft', 'proposed', 'published', 'rejected')),
-  CONSTRAINT "0681493b-ad81-1c9b-6000-de3e24ed7e4a" FOREIGN KEY (type_id) REFERENCES product_type (id)
+  CONSTRAINT "0681493b-ad81-1c9b-6000-de3e24ed7e4a" FOREIGN KEY (type_id) REFERENCES product_type (id),
+  CONSTRAINT "0686cd40-3324-1081-1400-2ebaf2b5c977" FOREIGN KEY (seo_id) REFERENCES seo (id)
 );
 
 CREATE UNIQUE INDEX "0681493b-ad81-1d84-d400-02dd9406cda2" ON product (handle) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX "0686cd40-3324-14f0-5000-c441dd79c12f" ON product (seo_id);
 
+-- make product_variant own inventory_item instead
 CREATE TABLE product_variant (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -541,4 +550,14 @@ CREATE TABLE product_translations (
   CONSTRAINT "0686cd40-331e-1b64-1000-989986ca4207" PRIMARY KEY (product_id, locale_id),
   CONSTRAINT "0681493b-ad88-1976-f800-fa9ffcccbf8c" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
   CONSTRAINT "0681493b-ad88-19ce-8800-37968a334b2f" FOREIGN KEY (locale_id) REFERENCES locale (id)
+);
+
+create table seo_translations (
+  seo_id BINARY(16) NOT NULL,
+  locale_id BINARY(16) NOT NULL,
+  title VARCHAR(63),
+  description VARCHAR(191),
+  CONSTRAINT "0686cd40-3324-12ce-9800-9acfaa2f3ad3" PRIMARY KEY (seo_id, locale_id),
+  CONSTRAINT "0686cd40-3324-134a-0c00-120053a4688f" FOREIGN KEY (locale_id) REFERENCES locale (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3324-1498-e800-718cb72a98e6" FOREIGN KEY (seo_id) REFERENCES seo (id) ON DELETE CASCADE
 );

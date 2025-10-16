@@ -24,8 +24,7 @@ pub fn (mut app App) admin_store_post(mut ctx Context, id string) veb.Result {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at hygienise_store_request',
-			err.msg())
+		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_store_request')
 	}
 
 	return conduit_store_update(mut app, mut ctx, id_bin, ph)
