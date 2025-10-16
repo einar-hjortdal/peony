@@ -11,11 +11,6 @@ CREATE TABLE image (
   CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
 );
 
-create table seo (
-  id BINARY(16) NOT NULL,
-  CONSTRAINT "0686cd40-3324-10d8-2000-2ceefbb44687" PRIMARY KEY (id)
-);
-
 CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,
@@ -160,18 +155,14 @@ CREATE TABLE product (
   thumbnail BLOB SUB_TYPE TEXT,
   type_id BINARY(16),
   discountable BOOLEAN DEFAULT true NOT NULL,
-  seo_id BINARY(16) NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad81-1b60-4400-c6c74051e5fb" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad81-1baf-9800-2b10d817dc21" CHECK (status IN ('draft', 'proposed', 'published', 'rejected')),
-  CONSTRAINT "0681493b-ad81-1c9b-6000-de3e24ed7e4a" FOREIGN KEY (type_id) REFERENCES product_type (id),
-  CONSTRAINT "0686cd40-3324-1081-1400-2ebaf2b5c977" FOREIGN KEY (seo_id) REFERENCES seo (id)
+  CONSTRAINT "0681493b-ad81-1c9b-6000-de3e24ed7e4a" FOREIGN KEY (type_id) REFERENCES product_type (id)
 );
 
 CREATE UNIQUE INDEX "0681493b-ad81-1d84-d400-02dd9406cda2" ON product (handle) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX "0686cd40-3324-14f0-5000-c441dd79c12f" ON product (seo_id);
 
--- make product_variant own inventory_item instead
 CREATE TABLE product_variant (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -417,6 +408,20 @@ CREATE TABLE product_collection_product (
 
 CREATE INDEX "0686cd40-3323-10d8-9800-144ed53aad80" ON product_collection_product (product_id);
 
+CREATE TABLE seo (
+  id BINARY(16) NOT NULL,
+  product_id BINARY(16),
+  category_id BINARY(16),
+  collection_id BINARY(16),
+  CONSTRAINT "0686cd40-3324-1697-b000-967871bd9ca3" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3324-16f2-5000-33c19823782a" FOREIGN KEY (category_id) REFERENCES product_category (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3324-1841-0400-a4573406bc2f" FOREIGN KEY (collection_id) REFERENCES product_collection (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX "0686cd40-3324-1a4f-2000-d7ff7c962b9d" ON seo (product_id) WHERE product_id IS NOT NULL;
+CREATE UNIQUE INDEX "0686cd40-3324-1aa6-a400-37d3a0d0f0b1" ON seo (category_id) WHERE category_id IS NOT NULL;
+CREATE UNIQUE INDEX "0686cd40-3324-1bec-4400-94fab7cc5f1f" ON seo (collection_id) WHERE collection_id IS NOT NULL;
+
 CREATE TABLE product_image (
   product_id BINARY(16) NOT NULL,
   image_id BINARY(16) NOT NULL,
@@ -558,6 +563,6 @@ create table seo_translations (
   title VARCHAR(63),
   description VARCHAR(191),
   CONSTRAINT "0686cd40-3324-12ce-9800-9acfaa2f3ad3" PRIMARY KEY (seo_id, locale_id),
-  CONSTRAINT "0686cd40-3324-134a-0c00-120053a4688f" FOREIGN KEY (locale_id) REFERENCES locale (id) ON DELETE CASCADE,
-  CONSTRAINT "0686cd40-3324-1498-e800-718cb72a98e6" FOREIGN KEY (seo_id) REFERENCES seo (id) ON DELETE CASCADE
+  CONSTRAINT "0686cd40-3324-1498-e800-718cb72a98e6" FOREIGN KEY (seo_id) REFERENCES seo (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3324-134a-0c00-120053a4688f" FOREIGN KEY (locale_id) REFERENCES locale (id)
 );

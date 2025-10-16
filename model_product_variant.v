@@ -173,22 +173,16 @@ fn model_product_variant_create_default(mut app App, mut tx firebird.Transaction
 	tx.execute('INSERT INTO product_option (id, product_id) VALUES (?, ?)', product_option_id_bin,
 		product_id_bin)!
 
+	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title)
+		VALUES(?, (SELECT default_locale_id FROM store), ?)',
+		product_option_id_bin, product_option_default_title)!
+
 	_, product_option_value_id_bin := app.new_id()
 	tx.execute('INSERT INTO product_option_value (id, option_id) VALUES (?, ?)', product_option_value_id_bin,
-		product_id_bin)!
+		product_option_id_bin)!
 
 	tx.execute('INSERT INTO product_option_value_translations
-		(
-			product_option_value_id,
-			locale_id,
-			name
-		)
-		VALUES
-		(
-			?,
-			(SELECT default_locale_id FROM store),
-			?
-		)',
+		(product_option_value_id, locale_id, name) VALUES (?, (SELECT default_locale_id FROM store), ?)',
 		product_option_value_id_bin, product_option_value_default_name)!
 
 	_, product_variant_id_bin := app.new_id()
@@ -196,8 +190,8 @@ fn model_product_variant_create_default(mut app App, mut tx firebird.Transaction
 		product_variant_id_bin, product_id_bin, product_variant_default_title)!
 
 	_, inventory_item_id_bin := app.new_id()
-	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', product_variant_id_bin,
-		inventory_item_id_bin)!
+	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', inventory_item_id_bin,
+		product_variant_id_bin)!
 
 	tx.execute('INSERT INTO product_option_value_product_variant (option_value_id, variant_id)
 		VALUES (?, ?)',

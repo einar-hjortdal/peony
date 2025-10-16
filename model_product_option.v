@@ -54,8 +54,6 @@ mut:
 fn model_product_option_values_retrieve(mut tx firebird.Transaction, locale_id_bin []u8, product_option_ids_bin [][]u8) ![]ProductOptionValue {
 	mut params := []firebird.Value{}
 
-	params = arrays.concat(params, ...workaround_24757(product_option_ids_bin))
-
 	if locale_id_bin.len > 0 {
 		params = arrays.concat(params, locale_id_bin, locale_id_bin)
 	} else {
@@ -67,8 +65,8 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, locale_id_b
 	data := tx.execute('SELECT
 			pov.id,
 			pov.option_id,
-			COALESCE(povt_requested.name, povt_default.name) AS name,
-		FROM product_option_value pov,
+			COALESCE(povt_requested.name, povt_default.name) AS name
+		FROM product_option_value pov
 		LEFT JOIN product_option_value_translations povt_default
 			ON povt_default.product_option_value_id = pov.id
 			AND povt_default.locale_id = (SELECT default_locale_id FROM store)
@@ -173,30 +171,39 @@ struct ProductOption {
 	id_bin         []u8
 	product_id     string
 	product_id_bin []u8
+	title          string
 mut:
 	values       []ProductOptionValue
 	translations []ProductOptionTranslation
 }
 
-fn parse_product_option(v []firebird.Value) !ProductOption {
-	id_bin, _ := v[0].get_array_u8()!
-	product_id_bin, _ := v[1].get_array_u8()!
+fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, locale_id_bin []u8, product_ids_bin [][]u8) ![]ProductOption {
+	mut params := []firebird.Value{}
 
-	id := id_bin_to_string(id_bin)!
-	product_id := id_bin_to_string(product_id_bin)!
-
-	return ProductOption{
-		id:             id
-		id_bin:         id_bin
-		product_id:     product_id
-		product_id_bin: product_id_bin
+	if locale_id_bin.len > 0 {
+		params = arrays.concat(params, locale_id_bin, locale_id_bin)
+	} else {
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
 	}
-}
 
-fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductOption {
-	mut data := tx.execute('SELECT id, product_id FROM product_option
-			WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...workaround_24757(product_ids_bin))!
+	params = arrays.concat(params, ...workaround_24757(product_ids_bin))
+
+	mut data := tx.execute('SELECT 
+		po.id,
+		po.product_id,
+		COALESCE(pot_requested.title, pot_default.title) AS title
+		FROM product_option po
+		LEFT JOIN product_option_translations pot_default
+			ON pot_default.product_option_id = po.id
+			AND pot_default.locale_id = (
+					SELECT default_locale_id FROM store
+				)
+		LEFT JOIN product_option_translations pot_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND pot_requested.product_option_id = po.id
+			AND pot_requested.locale_id = ?
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
+		...params)!
 
 	rows := data.rows()
 
@@ -205,10 +212,23 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, pr
 	}
 
 	mut options := []ProductOption{len: rows.len}
-	mut option_ids_bin := [][]u8{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		options[i] = parse_product_option(rows[i].values())!
-		option_ids_bin[i] = options[i].id_bin
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		product_id_bin, _ := v[1].get_array_u8()!
+		title, _ := v[2].get_string()!
+
+		id := id_bin_to_string(id_bin)!
+		product_id := id_bin_to_string(product_id_bin)!
+
+		options[i] = ProductOption{
+			id:             id
+			id_bin:         id_bin
+			product_id:     product_id
+			product_id_bin: product_id_bin
+			title:          title
+		}
 	}
 	return options
 }

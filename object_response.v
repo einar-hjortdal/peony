@@ -117,11 +117,33 @@ struct ProductOptionValueTranslationResponse {
 	name                    string
 }
 
+fn format_product_option_value_translation_response(p ProductOptionValueTranslation) ProductOptionValueTranslationResponse {
+	return ProductOptionValueTranslationResponse{
+		product_option_value_id: p.product_option_value_id
+		locale_id:               p.locale_id
+		name:                    p.name
+	}
+}
+
 struct ProductOptionValueResponse {
 	id           string
 	option_id    string @[json: 'optionId']
-	variant_id   string @[json: 'variantId']
+	name         string
 	translations []ProductOptionValueTranslationResponse
+}
+
+fn format_product_option_value_response(p ProductOptionValue) ProductOptionValueResponse {
+	mut translations := []ProductOptionValueTranslationResponse{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = format_product_option_value_translation_response(p.translations[i])
+	}
+
+	return ProductOptionValueResponse{
+		id:           p.id
+		option_id:    p.option_id
+		name:         p.name
+		translations: translations
+	}
 }
 
 struct ProductOptionTranslationResponse {
@@ -130,11 +152,40 @@ struct ProductOptionTranslationResponse {
 	title             string
 }
 
+fn format_product_option_translation_response(p ProductOptionTranslation) ProductOptionTranslationResponse {
+	return ProductOptionTranslationResponse{
+		product_option_id: p.product_option_id
+		locale_id:         p.locale_id
+		title:             p.title
+	}
+}
+
 struct ProductOptionResponse {
 	id           string
 	product_id   string                       @[json: 'productId']
 	values       []ProductOptionValueResponse @[omitempty]
+	title        string
 	translations []ProductOptionTranslationResponse
+}
+
+fn format_product_option_response(p ProductOption) ProductOptionResponse {
+	mut values := []ProductOptionValueResponse{len: p.values.len}
+	for i := 0; i < p.values.len; i++ {
+		values[i] = format_product_option_value_response(p.values[i])
+	}
+
+	mut translations := []ProductOptionTranslationResponse{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = format_product_option_translation_response(p.translations[i])
+	}
+
+	return ProductOptionResponse{
+		id:           p.id
+		product_id:   p.product_id
+		values:       values
+		title:        p.title
+		translations: translations
+	}
 }
 
 struct MoneyAmountResponse {
