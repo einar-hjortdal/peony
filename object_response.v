@@ -162,9 +162,9 @@ fn format_product_option_translation_response(p ProductOptionTranslation) Produc
 
 struct ProductOptionResponse {
 	id           string
-	product_id   string                       @[json: 'productId']
-	values       []ProductOptionValueResponse @[omitempty]
+	product_id   string @[json: 'productId']
 	title        string
+	values       []ProductOptionValueResponse
 	translations []ProductOptionTranslationResponse
 }
 
