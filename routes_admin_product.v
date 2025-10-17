@@ -24,7 +24,7 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 // create a product
 @['/admin/products'; post]
 pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
-	p := json.decode(ProductRequest, ctx.req.data) or {
+	p := json.decode(ProductCreateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
 
@@ -132,8 +132,8 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
 	}
 
-	p := json.decode(ProductRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
+	p := json.decode(ProductUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductUpdateRequest', err.msg())
 	}
 
 	ph := p.hygienise() or {

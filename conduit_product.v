@@ -2,7 +2,7 @@ module peony
 
 import veb
 
-fn conduit_product_create(mut app App, mut ctx Context, ph ProductRequestHygienised) veb.Result {
+fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestHygienised) veb.Result {
 	product_id, product_id_bin := app.new_id()
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
@@ -412,7 +412,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	})
 }
 
-fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph ProductRequestHygienised) veb.Result {
+fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph ProductUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -455,9 +455,6 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 	if _ := ph.collection_ids {
 		// TODO
 	}
-
-	// TODO handle product_option
-	// TODO handle product_variant
 
 	if translations := ph.translations {
 		model_product_translation_update(mut tx, product_id_bin, translations) or {
