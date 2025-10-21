@@ -355,7 +355,7 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 }
 
 // updates a product option
-@['/admin/products/:product_id/options/:option_id'; post]
+@['/admin/products/:product_id/options/:product_option_id'; post]
 pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id string, product_option_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
@@ -407,13 +407,21 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 		product_option_id, product_option_id_bin)
 }
 
-@['/admin/products/:product_id/options/:product_option_id/values/:product_value_id'; post]
-pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_id string, product_option_id string, product_value_id string) veb.Result {
+// creates a product_option_value
+@['/admin/products/:product_id/options/:product_option_id/values'; post]
+pub fn (mut app App) admin_product_option_value_create(mut ctx Context, product_id string, product_option_id string) veb.Result {
 	return ctx.json('TODO')
 }
 
-@['/admin/products/:product_id/options/:product_option_id/values/:product_value_id'; delete]
-pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_id string, product_option_id string, product_value_id string) veb.Result {
+// updates a product_option_value
+@['/admin/products/:product_id/options/:product_option_id/values/:product_option_value_id'; post]
+pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_id string, product_option_id string, product_option_value_id string) veb.Result {
+	return ctx.json('TODO')
+}
+
+// deletes a product_option_value
+@['/admin/products/:product_id/options/:product_option_id/values/:product_option_value_id'; delete]
+pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_id string, product_option_id string, product_option_value_id string) veb.Result {
 	// TODO Can't delete last value: an option must have at least one value
 	return ctx.json('TODO')
 }
