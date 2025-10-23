@@ -524,6 +524,7 @@ fn conduit_product_option_update(mut app App, mut ctx Context, product_id string
 
 // returns an error when attempting to delete options if more than one variant exist
 // require user to delete all variants manually first, then allow deletion of any option
+// TODO move these checks to route? It is input validation, right?
 fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string, product_id_bin []u8, product_option_id string, product_option_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

@@ -51,7 +51,7 @@ mut:
 	translations []ProductOptionValueTranslation
 }
 
-fn model_product_option_values_retrieve(mut tx firebird.Transaction, locale_id_bin []u8, product_option_ids_bin [][]u8) ![]ProductOptionValue {
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8, locale_id_bin []u8) ![]ProductOptionValue {
 	mut params := []firebird.Value{}
 
 	if locale_id_bin.len > 0 {
@@ -177,7 +177,7 @@ mut:
 	translations []ProductOptionTranslation
 }
 
-fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, locale_id_bin []u8, product_ids_bin [][]u8) ![]ProductOption {
+fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8, locale_id_bin []u8) ![]ProductOption {
 	mut params := []firebird.Value{}
 
 	if locale_id_bin.len > 0 {

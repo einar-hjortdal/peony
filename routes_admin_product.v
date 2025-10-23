@@ -410,9 +410,41 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	// TODO Product does not exist
-	// TODO Option does not exist
-	// TODO Can't delete option with multiple values
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
+		product_id_bin,
+	], []u8{}) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
+	}
+
+	product_option_values := model_product_option_values_retrieve(mut tx, [
+		product_option_id_bin,
+	], []u8{}) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	if product_options.len == 0 {
+		return handle_error_400(mut ctx, 'product does not exist', 'No product_option exist for the given product id')
+	}
+
+	if product_options.len == 1 {
+		return handle_error_400(mut ctx, "Can't delete last option", 'A product must have at least one option')
+	}
+
+	if product_option_values.len == 0 {
+		return handle_error_400(mut ctx, 'product_option does not exist', 'No product_option_value exist for the given product_option id')
+	}
+
+	if product_option_values.len > 1 {
+		return handle_error_400(mut ctx, "Can't delete option with multiple values", 'Delete all other product_option_value first')
+	}
 
 	return conduit_product_option_delete(mut app, mut ctx, product_id, product_id_bin,
 		product_option_id, product_option_id_bin)
