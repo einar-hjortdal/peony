@@ -77,7 +77,7 @@ struct ProductOptionTranslationRequest {
 	locale_id string @[json: 'localeId']
 }
 
-struct ProductOptionRequest {
+struct ProductOptionCreateRequest {
 	translations []ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
@@ -180,7 +180,7 @@ struct ProductCreateRequest {
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	options           ?[]ProductOptionRequest
+	options           ?[]ProductOptionCreateRequest
 	images            ?[]ImageRequest
 }
 
@@ -202,7 +202,7 @@ struct ProductCreateRequestHygienised {
 	collection_ids        ?[]string
 	collection_ids_bin    [][]u8
 mut:
-	options      ?[]ProductOptionRequestHygienised
+	options      ?[]ProductOptionCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
 }
@@ -248,7 +248,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	if options := p.options {
-		mut h := []ProductOptionRequestHygienised{len: options.len}
+		mut h := []ProductOptionCreateRequestHygienised{len: options.len}
 		for i := 0; i < options.len; i++ {
 			h[i] = hygienise_product_option_request(options[i])!
 		}

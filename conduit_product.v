@@ -484,51 +484,21 @@ fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb
 	return success(mut ctx)
 }
 
-fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph ProductOptionRequestHygienised) veb.Result {
+fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph ProductOptionCreateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
 	_, product_option_id_bin := app.new_id()
+	mut product_option_value_ids_bin := [][]u8{len: ph.values.len}
+	for i := 0; ph.values.len; i++ {
+		_, product_option_value_ids_bin[i] = app.new_id()
+	}
 
-	model_product_option_create(mut tx, product_id_bin, [product_option_id_bin]) or {
+	model_product_option_create(mut tx, product_id_bin, product_option_id_bin, product_option_value_ids_bin,
+		ph) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_option', err.msg())
-	}
-
-	model_product_option_translations_update(mut tx, product_option_id_bin, ph.translations) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
-			err.msg())
-	}
-
-	vph := RetrieveProductVariantParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: [product_id_bin]
-	}
-
-	count := model_product_variants_retrieve_count(mut tx, vph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variant count',
-			err.msg())
-	}
-
-	internal_variants := model_product_variants_retrieve(mut tx, vph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not add product_option to product_variants: could not retrieve product_variant',
-			err.msg())
-	}
-
-	if count > 0 {
-		mut product_variant_ids_bin := [][]u8{len: internal_variants.len}
-		mut product_option_value_ids_bin := [][]u8{len: internal_variants.len}
-		for i := 0; i < internal_variants.len; i++ {
-			product_variant_ids_bin[i] = internal_variants[i].id_bin
-			_, product_option_value_id_bin := app.new_id()
-			product_option_value_ids_bin[i] = product_option_value_id_bin
-		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

@@ -84,7 +84,7 @@ fn (mut s SuiteProductOptionData) assign_product_option_translations() {
 fn (mut s SuiteProductOptionData) assign_product_option_value_translations() {
 	for i := 0; i < s.product_option_value_translations.len; i++ {
 		translation := s.product_option_value_translations[i]
-		id := translation.product_option_value_id
+		id := translation.option_value_id
 		old := s.product_option_values_map[id].translations
 		s.product_option_values_map[id].translations = arrays.concat(old, translation)
 	}

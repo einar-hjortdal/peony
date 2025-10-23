@@ -19,7 +19,7 @@ fn assign_product_option_translations(product_option_translations []ProductOptio
 fn assign_product_option_value_translations(product_option_value_translations []ProductOptionValueTranslation, mut product_option_values_map map[string]ProductOptionValue) {
 	for i := 0; i < product_option_value_translations.len; i++ {
 		translation := product_option_value_translations[i]
-		id := translation.product_option_value_id
+		id := translation.option_value_id
 		old := product_option_values_map[id].translations
 		product_option_values_map[id].translations = arrays.concat(old, translation)
 	}

@@ -112,16 +112,16 @@ struct ProductTranslationResponse {
 }
 
 struct ProductOptionValueTranslationResponse {
-	product_option_value_id string @[json: 'productOptionValueId']
-	locale_id               string @[json: 'localeId']
-	name                    string
+	option_value_id string @[json: 'optionValueId']
+	locale_id       string @[json: 'localeId']
+	name            string
 }
 
 fn format_product_option_value_translation_response(p ProductOptionValueTranslation) ProductOptionValueTranslationResponse {
 	return ProductOptionValueTranslationResponse{
-		product_option_value_id: p.product_option_value_id
-		locale_id:               p.locale_id
-		name:                    p.name
+		option_value_id: p.option_value_id
+		locale_id:       p.locale_id
+		name:            p.name
 	}
 }
 

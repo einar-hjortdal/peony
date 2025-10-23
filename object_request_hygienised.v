@@ -167,12 +167,12 @@ fn hygienise_product_option_value_request(p ProductOptionValueRequest) !ProductO
 	}
 }
 
-struct ProductOptionRequestHygienised {
+struct ProductOptionCreateRequestHygienised {
 	translations []ProductOptionTranslationRequestHygienised
 	values       []ProductOptionValueRequestHygienised
 }
 
-fn hygienise_product_option_request(p ProductOptionRequest) !ProductOptionRequestHygienised {
+fn hygienise_product_option_request(p ProductOptionCreateRequest) !ProductOptionCreateRequestHygienised {
 	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
 		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
@@ -183,7 +183,7 @@ fn hygienise_product_option_request(p ProductOptionRequest) !ProductOptionReques
 		values[i] = hygienise_product_option_value_request(p.values[i])!
 	}
 
-	return ProductOptionRequestHygienised{
+	return ProductOptionCreateRequestHygienised{
 		translations: translations
 		values:       values
 	}

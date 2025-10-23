@@ -333,8 +333,9 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	p := json.decode(ProductOptionRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductOptionRequest', err.msg())
+	p := json.decode(ProductOptionCreateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductOptionCreateRequest',
+			err.msg())
 	}
 
 	if p.translations.len == 0 {

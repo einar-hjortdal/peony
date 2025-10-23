@@ -31,7 +31,7 @@ mut:
 // Used in product creation
 // Creates options, their translations, their values and translations.
 // Then it creates a default variant using the first value of each option.
-fn model_product_variant_create_default_with_options(mut app App, mut tx firebird.Transaction, product_id_bin []u8, ph []ProductOptionRequestHygienised) ! {
+fn model_product_variant_create_default_with_options(mut app App, mut tx firebird.Transaction, product_id_bin []u8, ph []ProductOptionCreateRequestHygienised) ! {
 	// mut product_option_ids := []string{len: ph.len}
 	mut product_option_ids_bin := [][]u8{len: ph.len}
 	mut n_translations := 0
