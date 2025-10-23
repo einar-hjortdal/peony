@@ -82,8 +82,115 @@ struct ProductOptionCreateRequest {
 	values       []ProductOptionValueRequest
 }
 
+struct ProductOptionCreateRequestHygienised {
+	translations []ProductOptionTranslationRequestHygienised
+	values       []ProductOptionValueRequestHygienised
+}
+
+fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
+	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
+	}
+
+	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
+	for i := 0; i < p.translations.len; i++ {
+		values[i] = hygienise_product_option_value_request(p.values[i])!
+	}
+
+	return ProductOptionCreateRequestHygienised{
+		translations: translations
+		values:       values
+	}
+}
+
+// verifies:
+// All locale_id exist TODO
+// The product_option has the default translation
+// The product_option has at least one value
+// Each value has the default translation
+fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) ! {
+	option_translations := ph.translations
+	option_values := ph.values
+
+	if option_translations.len == 0 {
+		return new_internal_error(error_missing_default_translation, 'The product_option lacks translations, at least one translation in the default locale must be provided.')
+	}
+
+	if option_values.len == 0 {
+		return new_internal_error(error_missing_default_translation, 'The product_option lacks values, at leat one value must be provided.')
+	}
+
+	mut found := false
+	for i := 0; i < option_translations.len; i++ {
+		translation := option_translations[i]
+		if translation.locale_id_bin == default_locale_id_bin {
+			found = true
+		}
+	}
+	if found == false {
+		return new_internal_error(error_missing_default_translation, 'The product_option lacks a translation in the default_locale_id')
+	}
+
+	for i := 0; i < option_values.len; i++ {
+		found = false
+		option_value_translations := option_values[i].translations
+
+		if option_value_translations.len == 0 {
+			return new_internal_error(error_missing_default_translation, 'The product_option_value lacks translations, at least one translation in the default locale must be provided.')
+		}
+
+		for j := 0; j < option_value_translations.len; j++ {
+			translation := option_value_translations[j]
+			if translation.locale_id_bin == default_locale_id_bin {
+				found = true
+			}
+		}
+		if found == false {
+			return new_internal_error(error_missing_default_translation, 'The product_option_value lacks a translation in the default_locale_id')
+		}
+	}
+}
+
 struct ProductOptionUpdateRequest {
 	translations []ProductOptionTranslationRequest
+}
+
+struct ProductOptionUpdateRequestHygienised {
+	translations []ProductOptionTranslationRequestHygienised
+}
+
+fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
+	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
+	}
+
+	return ProductOptionUpdateRequestHygienised{
+		translations: translations
+	}
+}
+
+// verifies:
+// All locale_id exist TODO
+// The product_option has the default translation
+fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) ! {
+	option_translations := ph.translations
+
+	if option_translations.len == 0 {
+		return new_internal_error(error_missing_default_translation, 'The product_option lacks translations, at least one translation in the default locale must be provided.')
+	}
+
+	mut found := false
+	for i := 0; i < option_translations.len; i++ {
+		translation := option_translations[i]
+		if translation.locale_id_bin == default_locale_id_bin {
+			found = true
+		}
+	}
+	if found == false {
+		return new_internal_error(error_missing_default_translation, 'a product_option lacks a translation in the default_locale_id')
+	}
 }
 
 // max_quantity the maximum quantity required to be added to the cart for the price to be used.
@@ -250,7 +357,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if options := p.options {
 		mut h := []ProductOptionCreateRequestHygienised{len: options.len}
 		for i := 0; i < options.len; i++ {
-			h[i] = hygienise_product_option_request(options[i])!
+			h[i] = options[i].hygienise()!
 		}
 		ph.options = h
 	}

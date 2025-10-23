@@ -68,33 +68,13 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 
 	if options := ph.options {
 		for i := 0; i < options.len; i++ {
-			option_translations := options[i].translations
-			values := options[i].values
-
-			mut found := false
-			for j := 0; j < option_translations.len; j++ {
-				translation := option_translations[j]
-				if translation.locale_id_bin == store.default_locale_id_bin {
-					found = true
+			option := options[i]
+			option.verify(store.default_locale_id_bin) or {
+				if err is InternalError {
+					return handle_error_400(mut ctx, err.message, err.details)
 				}
-			}
-			if found == false {
-				return handle_error_400(mut ctx, error_missing_default_translation, 'a product_option lacks a translation in the default_locale_id')
-			}
-
-			for j := 0; j < values.len; j++ {
-				found = false
-				option_value_translations := values[j].translations
-				for k := 0; k < option_value_translations.len; k++ {
-					translation := option_value_translations[k]
-					if translation.locale_id_bin == store.default_locale_id_bin {
-						found = true
-					}
-				}
-				if found == false {
-					return handle_error_400(mut ctx, error_missing_default_translation,
-						'a product_option_value lacks a translation in the default_locale_id')
-				}
+				return handle_error_500(mut ctx, 'Unhandled error at verify_product_option_create_request_hygienised',
+					err.msg())
 			}
 		}
 	}
@@ -338,11 +318,7 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 			err.msg())
 	}
 
-	if p.translations.len == 0 {
-		return handle_error_400(mut ctx, 'product_option must have a title', 'No translations provided')
-	}
-
-	ph := hygienise_product_option_request(p) or {
+	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -350,7 +326,24 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, id string) 
 			err.msg())
 	}
 
-	// TODO verify locale_id exists
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	ph.verify(store.default_locale_id_bin) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at ProductOptionUpdateRequestHygienised.verify',
+			err.msg())
+	}
 
 	return conduit_product_option_create(mut app, mut ctx, id, id_bin, ph)
 }
@@ -375,7 +368,7 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 		return handle_error_400(mut ctx, 'product_option must have a title', 'No translations provided')
 	}
 
-	ph := hygienise_product_option_update_request(p) or {
+	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -383,7 +376,24 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			err.msg())
 	}
 
-	// TODO verify locale_id exists
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	ph.verify(store.default_locale_id_bin) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at ProductOptionUpdateRequestHygienised.verify',
+			err.msg())
+	}
 
 	return conduit_product_option_update(mut app, mut ctx, product_id, product_id_bin,
 		product_option_id, product_option_id_bin, ph)

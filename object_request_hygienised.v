@@ -167,43 +167,6 @@ fn hygienise_product_option_value_request(p ProductOptionValueRequest) !ProductO
 	}
 }
 
-struct ProductOptionCreateRequestHygienised {
-	translations []ProductOptionTranslationRequestHygienised
-	values       []ProductOptionValueRequestHygienised
-}
-
-fn hygienise_product_option_request(p ProductOptionCreateRequest) !ProductOptionCreateRequestHygienised {
-	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
-	}
-
-	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
-	for i := 0; i < p.translations.len; i++ {
-		values[i] = hygienise_product_option_value_request(p.values[i])!
-	}
-
-	return ProductOptionCreateRequestHygienised{
-		translations: translations
-		values:       values
-	}
-}
-
-struct ProductOptionUpdateRequestHygienised {
-	translations []ProductOptionTranslationRequestHygienised
-}
-
-fn hygienise_product_option_update_request(p ProductOptionUpdateRequest) !ProductOptionUpdateRequestHygienised {
-	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
-	}
-
-	return ProductOptionUpdateRequestHygienised{
-		translations: translations
-	}
-}
-
 struct MoneyAmountRequestHygienised {
 	amount        i32
 	region_id     ?string
