@@ -549,7 +549,99 @@ pub fn (mut app App) admin_product_option_value_create(mut ctx Context, product_
 // updates a product_option_value
 @['/admin/products/:product_id/options/:product_option_id/values/:product_option_value_id'; post]
 pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_id string, product_option_id string, product_option_value_id string) veb.Result {
-	return ctx.json('TODO')
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	product_option_id_bin := id_string_to_bin(product_option_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	product_option_value_id_bin := id_string_to_bin(product_option_value_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	p := json.decode(ProductOptionValueRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductOptionValueRequest',
+			err.msg())
+	}
+
+	ph := p.hygienise() or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at ProductOptionValueRequest.hygienise',
+			err.msg())
+	}
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	}
+
+	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
+		product_id_bin,
+	], []u8{}) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
+	}
+
+	product_option_values := model_product_option_values_retrieve(mut tx, [
+		product_option_id_bin,
+	], []u8{}) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	ph.verify(store.default_locale_id_bin) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at ProductOptionValueRequestHygienised.verify',
+			err.msg())
+	}
+
+	if product_options.len == 0 {
+		return handle_error_400(mut ctx, 'product does not exist', 'No product_option exist for the given product id')
+	}
+
+	mut found := false
+	for i := 0; i < product_options.len; i++ {
+		product_option := product_options[i]
+		if product_option.product_id_bin == product_id_bin {
+			found = true
+		}
+	}
+	if found == false {
+		return handle_error_400(mut ctx, 'product_option not found for this product',
+			'The specified product_option does not belong to the given product')
+	}
+
+	if product_option_values.len == 0 {
+		return handle_error_400(mut ctx, 'product_option does not exist', 'No product_option_value exist for the given product_option id')
+	}
+
+	// TODO verify product_option_value is in the ids fetched
+	found = false
+	for i := 0; i < product_option_values.len; i++ {
+		product_option_value := product_option_values[i]
+		if product_option_value.option_id_bin == product_option_id_bin {
+			found = true
+		}
+	}
+	if found == false {
+		return handle_error_400(mut ctx, 'product_option_value not found for this product_option',
+			'The specified product_option_value does not belong to the given product_option')
+	}
+
+	return conduit_product_option_value_update(mut app, mut ctx, product_option_value_id_bin,
+		ph)
 }
 
 // deletes a product_option_value
@@ -611,6 +703,7 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 		return handle_error_400(mut ctx, "Can't delete last product_option_value", 'A product_option must have at least one product_option_value')
 	}
 
+	// TODO verify product_option_value is in the ids fetched
 	found = false
 	for i := 0; i < product_option_values.len; i++ {
 		product_option_value := product_option_values[i]
