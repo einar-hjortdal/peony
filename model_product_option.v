@@ -125,7 +125,7 @@ fn model_product_option_value_update(mut tx firebird.Transaction, product_option
 		params[i * 3 + 2] = translation.name
 	}
 
-	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id)
+	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
 		${get_merge_source(src)}',
 		...params)!
 }
