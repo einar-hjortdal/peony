@@ -68,8 +68,63 @@ struct ProductOptionValueTranslationRequest {
 	name      string
 }
 
+struct ProductOptionValueTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	name          string
+}
+
+fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return ProductOptionValueTranslationRequestHygienised{
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+		name:          p.name
+	}
+}
+
 struct ProductOptionValueRequest {
 	translations []ProductOptionValueTranslationRequest
+}
+
+struct ProductOptionValueRequestHygienised {
+	translations []ProductOptionValueTranslationRequestHygienised
+}
+
+fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
+	mut translations := []ProductOptionValueTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translations[i] = p.translations[i].hygienise()!
+	}
+
+	return ProductOptionValueRequestHygienised{
+		translations: translations
+	}
+}
+
+// verifies:
+// TODO all locale_id exist
+// The product_option_value has the default translation
+fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! {
+	option_value_translations := p.translations
+
+	if option_value_translations.len == 0 {
+		return new_internal_error(error_missing_default_translation, 'The product_option_value lacks translations, at least one translation in the default locale must be provided.')
+	}
+
+	mut found := false
+	for i := 0; i < option_value_translations.len; i++ {
+		translation := option_value_translations[i]
+		if translation.locale_id_bin == default_locale_id_bin {
+			found = true
+		}
+	}
+	if found == false {
+		return new_internal_error(error_missing_default_translation, 'The product_option_value lacks a translation in the default_locale_id')
+	}
 }
 
 struct ProductOptionTranslationRequest {
@@ -95,7 +150,7 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
 	for i := 0; i < p.translations.len; i++ {
-		values[i] = hygienise_product_option_value_request(p.values[i])!
+		values[i] = p.values[i].hygienise()!
 	}
 
 	return ProductOptionCreateRequestHygienised{

@@ -511,7 +511,7 @@ fn conduit_product_option_update(mut app App, mut ctx Context, product_id string
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_option_translations_update(mut tx, product_option_id_bin, ph.translations) or {
+	model_product_option_update(mut tx, product_option_id_bin, ph.translations) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
 			err.msg())
@@ -552,6 +552,60 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 	model_product_option_delete(mut tx, product_option_id_bin) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_400(mut ctx, 'Could not delete product_option', err.msg())
+	}
+
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	return success(mut ctx)
+}
+
+fn conduit_product_option_value_create(mut app App, mut ctx Context, product_option_id_bin []u8, ph ProductOptionValueRequestHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	_, product_option_value_id_bin := app.new_id()
+
+	model_product_option_value_create(mut tx, product_option_id_bin, product_option_value_id_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not create product_option_value', err.msg())
+	}
+
+	model_product_option_value_update(mut tx, product_option_value_id_bin, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not insert product_option_value_translations',
+			err.msg())
+	}
+
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	return success(mut ctx)
+}
+
+fn conduit_product_option_value_update(mut app App, mut ctx Context, product_option_value_id_bin []u8, ph ProductOptionValueRequestHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_product_option_value_update(mut tx, product_option_value_id_bin, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not update product_option_value_translations',
+			err.msg())
+	}
+
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	return success(mut ctx)
+}
+
+fn conduit_product_option_value_delete(mut app App, mut ctx Context, product_option_value_id_bin []u8) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_product_option_value_delete(mut tx, product_option_value_id_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not delete product_option_value', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

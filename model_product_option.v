@@ -51,6 +51,11 @@ mut:
 	translations []ProductOptionValueTranslation
 }
 
+fn model_product_option_value_create(mut tx firebird.Transaction, product_option_id_bin []u8, product_option_value_id_bin []u8) ! {
+	tx.execute('INSERT INTO product_option_value (id, option_id) VALUES (?, ?)', product_option_value_id_bin,
+		product_option_id_bin)!
+}
+
 fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8, locale_id_bin []u8) ![]ProductOptionValue {
 	mut params := []firebird.Value{}
 
@@ -102,26 +107,31 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 	return product_option_values
 }
 
-fn model_product_option_value_translations_update(mut tx firebird.Transaction, product_option_value_id_bin [][]u8, ph []ProductOptionValueTranslationRequestHygienised) ! {
+fn model_product_option_value_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, ph ProductOptionValueRequestHygienised) ! {
 	tx.execute('DELETE FROM product_option_value_translations WHERE product_option_value_id = ?',
 		product_option_value_id_bin)!
 
-	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 3, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < ph.len; i++ {
+	mut src := []string{len: ph.translations.len}
+	mut params := []firebird.Value{len: ph.translations.len * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < ph.translations.len; i++ {
+		translation := ph.translations[i]
 		src[i] = 'SELECT
 				CAST(? AS BINARY(16)) AS product_option_value_id,
 				CAST(? AS BINARY(16)) AS locale_id,
 				CAST(? AS VARCHAR(63)) AS name
 				FROM RDB\$DATABASE'
 		params[i * 3] = product_option_value_id_bin
-		params[i * 3 + 1] = ph[i].locale_id_bin
-		params[i * 3 + 2] = ph[i].name
+		params[i * 3 + 1] = translation.locale_id_bin
+		params[i * 3 + 2] = translation.name
 	}
 
 	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id)
 		${get_merge_source(src)}',
 		...params)!
+}
+
+fn model_product_option_value_delete(mut tx firebird.Transaction, product_option_value_id_bin []u8) ! {
+	tx.execute('DELETE FROM product_option_value WHERE id = ?', product_option_value_id_bin)!
 }
 
 struct ProductOptionTranslation {
@@ -132,23 +142,6 @@ struct ProductOptionTranslation {
 	title                 string
 }
 
-fn parse_product_option_translation(v []firebird.Value) !ProductOptionTranslation {
-	product_option_id_bin, _ := v[0].get_array_u8()!
-	locale_id_bin, _ := v[1].get_array_u8()!
-	title, _ := v[2].get_string()!
-
-	product_option_id := id_bin_to_string(product_option_id_bin)!
-	locale_id := id_bin_to_string(locale_id_bin)!
-
-	return ProductOptionTranslation{
-		product_option_id:     product_option_id
-		product_option_id_bin: product_option_id_bin
-		locale_id:             locale_id
-		locale_id_bin:         locale_id_bin
-		title:                 title
-	}
-}
-
 fn model_product_option_translations_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
@@ -157,10 +150,24 @@ fn model_product_option_translations_retrieve(mut tx firebird.Transaction, produ
 
 	rows := data.rows()
 
-	mut translations := []ProductOptionTranslation{}
+	mut translations := []ProductOptionTranslation{len: rows.len}
 	for i := 0; i < rows.len; i++ {
-		translation := parse_product_option_translation(rows[i].values())!
-		translations = arrays.concat(translations, translation)
+		v := rows[i].values()
+
+		product_option_id_bin, _ := v[0].get_array_u8()!
+		locale_id_bin, _ := v[1].get_array_u8()!
+		title, _ := v[2].get_string()!
+
+		product_option_id := id_bin_to_string(product_option_id_bin)!
+		locale_id := id_bin_to_string(locale_id_bin)!
+
+		translations[i] = ProductOptionTranslation{
+			product_option_id:     product_option_id
+			product_option_id_bin: product_option_id_bin
+			locale_id:             locale_id
+			locale_id_bin:         locale_id_bin
+			title:                 title
+		}
 	}
 
 	return translations
@@ -306,7 +313,7 @@ fn model_product_option_create(mut tx firebird.Transaction, product_id_bin []u8,
 }
 
 // note: does not protect from deleting default_locale_id translations.
-fn model_product_option_translations_update(mut tx firebird.Transaction, product_option_id_bin []u8, ph []ProductOptionTranslationRequestHygienised) ! {
+fn model_product_option_update(mut tx firebird.Transaction, product_option_id_bin []u8, ph []ProductOptionTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 3 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {

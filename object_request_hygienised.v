@@ -134,39 +134,6 @@ fn hygienise_product_option_translation_request(p ProductOptionTranslationReques
 	}
 }
 
-struct ProductOptionValueTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	name          string
-}
-
-fn hygienise_product_option_value_translation_request(p ProductOptionValueTranslationRequest) !ProductOptionValueTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
-	}
-
-	return ProductOptionValueTranslationRequestHygienised{
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-		name:          p.name
-	}
-}
-
-struct ProductOptionValueRequestHygienised {
-	translations []ProductOptionValueTranslationRequestHygienised
-}
-
-fn hygienise_product_option_value_request(p ProductOptionValueRequest) !ProductOptionValueRequestHygienised {
-	mut translations := []ProductOptionValueTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = hygienise_product_option_value_translation_request(p.translations[i])!
-	}
-
-	return ProductOptionValueRequestHygienised{
-		translations: translations
-	}
-}
-
 struct MoneyAmountRequestHygienised {
 	amount        i32
 	region_id     ?string
