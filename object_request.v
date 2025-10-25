@@ -149,7 +149,7 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 	}
 
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
-	for i := 0; i < p.translations.len; i++ {
+	for i := 0; i < p.values.len; i++ {
 		values[i] = p.values[i].hygienise()!
 	}
 
@@ -188,22 +188,7 @@ fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) 
 	}
 
 	for i := 0; i < option_values.len; i++ {
-		found = false
-		option_value_translations := option_values[i].translations
-
-		if option_value_translations.len == 0 {
-			return new_internal_error(error_missing_default_translation, 'The product_option_value lacks translations, at least one translation in the default locale must be provided.')
-		}
-
-		for j := 0; j < option_value_translations.len; j++ {
-			translation := option_value_translations[j]
-			if translation.locale_id_bin == default_locale_id_bin {
-				found = true
-			}
-		}
-		if found == false {
-			return new_internal_error(error_missing_default_translation, 'The product_option_value lacks a translation in the default_locale_id')
-		}
+		option_values[i].verify(default_locale_id_bin)!
 	}
 }
 
