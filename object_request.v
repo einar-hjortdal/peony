@@ -145,7 +145,7 @@ struct ProductOptionCreateRequestHygienised {
 fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
 	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
-		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
+		translations[i] = p.translations[i].hygienise()!
 	}
 
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
@@ -203,7 +203,7 @@ struct ProductOptionUpdateRequestHygienised {
 fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
 	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
-		translations[i] = hygienise_product_option_translation_request(p.translations[i])!
+		translations[i] = p.translations[i].hygienise()!
 	}
 
 	return ProductOptionUpdateRequestHygienised{

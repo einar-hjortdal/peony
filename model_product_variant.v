@@ -32,17 +32,25 @@ mut:
 // Creates options, their translations, their values and translations.
 // Then it creates a default variant using the first value of each option.
 fn model_product_variant_create_default_with_options(mut app App, mut tx firebird.Transaction, product_id_bin []u8, ph []ProductOptionCreateRequestHygienised) ! {
-	// mut product_option_ids := []string{len: ph.len}
 	mut product_option_ids_bin := [][]u8{len: ph.len}
-	mut n_translations := 0
-	mut n_values := 0
+	mut n_option_translations := 0
+	mut n_option_value_translations := 0
+	mut n_option_values := 0
+	mut first_value_of_option := []i32{len: ph.len}
 	for i := 0; i < ph.len; i++ {
+		first_value_of_option[i] = n_option_values
+		o := ph[i]
 		_, product_option_ids_bin[i] = app.new_id()
-		n_translations += ph[i].translations.len
-		n_values += ph[i].values.len
+		n_option_translations += o.translations.len
+		n_option_values += o.values.len
+		for j := 0; j < o.values.len; j++ {
+			ov := o.values[j]
+			n_option_value_translations += ov.translations.len
+		}
 	}
-	mut product_option_value_ids_bin := [][]u8{len: n_values}
-	for i := 0; i < n_values; i++ {
+
+	mut product_option_value_ids_bin := [][]u8{len: n_option_values}
+	for i := 0; i < n_option_values; i++ {
 		_, product_option_value_ids_bin[i] = app.new_id()
 	}
 
@@ -53,19 +61,19 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 			CAST(? AS BINARY(16)) AS product_option_id,
 			CAST(? AS BINARY(16)) AS product_id
 			FROM RDB\$DATABASE'
-		params[i * 2] = product_id_bin
-		params[i * 2 + 1] = product_option_ids_bin[i]
+		params[i * 2] = product_option_ids_bin[i]
+		params[i * 2 + 1] = product_id_bin
 	}
 
 	tx.execute('INSERT INTO product_option (id, product_id) ${get_merge_source(src)}',
 		...params)!
 
-	src = []string{len: n_translations}
-	params = []firebird.Value{len: n_translations * 3, init: firebird.Value(firebird.Null{})}
+	src = []string{len: n_option_translations}
+	params = []firebird.Value{len: n_option_translations * 3, init: firebird.Value(firebird.Null{})}
 	mut n_iteration := 0
 	for i := 0; i < ph.len; i++ {
 		translations := ph[i].translations
-		id_bin := product_option_ids_bin[i]
+		product_option_id_bin := product_option_ids_bin[i]
 		for j := 0; j < translations.len; j++ {
 			translation := translations[j]
 			src[n_iteration] = 'SELECT
@@ -74,7 +82,7 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 				CAST(? AS VARCHAR(63)) AS title
 				FROM RDB\$DATABASE'
 
-			params[n_iteration * 3] = id_bin
+			params[n_iteration * 3] = product_option_id_bin
 			params[n_iteration * 3 + 1] = translation.locale_id_bin
 			params[n_iteration * 3 + 2] = translation.title
 			n_iteration++
@@ -85,8 +93,8 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 		...params)!
 
 	// product_option_value
-	src = []string{len: n_values}
-	params = []firebird.Value{len: n_values * 2, init: firebird.Value(firebird.Null{})}
+	src = []string{len: n_option_values}
+	params = []firebird.Value{len: n_option_values * 2, init: firebird.Value(firebird.Null{})}
 	mut current_value := 0
 	for i := 0; i < ph.len; i++ {
 		product_option_id_bin := product_option_ids_bin[i]
@@ -109,8 +117,8 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 		...params)!
 
 	// product_option_value_translations
-	src = []string{len: n_translations}
-	params = []firebird.Value{len: n_translations * 3, init: firebird.Value(firebird.Null{})}
+	src = []string{len: n_option_value_translations}
+	params = []firebird.Value{len: n_option_value_translations * 3, init: firebird.Value(firebird.Null{})}
 	current_value = 0
 	mut current_translation := 0
 	for i := 0; i < ph.len; i++ {
@@ -137,12 +145,7 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 	}
 
 	tx.execute('INSERT INTO product_option_value_translations
-		(
-			product_option_value_id,
-			locale_id,
-			name
-		)
-		${get_merge_source(src)}',
+		(product_option_value_id, locale_id, name) ${get_merge_source(src)}',
 		...params)!
 
 	_, product_variant_id_bin := app.new_id()
@@ -150,17 +153,21 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 		product_variant_id_bin, product_id_bin, product_variant_default_title)!
 
 	_, inventory_item_id_bin := app.new_id()
-	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', product_variant_id_bin,
-		inventory_item_id_bin)!
+	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', inventory_item_id_bin,
+		product_variant_id_bin)!
 
 	// relations to new product_variant
+	// give the variant the first value of each option
 	src = []string{len: ph.len}
 	params = []firebird.Value{len: ph.len * 2, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS option_value_id,
-			CAST(? AS BINARY(16)) AS variant_id,
+			CAST(? AS BINARY(16)) AS variant_id
 			FROM RDB\$DATABASE'
+		first_value_index := first_value_of_option[i]
+		params[i * 2] = product_option_value_ids_bin[first_value_index]
+		params[i * 2 + 1] = product_variant_id_bin
 	}
 
 	tx.execute('INSERT INTO product_option_value_product_variant (option_value_id, variant_id)

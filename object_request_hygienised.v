@@ -123,7 +123,7 @@ struct ProductOptionTranslationRequestHygienised {
 	locale_id_bin []u8
 }
 
-fn hygienise_product_option_translation_request(p ProductOptionTranslationRequest) !ProductOptionTranslationRequestHygienised {
+fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
