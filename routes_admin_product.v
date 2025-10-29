@@ -201,6 +201,28 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
 }
 
+@['/admin/products/:product_id/variants/:variant_id'; get]
+pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, variant_id string) veb.Result {
+	_ := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+	}
+
+	variant_id_bin := id_string_to_bin(variant_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'variant_id')
+	}
+
+	// TODO is variant of product?
+
+	ph := RetrieveProductVariantParamsHygienised{
+		ids:     ZeroArrayString{
+			is_set: true
+		}
+		ids_bin: [variant_id_bin]
+	}
+
+	return conduit_product_variant_get(mut app, mut ctx, ph)
+}
+
 // updates a product variant
 @['/admin/products/:product_id/variants/:variant_id'; post]
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {

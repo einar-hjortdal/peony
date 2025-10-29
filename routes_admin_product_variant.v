@@ -39,22 +39,3 @@ pub fn (mut app App) admin_variants_get(mut ctx Context) veb.Result {
 
 	return conduit_product_variants_get(mut app, mut ctx, ph)
 }
-
-// gets a product variant
-@['/admin/variants/:id'; get]
-pub fn (mut app App) admin_variants_id_get(mut ctx Context, id string) veb.Result {
-	id_bin := id_string_to_bin(id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
-	}
-
-	m := {
-		'ids': id
-	}
-	p := extract_retrieve_product_variant_params(m)
-	ph := RetrieveProductVariantParamsHygienised{
-		ids:     p.ids
-		ids_bin: [id_bin]
-	}
-
-	return conduit_product_variant_get(mut app, mut ctx, ph)
-}
