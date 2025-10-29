@@ -153,7 +153,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest ', err.msg())
 	}
 
-	ph := hygienise_product_variant_request(p) or {
+	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -216,7 +216,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest', err.msg())
 	}
 
-	ph := hygienise_product_variant_request(p) or {
+	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}

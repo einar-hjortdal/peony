@@ -158,52 +158,6 @@ fn hygienise_money_amount_request(p MoneyAmountRequest) !MoneyAmountRequestHygie
 	}
 }
 
-// Because option ids cannot be provided during product creation, as they have yet to be created, variants
-// cannot be created at the same time as a product is created.
-// This can be handled by the frontend application in a non-atomic way, as these operations happen sequentially
-// outside of a database transaction.
-struct ProductVariantRequestHygienised {
-	title                ?string
-	ean                  ?string
-	upc                  ?string
-	barcode              ?string
-	variant_rank         ?i32
-	inventory_item       ?InventoryItemRequest
-	option_value_ids     ?[]string
-	option_value_ids_bin [][]u8
-	metadata             ?string
-mut:
-	money_amounts ?[]MoneyAmountRequestHygienised
-}
-
-fn hygienise_product_variant_request(p ProductVariantRequest) !ProductVariantRequestHygienised {
-	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
-		return new_internal_error(error_id_invalid, 'ids_bin')
-	}
-
-	mut ph := ProductVariantRequestHygienised{
-		title:                p.title
-		ean:                  p.ean
-		upc:                  p.upc
-		barcode:              p.barcode
-		variant_rank:         p.variant_rank
-		inventory_item:       p.inventory_item
-		option_value_ids:     p.option_value_ids
-		option_value_ids_bin: option_value_ids_bin
-		metadata:             p.metadata
-	}
-
-	if money_amounts := p.money_amounts {
-		mut h := []MoneyAmountRequestHygienised{len: money_amounts.len}
-		for i := 0; i < money_amounts.len; i++ {
-			h[i] = hygienise_money_amount_request(money_amounts[i])!
-		}
-		ph.money_amounts = h
-	}
-
-	return ph
-}
-
 struct ProductCategoryTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8
