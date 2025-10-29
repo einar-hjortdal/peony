@@ -411,9 +411,9 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	if images := p.images {
-		mut h := []ImageRequestHygienised{}
+		mut h := []ImageRequestHygienised{len: images.len}
 		for i := 0; i < images.len; i++ {
-			h[i] = hygienise_image_request(images[i])!
+			h[i] = images[i].hygienise()!
 		}
 		ph.images = h
 	}
@@ -510,7 +510,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if images := p.images {
 		mut h := []ImageRequestHygienised{}
 		for i := 0; i < images.len; i++ {
-			h[i] = hygienise_image_request(images[i])!
+			h[i] = images[i].hygienise()!
 		}
 		ph.images = h
 	}

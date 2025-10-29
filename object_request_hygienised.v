@@ -58,7 +58,7 @@ struct ImageTranslationRequestHygienised {
 	alt           string
 }
 
-fn hygienise_image_translation_request(i ImageTranslationRequest) !ImageTranslationRequestHygienised {
+fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(i.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
@@ -77,10 +77,10 @@ fn hygienise_image_translation_request(i ImageTranslationRequest) !ImageTranslat
 struct ImageRequestHygienised {
 	url string
 mut:
-	translations []ImageTranslationRequestHygienised
+	translations ?[]ImageTranslationRequestHygienised
 }
 
-fn hygienise_image_request(p ImageRequest) !ImageRequestHygienised {
+fn (p ImageRequest) hygienise() !ImageRequestHygienised {
 	mut image := ImageRequestHygienised{
 		url: p.url
 	}
@@ -88,7 +88,7 @@ fn hygienise_image_request(p ImageRequest) !ImageRequestHygienised {
 	if translations := p.translations {
 		mut itrh := []ImageTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
-			itrh[i] = hygienise_image_translation_request(translations[i])!
+			itrh[i] = translations[i].hygienise()!
 		}
 		image.translations = itrh
 	}
