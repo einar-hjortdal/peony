@@ -484,6 +484,36 @@ fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb
 	return success(mut ctx)
 }
 
+fn conduit_product_option_list(mut app App, mut ctx Context, product_id_bin []u8) veb.Result {
+	// return options and their values
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	mut product_option_data := suite_product_option_data_get(mut tx, [
+		product_id_bin,
+	]) or {
+		tx.rollback() or {}
+		if err is InternalError {
+			return handle_suite_error(mut ctx, err)
+		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	product_options := product_option_data.build_product_options()
+
+	mut external_product_options := []ProductOptionResponse{len: product_options.len}
+	for i := 0; i < product_options.len; i++ {
+		external_product_options[i] = format_product_option_response(product_options[i])
+	}
+
+	return ctx.json(ProductOptionListEnvelope{
+		options: external_product_options
+	})
+}
+
 fn conduit_product_option_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph ProductOptionCreateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

@@ -188,6 +188,10 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	}
 }
 
+struct ProductOptionListEnvelope {
+	options []ProductOptionResponse
+}
+
 struct MoneyAmountResponse {
 	id            string
 	created_at    time.Time @[json: 'createdAt']

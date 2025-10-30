@@ -103,10 +103,18 @@ fn (mut s SuiteProductOptionData) assign_product_option_values() {
 	}
 }
 
-fn (mut s SuiteProductOptionData) build_product_options() {
+fn (mut s SuiteProductOptionData) build_product_options() []ProductOption {
 	s.assign_product_option_translations()
 	s.assign_product_option_value_translations()
 	s.assign_product_option_values()
+
+	mut options := []ProductOption{len: s.product_options_map.len}
+	mut idx := 0
+	for _, option in s.product_options_map {
+		options[idx] = option
+		idx++
+	}
+	return options
 }
 
 // verifies that the provided array of product_option_value ids is valid for a new or updated variant.
@@ -116,13 +124,7 @@ fn (mut s SuiteProductOptionData) build_product_options() {
 // - Ids must belong to different product_option.
 // - There cannot exist a product_variant with the same product_option_value already.
 fn (mut s SuiteProductOptionData) verify_product_option_value_ids(provided_option_value_ids []string, provided_option_value_ids_bin [][]u8) ! {
-	s.build_product_options()
-	mut options := []ProductOption{len: s.product_options_map.len}
-	mut idx := 0
-	for _, option in s.product_options_map {
-		options[idx] = option
-		idx++
-	}
+	mut options := s.build_product_options()
 
 	mut existing_option_value_map := map[string]ProductOptionValue{}
 	mut value_i := 0

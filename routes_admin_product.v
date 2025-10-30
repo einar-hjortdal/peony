@@ -201,6 +201,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
 }
 
+// retrieves a product_variant by its id
 @['/admin/products/:product_id/variants/:variant_id'; get]
 pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, variant_id string) veb.Result {
 	_ := id_string_to_bin(product_id) or {
@@ -326,6 +327,16 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	}
 
 	return handle_error_404(mut ctx, 'product_variant does not exist', 'no product_variant with provided id')
+}
+
+// lists a product's options and their values
+@['/admin/products/:product_id/options'; get]
+pub fn (mut app App) admin_products_id_options_get(mut ctx Context, product_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	return conduit_product_option_list(mut app, mut ctx, product_id_bin)
 }
 
 // creates a product option
