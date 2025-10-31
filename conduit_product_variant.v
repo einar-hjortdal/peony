@@ -144,6 +144,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	})
 }
 
+// TODO add money_amounts?
 fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
 	_, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
@@ -176,6 +177,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	return success(mut ctx)
 }
 
+// TODO add inventory item? need its id
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

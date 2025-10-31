@@ -188,6 +188,7 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	}
 }
 
+// Here we assume there aren't enough options to necessitate pagination
 struct ProductOptionListEnvelope {
 	options []ProductOptionResponse
 }

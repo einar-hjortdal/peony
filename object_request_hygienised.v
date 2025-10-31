@@ -134,30 +134,6 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 	}
 }
 
-struct MoneyAmountRequestHygienised {
-	amount        i32
-	region_id     ?string
-	region_id_bin []u8
-	currency_code string
-	max_quantity  ?i32
-	min_quantity  ?i32
-}
-
-fn hygienise_money_amount_request(p MoneyAmountRequest) !MoneyAmountRequestHygienised {
-	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
-		return new_internal_error(error_id_invalid, 'region_id')
-	}
-
-	return MoneyAmountRequestHygienised{
-		amount:        p.amount
-		region_id:     p.region_id
-		region_id_bin: region_id_bin
-		currency_code: p.currency_code
-		max_quantity:  p.max_quantity
-		min_quantity:  p.min_quantity
-	}
-}
-
 struct ProductCategoryTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8

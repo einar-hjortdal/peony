@@ -243,6 +243,30 @@ struct MoneyAmountRequest {
 	min_quantity  ?i32   @[json: 'minQuantity']
 }
 
+struct MoneyAmountRequestHygienised {
+	amount        i32
+	region_id     ?string
+	region_id_bin []u8
+	currency_code string
+	max_quantity  ?i32
+	min_quantity  ?i32
+}
+
+fn (p MoneyAmountRequest) hygienise() !MoneyAmountRequestHygienised {
+	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
+		return new_internal_error(error_id_invalid, 'region_id')
+	}
+
+	return MoneyAmountRequestHygienised{
+		amount:        p.amount
+		region_id:     p.region_id
+		region_id_bin: region_id_bin
+		currency_code: p.currency_code
+		max_quantity:  p.max_quantity
+		min_quantity:  p.min_quantity
+	}
+}
+
 struct InventoryItemRequest {
 	sku               ?string
 	origin_country    ?string @[json: 'originCountry']
@@ -307,7 +331,7 @@ fn (p ProductVariantRequest) hygienise() !ProductVariantRequestHygienised {
 	if money_amounts := p.money_amounts {
 		mut h := []MoneyAmountRequestHygienised{len: money_amounts.len}
 		for i := 0; i < money_amounts.len; i++ {
-			h[i] = hygienise_money_amount_request(money_amounts[i])!
+			h[i] = money_amounts[i].hygienise()!
 		}
 		ph.money_amounts = h
 	}
