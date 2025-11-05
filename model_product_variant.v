@@ -424,6 +424,76 @@ fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8
 		...params)!
 }
 
+fn model_product_variant_inventory_item_update(mut tx firebird.Transaction, variant_id_bin []u8, p InventoryItemRequest) ! {
+	mut columns := []string{}
+	mut params := []firebird.Value{}
+
+	if sku := p.sku {
+		columns = arrays.concat(columns, 'sku')
+		params = arrays.concat(params, sku)
+	}
+
+	if origin_country := p.origin_country {
+		columns = arrays.concat(columns, 'origin_country')
+		params = arrays.concat(params, origin_country)
+	}
+
+	if hs_code := p.hs_code {
+		columns = arrays.concat(columns, 'hs_code')
+		params = arrays.concat(params, hs_code)
+	}
+
+	if mid_code := p.mid_code {
+		columns = arrays.concat(columns, 'mid_code')
+		params = arrays.concat(params, mid_code)
+	}
+
+	if material := p.material {
+		columns = arrays.concat(columns, 'material')
+		params = arrays.concat(params, material)
+	}
+
+	if weight := p.weight {
+		columns = arrays.concat(columns, 'weight')
+		params = arrays.concat(params, weight)
+	}
+
+	if length := p.length {
+		columns = arrays.concat(columns, 'length')
+		params = arrays.concat(params, length)
+	}
+
+	if height := p.height {
+		columns = arrays.concat(columns, 'height')
+		params = arrays.concat(params, height)
+	}
+
+	if width := p.width {
+		columns = arrays.concat(columns, 'width')
+		params = arrays.concat(params, width)
+	}
+
+	if requires_shipping := p.requires_shipping {
+		columns = arrays.concat(columns, 'requires_shipping')
+		params = arrays.concat(params, requires_shipping)
+	}
+
+	if manage_inventory := p.manage_inventory {
+		columns = arrays.concat(columns, 'manage_inventory')
+		params = arrays.concat(params, manage_inventory)
+	}
+
+	if allow_backorder := p.allow_backorder {
+		columns = arrays.concat(columns, 'allow_backorder')
+		params = arrays.concat(params, allow_backorder)
+	}
+
+	params = arrays.concat(params, variant_id_bin)
+
+	tx.execute('UPDATE inventory_item ${get_set_columns_with_updated_at(columns)} WHERE variant_id = ?',
+		...params)!
+}
+
 fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []MoneyAmountRequestHygienised) ! {
 	mut money_amount_ids_bin := [][]u8{len: ph.len}
 	for i := 0; i < ph.len; i++ {

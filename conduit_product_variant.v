@@ -144,7 +144,6 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	})
 }
 
-// TODO add money_amounts?
 fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
 	_, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
@@ -172,12 +171,19 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 		}
 	}
 
+	if money_amounts := ph.money_amounts {
+		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Could not update product_variant money_amount',
+				err.msg())
+		}
+	}
+
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	return success(mut ctx)
 }
 
-// TODO add inventory item? need its id
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
@@ -196,6 +202,13 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Could not update product_option_value',
 				err.msg())
+		}
+	}
+
+	if inventory_item := ph.inventory_item {
+		model_product_variant_inventory_item_update(mut tx, variant_id_bin, inventory_item) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update inventory_item', err.msg())
 		}
 	}
 

@@ -246,6 +246,14 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
 	}
 
+	if inventory_item := ph.inventory_item {
+		if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
+			&& p.material == none && p.weight == none && p.length == none && p.height == none
+			&& p.width == none && p.manage_inventory == none && p.requires_shipping == none {
+			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemRequest')
+		}
+	}
+
 	if option_value_ids := ph.option_value_ids {
 		mut tx := app.start_transaction() or {
 			return handle_error_500(mut ctx, error_transaction_start, err.msg())

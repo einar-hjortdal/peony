@@ -113,5 +113,7 @@ By default, peony manages the inventory of each `product_variant`.
 A `reservation_item` is one `inventory_item` that is part of a `reserved_quantity`. This is used when 
   an order has been created but has not been fulfilled yet.
 
+Each `product_variant` has exactly one `inventory_item`.
+
 ## Schema
 
