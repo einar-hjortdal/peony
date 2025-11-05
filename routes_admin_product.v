@@ -247,9 +247,12 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	if inventory_item := ph.inventory_item {
-		if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
-			&& p.material == none && p.weight == none && p.length == none && p.height == none
-			&& p.width == none && p.manage_inventory == none && p.requires_shipping == none {
+		if inventory_item.sku == none && inventory_item.origin_country == none
+			&& inventory_item.hs_code == none && inventory_item.mid_code == none
+			&& inventory_item.material == none && inventory_item.weight == none
+			&& inventory_item.length == none && inventory_item.height == none
+			&& inventory_item.width == none && inventory_item.manage_inventory == none
+			&& inventory_item.requires_shipping == none {
 			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemRequest')
 		}
 	}
