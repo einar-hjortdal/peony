@@ -2,15 +2,11 @@
 
 ## Basics
 
-- [x] Read and validate settings <!-- Always panic on startup, never during runtime -->
 - [x] Write a database-friendly uuid library <!-- https://github.com/einar-hjortdal/lexical_uuid -->
-- [x] Write a FirebirdSQL connector <!-- https://github.com/einar-hjortdal/redict -->
+- [x] Write a FirebirdSQL connector <!-- https://github.com/einar-hjortdal/firebird -->
 - [x] Write a Redict library <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
 - [x] Write a sessions management library <!-- https://github.com/einar-hjortdal/sessions -->
-- [x] Seed new database with a schema, constants and defaults
-- [x] Always return json
-- [x] Error handling
 
 ## Features
 
