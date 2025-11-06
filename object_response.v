@@ -188,9 +188,11 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	}
 }
 
-// Here we assume there aren't enough options to necessitate pagination
 struct ProductOptionListEnvelope {
 	options []ProductOptionResponse
+	count   i64
+	offset  i32
+	fetch   i32 @[omitempty]
 }
 
 struct MoneyAmountResponse {
@@ -203,7 +205,7 @@ struct MoneyAmountResponse {
 	min_quantity  i32    @[json: 'minQuantity'; omitempty]
 	max_quantity  i32    @[json: 'maxQuantity'; omitempty]
 	price_list_id string @[json: 'priceListId'; omitempty]
-	region_id     string @[json: 'regionId'; omitempty]
+	region_id     string @[json: 'regionId'; omitempty] // this is always set, I think. TODO verify architecture
 	variant_id    string @[json: 'variantId'; omitempty]
 }
 

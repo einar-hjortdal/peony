@@ -95,7 +95,7 @@
 
 ## Considerations
 
-- Consider creating higher order functions to wrap conduit functions to provide tx.
+- Creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
 
 ## Documentation

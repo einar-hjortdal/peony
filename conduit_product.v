@@ -509,6 +509,7 @@ fn conduit_product_option_list(mut app App, mut ctx Context, product_id_bin []u8
 		external_product_options[i] = format_product_option_response(product_options[i])
 	}
 
+	// TODO count, offset, fetch
 	return ctx.json(ProductOptionListEnvelope{
 		options: external_product_options
 	})

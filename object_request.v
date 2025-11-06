@@ -245,7 +245,7 @@ struct MoneyAmountRequest {
 
 struct MoneyAmountRequestHygienised {
 	amount        i32
-	region_id     ?string
+	region_id     string
 	region_id_bin []u8
 	currency_code string
 	max_quantity  ?i32
