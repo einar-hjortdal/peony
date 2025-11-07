@@ -42,20 +42,24 @@ fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin
 	return inventory_levels
 }
 
-fn model_inventory_level_create(mut tx firebird.Transaction, inventory_item_id_bin []u8, stock_location_id_bin []u8,
-	p InventoryLevelRequest) ! {
-	mut params := [firebird.Value(inventory_item_id_bin), stock_location_id_bin, p.stocked_quantity]
-
-	tx.execute('INSERT INTO inventory_level (inventory_item_id, stock_location_id, stocked_quantity) 
-		VALUES(?, ?, ?)',
-		...params)!
-}
-
 fn model_inventory_level_update(mut tx firebird.Transaction, inventory_item_id_bin []u8, stock_location_id_bin []u8,
 	p InventoryLevelRequest) ! {
-	tx.execute('UPDATE inventory_level SET stocked_quantity = ? 
-			WHERE inventory_item_id = ? AND stock_location_id = ?',
-		p.stocked_quantity, inventory_item_id_bin, stock_location_id_bin)!
+	tx.execute('MERGE INTO inventory_level t
+		USING (
+			SELECT
+				CAST(? AS BINARY(16)) AS inventory_item_id,
+				CAST(? AS BINARY(16)) AS stock_location_id,
+				CAST(? AS INTEGER) AS stocked_quantity
+			FROM RDB\$DATABASE
+		) s
+		ON t.inventory_item_id = s.inventory_item_id
+		AND t.stock_location_id = s.stock_location_id
+		WHEN MATCHED THEN 
+			UPDATE SET t.stocked_quantity = s.stocked_quantity
+		WHEN NOT MATCHED THEN
+			INSERT (inventory_item_id, stock_location_id, stocked_quantity)
+			VALUES (s.inventory_item_id, s.stock_location_id, s.stocked_quantity)',
+		inventory_item_id_bin, stock_location_id_bin, p.stocked_quantity)!
 }
 
 struct InventoryItem {

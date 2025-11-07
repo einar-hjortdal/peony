@@ -3,28 +3,9 @@ module peony
 import veb
 import json
 
-// creates an inventory_level for an inventory_item at the stock_location
+// creates or updates an inventory level
 @['/admin/inventory-items/:inventory_item_id/stock-locations/:stock_location_id'; post]
-pub fn (mut app App) admin_variant_inventory_level_create(mut ctx Context, inventory_item_id string, stock_location_id string) veb.Result {
-	inventory_item_id_bin := id_string_to_bin(inventory_item_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'inventory_item_id')
-	}
-
-	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
-	}
-
-	p := json.decode(InventoryLevelRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode InventoryLevelRequest', err.msg())
-	}
-
-	return conduit_inventory_level_create(mut app, mut ctx, inventory_item_id_bin, stock_location_id_bin,
-		p)
-}
-
-// updates an inventory level
-@['/admin/inventory-items/:inventory_item_id/stock-locations/:stock_location_id'; post]
-pub fn (mut app App) admin_inventory_items_inventory_level_update(mut ctx Context, inventory_item_id string, stock_location_id string) veb.Result {
+pub fn (mut app App) admin_inventory_level_update(mut ctx Context, inventory_item_id string, stock_location_id string) veb.Result {
 	inventory_item_id_bin := id_string_to_bin(inventory_item_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'inventory_item_id')
 	}

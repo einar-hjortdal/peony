@@ -184,6 +184,7 @@ fn format_product_translation_response(p ProductTranslation) ProductTranslationR
 	}
 }
 
+// TODO region_id should always be set
 fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 	mut price_list_id := ''
 	mut region_id := ''

@@ -205,7 +205,7 @@ struct MoneyAmountResponse {
 	min_quantity  i32    @[json: 'minQuantity'; omitempty]
 	max_quantity  i32    @[json: 'maxQuantity'; omitempty]
 	price_list_id string @[json: 'priceListId'; omitempty]
-	region_id     string @[json: 'regionId'; omitempty] // this is always set, I think. TODO verify architecture
+	region_id     string @[json: 'regionId'; omitempty] // TODO this should always set
 	variant_id    string @[json: 'variantId'; omitempty]
 }
 

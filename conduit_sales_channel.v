@@ -16,7 +16,7 @@ fn conduit_sales_channel_create(mut app App, mut ctx Context, p SalesChannelRequ
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_rollback, err.msg())
+		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
 	}
 
 	return success(mut ctx)

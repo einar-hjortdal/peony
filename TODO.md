@@ -57,7 +57,6 @@
 
 #### Low-priority
 
-- [ ] Multi-currency regions
 - [ ] Sub-divisions of country
 
 ### Modules:
@@ -97,6 +96,8 @@
 
 - Creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
+- Enforce at least one price per variant per region.
+  - Request validation
 
 ## Documentation
 

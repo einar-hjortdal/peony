@@ -26,7 +26,7 @@ them are null, the row should be deleted.
 
 ### product
 
-#### product_variant
+#### product_option, product_option_value and product_variant
 
 Each `product` must have at least one `product_variant`.
 
@@ -63,12 +63,17 @@ boolean or null).
 
 ### Countries, regions, currencies and prices
 
-A `region` is a group of one or more `country`. A `region` may have zero, one or many `tax_rate`.
+peony uses a multi‑currency architecture: typically, there is one base price for each supported currency, 
+and this base price can be overridden by a `price_list` according to its conditions.
+
+A `region` is a group of one or more `country`.
 
 One `country` can only be in one `region`. One `region` can only have one `currency`. Therefore one 
-`country` can only have one `currency`.
+`country` can only have one `currency`. 
 
-By default, a `store` has one `region`, this region determines the default `currency`.
+By default, a `store` has one `region`, this region determines the default `currency`. 
+
+There can be many `region` with the same `currency`.
 
 A `product_variant` may have a `money_amount` that is related to a `region`.
 
