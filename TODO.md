@@ -84,7 +84,7 @@
 - [ ] Engineer a way to allow filtering by availability
 - [ ] Remove `parse_` functions from methods
 - [ ] Merge hygienise functions with extraction functions for object_query_string objects
-- [ ] Graceful shutdown
+- [ ] Graceful shutdown, or [wait for upstream patch](https://github.com/vlang/v/issues/25655)
 
 ## Upstream
 
@@ -94,6 +94,7 @@
 
 ## Considerations
 
+- Separate variant creation and update objects and flow to allow variants creation on product creation.
 - Creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
 - Enforce at least one price per variant per region.

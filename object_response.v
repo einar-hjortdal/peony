@@ -372,11 +372,11 @@ struct ProductResponseListEnvelope {
 }
 
 struct UploadsUploadResponseEnvelope {
-	uploads []BlobProviderFileData
+	uploads []ProviderBlobFileData
 }
 
 struct UploadsUploadOneResponseEnvelope {
-	upload BlobProviderFileData
+	upload ProviderBlobFileData
 }
 
 struct UploadsDeleteResponse {
@@ -412,4 +412,29 @@ struct ProductCategoryResponseListEnvelope {
 	count              i64
 	offset             i32
 	fetch              i32 @[omitempty]
+}
+
+struct StockLocationResponse {
+	id         string
+	created_at time.Time @[json: 'createdAt']
+	updated_at time.Time @[json: 'updatedAt']
+	deleted_at time.Time @[json: 'deletedAt'; omitempty]
+	name       string
+}
+
+fn format_stock_location_response(p StockLocation) StockLocationResponse {
+	return StockLocationResponse{
+		id:         p.id
+		created_at: p.created_at.Time
+		updated_at: p.updated_at.Time
+		deleted_at: p.deleted_at.value.Time
+		name:       p.name
+	}
+}
+
+struct StockLocationResponseListEnvelope {
+	stock_locations []StockLocationResponse @[json: 'stockLocations']
+	count           i64
+	offset          i32
+	fetch           i32 @[omitempty]
 }

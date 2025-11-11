@@ -28,7 +28,7 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	}
 
 	files := ctx.files[uploads_field_name]
-	mut files_data := []BlobProviderFileData{len: files.len}
+	mut files_data := []ProviderBlobFileData{len: files.len}
 	for i := 0; i < files.len; i++ {
 		f := files[i]
 		file_data := app.blob_provider.create(f) or {

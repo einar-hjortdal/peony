@@ -78,7 +78,7 @@ fn (b Blobly) init() ! {
 }
 
 // fulfill BlobProvider interface
-fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
+fn (b Blobly) create(f http.FileData) !ProviderBlobFileData {
 	url := '${b.url}/api/files/${blobly_blobs_dirname}/${f.filename}'
 	request := b.new_signed_http_request(http.Method.post, url, f.data)!
 	response := request.do()!
@@ -87,7 +87,7 @@ fn (b Blobly) create(f http.FileData) !BlobProviderFileData {
 		data := json.decode(BloblySuccess, response.body) or {
 			return error('Could not decode BloblySuccess')
 		}
-		return BlobProviderFileData{
+		return ProviderBlobFileData{
 			id:  data.file_name
 			url: '${b.url}/public/${blobly_blobs_dirname}/${data.file_name}'
 		}
