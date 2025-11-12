@@ -413,6 +413,7 @@ CREATE TABLE seo (
   product_id BINARY(16),
   category_id BINARY(16),
   collection_id BINARY(16),
+  CONSTRAINT "0686cd40-3324-1c45-2c00-941b00b76206" PRIMARY KEY (id),
   CONSTRAINT "0686cd40-3324-1697-b000-967871bd9ca3" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
   CONSTRAINT "0686cd40-3324-16f2-5000-33c19823782a" FOREIGN KEY (category_id) REFERENCES product_category (id) ON DELETE CASCADE,
   CONSTRAINT "0686cd40-3324-1841-0400-a4573406bc2f" FOREIGN KEY (collection_id) REFERENCES product_collection (id) ON DELETE CASCADE
@@ -557,7 +558,7 @@ CREATE TABLE product_translations (
   CONSTRAINT "0681493b-ad88-19ce-8800-37968a334b2f" FOREIGN KEY (locale_id) REFERENCES locale (id)
 );
 
-create table seo_translations (
+CREATE TABLE seo_translations (
   seo_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,
   title VARCHAR(63),
