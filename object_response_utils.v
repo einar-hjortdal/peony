@@ -187,18 +187,9 @@ fn format_product_translation_response(p ProductTranslation) ProductTranslationR
 // TODO region_id should always be set
 fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 	mut price_list_id := ''
-	mut region_id := ''
 	mut variant_id := ''
 	if !m.price_list_id_bin.is_null {
 		price_list_id = id_bin_to_string(m.price_list_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('money_amount.price_list_id is invalid')
-			''
-		}
-	}
-
-	if !m.region_id_bin.is_null {
-		region_id = id_bin_to_string(m.region_id_bin.value) or {
 			log.error(error_database_data_malformed)
 			log.error('money_amount.price_list_id is invalid')
 			''
@@ -215,12 +206,12 @@ fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 
 	return MoneyAmountResponse{
 		id:            m.id
-		currency_code: m.currency_code
 		amount:        m.amount
+		region_id:     m.region_id
+		currency_code: m.currency_code
 		min_quantity:  m.min_quantity.value
 		max_quantity:  m.max_quantity.value
 		price_list_id: price_list_id
-		region_id:     region_id
 		variant_id:    variant_id
 	}
 }

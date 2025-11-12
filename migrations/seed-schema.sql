@@ -120,19 +120,16 @@ CREATE INDEX "0681493b-ad84-1513-fc00-1e18e707389e" ON region_tax_rate (rate_id)
 
 CREATE TABLE money_amount (
   id BINARY(16) NOT NULL,
-  currency_code CHAR(3) NOT NULL,
   amount INTEGER NOT NULL,
+  region_id BINARY(16) NOT NULL,
   min_quantity INTEGER,
   max_quantity INTEGER,
   price_list_id BINARY(16),
-  region_id BINARY(16),
   CONSTRAINT "0681493b-ad80-1816-4c00-b3057a12449b" PRIMARY KEY (id),
-  CONSTRAINT "0681493b-ad80-1868-1400-be1d124a89dc" FOREIGN KEY (currency_code) REFERENCES currency (code),
-  CONSTRAINT "0681493b-ad80-18c0-f800-29cd93ab1246" FOREIGN KEY (price_list_id) REFERENCES price_list (id) ON DELETE CASCADE,
-  CONSTRAINT "0681493b-ad80-1965-9c00-560c42556079" FOREIGN KEY (region_id) REFERENCES region (id) ON DELETE CASCADE
+  CONSTRAINT "0681493b-ad80-1965-9c00-560c42556079" FOREIGN KEY (region_id) REFERENCES region (id) ON DELETE CASCADE,
+  CONSTRAINT "0681493b-ad80-18c0-f800-29cd93ab1246" FOREIGN KEY (price_list_id) REFERENCES price_list (id) ON DELETE CASCADE
 );
 
-CREATE INDEX "0681493b-ad80-1af0-3400-b14340ac5e59" ON money_amount (currency_code);
 CREATE INDEX "0681493b-ad80-1c69-7800-8a18dd634104" ON money_amount (region_id);
 
 CREATE TABLE country (

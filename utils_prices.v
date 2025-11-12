@@ -27,29 +27,11 @@ fn calculate_taxes() {}
 
 fn is_original_price(ma MoneyAmount, region_id_bin []u8) bool {
 	return ma.min_quantity.is_null && ma.max_quantity.is_null
-		&& (region_id_bin.len == 0 || ma.region_id_bin.value == region_id_bin)
+		&& (region_id_bin.len == 0 || ma.region_id_bin == region_id_bin)
 }
 
 fn select_original_price(original_prices []MoneyAmount) MoneyAmount {
-	mut with_region := false
-	for i := 0; i < original_prices.len; i++ {
-		if !original_prices[i].region_id_bin.is_null {
-			with_region = true
-			break
-		}
-	}
-
 	mut lowest := original_prices[0]
-	if with_region {
-		for i := 0; i < original_prices.len; i++ {
-			if !original_prices[i].region_id_bin.is_null
-				&& original_prices[i].amount < lowest.amount {
-				lowest = original_prices[i]
-			}
-		}
-		return lowest
-	}
-
 	for i := 0; i < original_prices.len; i++ {
 		if original_prices[i].amount < lowest.amount {
 			lowest = original_prices[i]
@@ -61,7 +43,7 @@ fn select_original_price(original_prices []MoneyAmount) MoneyAmount {
 fn is_valid_price(ma MoneyAmount, quantity i32, region_id_bin []u8) bool {
 	return (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
 		&& (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
-		&& (region_id_bin.len == 0 || ma.region_id_bin.value == region_id_bin)
+		&& (region_id_bin.len == 0 || ma.region_id_bin == region_id_bin)
 }
 
 // this function should find the lowest possible price that fits all the criteria.

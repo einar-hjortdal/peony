@@ -370,11 +370,10 @@ fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) 
 // max_quantity the maximum quantity required to be added to the cart for the price to be used.
 // min_quantity the minimum quantity required to be added to the cart for the price to be used.
 struct MoneyAmountRequest {
-	amount        i32
-	region_id     string @[json: 'regionId']
-	currency_code string @[json: 'currencyCode']
-	max_quantity  ?i32   @[json: 'maxQuantity']
-	min_quantity  ?i32   @[json: 'minQuantity']
+	amount       i32
+	region_id    string @[json: 'regionId']
+	max_quantity ?i32   @[json: 'maxQuantity']
+	min_quantity ?i32   @[json: 'minQuantity']
 }
 
 struct MoneyAmountRequestHygienised {
@@ -395,7 +394,6 @@ fn (p MoneyAmountRequest) hygienise() !MoneyAmountRequestHygienised {
 		amount:        p.amount
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
-		currency_code: p.currency_code
 		max_quantity:  p.max_quantity
 		min_quantity:  p.min_quantity
 	}

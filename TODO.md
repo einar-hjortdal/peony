@@ -64,7 +64,7 @@
 - Multi-currency regions
 - Marketplace
 
-### Modules:
+## Modules
 
 - [x] Make peony a module
 - [x] BlobProvider interface
