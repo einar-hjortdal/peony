@@ -58,7 +58,7 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 	mut count := i64(0)
 	if res.len > 0 {
 		v := rows[0].values()
-		c, _ := v[3].get_i64()!
+		c, _ := v[2].get_i64()!
 		count = c
 	}
 
