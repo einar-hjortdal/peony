@@ -38,7 +38,6 @@ CREATE UNIQUE INDEX "0681493b-ad7e-1834-9000-63304927463c" ON app_user (handle) 
 CREATE TABLE currency (
   code CHAR(3) NOT NULL, -- ISO 4217
   decimal_digits INTEGER,
-  includes_tax BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT "0681493b-ad7e-1a2b-8c00-0137fed805b7" PRIMARY KEY (code)
 );
 

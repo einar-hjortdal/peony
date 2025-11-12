@@ -6,11 +6,11 @@ import einar_hjortdal.firebird
 struct Currency {
 	code           string
 	decimal_digits firebird.NullI32
-	includes_tax   bool
 }
 
+// TODO separate query for count
 fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurrenciesParams) !([]Currency, i64) {
-	query := 'SELECT code, decimal_digits, includes_tax, COUNT(*) OVER() FROM currency'
+	query := 'SELECT code, decimal_digits, COUNT(*) OVER() FROM currency'
 	mut params := []firebird.Value{}
 	mut conditions := ''
 	if p.code.is_set {
@@ -24,11 +24,6 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 		// firebird.Value(5395781)
 		// params = arrays.concat(params, ...p.code.v)
 		params = arrays.concat(params, ...c)
-	}
-
-	if p.includes_tax.is_set {
-		conditions = appendln(conditions, 'WHERE includes_tax = ?')
-		params = arrays.concat(params, p.includes_tax.v)
 	}
 
 	mut sorting := ''
@@ -53,12 +48,10 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 
 		code, _ := v[0].get_string()!
 		decimal_digits := v[1].get_null_i32()!
-		includes_tax, _ := v[2].get_bool()!
 
 		res[i] = Currency{
 			code:           code
 			decimal_digits: decimal_digits
-			includes_tax:   includes_tax
 		}
 	}
 
@@ -70,9 +63,4 @@ fn (mut app App) retrieve_currencies(mut tx firebird.Transaction, p RetrieveCurr
 	}
 
 	return res, count
-}
-
-fn (mut app App) update_currency(mut tx firebird.Transaction, code string, p NewCurrencyData) ! {
-	tx.execute('UPDATE currency SET includes_tax = ? WHERE code = ?', p.includes_tax,
-		code)!
 }

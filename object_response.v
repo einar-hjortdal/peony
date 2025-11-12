@@ -47,8 +47,7 @@ struct ListLocaleResponseEnvelope {
 
 struct CurrencyResponse {
 	code           string
-	decimal_digits i32  @[json: 'decimalDigits'; omitempty]
-	includes_tax   bool @[json: 'includesTax']
+	decimal_digits i32 @[json: 'decimalDigits'; omitempty]
 }
 
 struct CurrencyResponseEnvelope {

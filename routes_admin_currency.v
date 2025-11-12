@@ -1,6 +1,5 @@
 module peony
 
-import json
 import veb
 
 // lists currencies
@@ -16,13 +15,4 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 	}
 
 	return conduit_currency_get(mut app, mut ctx, p)
-}
-
-// updates a currency
-@['/admin/currencies/:code'; post]
-pub fn (mut app App) admin_currencies_post(mut ctx Context, code string) veb.Result {
-	p := json.decode(NewCurrencyData, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode NewCurrencyData', err.msg())
-	}
-	return conduit_currency_update(mut app, mut ctx, code, p)
 }

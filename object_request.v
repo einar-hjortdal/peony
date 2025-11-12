@@ -634,10 +634,6 @@ struct RegionUpdateRequest {
 	//  taxes
 }
 
-struct NewCurrencyData {
-	includes_tax bool @[json: 'includesTax']
-}
-
 struct ProductCategoryTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	name        ?string

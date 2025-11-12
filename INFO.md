@@ -79,9 +79,8 @@ A `product_variant` may have a `money_amount` that is related to a `region`.
 
 When a `product_variant` is requested, the request may contain a `region_id` parameter.
 
-If it does: `money_amount` with the `currency` of the `region` of the matching `region_id` are considered.
-If the `product_variant` has a `money_amount` related to this `region`, then it will be prioritized during
-price calculation.
+If it does: `money_amount` related to the `region` of the matching `region_id` are considered in the
+price calculation, and the price will be in the `currency` of this region.
 
 If the request does not contain a `region_id` parameter, `money_amount` of the default `region` are 
 considered when calculating the price, and the price will be in the `currency` of this region.
@@ -91,6 +90,11 @@ considered when calculating the price, and the price will be in the `currency` o
 Some entities may have a `tax_rate`. Each `region` must have at least one `tax_rate`. The default `region` 
 defines the default `tax_rate`(s). If any other entity has defined `tax_rate` these will be included 
 in the calculation according to the `tax_rate.type`.
+
+Each `region` also determines whether prices are tax-inclusive or tax-exclusive. Note that, because
+there cannot exist more than one `region` with the same `country`, in order to show prices tax-exclusive
+to a select audience, a `price-list` must be used: its `includes_tax` property will override the `includes_tax`
+property set on `region`.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 
@@ -119,6 +123,15 @@ A `reservation_item` is one `inventory_item` that is part of a `reserved_quantit
   an order has been created but has not been fulfilled yet.
 
 Each `product_variant` has exactly one `inventory_item`.
+
+### Posts (WIP)
+
+A `post` is typically a blog entry, an article, etc.
+
+A `page` is a `post` that is independent. Typically a `page` is an about page, a landing page, a terms 
+of service page, etc.
+
+Each `post` may have one or more `post_tag` that categorizes it.
 
 ## Schema
 

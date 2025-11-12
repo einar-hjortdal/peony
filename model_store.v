@@ -105,7 +105,7 @@ fn model_store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
 }
 
 fn model_store_currencies_retrieve(mut tx firebird.Transaction) ![]Currency {
-	data := tx.execute('SELECT code, decimal_digits, includes_tax from currency c WHERE EXISTS (
+	data := tx.execute('SELECT code, decimal_digits from currency c WHERE EXISTS (
 	SELECT 1 from store_currencies sc WHERE sc.currency_code = c.code)')!
 
 	rows := data.rows()
@@ -116,12 +116,10 @@ fn model_store_currencies_retrieve(mut tx firebird.Transaction) ![]Currency {
 
 		code, _ := v[0].get_string()!
 		decimal_digits := v[1].get_null_i32()!
-		includes_tax, _ := v[2].get_bool()!
 
 		currencies[i] = Currency{
 			code:           code
 			decimal_digits: decimal_digits
-			includes_tax:   includes_tax
 		}
 	}
 

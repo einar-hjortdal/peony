@@ -28,17 +28,3 @@ fn conduit_currency_get(mut app App, mut ctx Context, p RetrieveCurrenciesParams
 	}
 	return ctx.json(r)
 }
-
-fn conduit_currency_update(mut app App, mut ctx Context, code string, p NewCurrencyData) veb.Result {
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	app.update_currency(mut tx, code, p) or {
-		return handle_error_500(mut ctx, 'Could not update currency data', err.msg())
-	}
-
-	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
-
-	return success(mut ctx)
-}
