@@ -32,6 +32,7 @@
 
 - [ ] Multi-warehouse
 - [ ] Cache
+- [ ] SEO
 
 ### To be implement
 
@@ -53,11 +54,15 @@
 - [ ] User permissions
 - [ ] Variant images
 - [ ] API keys
-- [ ] SEO
 
 #### Low-priority
 
 - [ ] Sub-divisions of country
+
+### Not planned
+
+- Multi-currency regions
+- Marketplace
 
 ### Modules:
 
