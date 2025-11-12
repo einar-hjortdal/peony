@@ -144,7 +144,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	})
 }
 
-fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
+fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantUpdateRequestHygienised) veb.Result {
 	_, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
 
@@ -164,7 +164,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 				err.msg())
 		}
 	} else {
-		model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, InventoryItemRequest{}) or {
+		model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, InventoryItemUpdateRequest{}) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Could not create inventory_item for product_variant',
 				err.msg())
@@ -184,7 +184,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantRequestHygienised) veb.Result {
+fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}

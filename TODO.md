@@ -84,6 +84,7 @@
 - [ ] Engineer a way to allow filtering by availability
 - [ ] Remove `parse_` functions from methods
 - [ ] Merge hygienise functions with extraction functions for object_query_string objects
+- [ ] Request objects should have no mutable fields
 - [ ] Graceful shutdown, or [wait for upstream patch](https://github.com/vlang/v/issues/25655)
 
 ## Upstream

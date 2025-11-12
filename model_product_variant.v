@@ -346,7 +346,7 @@ fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, p
 	return model_product_variants_retrieve(mut tx, vph)
 }
 
-fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantRequestHygienised) ! {
+fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantUpdateRequestHygienised) ! {
 	mut columns := ['id', 'product_id']
 	mut params := [firebird.Value(variant_id_bin), product_id_bin]
 	if title := ph.title {
@@ -384,7 +384,7 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 		...params)!
 }
 
-fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, ph ProductVariantRequestHygienised) ! {
+fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, ph ProductVariantUpdateRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -424,7 +424,7 @@ fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8
 		...params)!
 }
 
-fn model_product_variant_inventory_item_update(mut tx firebird.Transaction, variant_id_bin []u8, p InventoryItemRequest) ! {
+fn model_product_variant_inventory_item_update(mut tx firebird.Transaction, variant_id_bin []u8, p InventoryItemUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 

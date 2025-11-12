@@ -15,6 +15,58 @@ struct StoreRequest {
 	currency_codes            ?[]string @[json: 'currencyCodes']
 }
 
+struct StoreRequestHygienised {
+	name                          ?string
+	default_locale_id             ?string
+	default_locale_id_bin         []u8
+	default_region_id             ?string
+	default_region_id_bin         []u8
+	default_stock_location_id     ?string
+	default_stock_location_id_bin []u8
+	default_sales_channel_id      ?string
+	default_sales_channel_id_bin  []u8
+	locale_ids                    ?[]string
+	locale_ids_bin                [][]u8
+	currency_codes                ?[]string
+}
+
+fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
+	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
+		return new_internal_error(error_id_invalid, 'default_locale_id')
+	}
+
+	default_region_id_bin := option_id_string_to_id_bin(p.default_region_id) or {
+		return new_internal_error(error_id_invalid, 'default_region_id')
+	}
+
+	default_stock_location_id_bin := option_id_string_to_id_bin(p.default_stock_location_id) or {
+		return new_internal_error(error_id_invalid, 'default_stock_location_id')
+	}
+
+	locale_ids_bin := option_array_id_string_to_array_id_bin(p.locale_ids) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	default_sales_channel_id_bin := option_id_string_to_id_bin(p.default_sales_channel_id) or {
+		return new_internal_error(error_id_invalid, 'default_sales_channel_id')
+	}
+
+	return StoreRequestHygienised{
+		name:                          p.name
+		default_locale_id:             p.default_locale_id
+		default_locale_id_bin:         default_locale_id_bin
+		default_region_id:             p.default_region_id
+		default_region_id_bin:         default_region_id_bin
+		default_stock_location_id:     p.default_stock_location_id
+		default_stock_location_id_bin: default_stock_location_id_bin
+		default_sales_channel_id:      p.default_sales_channel_id
+		default_sales_channel_id_bin:  default_sales_channel_id_bin
+		locale_ids:                    p.locale_ids
+		locale_ids_bin:                locale_ids_bin
+		currency_codes:                p.currency_codes
+	}
+}
+
 struct SalesChannelRequest {
 	name        string
 	description ?string
@@ -30,6 +82,27 @@ struct SalesChannelUpdateRequest {
 struct ImageRequest {
 	url          string
 	translations ?[]ImageTranslationRequest
+}
+
+struct ImageRequestHygienised {
+	url string
+mut:
+	translations ?[]ImageTranslationRequestHygienised
+}
+
+fn (p ImageRequest) hygienise() !ImageRequestHygienised {
+	mut image := ImageRequestHygienised{
+		url: p.url
+	}
+
+	if translations := p.translations {
+		mut itrh := []ImageTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			itrh[i] = translations[i].hygienise()!
+		}
+		image.translations = itrh
+	}
+	return image
 }
 
 struct UserCreateRequest {
@@ -56,11 +129,55 @@ struct ImageTranslationRequest {
 	alt       string
 }
 
+struct ImageTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	alt           string
+}
+
+fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(i.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	if i.alt == '' {
+		return new_internal_error(error_empty_field, 'alt')
+	}
+
+	return ImageTranslationRequestHygienised{
+		locale_id:     i.locale_id
+		locale_id_bin: locale_id_bin
+		alt:           i.alt
+	}
+}
+
 struct ProductTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
 	description ?string
+}
+
+struct ProductTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	title         ?string
+	subtitle      ?string
+	description   ?string
+}
+
+fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return ProductTranslationRequestHygienised{
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+		title:         p.title
+		subtitle:      p.subtitle
+		description:   p.description
+	}
 }
 
 struct ProductOptionValueTranslationRequest {
@@ -130,6 +247,23 @@ fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! 
 struct ProductOptionTranslationRequest {
 	title     string
 	locale_id string @[json: 'localeId']
+}
+
+struct ProductOptionTranslationRequestHygienised {
+	title         string
+	locale_id     string
+	locale_id_bin []u8
+}
+
+fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+	return ProductOptionTranslationRequestHygienised{
+		title:         p.title
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+	}
 }
 
 struct ProductOptionCreateRequest {
@@ -267,7 +401,93 @@ fn (p MoneyAmountRequest) hygienise() !MoneyAmountRequestHygienised {
 	}
 }
 
-struct InventoryItemRequest {
+// used during product and product_variant creation
+struct InventoryLevelCreateRequest {
+	stock_location_id string @[json: 'stockLocationId']
+	stocked_quantity  i32    @[json: 'stockedQuantity']
+}
+
+struct InventoryLevelCreateRequestHygienised {
+	stock_location_id     string
+	stock_location_id_bin []u8
+	stocked_quantity      i32 @[json: 'stockedQuantity']
+}
+
+fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygienised {
+	stock_location_id_bin := id_string_to_bin(p.stock_location_id)!
+	return InventoryLevelCreateRequestHygienised{
+		stock_location_id:     p.stock_location_id
+		stock_location_id_bin: stock_location_id_bin
+		stocked_quantity:      p.stocked_quantity
+	}
+}
+
+struct InventoryLevelUpdateRequest {
+	stocked_quantity i32 @[json: 'stockedQuantity']
+}
+
+// used during product and product_variant creation
+struct InventoryItemCreateRequest {
+	sku               ?string
+	origin_country    ?string @[json: 'originCountry']
+	hs_code           ?string @[json: 'hsCode']
+	mid_code          ?string @[json: 'midCode']
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool @[json: 'requiresShipping']
+	manage_inventory  ?bool @[json: 'manageInventory']
+	allow_backorder   ?bool @[json: 'allowBackorder']
+	inventory_levels  ?[]InventoryLevelCreateRequest @[json: 'inventoryLevels']
+}
+
+struct InventoryItemCreateRequestHygienised {
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool
+	manage_inventory  ?bool
+	allow_backorder   ?bool
+mut:
+	inventory_levels ?[]InventoryLevelCreateRequestHygienised
+}
+
+fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygienised {
+	mut inventory_item := InventoryItemCreateRequestHygienised{
+		sku:               p.sku
+		origin_country:    p.origin_country
+		hs_code:           p.hs_code
+		mid_code:          p.mid_code
+		material:          p.material
+		weight:            p.weight
+		length:            p.length
+		height:            p.height
+		width:             p.width
+		requires_shipping: p.requires_shipping
+		manage_inventory:  p.manage_inventory
+		allow_backorder:   p.allow_backorder
+	}
+
+	if inventory_levels := p.inventory_levels {
+		mut iih := []InventoryLevelCreateRequestHygienised{len: inventory_levels.len}
+		for i := 0; i < inventory_levels.len; i++ {
+			iih[i] = inventory_levels[i].hygienise()!
+		}
+		inventory_item.inventory_levels = iih
+	}
+
+	return inventory_item
+}
+
+struct InventoryItemUpdateRequest {
 	sku               ?string
 	origin_country    ?string @[json: 'originCountry']
 	hs_code           ?string @[json: 'hsCode']
@@ -285,25 +505,82 @@ struct InventoryItemRequest {
 // Because option ids cannot be provided during product creation, as they have yet to be created, variants
 // cannot be created at the same time as a product is created.
 // This can be handled by the frontend application in a non-atomic way.
-struct ProductVariantRequest {
+struct ProductVariantCreateRequest {
 	title            ?string
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	variant_rank     ?i32                  @[json: 'variantRank']
-	inventory_item   ?InventoryItemRequest @[json: 'inventoryItem']
-	money_amounts    ?[]MoneyAmountRequest @[json: 'moneyAmounts']
-	option_value_ids ?[]string             @[json: 'optionValueIds']
-	metadata         ?string               @[raw]
+	variant_rank     ?i32                        @[json: 'variantRank']
+	inventory_item   ?InventoryItemCreateRequest @[json: 'inventoryItem']
+	money_amounts    ?[]MoneyAmountRequest       @[json: 'moneyAmounts']
+	option_value_ids ?[]string                   @[json: 'optionValueIds']
+	metadata         ?string                     @[raw]
 }
 
-struct ProductVariantRequestHygienised {
+struct ProductVariantCreateRequestHygienised {
 	title                ?string
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
 	variant_rank         ?i32
-	inventory_item       ?InventoryItemRequest
+	option_value_ids     ?[]string
+	option_value_ids_bin [][]u8
+	metadata             ?string
+mut:
+	inventory_item ?InventoryItemCreateRequestHygienised
+	money_amounts  ?[]MoneyAmountRequestHygienised
+}
+
+fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
+	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
+		return new_internal_error(error_id_invalid, 'ids_bin')
+	}
+
+	mut ph := ProductVariantCreateRequestHygienised{
+		title:                p.title
+		ean:                  p.ean
+		upc:                  p.upc
+		barcode:              p.barcode
+		variant_rank:         p.variant_rank
+		option_value_ids:     p.option_value_ids
+		option_value_ids_bin: option_value_ids_bin
+		metadata:             p.metadata
+	}
+
+	if money_amounts := p.money_amounts {
+		mut h := []MoneyAmountRequestHygienised{len: money_amounts.len}
+		for i := 0; i < money_amounts.len; i++ {
+			h[i] = money_amounts[i].hygienise()!
+		}
+		ph.money_amounts = h
+	}
+
+	if inventory_item := p.inventory_item {
+		ph.inventory_item = inventory_item.hygienise()!
+	}
+
+	return ph
+}
+
+struct ProductVariantUpdateRequest {
+	title            ?string
+	ean              ?string
+	upc              ?string
+	barcode          ?string
+	variant_rank     ?i32                        @[json: 'variantRank']
+	inventory_item   ?InventoryItemUpdateRequest @[json: 'inventoryItem']
+	money_amounts    ?[]MoneyAmountRequest       @[json: 'moneyAmounts']
+	option_value_ids ?[]string                   @[json: 'optionValueIds']
+	metadata         ?string                     @[raw]
+}
+
+struct ProductVariantUpdateRequestHygienised {
+	title                ?string
+	ean                  ?string
+	upc                  ?string
+	barcode              ?string
+	variant_rank         ?i32
+	inventory_item       ?InventoryItemUpdateRequest
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
@@ -311,12 +588,12 @@ mut:
 	money_amounts ?[]MoneyAmountRequestHygienised
 }
 
-fn (p ProductVariantRequest) hygienise() !ProductVariantRequestHygienised {
+fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
 		return new_internal_error(error_id_invalid, 'ids_bin')
 	}
 
-	mut ph := ProductVariantRequestHygienised{
+	mut ph := ProductVariantUpdateRequestHygienised{
 		title:                p.title
 		ean:                  p.ean
 		upc:                  p.upc
@@ -363,14 +640,17 @@ struct NewCurrencyData {
 	includes_tax bool @[json: 'includesTax']
 }
 
-struct InventoryLevelRequest {
-	stocked_quantity i32 @[json: 'stockedQuantity']
-}
-
 struct ProductCategoryTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	name        ?string
 	description ?string
+}
+
+struct ProductCategoryTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	name          ?string
+	description   ?string
 }
 
 struct ProductCategoryRequest {
@@ -381,6 +661,18 @@ struct ProductCategoryRequest {
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
 	translations       ?[]ProductCategoryTranslationRequest
+}
+
+struct ProductCategoryRequestHygienised {
+	handle                 ?string
+	is_internal            ?bool
+	is_active              ?bool
+	parent_category_id     ?string
+	parent_category_id_bin []u8
+	category_rank          ?i32
+	metadata               ?string
+mut:
+	translations ?[]ProductCategoryTranslationRequestHygienised
 }
 
 struct ProductCreateRequest {

@@ -3,7 +3,7 @@ module peony
 import veb
 
 fn conduit_inventory_level_update(mut app App, mut ctx Context, inventory_item_id_bin []u8, stock_location_id_bin []u8,
-	p InventoryLevelRequest) veb.Result {
+	p InventoryLevelUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}

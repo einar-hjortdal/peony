@@ -43,7 +43,7 @@ fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin
 }
 
 fn model_inventory_level_update(mut tx firebird.Transaction, inventory_item_id_bin []u8, stock_location_id_bin []u8,
-	p InventoryLevelRequest) ! {
+	p InventoryLevelUpdateRequest) ! {
 	tx.execute('MERGE INTO inventory_level t
 		USING (
 			SELECT
@@ -167,7 +167,7 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, product_variant_id
 	return inventory_items
 }
 
-fn model_inventory_item_create(mut tx firebird.Transaction, inventory_item_id_bin []u8, variant_id_bin []u8, p InventoryItemRequest) ! {
+fn model_inventory_item_create(mut tx firebird.Transaction, inventory_item_id_bin []u8, variant_id_bin []u8, p InventoryItemUpdateRequest) ! {
 	mut columns := ['id', 'variant_id']
 	mut params := [firebird.Value(inventory_item_id_bin), variant_id_bin]
 

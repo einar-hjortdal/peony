@@ -14,8 +14,9 @@ pub fn (mut app App) admin_inventory_level_update(mut ctx Context, inventory_ite
 		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
 	}
 
-	p := json.decode(InventoryLevelRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode InventoryLevelRequest', err.msg())
+	p := json.decode(InventoryLevelUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode InventoryLevelUpdateRequest',
+			err.msg())
 	}
 
 	// TODO validate new stocked_quantity is not less than reserved_quantity

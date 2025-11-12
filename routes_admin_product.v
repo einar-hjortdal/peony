@@ -149,7 +149,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	p := json.decode(ProductVariantRequest, ctx.req.data) or {
+	p := json.decode(ProductVariantUpdateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest ', err.msg())
 	}
 
@@ -235,7 +235,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return handle_error_400(mut ctx, error_id_invalid, 'variant_id')
 	}
 
-	p := json.decode(ProductVariantRequest, ctx.req.data) or {
+	p := json.decode(ProductVariantUpdateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest', err.msg())
 	}
 
@@ -253,7 +253,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			&& inventory_item.length == none && inventory_item.height == none
 			&& inventory_item.width == none && inventory_item.manage_inventory == none
 			&& inventory_item.requires_shipping == none {
-			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemRequest')
+			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemUpdateRequest')
 		}
 	}
 
