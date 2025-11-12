@@ -197,10 +197,7 @@ struct ProductOptionListEnvelope {
 
 struct MoneyAmountResponse {
 	id            string
-	created_at    time.Time @[json: 'createdAt']
-	updated_at    time.Time @[json: 'updatedAt']
-	deleted_at    time.Time @[json: 'deletedAt'; omitempty]
-	currency_code string    @[json: 'currencyCode']
+	currency_code string @[json: 'currencyCode']
 	amount        i32
 	min_quantity  i32    @[json: 'minQuantity'; omitempty]
 	max_quantity  i32    @[json: 'maxQuantity'; omitempty]

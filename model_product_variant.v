@@ -502,13 +502,12 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 	}
 
 	tx.execute('DELETE FROM money_amount
-			WHERE price_list_id IS NULL
-			AND id IN
-				(
-					SELECT money_amount_id
-					FROM product_variant_money_amount
-					WHERE variant_id = ?
-				)',
+		WHERE price_list_id IS NULL
+		AND id IN (
+			SELECT money_amount_id
+			FROM product_variant_money_amount
+			WHERE variant_id = ?
+		)',
 		variant_id_bin)!
 
 	if ph.len == 0 {
@@ -561,7 +560,7 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 	for i := 0; i < money_amount_ids_bin.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) as variant_id,
-			CAST(? AS BINARY(16)) as money_amount_id,
+			CAST(? AS BINARY(16)) as money_amount_id
 			FROM RDB\$DATABASE'
 		params[i * 2] = variant_id_bin
 		params[i * 2 + 1] = money_amount_ids_bin[i]

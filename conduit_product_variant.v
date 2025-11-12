@@ -27,46 +27,50 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
 	}
 
-	mut variant_map, variant_ids_bin := make_product_variant_map(product_variants)
-	inventory_items := model_inventory_item_retrieve(mut tx, variant_ids_bin) or {
+	mut product_variant_map, product_variant_ids_bin := make_product_variant_map(product_variants)
+
+	mut product_variant_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve inventory_item ', err.msg())
+		if err is InternalError {
+			return handle_suite_error(mut ctx, err)
+		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_variant_data_get')
 	}
 
-	mut inventory_item_map, inventory_item_ids_bin := make_inventory_item_map(inventory_items)
-	inventory_levels := model_inventory_level_get(mut tx, inventory_item_ids_bin) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve inventory_levels ', err.msg())
-	}
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	for i := 0; i < inventory_levels.len; i++ {
-		inventory_level := inventory_levels[i]
-		inventory_item_id := inventory_levels[i].inventory_item_id
-		inventory_item_levels := inventory_item_map[inventory_item_id].inventory_levels
-		new_levels := arrays.concat(inventory_item_levels, inventory_level)
-		inventory_item_map[inventory_item_id].inventory_levels = new_levels
-	}
+	product_variant_data.assign_inventory_levels()
 
-	mut complete_inventory_items := []InventoryItem{len: inventory_items.len}
-	for i := 0; i < inventory_items.len; i++ {
-		id := inventory_items[i].id
-		complete_inventory_items[i] = inventory_item_map[id]
+	mut complete_inventory_items := []InventoryItem{len: product_variant_data.inventory_items.len}
+	for i := 0; i < product_variant_data.inventory_items.len; i++ {
+		id := product_variant_data.inventory_items[i].id
+		complete_inventory_items[i] = product_variant_data.inventory_item_map[id]
 	}
 
 	for i := 0; i < complete_inventory_items.len; i++ {
 		inventory_item := complete_inventory_items[i]
 		id := inventory_item.variant_id
-		variant_map[id].inventory_item = inventory_item
+		product_variant_map[id].inventory_item = inventory_item
 	}
 
-	// rebuild array using same sorting as original array
+	// assing money_amount
+	for i := 0; i < product_variant_data.money_amounts.len; i++ {
+		money_amount := product_variant_data.money_amounts[i]
+		product_variant_id_bin := money_amount.variant_id_bin.value
+		product_variant_id := id_bin_to_string(product_variant_id_bin) or {
+			return handle_error_500(mut ctx, 'money_amount has invalid or missing product_variant_id_bin',
+				err.msg())
+		}
+		old_money_amounts := product_variant_map[product_variant_id].money_amounts
+		new_money_amounts := arrays.concat(old_money_amounts, money_amount)
+		product_variant_map[product_variant_id].money_amounts = new_money_amounts
+	}
+
 	mut complete_product_variants := []ProductVariant{len: product_variants.len}
 	for i := 0; i < product_variants.len; i++ {
 		id := product_variants[i].id
-		complete_product_variants[i] = variant_map[id]
+		complete_product_variants[i] = product_variant_map[id]
 	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
 		product_variants: complete_product_variants
@@ -106,11 +110,16 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 
 	product_variants := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
 	}
 
-	mut product_variant := product_variants[0]
-	inventory_items := model_inventory_item_retrieve(mut tx, [product_variant.id_bin]) or {
+	money_amounts := model_product_variant_money_amount_retrieve(mut tx, ph.ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_variant_money_amount',
+			err.msg())
+	}
+
+	inventory_items := model_inventory_item_retrieve(mut tx, ph.ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve inventory_item ', err.msg())
 	}
@@ -121,14 +130,17 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	}
 
 	mut inventory_item := inventory_items[0]
-	inventory_item.inventory_levels = model_inventory_level_get(mut tx, [inventory_item.id_bin]) or {
+	inventory_levels := model_inventory_level_get(mut tx, [inventory_item.id_bin]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve inventory_level ', err.msg())
 	}
 
-	product_variant.inventory_item = inventory_item
-
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	mut product_variant := product_variants[0]
+	inventory_item.inventory_levels = inventory_levels
+	product_variant.money_amounts = money_amounts
+	product_variant.inventory_item = inventory_item
 
 	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
 		product_variants: [product_variant]
@@ -174,7 +186,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	if money_amounts := ph.money_amounts {
 		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
 			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Could not update product_variant money_amount',
+			return handle_error_500(mut ctx, 'Could not update product_variant_money_amount',
 				err.msg())
 		}
 	}
@@ -215,7 +227,7 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	if money_amounts := ph.money_amounts {
 		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
 			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Could not update product_variant money_amount',
+			return handle_error_500(mut ctx, 'Could not update product_variant_money_amount',
 				err.msg())
 		}
 	}
