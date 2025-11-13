@@ -314,6 +314,7 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	}
 
 	if count == 0 {
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return handle_error_500(mut ctx, 'product_variant does not exist', 'count == 0')
 	}
 

@@ -13,6 +13,7 @@ fn conduit_locale_get(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygie
 	}
 
 	if count == 0 {
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(ListLocaleResponseEnvelope{
 			locales: []LocaleResponse{}
 			count:   count

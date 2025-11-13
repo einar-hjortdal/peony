@@ -4,17 +4,17 @@ import log
 import net.http
 import veb
 
+const error_database_data_malformed = 'Data retrieved from database is malformed'
 const error_empty_field = 'Field cannot be empty'
 const error_empty_object = 'Received all empty fields'
-const error_id_invalid = 'Invalid id'
-const error_id_generation = 'Failed to generate id'
-const error_header_missing = 'Missing header'
 const error_header_invalid = 'Invalid header'
-const error_transaction_start = 'Failed to start transaction'
+const error_header_missing = 'Missing header'
+const error_id_generation = 'Failed to generate id'
+const error_id_invalid = 'Invalid id'
+const error_missing_default_translation = 'Default translation is required'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
-const error_database_data_malformed = 'Data retrieved from database is malformed'
-const error_missing_default_translation = 'Default translation is required'
+const error_transaction_start = 'Failed to start transaction'
 
 fn success(mut ctx Context) veb.Result {
 	return ctx.json(PeonySuccess{

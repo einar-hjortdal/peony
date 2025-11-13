@@ -14,5 +14,5 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 		return handle_fetch_zero(mut ctx)
 	}
 
-	return conduit_currency_get(mut app, mut ctx, p)
+	return conduit_currency_list(mut app, mut ctx, p)
 }

@@ -51,6 +51,10 @@ struct CurrencyResponse {
 }
 
 struct CurrencyResponseEnvelope {
+	currency CurrencyResponse
+}
+
+struct CurrencyResponseListEnvelope {
 	currencies []CurrencyResponse
 	count      i64
 	offset     i32

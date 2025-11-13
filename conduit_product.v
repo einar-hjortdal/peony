@@ -94,7 +94,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	offset := get_offset_amount(ph.offset)
 
 	if count == 0 || offset >= count {
-		tx.rollback() or {}
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		r := ProductResponseListEnvelope{
 			products: []ProductResponse{}
 			count:    count
@@ -189,7 +189,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	offset := get_offset_amount(ph.offset)
 
 	if count == 0 || offset >= count {
-		tx.rollback() or {}
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		r := ProductResponseListEnvelope{
 			products: []ProductResponse{}
 			count:    count

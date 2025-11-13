@@ -15,7 +15,7 @@ fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProduct
 	}
 
 	if count == 0 {
-		tx.rollback() or {}
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(VariantResponseListEnvelope{
 			offset: get_offset_amount(ph.offset)
 			fetch:  ph.fetch.v
@@ -104,7 +104,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	}
 
 	if count == 0 {
-		tx.rollback() or {}
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return handle_error_404(mut ctx, 'No variant exists with the given id', 'count == 0')
 	}
 

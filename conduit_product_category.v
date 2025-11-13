@@ -15,6 +15,7 @@ fn conduit_product_category_list(mut app App, mut ctx Context, ph ProductCategor
 	}
 
 	if count == 0 {
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(ProductCategoryResponseListEnvelope{
 			product_categories: []ProductCategoryResponse{}
 			count:              count

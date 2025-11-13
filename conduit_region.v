@@ -13,7 +13,7 @@ fn conduit_region_list(mut app App, mut ctx Context, ph ListRegionParamsHygienis
 	}
 
 	if count == 0 {
-		tx.rollback() or {} // ignore error
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(RegionResponseListEnvelope{
 			offset: get_offset_amount(ph.offset)
 			fetch:  ph.fetch.v
@@ -60,7 +60,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 	}
 
 	if count == 0 {
-		tx.rollback() or {} // ignore error
+		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(RegionResponseListEnvelope{
 			offset: get_offset_amount(ph.offset)
 			fetch:  ph.fetch.v
