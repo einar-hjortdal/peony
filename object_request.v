@@ -617,19 +617,19 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
 // for a region to limit the requests being sent to a tax provider.
 struct RegionCreateRequest {
-	automatic_taxes ?bool
-	country_codes   []string
-	currency_code   string
-	includes_tax    ?bool
+	automatic_taxes ?bool    @[json: 'automaticTaxes']
+	country_codes   []string @[json: 'countryCodes']
+	currency_code   string   @[json: 'currencyCode']
+	includes_tax    ?bool    @[json: 'includesTax']
 	name            string
 	// taxes
 }
 
 struct RegionUpdateRequest {
-	automatic_taxes ?bool
-	country_codes   ?[]string
-	currency_code   ?string
-	includes_tax    ?bool
+	automatic_taxes ?bool     @[json: 'automaticTaxes']
+	country_codes   ?[]string @[json: 'countryCodes']
+	currency_code   ?string   @[json: 'currencyCode']
+	includes_tax    ?bool     @[json: 'includesTax']
 	name            ?string
 	//  taxes
 }

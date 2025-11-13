@@ -17,6 +17,7 @@
 - [x] Multi-channel
 - [x] Multi-currency
 - [x] Multi-language
+- [x] Multi-region
 - [x] Prices
 - [x] Product categories
 - [x] Product variants
@@ -25,14 +26,13 @@
 
 ### Currently being implemented
 
-- [ ] Multi-region
 - [ ] Taxes
+- [ ] SEO
 
 ### Soon to be implemented
 
 - [ ] Multi-warehouse
 - [ ] Cache
-- [ ] SEO
 
 ### To be implement
 
@@ -64,14 +64,13 @@
 - Multi-currency regions
 - Marketplace
 
-## Modules
+## Interfaces
 
-- [x] Make peony a module
-- [x] BlobProvider interface
-- [ ] EmailProvider interface
-- [ ] PaymentProvider interface
-- [ ] TaxProvider interface
-- [ ] FulfillmentProvider interface
+- [x] BlobProvider
+- [ ] EmailProvider
+- [ ] PaymentProvider
+- [ ] TaxProvider
+- [ ] FulfillmentProvider
 
 ## Changes
 
@@ -105,6 +104,7 @@
 - Query builder to keep select columns together with their referenced table aliases.
 - Enforce at least one price per variant per region.
   - Request validation
+- Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 
 ## Documentation
 

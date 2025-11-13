@@ -5,8 +5,8 @@ import json
 
 // lists regions
 @['/admin/regions'; get]
-pub fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
-	ph := hygienise_retrieve_regions_params(ctx.query) or {
+pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
+	p := hygienise_region_list_params(ctx.query) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -14,11 +14,11 @@ pub fn (mut app App) admin_regions_get(mut ctx Context) veb.Result {
 			err.msg())
 	}
 
-	if ph.fetch.is_set && ph.fetch.v == 0 {
+	if p.fetch.is_set && p.fetch.v == 0 {
 		return handle_fetch_zero(mut ctx)
 	}
 
-	return conduit_region_list(mut app, mut ctx, ph)
+	return conduit_region_list(mut app, mut ctx, p)
 }
 
 // creates a region
@@ -29,13 +29,14 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	}
 
 	if data.country_codes.len == 0 {
-		return handle_error_400(mut ctx, 'A region must have at least one country', 'country_code is an empty array')
+		return handle_error_400(mut ctx, error_empty_object, 'country_codes')
 	}
 
 	// TODO validation
 	// error if currency_code not in store currencies
 	// error if currency_code not in currency table
-	// for each country_codes error if code not in country table
+	// for each country_code error if code not in country table
+	// for each country_code error if country already in another region
 	// this can be abstracted to a utility function because it would be reused in region update endpoint
 
 	return conduit_region_create(mut app, mut ctx, data)
@@ -43,7 +44,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 
 // get a region
 @['/admin/regions/:region_id'; get]
-pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id string) veb.Result {
+pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
@@ -52,7 +53,7 @@ pub fn (mut app App) admin_regions_region_id_get(mut ctx Context, region_id stri
 
 // updates a region
 @['/admin/regions/:region_id'; post]
-pub fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id string) veb.Result {
+pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
@@ -63,10 +64,45 @@ pub fn (mut app App) admin_regions_region_id_post(mut ctx Context, region_id str
 
 	if country_codes := data.country_codes {
 		if country_codes.len == 0 {
-			return handle_error_400(mut ctx, 'A region must have at least one country',
-				'country_code is an empty array')
+			return handle_error_400(mut ctx, error_empty_object, 'country_codes')
 		}
 	}
 
 	return conduit_region_update(mut app, mut ctx, region_id_bin, data)
+}
+
+// deletes a region
+@['/admin/regions/:region_id'; delete]
+pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
+	region_id_bin := id_string_to_bin(region_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+	}
+
+	p := RegionListParams{}
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Could not retrieve store', err.msg())
+	}
+
+	count := model_region_retrieve_count(mut tx, p) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Could not retrieve region count', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	if store.default_region_id_bin == region_id_bin {
+		return handle_error_400(mut ctx, 'Could not delete region', 'Cannot delete default region')
+	}
+
+	if count == 1 {
+		return handle_error_400(mut ctx, 'Could not delete region', 'Refusing to delete last region')
+	}
+
+	return conduit_region_delete(mut app, mut ctx, region_id_bin)
 }

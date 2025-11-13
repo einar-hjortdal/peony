@@ -26,25 +26,29 @@ mut:
 	tax_rates []TaxRate
 }
 
-fn conditions_region_retrieve(ph ListRegionParamsHygienised) (string, []firebird.Value) {
+fn conditions_region_retrieve(p RegionListParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
+	if p.ids.is_set {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
+		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
-	if ph.name.is_set {
+	if p.name.is_set {
 		conditions = arrays.concat(conditions, "name LIKE '%' || ? || '%'")
-		params = arrays.concat(params, ph.name.v)
+		params = arrays.concat(params, p.name.v)
+	}
+
+	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
+		conditions = arrays.concat(conditions, 'deleted_at is NULL')
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_region_retrieve_count(mut tx firebird.Transaction, ph ListRegionParamsHygienised) !i64 {
-	conditions, params := conditions_region_retrieve(ph)
+fn model_region_retrieve_count(mut tx firebird.Transaction, p RegionListParams) !i64 {
+	conditions, params := conditions_region_retrieve(p)
 	data := tx.execute('SELECT COUNT(*) FROM region ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -52,7 +56,7 @@ fn model_region_retrieve_count(mut tx firebird.Transaction, ph ListRegionParamsH
 	return count
 }
 
-fn model_region_retrieve(mut tx firebird.Transaction, ph ListRegionParamsHygienised) ![]Region {
+fn model_region_retrieve(mut tx firebird.Transaction, p RegionListParams) ![]Region {
 	base_query := 'SELECT
 		id,
 		name,
@@ -65,18 +69,18 @@ fn model_region_retrieve(mut tx firebird.Transaction, ph ListRegionParamsHygieni
 		automatic_taxes
 		FROM region'
 
-	mut conditions, mut params := conditions_region_retrieve(ph)
+	mut conditions, mut params := conditions_region_retrieve(p)
 
-	mut sorting := 'ORDER BY name ${get_sorting_order(ph.order)}'
+	mut sorting := 'ORDER BY name ${get_sorting_order(p.order)}'
 
-	if ph.offset.is_set {
+	if p.offset.is_set {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, ph.offset.v)
+		params = arrays.concat(params, p.offset.v)
 	}
 
-	if ph.fetch.is_set {
+	if p.fetch.is_set {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, ph.fetch.v)
+		params = arrays.concat(params, p.fetch.v)
 	}
 
 	data := tx.execute('${base_query} ${conditions} ${sorting}', ...params)!
@@ -115,27 +119,6 @@ fn model_region_retrieve(mut tx firebird.Transaction, ph ListRegionParamsHygieni
 
 	return regions
 }
-
-// fn (mut app App) add_country(code string, region_id string) ! {
-// 	region_id_bin := id_string_to_bin(region_id)!
-// 	mut tx := app.start_transaction()!
-// 	tx.execute('UPDATE country SET region_id = ? WHERE code = ?', region_id_bin, code) or {
-// 		tx.rollback()!
-// 		return err
-// 	}
-// 	tx.commit()!
-// }
-
-// fn (mut app App) remove_country(code string, region_id string) ! {
-// 	region_id_bin := id_string_to_bin(region_id)!
-// 	mut tx := app.start_transaction()!
-// 	tx.execute('UPDATE country SET region_id = NULL WHERE code = ? AND region_id = ?',
-// 		code, region_id_bin) or {
-// 		tx.rollback()!
-// 		return err
-// 	}
-// 	tx.commit()!
-// }
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
 // TODO verify currency_code is in store_currencies before insert.
@@ -205,5 +188,6 @@ fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d Region
 	}
 }
 
-// TODO delete region
-// Cannot delete default region
+fn model_region_delete(mut tx firebird.Transaction, region_id_bin []u8) ! {
+	tx.execute('UPDATE region SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', region_id_bin)!
+}

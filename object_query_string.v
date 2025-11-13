@@ -1,11 +1,30 @@
 module peony
 
-struct ListRegionParams {
-	ids    ZeroArrayString
-	name   ZeroString
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
+struct RegionListParams {
+	ids          ZeroArrayString
+	ids_bin      [][]u8
+	name         ZeroString
+	with_deleted ZeroBool
+	offset       ZeroI32
+	fetch        ZeroI32
+	order        ZeroString
+}
+
+fn hygienise_region_list_params(m map[string]string) !RegionListParams {
+	ids := zero_array_string(m, 'ids')
+	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
+		return new_internal_error(error_id_invalid, 'ids')
+	}
+
+	return RegionListParams{
+		ids:          ids
+		ids_bin:      ids_bin
+		name:         zero_string(m, 'name')
+		with_deleted: zero_bool(m, 'with_deleted')
+		offset:       zero_i32(m, 'offset')
+		fetch:        zero_i32(m, 'fetch')
+		order:        zero_string(m, 'order')
+	}
 }
 
 struct ListCountriesParams {
