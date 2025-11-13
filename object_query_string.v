@@ -31,7 +31,7 @@ struct RetrieveCurrenciesParams {
 
 fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesParams {
 	return RetrieveCurrenciesParams{
-		codes:  zero_array_string(m, 'code')
+		codes:  zero_array_string(m, 'codes')
 		offset: zero_i32(m, 'offset')
 		fetch:  zero_i32(m, 'fetch')
 		order:  zero_string(m, 'order')

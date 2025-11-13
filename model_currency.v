@@ -18,7 +18,7 @@ fn conditions_currency_retrieve(p RetrieveCurrenciesParams) (string, []firebird.
 		for i := 0; i < p.codes.v.len; i++ {
 			c[i] = firebird.Value(p.codes.v[i])
 		}
-		conditions = arrays.concat(conditions, 'WHERE code IN (${get_placeholders(p.codes.v)})')
+		conditions = arrays.concat(conditions, 'code IN (${get_placeholders(p.codes.v)})')
 		// v: ['EUR']
 		// firebird.Value(5395781)
 		// params = arrays.concat(params, ...p.code.v)
@@ -38,7 +38,6 @@ fn model_currency_retrieve_count(mut tx firebird.Transaction, p RetrieveCurrenci
 }
 
 fn model_currency_retrieve(mut tx firebird.Transaction, p RetrieveCurrenciesParams) ![]Currency {
-	query := 'SELECT code, decimal_digits FROM currency'
 	conditions, mut params := conditions_currency_retrieve(p)
 
 	mut sorting := ''
@@ -54,7 +53,8 @@ fn model_currency_retrieve(mut tx firebird.Transaction, p RetrieveCurrenciesPara
 		params = arrays.concat(params, p.fetch.v)
 	}
 
-	data := tx.execute('${query}${conditions}${sorting}', ...params)!
+	data := tx.execute('SELECT code, decimal_digits FROM currency ${conditions} ${sorting}',
+		...params)!
 	rows := data.rows()
 
 	mut currencies := []Currency{len: rows.len}
