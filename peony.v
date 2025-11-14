@@ -57,6 +57,7 @@ pub fn new_peony_app(blob_provider &BlobProvider) &App {
 		http_only: true
 		secret:    os.getenv(env_session_secret)
 		secure:    true
+		path:      '/'
 		max_age:   time.second * strconv.parse_int(os.getenv(env_session_max_age), 10,
 			64) or { panic(err) }
 	}

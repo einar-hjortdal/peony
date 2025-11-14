@@ -40,7 +40,6 @@
 - [ ] Price rules
 - [ ] Price lists
 - [ ] Unit pricing
-- [ ] Discounts
 - [ ] Product tags
 - [ ] Product types
 - [ ] Product collections

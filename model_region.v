@@ -121,7 +121,6 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionListParams) ![]Reg
 }
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
-// TODO verify currency_code is in store_currencies before insert.
 fn model_region_create(mut tx firebird.Transaction, region_id_bin []u8, d RegionCreateRequest) ! {
 	mut columns := ['id', 'currency_code', 'name']
 	mut params := [firebird.Value(region_id_bin), d.currency_code, d.name]
