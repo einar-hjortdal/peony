@@ -41,3 +41,46 @@ fn zero_array_id_string_to_array_id_bin(zero_array_id_string ZeroArrayString) ![
 fn get_header_content_type(mut ctx Context) !string {
 	return ctx.get_header(http.CommonHeader.content_type)
 }
+
+fn verify_money_amounts(money_amounts []ProductVaraintMoneyAmountRequestHygienised, existing_regions []Region) ! {
+	mut region_id_map := map[string]bool{}
+	for i := 0; i < existing_regions.len; i++ {
+		region_id := existing_regions[i].id
+		region_id_map[region_id] = true
+	}
+
+	mut original_prices_count := 0
+	mut base_prices_count := 0
+	mut region_map_original_prices := map[string]bool{}
+	mut region_map_base_prices := map[string]bool{}
+	for i := 0; i < money_amounts.len; i++ {
+		money_amount := money_amounts[i]
+		region_id := money_amount.region_id
+		if region_id !in region_id_map {
+			return new_internal_error(error_id_invalid, 'There exists no region with id ${region_id}')
+		}
+
+		if is_original := money_amount.is_original {
+			if is_original {
+				if region_id in region_map_original_prices {
+					return new_internal_error('Multiple original_prices per region', 'At most one original_price per region is allowed, received 2 for the same region.')
+				}
+
+				original_prices_count++
+				region_map_original_prices[region_id] = true
+				continue
+			}
+		}
+
+		if region_id in region_map_base_prices {
+			return new_internal_error('Multiple base_prices per region', 'Exactly one base_price per region required, received 2 for the same region.')
+		}
+
+		base_prices_count++
+		region_map_base_prices[region_id] = true
+	}
+
+	if base_prices_count < existing_regions.len {
+		return new_internal_error('base_price/region count mismatch', 'Exactly one price per region required, received less prices than the number of existing regions.')
+	}
+}

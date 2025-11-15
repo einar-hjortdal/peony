@@ -176,7 +176,6 @@ fn format_product_translation_response(p ProductTranslation) ProductTranslationR
 	}
 }
 
-// TODO region_id should always be set
 fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
 	mut price_list_id := ''
 	mut variant_id := ''
@@ -275,131 +274,6 @@ fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
 		manage_inventory:  v.manage_inventory
 		allow_backorder:   v.allow_backorder
 		inventory_levels:  inventory_levels
-	}
-}
-
-fn format_product_variant_response(v ProductVariant, p ProductVariantPrice, product_variants_availability map[string]ProductVariantAvailability) ProductVariantResponse {
-	product_variant_availability := product_variants_availability[v.id]
-
-	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
-	for i := 0; i < v.option_values.len; i++ {
-		option_values[i] = format_product_option_value_response(v.option_values[i])
-	}
-
-	mut money_amounts := []MoneyAmountResponse{len: v.money_amounts.len}
-	for i := 0; i < v.money_amounts.len; i++ {
-		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
-	}
-
-	return ProductVariantResponse{
-		id:           v.id
-		created_at:   v.created_at.Time
-		updated_at:   v.updated_at.Time
-		deleted_at:   v.deleted_at.value.Time
-		product_id:   v.product_id
-		title:        v.title.value
-		barcode:      v.barcode.value
-		ean:          v.ean.value
-		upc:          v.upc.value
-		variant_rank: v.variant_rank
-		metadata:     v.metadata.value
-		// TODO variant_image
-		inventory_item: format_inventory_item_response(v.inventory_item) // TODO not for /store/
-		option_values:  option_values
-		money_amounts:  money_amounts
-		price:          format_price_response(p)
-		purchasable:    product_variant_availability.purchasable
-	}
-}
-
-fn format_product_variant_response_admin(v ProductVariant, product_variants_availability map[string]ProductVariantAvailability) !ProductVariantResponse {
-	return format_product_variant_response(v, ProductVariantPrice{}, product_variants_availability)
-}
-
-fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
-	return SalesChannelResponse{
-		id:          v.id
-		created_at:  v.created_at.Time
-		updated_at:  v.updated_at.Time
-		deleted_at:  v.deleted_at.Time
-		name:        v.name
-		description: v.description
-		is_disabled: v.is_disabled
-	}
-}
-
-fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
-	mut type_id := ''
-	if !p.type_id_bin.is_null {
-		type_id = id_bin_to_string(p.type_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('product.type_id_bin is invalid')
-			''
-		}
-	}
-
-	mut images := []ProductImageResponse{len: p.images.len}
-	for i := 0; i < p.images.len; i++ {
-		images[i] = format_product_image_response(p.images[i])
-	}
-
-	mut options := []ProductOptionResponse{len: p.options.len}
-	for i := 0; i < p.options.len; i++ {
-		options[i] = format_product_option_response(p.options[i])
-	}
-
-	mut variants := []ProductVariantResponse{len: p.variants.len}
-	for i := 0; i < p.variants.len; i++ {
-		variant := p.variants[i]
-		prices := calculate_price(variant, 1, pctx)
-		variants[i] = format_product_variant_response(variant, prices, product_variants_availability)
-	}
-
-	mut translations := []ProductTranslationResponse{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = format_product_translation_response(p.translations[i])
-	}
-
-	mut sales_channels := []SalesChannelResponse{len: p.sales_channels.len}
-	for i := 0; i < p.sales_channels.len; i++ {
-		sales_channels[i] = format_sales_channel_response(p.sales_channels[i])
-	}
-
-	mut categories := []ProductCategoryResponse{len: p.categories.len}
-	for i := 0; i < p.categories.len; i++ {
-		categories[i] = format_product_category_response(p.categories[i])
-	}
-
-	// mut collections := []ProductCollectionResponse{len: p.collections.len}
-	// for i := 0; i < p.collections.len; i++ {
-	// 	collections[i] = format_product_collection_response(p.collections[i])
-	// }
-
-	// TODO tags
-
-	return ProductResponse{
-		id:             p.id
-		created_at:     p.created_at.Time
-		updated_at:     p.updated_at.Time
-		deleted_at:     p.deleted_at.value.Time
-		handle:         p.handle
-		is_giftcard:    p.is_giftcard
-		status:         p.status
-		thumbnail:      p.thumbnail.value
-		type_id:        type_id
-		discountable:   p.discountable
-		metadata:       p.metadata.value
-		title:          p.title.value
-		subtitle:       p.subtitle.value
-		description:    p.description.value
-		images:         images
-		options:        options
-		variants:       variants
-		translations:   translations
-		sales_channels: sales_channels
-		categories:     categories
-		// collections:    collections
-		// tags:          tags
 	}
 }
 

@@ -76,8 +76,7 @@ fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, prod
 	return product_variant_money_amounts
 }
 
-// TODO in request verify there is 0 or 1 is_original
-// TODO in request verify there is exactly 1 !is_original that has no price_list and unique region_id
+// money_amount that are related to a price_list are left untouched.
 fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductVaraintMoneyAmountRequestHygienised) ! {
 	mut money_amount_ids_bin := [][]u8{len: ph.len}
 	for i := 0; i < ph.len; i++ {
@@ -99,15 +98,13 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 	}
 
 	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 6, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: ph.len * 4, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) as id,
 			CAST(? AS INTEGER) as amount,
 			CAST(? AS BINARY(16)) as region_id,
-			CAST(? AS BOOLEAN) as is_original,
-			CAST(? AS INTEGER) as min_quantity,
-			CAST(? AS INTEGER) as max_quantity
+			CAST(? AS BOOLEAN) as is_original
 			FROM RDB\$DATABASE'
 		params[i * 5] = money_amount_ids_bin[i]
 		params[i * 5 + 1] = ph[i].amount
@@ -118,21 +115,9 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 		} else {
 			params[i * 5 + 3] = firebird.Null{}
 		}
-
-		if min_quantity := ph[i].min_quantity {
-			params[i * 5 + 4] = min_quantity
-		} else {
-			params[i * 5 + 4] = firebird.Null{}
-		}
-
-		if max_quantity := ph[i].max_quantity {
-			params[i * 5 + 5] = max_quantity
-		} else {
-			params[i * 5 + 5] = firebird.Null{}
-		}
 	}
 
-	tx.execute('INSERT INTO money_amount (id, amount, is_original, min_quantity, max_quantity, region_id)
+	tx.execute('INSERT INTO money_amount (id, amount, is_original, region_id)
 		${get_merge_source(src)}',
 		...params)!
 
@@ -151,3 +136,14 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 		${get_merge_source(src)}',
 		...params)!
 }
+
+// fn model_price_list_money_amount_update(price_list_id []u8, []PriceListMoneyAmountRequestHygienised) ! {
+// 	tx.execute('DELETE FROM money_amount
+// 		WHERE price_list_id = ?
+// 		AND id IN (
+// 			SELECT money_amount_id
+// 			FROM product_variant_money_amount
+// 			WHERE variant_id IN (?, ?)
+// 		)',
+// 		price_list_id)!
+// }

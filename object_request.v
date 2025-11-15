@@ -368,14 +368,10 @@ fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) 
 	}
 }
 
-// max_quantity the maximum quantity required to be added to the cart for the price to be used.
-// min_quantity the minimum quantity required to be added to the cart for the price to be used.
 struct ProductVaraintMoneyAmountRequest {
-	amount       i32
-	region_id    string @[json: 'regionId']
-	is_original  ?bool  @[json: 'isOriginal']
-	max_quantity ?i32   @[json: 'maxQuantity']
-	min_quantity ?i32   @[json: 'minQuantity']
+	amount      i32
+	region_id   string @[json: 'regionId']
+	is_original ?bool  @[json: 'isOriginal']
 }
 
 struct ProductVaraintMoneyAmountRequestHygienised {
@@ -383,8 +379,6 @@ struct ProductVaraintMoneyAmountRequestHygienised {
 	region_id     string
 	region_id_bin []u8
 	is_original   ?bool
-	max_quantity  ?i32
-	min_quantity  ?i32
 }
 
 fn (p ProductVaraintMoneyAmountRequest) hygienise() !ProductVaraintMoneyAmountRequestHygienised {
@@ -396,8 +390,6 @@ fn (p ProductVaraintMoneyAmountRequest) hygienise() !ProductVaraintMoneyAmountRe
 		amount:        p.amount
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
-		max_quantity:  p.max_quantity
-		min_quantity:  p.min_quantity
 	}
 }
 
@@ -559,9 +551,6 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 
 	return ph
 }
-
-// TODO verify function
-// verify one money_amount per region
 
 struct ProductVariantUpdateRequest {
 	title            ?string

@@ -22,6 +22,7 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 }
 
 // create a product
+// TODO create variants, inventory_items and inventory_levels
 @['/admin/products'; post]
 pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
@@ -162,8 +163,6 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_400(mut ctx, 'money_amount required', 'A product_variant must have at least one price per region')
 	}
 
-	// TODO verify one money_amount per region
-
 	if title := ph.title {
 		if title == '' {
 			return handle_error_400(mut ctx, 'title is required', 'title not provided')
@@ -172,11 +171,35 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_400(mut ctx, 'title is required', 'title not provided')
 	}
 
-	if option_value_ids := ph.option_value_ids {
-		mut tx := app.start_transaction() or {
-			return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	if inventory_item := ph.inventory_item {
+		if inventory_item.sku == none && inventory_item.origin_country == none
+			&& inventory_item.hs_code == none && inventory_item.mid_code == none
+			&& inventory_item.material == none && inventory_item.weight == none
+			&& inventory_item.length == none && inventory_item.height == none
+			&& inventory_item.width == none && inventory_item.manage_inventory == none
+			&& inventory_item.requires_shipping == none {
+			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemCreateRequest')
 		}
+	}
 
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	regions := model_region_retrieve(mut tx, RegionListParams{}) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve region', err.msg())
+	}
+
+	verify_money_amounts(ph.money_amounts, regions) or {
+		tx.rollback() or {}
+		if err is InternalError {
+			return handle_suite_error(mut ctx, err)
+		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'ProductVariantCreateRequestHygienised.verify_money_amounts')
+	}
+
+	if option_value_ids := ph.option_value_ids {
 		mut product_option_data := suite_product_option_data_get(mut tx, [
 			product_id_bin,
 		]) or {
@@ -187,9 +210,8 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 			return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
 		}
 
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
 		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
+			tx.rollback() or {}
 			if err is InternalError {
 				return handle_error_400(mut ctx, err.message, err.details)
 			}
@@ -198,9 +220,12 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 	} else {
 		// peony automatically creates the first variant with no options.
 		// There should not exist the chance to create a second variant with no options.
+		tx.rollback() or {}
 		return handle_error_400(mut ctx, 'Values for each existing product_option must be provided',
 			'No product_option_value provided')
 	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
 }
@@ -261,11 +286,26 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		}
 	}
 
-	if option_value_ids := ph.option_value_ids {
-		mut tx := app.start_transaction() or {
-			return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	if money_amounts := ph.money_amounts {
+		regions := model_region_retrieve(mut tx, RegionListParams{}) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve region', err.msg())
 		}
 
+		verify_money_amounts(money_amounts, regions) or {
+			tx.rollback() or {}
+			if err is InternalError {
+				return handle_suite_error(mut ctx, err)
+			}
+			return handle_error_unhandled(mut ctx, err.msg(), 'ProductVariantCreateRequestHygienised.verify_money_amounts')
+		}
+	}
+
+	if option_value_ids := ph.option_value_ids {
 		mut product_option_data := suite_product_option_data_get(mut tx, [
 			product_id_bin,
 		]) or {
@@ -276,8 +316,6 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
 		}
 
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
 		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
 			if err is InternalError {
 				return handle_error_400(mut ctx, err.message, err.details)
@@ -285,6 +323,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			return handle_error_unhandled(mut ctx, err.msg(), 'verify_product_option_value_ids')
 		}
 	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
 		ph)
