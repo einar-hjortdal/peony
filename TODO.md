@@ -23,15 +23,15 @@
 - [x] Product variants
 - [x] Products
 - [x] Uploads
+- [x] SEO
 
 ### Currently being implemented
 
-- [ ] Taxes
-- [ ] SEO
+- [ ] Multi-warehouse
 
 ### Soon to be implemented
 
-- [ ] Multi-warehouse
+- [ ] Taxes
 - [ ] Cache
 
 ### To be implement

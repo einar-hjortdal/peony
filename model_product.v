@@ -9,28 +9,31 @@ const product_status_published = 'published'
 const product_status_rejected = 'rejected'
 
 struct Product {
-	id           string
-	id_bin       []u8
-	created_at   firebird.DateTime
-	updated_at   firebird.DateTime
-	deleted_at   firebird.NullDateTime
-	handle       string
-	is_giftcard  bool
-	status       string
-	thumbnail    firebird.NullString
-	type_id_bin  firebird.NullArrayU8
-	discountable bool
-	metadata     firebird.NullString
-	title        firebird.NullString
-	subtitle     firebird.NullString
-	description  firebird.NullString
+	id              string
+	id_bin          []u8
+	created_at      firebird.DateTime
+	updated_at      firebird.DateTime
+	deleted_at      firebird.NullDateTime
+	handle          string
+	is_giftcard     bool
+	status          string
+	thumbnail       firebird.NullString
+	type_id_bin     firebird.NullArrayU8
+	discountable    bool
+	metadata        firebird.NullString
+	title           firebird.NullString
+	subtitle        firebird.NullString
+	description     firebird.NullString
+	seo_title       firebird.NullString
+	seo_description firebird.NullString
 mut:
-	categories     []ProductCategory
-	images         []ProductImage
-	options        []ProductOption
-	sales_channels []SalesChannel
-	translations   []ProductTranslation
-	variants       []ProductVariant
+	categories       []ProductCategory
+	images           []ProductImage
+	options          []ProductOption
+	sales_channels   []SalesChannel
+	translations     []ProductTranslation
+	seo_translations []ProductSEOTranslation
+	variants         []ProductVariant
 	// tags         []Tag
 }
 
@@ -143,11 +146,13 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) ![]Product {
 	mut params := []firebird.Value{}
 
-	// left join params
+	// left join params, 2 for product_translations and 2 for seo_translations
 	if ph.locale_id.is_set {
-		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin)
+		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin, ph.locale_id_bin,
+			ph.locale_id_bin)
 	} else {
-		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{}, firebird.Null{},
+			firebird.Null{})
 	}
 
 	conditions, condition_params := model_product_retrieve_conditions(ph)
@@ -179,7 +184,9 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		p.metadata,
 		COALESCE(pt_requested.title, pt_default.title) AS title,
 		COALESCE(pt_requested.subtitle, pt_default.subtitle) AS subtitle,
-		COALESCE(pt_requested.description, pt_default.description) AS description
+		COALESCE(pt_requested.description, pt_default.description) AS description,
+		COALESCE(seo_requested.title, seo_default.title) AS seo_title,
+		COALESCE(seo_requested.description, seo_default.description) AS seo_description
 		FROM product p
 		LEFT JOIN product_translations pt_default
 			ON pt_default.product_id = p.id
@@ -190,6 +197,15 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 			ON CAST(? AS BINARY(16)) IS NOT NULL
 			AND pt_requested.product_id = p.id
 			AND pt_requested.locale_id = ?
+		LEFT JOIN seo_translations seo_default
+			ON seo_default.product_id = p.id
+			AND seo_default.locale_id = (
+				SELECT default_locale_id FROM store
+			)
+		LEFT JOIN seo_translations seo_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND seo_requested.product_id = p.id
+			AND seo_requested.locale_id = ?
 		${conditions}
 		${sorting}',
 		...params)!
@@ -213,25 +229,29 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		title := v[11].get_null_string()!
 		subtitle := v[12].get_null_string()!
 		description := v[13].get_null_string()!
+		seo_title := v[14].get_null_string()!
+		seo_description := v[15].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
 		products[i] = Product{
-			id:           id
-			id_bin:       id_bin
-			created_at:   created_at
-			updated_at:   updated_at
-			deleted_at:   deleted_at
-			handle:       handle
-			is_giftcard:  is_giftcard
-			status:       status
-			thumbnail:    thumbnail
-			type_id_bin:  type_id_bin
-			discountable: discountable
-			metadata:     metadata
-			title:        title
-			subtitle:     subtitle
-			description:  description
+			id:              id
+			id_bin:          id_bin
+			created_at:      created_at
+			updated_at:      updated_at
+			deleted_at:      deleted_at
+			handle:          handle
+			is_giftcard:     is_giftcard
+			status:          status
+			thumbnail:       thumbnail
+			type_id_bin:     type_id_bin
+			discountable:    discountable
+			metadata:        metadata
+			title:           title
+			subtitle:        subtitle
+			description:     description
+			seo_title:       seo_title
+			seo_description: seo_description
 		}
 	}
 	return products

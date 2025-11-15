@@ -463,29 +463,48 @@ struct SalesChannelResponseEnvelope {
 	fetch          i32 @[omitempty]
 }
 
+struct ProductSEOTranslationResponse {
+	id          string
+	locale_id   string @[json: 'localeId']
+	title       string @[omitempty]
+	description string @[omitempty]
+}
+
+fn format_seo_translation_response(p ProductSEOTranslation) ProductSEOTranslationResponse {
+	return ProductSEOTranslationResponse{
+		id:          p.id
+		locale_id:   p.locale_id
+		title:       p.title.value
+		description: p.description.value
+	}
+}
+
 struct ProductResponse {
-	id           string
-	created_at   time.Time @[json: 'createdAt']
-	updated_at   time.Time @[json: 'updatedAt']
-	deleted_at   time.Time @[json: 'deletedAt'; omitempty]
-	handle       string
-	is_giftcard  bool @[json: 'isGiftcard']
-	status       string
-	thumbnail    string @[omitempty]
-	type_id      string @[json: 'typeId'; omitempty]
-	discountable bool
-	metadata     string                    @[omitempty]
-	title        string                    @[omitempty]
-	subtitle     string                    @[omitempty]
-	description  string                    @[omitempty]
-	categories   []ProductCategoryResponse @[omitempty]
-	// collections    []ProductCollectionResponse  @[omitempty]
-	images         []ProductImageResponse       @[omitempty]
-	options        []ProductOptionResponse      @[omitempty]
-	variants       []ProductVariantResponse     @[omitempty]
-	translations   []ProductTranslationResponse @[omitempty]
-	sales_channels []SalesChannelResponse       @[json: 'salesChannels']
-	// tags         []Tag                 @[omitempty]
+	id               string
+	created_at       time.Time @[json: 'createdAt']
+	updated_at       time.Time @[json: 'updatedAt']
+	deleted_at       time.Time @[json: 'deletedAt'; omitempty]
+	handle           string
+	is_giftcard      bool @[json: 'isGiftcard']
+	status           string
+	thumbnail        string @[omitempty]
+	type_id          string @[json: 'typeId'; omitempty]
+	discountable     bool
+	translations     []ProductTranslationResponse
+	metadata         string @[omitempty]
+	title            string
+	subtitle         string                          @[omitempty]
+	description      string                          @[omitempty]
+	seo_title        string                          @[json: 'seoTitle'; omitempty]
+	seo_description  string                          @[json: 'seoDescription'; omitempty]
+	categories       []ProductCategoryResponse       @[omitempty]
+	images           []ProductImageResponse          @[omitempty]
+	options          []ProductOptionResponse         @[omitempty]
+	variants         []ProductVariantResponse        @[omitempty]
+	sales_channels   []SalesChannelResponse          @[json: 'salesChannels']
+	seo_translations []ProductSEOTranslationResponse @[json: 'seoTranslations'; omitempty]
+	// collections  []ProductCollectionResponse @[omitempty]
+	// tags         []Tag                       @[omitempty]
 }
 
 struct ProductResponseEnvelope {

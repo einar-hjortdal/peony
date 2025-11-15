@@ -1,5 +1,7 @@
 module peony
 
+// TODO delete object_query_string_hygienised file. Extract and hygienise parameters in one function.
+// TODO query string parameters are not object_, they're route_
 struct RegionListParams {
 	ids          ZeroArrayString
 	ids_bin      [][]u8
@@ -91,7 +93,6 @@ struct RetrieveProductVariantParams {
 	product_ids     ZeroArrayString
 	allow_backorder ZeroBool
 	region_id       ZeroString
-	currency_code   ZeroString // TODO join money_amount on id = ma.variant_id
 	title           ZeroString
 	with_deleted    ZeroBool
 	offset          ZeroI32
@@ -105,7 +106,6 @@ fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductV
 		product_ids:     zero_array_string(m, 'product_ids')
 		allow_backorder: zero_bool(m, 'allow_backorder')
 		region_id:       zero_string(m, 'region_id')
-		currency_code:   zero_string(m, 'currency_code')
 		title:           zero_string(m, 'title')
 		offset:          zero_i32(m, 'offset')
 		fetch:           zero_i32(m, 'fetch')
@@ -127,7 +127,6 @@ struct RetrieveProductParams {
 	price_list_ids    ZeroArrayString
 	sales_channel_ids ZeroArrayString
 	region_id         ZeroString
-	currency_code     ZeroString
 	with_deleted      ZeroBool
 	offset            ZeroI32
 	fetch             ZeroI32
@@ -141,7 +140,6 @@ fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductPa
 		cart_id:           zero_string(m, 'cart_id')
 		category_ids:      zero_array_string(m, 'category_ids')
 		collection_ids:    zero_array_string(m, 'collection_id')
-		currency_code:     zero_string(m, 'currency_code')
 		description:       zero_string(m, 'description')
 		fetch:             zero_i32(m, 'fetch')
 		handle:            zero_string(m, 'handle')
@@ -168,7 +166,6 @@ fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string s
 
 	return RetrieveProductParams{
 		cart_id:           zero_string(m, 'cart_id')
-		currency_code:     zero_string(m, 'currency_code')
 		ids:               id
 		region_id:         zero_string(m, 'region_id')
 		sales_channel_ids: zero_array_string(m, 'sales_channel_id')

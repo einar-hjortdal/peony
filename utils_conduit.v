@@ -136,6 +136,16 @@ fn assign_product_variants(product_variants []ProductVariant, product_variants_m
 	}
 }
 
+fn assign_seo_translations(seo_translations []ProductSEOTranslation, mut products_map map[string]Product) {
+	for i := 0; i < seo_translations.len; i++ {
+		translation := seo_translations[i]
+		product_id := translation.product_id
+		old := products_map[product_id].seo_translations
+		new := arrays.concat(old, translation)
+		products_map[product_id].seo_translations = new
+	}
+}
+
 fn assign_products_data(mut products_data SuiteProductData, mut products_map map[string]Product) {
 	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.product_variants_map)
 	assign_inventory_items(products_data.inventory_items, mut products_data.product_variants_map)
@@ -168,6 +178,8 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 
 	assign_product_variants(products_data.product_variants, products_data.product_variants_map, mut
 		products_map)
+
+	assign_seo_translations(products_data.seo_translations, mut products_map)
 }
 
 fn assign_product_data(mut product_data SuiteProductData, mut product Product) {

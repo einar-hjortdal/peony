@@ -13,6 +13,7 @@ struct SuiteProductData {
 	sales_channels           []SalesChannel
 	product_variants         []ProductVariant
 	product_variant_ids_bin  [][]u8
+	seo_translations         []ProductSEOTranslation
 mut:
 	product_variants_map map[string]ProductVariant
 }
@@ -74,6 +75,10 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	product_variants_map, product_variant_ids_bin := make_product_variant_map(product_variants)
 	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)!
 
+	seo_translations := model_product_seo_retrieve(mut tx, product_ids_bin) or {
+		return new_internal_error('Failed to retrieve seo_translations', err.msg())
+	}
+
 	return SuiteProductData{
 		SuiteProductOptionData:   product_options_data
 		SuiteProductVariantData:  variants_data
@@ -86,5 +91,6 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		product_variants:         product_variants
 		product_variants_map:     product_variants_map
 		product_variant_ids_bin:  product_variant_ids_bin
+		seo_translations:         seo_translations
 	}
 }
