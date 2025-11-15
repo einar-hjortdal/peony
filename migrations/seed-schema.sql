@@ -121,6 +121,7 @@ CREATE TABLE money_amount (
   id BINARY(16) NOT NULL,
   amount INTEGER NOT NULL,
   region_id BINARY(16) NOT NULL,
+  is_original BOOLEAN DEFAULT false NOT NULL,
   min_quantity INTEGER,
   max_quantity INTEGER,
   price_list_id BINARY(16),

@@ -221,21 +221,6 @@ fn format_tax_rate_response(t TaxRate) TaxRateResponse {
 	}
 }
 
-fn format_prices_response(p Prices) PricesResponse {
-	return PricesResponse{
-		currency_code:                     p.currency_code
-		original_price:                    p.original_price
-		original_price_does_include_tax:   p.original_price_does_include_tax
-		original_price_excluding_tax:      p.original_price_excluding_tax
-		original_price_including_tax:      p.original_price_including_tax
-		calculated_price:                  p.calculated_price
-		calculated_price_does_include_tax: p.calculated_price_does_include_tax
-		calculated_price_excluding_tax:    p.calculated_price_excluding_tax
-		calculated_price_including_tax:    p.calculated_price_including_tax
-		// tax_rates:                         p.tax_rates
-	}
-}
-
 fn format_region_response(r Region) RegionResponse {
 	mut tax_rates := []TaxRateResponse{len: r.tax_rates.len}
 	for i := 0; i < r.tax_rates.len; i++ {
@@ -293,7 +278,7 @@ fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
 	}
 }
 
-fn format_product_variant_response(v ProductVariant, p Prices, product_variants_availability map[string]ProductVariantAvailability) ProductVariantResponse {
+fn format_product_variant_response(v ProductVariant, p ProductVariantPrice, product_variants_availability map[string]ProductVariantAvailability) ProductVariantResponse {
 	product_variant_availability := product_variants_availability[v.id]
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
@@ -319,17 +304,16 @@ fn format_product_variant_response(v ProductVariant, p Prices, product_variants_
 		variant_rank: v.variant_rank
 		metadata:     v.metadata.value
 		// TODO variant_image
-		inventory_item:     format_inventory_item_response(v.inventory_item) // TODO not for /store/
-		option_values:      option_values
-		money_amounts:      money_amounts
-		prices:             format_prices_response(p) // TODO not for /admin/
-		inventory_quantity: product_variant_availability.inventory_quantity
-		purchasable:        product_variant_availability.purchasable // TODO not for /admin/
+		inventory_item: format_inventory_item_response(v.inventory_item) // TODO not for /store/
+		option_values:  option_values
+		money_amounts:  money_amounts
+		price:          format_price_response(p)
+		purchasable:    product_variant_availability.purchasable
 	}
 }
 
 fn format_product_variant_response_admin(v ProductVariant, product_variants_availability map[string]ProductVariantAvailability) !ProductVariantResponse {
-	return format_product_variant_response(v, Prices{}, product_variants_availability)
+	return format_product_variant_response(v, ProductVariantPrice{}, product_variants_availability)
 }
 
 fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {

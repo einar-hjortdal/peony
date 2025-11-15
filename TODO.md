@@ -75,6 +75,11 @@
 
 - [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
+- [ ] Allow variants creation on product creation.
+  - [ ] Allow InventoryItem properties on variant creation.
+  - [ ] Enforce at least one price per variant per region.
+  - [ ] Request validation.
+- [ ] Separate sales from price_list
 
 ## Internals
 
@@ -98,11 +103,8 @@
 
 ## Considerations
 
-- Separate variant creation and update objects and flow to allow variants creation on product creation.
 - Creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
-- Enforce at least one price per variant per region.
-  - Request validation
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 
 ## Documentation

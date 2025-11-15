@@ -236,7 +236,6 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	pctx := PriceContext{
 		region_id_bin: ph.region_id_bin
-		// TODO include_discount_prices
 	}
 
 	mut complete_products := []Product{len: products.len}
@@ -246,7 +245,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	}
 
 	// product_variants_availability + prices
-	mut variant_prices_map := map[string]Prices{}
+	mut variant_prices_map := map[string]ProductVariantPrice{}
 	mut complete_product_variants := []ProductVariant{len: products_data.product_variants.len}
 	for i := 0; i < products_data.product_variants.len; i++ {
 		variant := products_data.product_variants[i]
@@ -387,10 +386,9 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		// cart_id_bin
 		// customer_id_bin
 		region_id_bin: ph.region_id_bin
-		// include_discount_prices
 	}
 
-	mut variant_prices_map := map[string]Prices{}
+	mut variant_prices_map := map[string]ProductVariantPrice{}
 	mut complete_product_variants := []ProductVariant{len: product_data.product_variants.len}
 	for i := 0; i < product_data.product_variants.len; i++ {
 		variant := product_data.product_variants[i]

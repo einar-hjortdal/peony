@@ -6,12 +6,14 @@ struct MoneyAmount {
 	id                string
 	id_bin            []u8
 	amount            i32
+	is_original       bool
 	min_quantity      firebird.NullI32
 	max_quantity      firebird.NullI32
 	price_list_id_bin firebird.NullArrayU8
 	region_id         string
 	region_id_bin     []u8
 	currency_code     string               // from region
+	includes_tax      bool                 // from region
 	variant_id_bin    firebird.NullArrayU8 // from product_variant_money_amount
 }
 
@@ -21,9 +23,11 @@ fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, prod
 		ma.amount,
 		ma.min_quantity,
 		ma.max_quantity,
-		ma.price_list_id,
+		ma.is_original,
 		ma.region_id,
+		ma.price_list_id,
 		r.currency_code,
+		r.includes_tax,
 		pvma.variant_id
 		FROM money_amount ma
 		LEFT JOIN region r
@@ -43,10 +47,12 @@ fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, prod
 		amount, _ := v[1].get_i32()!
 		min_quantity := v[2].get_null_i32()!
 		max_quantity := v[3].get_null_i32()!
-		price_list_id_bin := v[4].get_null_array_u8()!
+		is_original, _ := v[4].get_bool()!
 		region_id_bin, _ := v[5].get_array_u8()!
-		currency_code, _ := v[6].get_string()!
-		variant_id_bin := v[7].get_null_array_u8()!
+		price_list_id_bin := v[6].get_null_array_u8()!
+		currency_code, _ := v[7].get_string()!
+		includes_tax, _ := v[8].get_bool()!
+		variant_id_bin := v[9].get_null_array_u8()!
 
 		id := id_bin_to_string(id_bin)!
 		region_id := id_bin_to_string(region_id_bin)!
@@ -54,13 +60,15 @@ fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, prod
 		product_variant_money_amounts[i] = MoneyAmount{
 			id:                id
 			id_bin:            id_bin
-			currency_code:     currency_code
 			amount:            amount
 			min_quantity:      min_quantity
 			max_quantity:      max_quantity
 			price_list_id_bin: price_list_id_bin
 			region_id:         region_id
 			region_id_bin:     region_id_bin
+			is_original:       is_original
+			currency_code:     currency_code
+			includes_tax:      includes_tax
 			variant_id_bin:    variant_id_bin
 		}
 	}
@@ -68,7 +76,9 @@ fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, prod
 	return product_variant_money_amounts
 }
 
-fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []MoneyAmountRequestHygienised) ! {
+// TODO in request verify there is 0 or 1 is_original
+// TODO in request verify there is exactly 1 !is_original that has no price_list and unique region_id
+fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductVaraintMoneyAmountRequestHygienised) ! {
 	mut money_amount_ids_bin := [][]u8{len: ph.len}
 	for i := 0; i < ph.len; i++ {
 		_, id_bin := app.new_id()
@@ -89,12 +99,13 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 	}
 
 	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 5, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: ph.len * 6, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) as id,
 			CAST(? AS INTEGER) as amount,
 			CAST(? AS BINARY(16)) as region_id,
+			CAST(? AS BOOLEAN) as is_original,
 			CAST(? AS INTEGER) as min_quantity,
 			CAST(? AS INTEGER) as max_quantity
 			FROM RDB\$DATABASE'
@@ -102,20 +113,26 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 		params[i * 5 + 1] = ph[i].amount
 		params[i * 5 + 2] = ph[i].region_id_bin
 
-		if min_quantity := ph[i].min_quantity {
-			params[i * 5 + 3] = min_quantity
+		if is_original := ph[i].is_original {
+			params[i * 5 + 3] = is_original
 		} else {
 			params[i * 5 + 3] = firebird.Null{}
 		}
 
-		if max_quantity := ph[i].max_quantity {
-			params[i * 5 + 4] = max_quantity
+		if min_quantity := ph[i].min_quantity {
+			params[i * 5 + 4] = min_quantity
 		} else {
 			params[i * 5 + 4] = firebird.Null{}
 		}
+
+		if max_quantity := ph[i].max_quantity {
+			params[i * 5 + 5] = max_quantity
+		} else {
+			params[i * 5 + 5] = firebird.Null{}
+		}
 	}
 
-	tx.execute('INSERT INTO money_amount (id, amount, min_quantity, max_quantity, region_id)
+	tx.execute('INSERT INTO money_amount (id, amount, is_original, min_quantity, max_quantity, region_id)
 		${get_merge_source(src)}',
 		...params)!
 
@@ -134,10 +151,3 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 		${get_merge_source(src)}',
 		...params)!
 }
-
-fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
-	tx.execute('UPDATE product_variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
-		variant_id_bin)!
-}
-
-fn model_product_variant_product_option_value_update(mut tx firebird.Transaction)

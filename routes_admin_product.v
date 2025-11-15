@@ -32,8 +32,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_request',
-			err.msg())
+		return handle_error_unhandled(mut ctx, err.msg(), 'ProductCreateRequest.hygienise')
 	}
 
 	mut tx := app.start_transaction() or {
@@ -73,8 +72,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 				if err is InternalError {
 					return handle_error_400(mut ctx, err.message, err.details)
 				}
-				return handle_error_500(mut ctx, 'Unhandled error at verify_product_option_create_request_hygienised',
-					err.msg())
+				return handle_error_unhandled(mut ctx, err.msg(), 'ProductOptionCreateRequestHygienised.verify')
 			}
 		}
 	}
@@ -149,7 +147,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	p := json.decode(ProductVariantUpdateRequest, ctx.req.data) or {
+	p := json.decode(ProductVariantCreateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode VariantRequest ', err.msg())
 	}
 
@@ -159,6 +157,12 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
 	}
+
+	if ph.money_amounts.len == 0 {
+		return handle_error_400(mut ctx, 'money_amount required', 'A product_variant must have at least one price per region')
+	}
+
+	// TODO verify one money_amount per region
 
 	if title := ph.title {
 		if title == '' {

@@ -77,13 +77,28 @@ There can be many `region` with the same `currency`.
 
 A `product_variant` may have a `money_amount` that is related to a `region`.
 
-When a `product_variant` is requested, the request may contain a `region_id` parameter.
+Whenever a `product_variant` is requested, the request may contain a `region_id` parameter.
 
-If it does: `money_amount` related to the `region` of the matching `region_id` are considered in the
-price calculation, and the price will be in the `currency` of this region.
+If it does: the returned `money_amount` will be the ones related to the `region` of the matching `region_id`, 
+and the prices in the `prices` object will be in the `currency` of this `region`.
 
-If the request does not contain a `region_id` parameter, `money_amount` of the default `region` are 
-considered when calculating the price, and the price will be in the `currency` of this region.
+If the request does not contain a `region_id` parameter, the returned `money_amount` will be related 
+to the default `region`, and the prices of the `prices` object  will be in the default `currency`.
+
+### Prices (WIP)
+
+Each `product_variant` must have at least 1 `money_amount` per `region`. This is the *base price*.
+
+A `product_variant` may have one more price if the optional `is_original` flag is set. The `money_amount` 
+marked with `is_original` is the *original price*. The original price is used from frontends to display 
+a price before any adjustment or sale.
+
+One or more additional prices are set using `price_list`.
+
+peony guarantees there is at least one base price per `region`. When a new `region` is created, all 
+existing `product_variant` will be given a default base price of 0 for that region.
+
+Note: `is_original` is never `true` when the `money_amount` is part of a `price_list`.
 
 ### Taxes (WIP)
 
@@ -95,6 +110,11 @@ Each `region` also determines whether prices are tax-inclusive or tax-exclusive.
 there cannot exist more than one `region` with the same `country`, in order to show prices tax-exclusive
 to a select audience, a `price-list` must be used: its `includes_tax` property will override the `includes_tax`
 property set on `region`.
+
+### price_list, price_rules, discounts (WIP)
+
+A `price_list` allows to assign prices to `product_variant` that modify or override their regional price.
+It also allows to create volume pricing: prices only valid when a specific number of variants is purchased.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 

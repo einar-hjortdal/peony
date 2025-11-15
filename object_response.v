@@ -220,18 +220,20 @@ struct TaxRateResponse {
 	tax_type   string @[json: 'taxType'; omitempty]
 }
 
-// tax_rates: applied to calculated_price
-struct PricesResponse {
-	currency_code                     string            @[json: 'currencyCode']
-	original_price                    i32               @[json: 'originalPrice']
-	original_price_does_include_tax   bool              @[json: 'originalPriceDoesIncludeTax']
-	original_price_excluding_tax      i32               @[json: 'originalPriceExcludingTax']
-	original_price_including_tax      i32               @[json: 'originalPriceIncludingTax']
-	calculated_price                  i32               @[json: 'calculatedPrice']               // TODO tax quantity discounts price-lists
-	calculated_price_does_include_tax bool              @[json: 'calculatedPriceDoesIncludeTax'] // TODO tax
-	calculated_price_excluding_tax    i32               @[json: 'calculatedPriceExcludingTax']   // TODO tax
-	calculated_price_including_tax    i32               @[json: 'calculatedPriceIncludingTax']   // TODO tax
-	tax_rates                         []TaxRateResponse @[json: 'taxRates'; omitempty]           // TODO tax
+struct ProductVariantPriceResponse {
+	currency_code  string @[json: 'currencyCode']
+	includes_tax   bool   @[json: 'includesTax']
+	original_price i32    @[json: 'originalPrice'; omitempty]
+	base_price     i32    @[json: 'basePrice']
+}
+
+fn format_price_response(p ProductVariantPrice) ProductVariantPriceResponse {
+	return ProductVariantPriceResponse{
+		currency_code:  p.currency_code
+		includes_tax:   p.includes_tax
+		original_price: p.original_price
+		base_price:     p.base_price
+	}
 }
 
 struct RegionResponse {
@@ -266,45 +268,45 @@ struct InventoryLevelResponse {
 }
 
 struct InventoryItemResponse {
-	id                string
-	created_at        time.Time                @[json: 'createdAt']
-	updated_at        time.Time                @[json: 'updatedAt']
-	deleted_at        time.Time                @[json: 'deletedAt'; omitempty]
-	variant_id        string                   @[json: 'variantId']
-	sku               string                   @[omitempty]
-	origin_country    string                   @[json: 'originCountry'; omitempty]
-	hs_code           string                   @[json: 'hsCode'; omitempty]
-	mid_code          string                   @[json: 'midCode'; omitempty]
-	material          string                   @[omitempty]
-	weight            i32                      @[omitempty]
-	length            i32                      @[omitempty]
-	height            i32                      @[omitempty]
-	width             i32                      @[omitempty]
-	requires_shipping bool                     @[json: 'requiresShipping']
-	manage_inventory  bool                     @[json: 'manageInventory']
-	allow_backorder   bool                     @[json: 'allowBackorder']
-	inventory_levels  []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
+	id                 string
+	created_at         time.Time                @[json: 'createdAt']
+	updated_at         time.Time                @[json: 'updatedAt']
+	deleted_at         time.Time                @[json: 'deletedAt'; omitempty]
+	variant_id         string                   @[json: 'variantId']
+	sku                string                   @[omitempty]
+	origin_country     string                   @[json: 'originCountry'; omitempty]
+	hs_code            string                   @[json: 'hsCode'; omitempty]
+	mid_code           string                   @[json: 'midCode'; omitempty]
+	material           string                   @[omitempty]
+	weight             i32                      @[omitempty]
+	length             i32                      @[omitempty]
+	height             i32                      @[omitempty]
+	width              i32                      @[omitempty]
+	requires_shipping  bool                     @[json: 'requiresShipping']
+	manage_inventory   bool                     @[json: 'manageInventory']
+	allow_backorder    bool                     @[json: 'allowBackorder']
+	inventory_levels   []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
+	inventory_quantity i32                      @[json: 'inventoryQuantity']
 }
 
 struct ProductVariantResponse {
-	id                 string
-	created_at         time.Time                    @[json: 'createdAt']
-	updated_at         time.Time                    @[json: 'updatedAt']
-	deleted_at         time.Time                    @[json: 'deletedAt'; omitempty]
-	product_id         string                       @[json: 'productId']
-	title              string                       @[omitempty]
-	barcode            string                       @[omitempty]
-	ean                string                       @[omitempty]
-	upc                string                       @[omitempty]
-	variant_rank       i32                          @[json: 'variantRank']
-	metadata           string                       @[omitempty]
-	image              string                       @[omitempty]
-	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
-	inventory_item     InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
-	purchasable        bool
-	inventory_quantity i32            @[json: 'inventoryQuantity']
-	prices             PricesResponse @[omitempty]
+	id             string
+	created_at     time.Time                    @[json: 'createdAt']
+	updated_at     time.Time                    @[json: 'updatedAt']
+	deleted_at     time.Time                    @[json: 'deletedAt'; omitempty]
+	product_id     string                       @[json: 'productId']
+	title          string                       @[omitempty]
+	barcode        string                       @[omitempty]
+	ean            string                       @[omitempty]
+	upc            string                       @[omitempty]
+	variant_rank   i32                          @[json: 'variantRank']
+	metadata       string                       @[omitempty]
+	image          string                       @[omitempty]
+	option_values  []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
+	money_amounts  []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
+	inventory_item InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
+	purchasable    bool
+	price          ProductVariantPriceResponse
 }
 
 struct VariantResponseEnvelope {

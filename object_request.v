@@ -266,6 +266,7 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 	}
 }
 
+// TODO use id or index at product creation?
 struct ProductOptionCreateRequest {
 	translations []ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
@@ -369,28 +370,29 @@ fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) 
 
 // max_quantity the maximum quantity required to be added to the cart for the price to be used.
 // min_quantity the minimum quantity required to be added to the cart for the price to be used.
-struct MoneyAmountRequest {
+struct ProductVaraintMoneyAmountRequest {
 	amount       i32
 	region_id    string @[json: 'regionId']
+	is_original  ?bool  @[json: 'isOriginal']
 	max_quantity ?i32   @[json: 'maxQuantity']
 	min_quantity ?i32   @[json: 'minQuantity']
 }
 
-struct MoneyAmountRequestHygienised {
+struct ProductVaraintMoneyAmountRequestHygienised {
 	amount        i32
 	region_id     string
 	region_id_bin []u8
-	currency_code string
+	is_original   ?bool
 	max_quantity  ?i32
 	min_quantity  ?i32
 }
 
-fn (p MoneyAmountRequest) hygienise() !MoneyAmountRequestHygienised {
+fn (p ProductVaraintMoneyAmountRequest) hygienise() !ProductVaraintMoneyAmountRequestHygienised {
 	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
 		return new_internal_error(error_id_invalid, 'region_id')
 	}
 
-	return MoneyAmountRequestHygienised{
+	return ProductVaraintMoneyAmountRequestHygienised{
 		amount:        p.amount
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
@@ -508,11 +510,11 @@ struct ProductVariantCreateRequest {
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	variant_rank     ?i32                        @[json: 'variantRank']
-	inventory_item   ?InventoryItemCreateRequest @[json: 'inventoryItem']
-	money_amounts    ?[]MoneyAmountRequest       @[json: 'moneyAmounts']
-	option_value_ids ?[]string                   @[json: 'optionValueIds']
-	metadata         ?string                     @[raw]
+	variant_rank     ?i32                               @[json: 'variantRank']
+	inventory_item   ?InventoryItemCreateRequest        @[json: 'inventoryItem']
+	option_value_ids ?[]string                          @[json: 'optionValueIds']
+	metadata         ?string                            @[raw]
+	money_amounts    []ProductVaraintMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct ProductVariantCreateRequestHygienised {
@@ -524,14 +526,19 @@ struct ProductVariantCreateRequestHygienised {
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
+	money_amounts        []ProductVaraintMoneyAmountRequestHygienised
 mut:
 	inventory_item ?InventoryItemCreateRequestHygienised
-	money_amounts  ?[]MoneyAmountRequestHygienised
 }
 
 fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
 		return new_internal_error(error_id_invalid, 'ids_bin')
+	}
+
+	mut money_amounts := []ProductVaraintMoneyAmountRequestHygienised{len: p.money_amounts.len}
+	for i := 0; i < p.money_amounts.len; i++ {
+		money_amounts[i] = p.money_amounts[i].hygienise()!
 	}
 
 	mut ph := ProductVariantCreateRequestHygienised{
@@ -543,14 +550,7 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
 		metadata:             p.metadata
-	}
-
-	if money_amounts := p.money_amounts {
-		mut h := []MoneyAmountRequestHygienised{len: money_amounts.len}
-		for i := 0; i < money_amounts.len; i++ {
-			h[i] = money_amounts[i].hygienise()!
-		}
-		ph.money_amounts = h
+		money_amounts:        money_amounts
 	}
 
 	if inventory_item := p.inventory_item {
@@ -560,16 +560,19 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 	return ph
 }
 
+// TODO verify function
+// verify one money_amount per region
+
 struct ProductVariantUpdateRequest {
 	title            ?string
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	variant_rank     ?i32                        @[json: 'variantRank']
-	inventory_item   ?InventoryItemUpdateRequest @[json: 'inventoryItem']
-	money_amounts    ?[]MoneyAmountRequest       @[json: 'moneyAmounts']
-	option_value_ids ?[]string                   @[json: 'optionValueIds']
-	metadata         ?string                     @[raw]
+	variant_rank     ?i32                                @[json: 'variantRank']
+	inventory_item   ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
+	option_value_ids ?[]string                           @[json: 'optionValueIds']
+	metadata         ?string                             @[raw]
+	money_amounts    ?[]ProductVaraintMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct ProductVariantUpdateRequestHygienised {
@@ -583,7 +586,7 @@ struct ProductVariantUpdateRequestHygienised {
 	option_value_ids_bin [][]u8
 	metadata             ?string
 mut:
-	money_amounts ?[]MoneyAmountRequestHygienised
+	money_amounts ?[]ProductVaraintMoneyAmountRequestHygienised
 }
 
 fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
@@ -604,7 +607,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 	}
 
 	if money_amounts := p.money_amounts {
-		mut h := []MoneyAmountRequestHygienised{len: money_amounts.len}
+		mut h := []ProductVaraintMoneyAmountRequestHygienised{len: money_amounts.len}
 		for i := 0; i < money_amounts.len; i++ {
 			h[i] = money_amounts[i].hygienise()!
 		}
