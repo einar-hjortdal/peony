@@ -184,8 +184,6 @@ fn extract_product_category_get_request_params(m map[string]string) ProductCateg
 }
 
 // handles expects a string that is a single handle, or many comma-separated handles.
-// parent_category_ids expects a string that is a single id, or many comma-separated ids. All children
-// of these will be returned.
 pub struct ProductCategoryListRequestQuery {
 	ids                 ZeroArrayString
 	handles             ZeroArrayString

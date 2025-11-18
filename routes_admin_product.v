@@ -52,6 +52,8 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is empty')
 		}
 
+		// TODO verify provided locale_id exist in database
+
 		mut found := false
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
@@ -65,6 +67,10 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	} else {
 		return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is not set')
 	}
+
+	// if seo_translations := ph.seo_translations {
+	// 	// TODO verify provided locale_id exist in database
+	// }
 
 	if options := ph.options {
 		for i := 0; i < options.len; i++ {
@@ -127,7 +133,12 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		if translations.len == 0 {
 			return handle_error_400(mut ctx, 'A product name is required', 'translations')
 		}
+		// TODO verify provided locale_id exist in database
 	}
+
+	// if seo_translations := ph.seo_translations {
+	// 	// TODO verify provided locale_id exist in database
+	// }
 
 	return conduit_products_update(mut app, mut ctx, product_id_bin, ph)
 }

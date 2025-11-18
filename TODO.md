@@ -84,7 +84,8 @@
 
 ## Internals
 
-- [x] Keep response structs separate from internal structs
+- [x] Separate response structs from internal structs
+- [ ] Separate model parameter objects from Request objects
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete where needed, and only where needed

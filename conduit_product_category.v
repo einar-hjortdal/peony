@@ -79,6 +79,8 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 		external_product_categories[i] = format_product_category_response(complete_product_categories[i])
 	}
 
+	// TODO build parent/child tree
+
 	return ctx.json(ProductCategoryResponseListEnvelope{
 		product_categories: external_product_categories
 		count:              count
@@ -156,6 +158,8 @@ fn conduit_product_category_get(mut app App, mut ctx Context, product_category_i
 	for i := 0; i < complete_product_categories.len; i++ {
 		external_product_categories[i] = format_product_category_response(complete_product_categories[i])
 	}
+
+	// TODO build parent/child tree, then return ProductCategoryResponseEnvelope
 
 	return ctx.json(ProductCategoryResponseListEnvelope{
 		product_categories: external_product_categories

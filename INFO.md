@@ -85,7 +85,7 @@ and the prices in the `prices` object will be in the `currency` of this `region`
 If the request does not contain a `region_id` parameter, the returned `money_amount` will be related 
 to the default `region`, and the prices of the `prices` object  will be in the default `currency`.
 
-### Prices (WIP)
+### Prices
 
 Each `product_variant` must have at least 1 `money_amount` per `region`. This is the *base price*.
 
@@ -111,10 +111,14 @@ there cannot exist more than one `region` with the same `country`, in order to s
 to a select audience, a `price-list` must be used: its `includes_tax` property will override the `includes_tax`
 property set on `region`.
 
-### price_list, price_rules, discounts (WIP)
+### price_list and price_rules (WIP)
 
-A `price_list` allows to assign prices to `product_variant` that modify or override their regional price.
-It also allows to create volume pricing: prices only valid when a specific number of variants is purchased.
+B2B customers may need custom prices: a `price_list` allows to assign prices and taxes to `product_variant` 
+that modify or override their regional price and tax settings.
+
+Price rules are used to create discounts and volume pricing.
+
+Volume pricing are prices only valid when a specific number of variants is placed in a cart.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 

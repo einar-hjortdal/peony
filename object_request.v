@@ -661,7 +661,33 @@ mut:
 	translations ?[]ProductCategoryTranslationRequestHygienised
 }
 
-struct ProductCreateRequest {
+pub struct SEOTranslationUpdateRequest {
+	locale_id   string @[json: 'localeId']
+	title       ?string
+	description ?string
+}
+
+struct SEOTranslationUpdateRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	title         ?string
+	description   ?string
+}
+
+fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygienised {
+	locale_id_bin := id_string_to_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return SEOTranslationUpdateRequestHygienised{
+		locale_id:     p.locale_id
+		locale_id_bin: locale_id_bin
+		title:         p.title
+		description:   p.description
+	}
+}
+
+pub struct ProductCreateRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
@@ -674,6 +700,7 @@ struct ProductCreateRequest {
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
+	seo_translations  ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
 	options           ?[]ProductOptionCreateRequest
 	images            ?[]ImageRequest
 }
@@ -696,9 +723,10 @@ struct ProductCreateRequestHygienised {
 	collection_ids        ?[]string
 	collection_ids_bin    [][]u8
 mut:
-	options      ?[]ProductOptionCreateRequestHygienised
-	translations ?[]ProductTranslationRequestHygienised
-	images       ?[]ImageRequestHygienised
+	options          ?[]ProductOptionCreateRequestHygienised
+	translations     ?[]ProductTranslationRequestHygienised
+	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+	images           ?[]ImageRequestHygienised
 }
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
@@ -757,6 +785,14 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		ph.translations = h
 	}
 
+	if seo_translations := p.seo_translations {
+		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
+		for i := 0; i < st.len; i++ {
+			st[i] = seo_translations[i].hygienise()!
+		}
+		ph.seo_translations = st
+	}
+
 	if images := p.images {
 		mut h := []ImageRequestHygienised{len: images.len}
 		for i := 0; i < images.len; i++ {
@@ -781,6 +817,7 @@ struct ProductUpdateRequest {
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
+	seo_translations  ?[]SEOTranslationUpdateRequest
 	images            ?[]ImageRequest
 }
 
@@ -802,8 +839,9 @@ struct ProductUpdateRequestHygienised {
 	collection_ids        ?[]string
 	collection_ids_bin    [][]u8
 mut:
-	translations ?[]ProductTranslationRequestHygienised
-	images       ?[]ImageRequestHygienised
+	translations     ?[]ProductTranslationRequestHygienised
+	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+	images           ?[]ImageRequestHygienised
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
@@ -852,6 +890,14 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 			h[i] = hygienise_product_translation_request(translations[i])!
 		}
 		ph.translations = h
+	}
+
+	if seo_translations := p.seo_translations {
+		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
+		for i := 0; i < st.len; i++ {
+			st[i] = seo_translations[i].hygienise()!
+		}
+		ph.seo_translations = st
 	}
 
 	if images := p.images {

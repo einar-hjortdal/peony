@@ -61,6 +61,25 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		}
 	}
 
+	if seo_translations := ph.seo_translations {
+		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
+		for i := 0; i < seo_translations.len; i++ {
+			_, seo_translation_ids_bin[i] = app.new_id()
+		}
+
+		p := ProductSEOUpdateParams{
+			product_id_bin:          product_id_bin
+			seo_translation_ids_bin: seo_translation_ids_bin
+			seo_translations:        seo_translations
+		}
+
+		model_product_seo_update(mut tx, p) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product seo translations',
+				err.msg())
+		}
+	}
+
 	if product_options := ph.options {
 		model_product_variant_create_default_with_options(mut app, mut tx, product_id_bin,
 			product_options) or {
@@ -458,6 +477,25 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		model_product_translation_update(mut tx, product_id_bin, translations) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product translations',
+				err.msg())
+		}
+	}
+
+	if seo_translations := ph.seo_translations {
+		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
+		for i := 0; i < seo_translations.len; i++ {
+			_, seo_translation_ids_bin[i] = app.new_id()
+		}
+
+		p := ProductSEOUpdateParams{
+			product_id_bin:          product_id_bin
+			seo_translation_ids_bin: seo_translation_ids_bin
+			seo_translations:        seo_translations
+		}
+
+		model_product_seo_update(mut tx, p) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product seo translations',
 				err.msg())
 		}
 	}
