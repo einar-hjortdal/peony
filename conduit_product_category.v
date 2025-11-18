@@ -40,10 +40,16 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 		product_categories_ids_bin[i] = pc.id_bin
 	}
 
+	// TODO split endpoint for store: store does not need to get translations and seo_translations
 	translations := model_product_category_translations_get(mut tx, product_categories_ids_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations from database',
+		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations',
 			err.msg())
+	}
+
+	seo_translations := model_product_category_seo_retrieve(mut tx, product_categories_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
@@ -51,8 +57,15 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 	for i := 0; i < translations.len; i++ {
 		translation := translations[i]
 		owner_id := translation.product_category_id
-		product_categories_map[owner_id].translations = arrays.concat(product_categories_map[owner_id].translations,
-			translation)
+		old := product_categories_map[owner_id].translations
+		product_categories_map[owner_id].translations = arrays.concat(old, translation)
+	}
+
+	for i := 0; i < seo_translations.len; i++ {
+		seo_translation := seo_translations[i]
+		owner_id := seo_translation.product_category_id
+		old := product_categories_map[owner_id].seo_translations
+		product_categories_map[owner_id].seo_translations = arrays.concat(old, seo_translation)
 	}
 
 	mut complete_product_categories := []ProductCategory{len: product_categories_ids.len}
@@ -112,6 +125,11 @@ fn conduit_product_category_get(mut app App, mut ctx Context, product_category_i
 			err.msg())
 	}
 
+	seo_translations := model_product_category_seo_retrieve(mut tx, product_categories_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
+	}
+
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	for i := 0; i < translations.len; i++ {
@@ -119,6 +137,13 @@ fn conduit_product_category_get(mut app App, mut ctx Context, product_category_i
 		owner_id := translation.product_category_id
 		product_categories_map[owner_id].translations = arrays.concat(product_categories_map[owner_id].translations,
 			translation)
+	}
+
+	for i := 0; i < seo_translations.len; i++ {
+		seo_translation := seo_translations[i]
+		owner_id := seo_translation.product_category_id
+		old := product_categories_map[owner_id].seo_translations
+		product_categories_map[owner_id].seo_translations = arrays.concat(old, seo_translation)
 	}
 
 	mut complete_product_categories := []ProductCategory{len: product_categories_ids.len}

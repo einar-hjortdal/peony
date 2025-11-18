@@ -335,7 +335,7 @@ fn format_product_variant_response(v ProductVariant, p ProductVariantPrice, prod
 		upc:          v.upc.value
 		variant_rank: v.variant_rank
 		metadata:     v.metadata.value
-		// TODO variant_image
+		// TODO images
 		inventory_item: format_inventory_item_response(v.inventory_item) // TODO not for /store/
 		option_values:  option_values
 		money_amounts:  money_amounts
@@ -385,26 +385,24 @@ struct ProductCategoryTranslationResponse {
 
 // TODO split to StoreResponse and AdminResponse: store does not need translations and seo_translations.
 struct ProductCategoryResponse {
-	id                 string
-	created_at         time.Time @[json: 'createdAt']
-	updated_at         time.Time @[json: 'updatedAt']
-	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
-	handle             string
-	is_active          bool   @[json: 'isActive']
-	is_internal        bool   @[json: 'isInternal']
-	parent_category_id string @[json: 'parentCategoryId'; omitempty]
-	category_rank      i32    @[json: 'categoryRank']
-	metadata           string @[omitempty]
-	name               string @[omitempty]
-	description        string @[omitempty]
-	seo_title          string @[omitempty]
-	seo_description    string @[omitempty]
-	translations       []ProductCategoryTranslationResponse // TODO admin only
-	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
+	id               string
+	created_at       time.Time @[json: 'createdAt']
+	updated_at       time.Time @[json: 'updatedAt']
+	deleted_at       time.Time @[json: 'deletedAt'; omitempty]
+	handle           string
+	is_active        bool   @[json: 'isActive']
+	is_internal      bool   @[json: 'isInternal']
+	category_rank    i32    @[json: 'categoryRank']
+	metadata         string @[omitempty]
+	name             string @[omitempty]
+	description      string @[omitempty]
+	seo_title        string @[omitempty]
+	seo_description  string @[omitempty]
+	translations     []ProductCategoryTranslationResponse // TODO admin only
+	seo_translations []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
+	children         []ProductCategoryResponse // TODO implement
 }
 
-// TODO recursive structs are only allowed with option types. Use option type in ProductCategoryResponse
-// to create a parent-child structure
 struct ProductCategoryResponseEnvelope {
 	product_category ProductCategoryResponse
 }

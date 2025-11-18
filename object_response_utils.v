@@ -302,18 +302,17 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 	}
 
 	return ProductCategoryResponse{
-		id:                 p.id
-		created_at:         p.created_at.Time
-		updated_at:         p.updated_at.Time
-		deleted_at:         p.deleted_at.value.Time
-		handle:             p.handle
-		is_active:          p.is_active
-		is_internal:        p.is_internal
-		parent_category_id: p.parent_category_id
-		category_rank:      p.category_rank
-		metadata:           p.metadata.value
-		name:               p.name.value
-		description:        p.description.value
-		translations:       tr
+		id:            p.id
+		created_at:    p.created_at.Time
+		updated_at:    p.updated_at.Time
+		deleted_at:    p.deleted_at.value.Time
+		handle:        p.handle
+		is_active:     p.is_active
+		is_internal:   p.is_internal
+		category_rank: p.category_rank
+		metadata:      p.metadata.value
+		name:          p.name.value
+		description:   p.description.value
+		translations:  tr
 	}
 }
