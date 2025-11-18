@@ -2,6 +2,10 @@ module peony
 
 import net.http
 
+pub const order_direction_asc = 'ASC'
+pub const order_direction_desc = 'DESC'
+pub const order_direction_default = order_direction_asc
+
 fn option_id_string_to_id_bin(option_id_string ?string) ![]u8 {
 	if id_string := option_id_string {
 		return id_string_to_bin(id_string)!
@@ -36,6 +40,26 @@ fn zero_array_id_string_to_array_id_bin(zero_array_id_string ZeroArrayString) ![
 		return array_id_bin
 	}
 	return [][]u8{}
+}
+
+fn parse_order_direction(s string) !string {
+	normalized := s.to_upper()
+	if normalized == order_direction_asc {
+		return order_direction_asc
+	}
+
+	if normalized == order_desc {
+		return order_direction_desc
+	}
+
+	return error(error_order_direction_invalid)
+}
+
+fn get_order_direction(zs ZeroString) !string {
+	if zs.is_set {
+		return parse_order_direction(zs.v)
+	}
+	return ''
 }
 
 fn get_header_content_type(mut ctx Context) !string {

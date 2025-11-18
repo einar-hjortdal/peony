@@ -360,6 +360,62 @@ fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 	}
 }
 
+struct SEOTranslationResponse {
+	id          string
+	locale_id   string @[json: 'localeId']
+	title       string @[omitempty]
+	description string @[omitempty]
+}
+
+fn format_seo_translation_response(p ProductSEOTranslation) SEOTranslationResponse {
+	return SEOTranslationResponse{
+		id:          p.id
+		locale_id:   p.locale_id
+		title:       p.title.value
+		description: p.description.value
+	}
+}
+
+struct ProductCategoryTranslationResponse {
+	product_category_id string @[json: 'productCategoryId']
+	locale_id           string @[json: 'localeId']
+	name                string @[omitempty]
+	description         string @[omitempty]
+}
+
+// TODO split to StoreResponse and AdminResponse: store does not need translations and seo_translations.
+struct ProductCategoryResponse {
+	id                 string
+	created_at         time.Time @[json: 'createdAt']
+	updated_at         time.Time @[json: 'updatedAt']
+	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
+	handle             string
+	is_active          bool   @[json: 'isActive']
+	is_internal        bool   @[json: 'isInternal']
+	parent_category_id string @[json: 'parentCategoryId'; omitempty]
+	category_rank      i32    @[json: 'categoryRank']
+	metadata           string @[omitempty]
+	name               string @[omitempty]
+	description        string @[omitempty]
+	seo_title          string @[omitempty]
+	seo_description    string @[omitempty]
+	translations       []ProductCategoryTranslationResponse // TODO admin only
+	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
+}
+
+// TODO recursive structs are only allowed with option types. Use option type in ProductCategoryResponse
+// to create a parent-child structure
+struct ProductCategoryResponseEnvelope {
+	product_category ProductCategoryResponse
+}
+
+struct ProductCategoryResponseListEnvelope {
+	product_categories []ProductCategoryResponse @[json: 'productCategories']
+	count              i64
+	offset             i32
+	fetch              i32 @[omitempty]
+}
+
 fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
 	mut type_id := ''
 	if !p.type_id_bin.is_null {
@@ -463,22 +519,6 @@ struct SalesChannelResponseEnvelope {
 	fetch          i32 @[omitempty]
 }
 
-struct ProductSEOTranslationResponse {
-	id          string
-	locale_id   string @[json: 'localeId']
-	title       string @[omitempty]
-	description string @[omitempty]
-}
-
-fn format_seo_translation_response(p ProductSEOTranslation) ProductSEOTranslationResponse {
-	return ProductSEOTranslationResponse{
-		id:          p.id
-		locale_id:   p.locale_id
-		title:       p.title.value
-		description: p.description.value
-	}
-}
-
 struct ProductResponse {
 	id               string
 	created_at       time.Time @[json: 'createdAt']
@@ -490,19 +530,19 @@ struct ProductResponse {
 	thumbnail        string @[omitempty]
 	type_id          string @[json: 'typeId'; omitempty]
 	discountable     bool
-	translations     []ProductTranslationResponse
+	translations     []ProductTranslationResponse // TODO admin only
 	metadata         string @[omitempty]
 	title            string
-	subtitle         string                          @[omitempty]
-	description      string                          @[omitempty]
-	seo_title        string                          @[json: 'seoTitle'; omitempty]
-	seo_description  string                          @[json: 'seoDescription'; omitempty]
-	categories       []ProductCategoryResponse       @[omitempty]
-	images           []ProductImageResponse          @[omitempty]
-	options          []ProductOptionResponse         @[omitempty]
-	variants         []ProductVariantResponse        @[omitempty]
-	sales_channels   []SalesChannelResponse          @[json: 'salesChannels']
-	seo_translations []ProductSEOTranslationResponse @[json: 'seoTranslations'; omitempty]
+	subtitle         string                    @[omitempty]
+	description      string                    @[omitempty]
+	seo_title        string                    @[json: 'seoTitle'; omitempty]
+	seo_description  string                    @[json: 'seoDescription'; omitempty]
+	categories       []ProductCategoryResponse @[omitempty]
+	images           []ProductImageResponse    @[omitempty]
+	options          []ProductOptionResponse   @[omitempty]
+	variants         []ProductVariantResponse  @[omitempty]
+	sales_channels   []SalesChannelResponse    @[json: 'salesChannels']
+	seo_translations []SEOTranslationResponse  @[json: 'seoTranslations'; omitempty] // TODO admin only
 	// collections  []ProductCollectionResponse @[omitempty]
 	// tags         []Tag                       @[omitempty]
 }
@@ -529,36 +569,6 @@ struct UploadsUploadOneResponseEnvelope {
 struct UploadsDeleteResponse {
 	id      string
 	deleted bool
-}
-
-struct ProductCategoryTranslationResponse {
-	product_category_id string @[json: 'productCategoryId']
-	locale_id           string @[json: 'localeId']
-	name                string @[omitempty]
-	description         string @[omitempty]
-}
-
-struct ProductCategoryResponse {
-	id                 string
-	created_at         time.Time @[json: 'createdAt']
-	updated_at         time.Time @[json: 'updatedAt']
-	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
-	handle             string
-	is_active          bool   @[json: 'isActive']
-	is_internal        bool   @[json: 'isInternal']
-	parent_category_id string @[json: 'parentCategoryId'; omitempty]
-	category_rank      i32    @[json: 'categoryRank']
-	metadata           string @[omitempty]
-	name               string @[omitempty]
-	description        string @[omitempty]
-	translations       []ProductCategoryTranslationResponse
-}
-
-struct ProductCategoryResponseListEnvelope {
-	product_categories []ProductCategoryResponse @[json: 'productCategories']
-	count              i64
-	offset             i32
-	fetch              i32 @[omitempty]
 }
 
 struct StockLocationResponse {

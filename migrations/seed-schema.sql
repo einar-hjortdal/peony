@@ -544,17 +544,17 @@ CREATE TABLE seo_translations (
   id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,
   product_id BINARY(16),
-  category_id BINARY(16),
+  product_category_id BINARY(16),
   collection_id BINARY(16),
   title VARCHAR(63),
   description VARCHAR(191),
   CONSTRAINT "0686cd40-3324-12ce-9800-9acfaa2f3ad3" PRIMARY KEY (id),
   CONSTRAINT "0686cd40-3324-1697-b000-967871bd9ca3" FOREIGN KEY (product_id) REFERENCES product (id) ON DELETE CASCADE,
-  CONSTRAINT "0686cd40-3324-16f2-5000-33c19823782a" FOREIGN KEY (category_id) REFERENCES product_category (id) ON DELETE CASCADE,
+  CONSTRAINT "0686cd40-3324-16f2-5000-33c19823782a" FOREIGN KEY (product_category_id) REFERENCES product_category (id) ON DELETE CASCADE,
   CONSTRAINT "0686cd40-3324-1841-0400-a4573406bc2f" FOREIGN KEY (collection_id) REFERENCES product_collection (id) ON DELETE CASCADE,
   CONSTRAINT "0686cd40-3324-134a-0c00-120053a4688f" FOREIGN KEY (locale_id) REFERENCES locale (id)
 );
 
 CREATE UNIQUE INDEX "0686cd40-3324-1a4f-2000-d7ff7c962b9d" ON seo_translations (product_id, locale_id) WHERE product_id IS NOT NULL;
-CREATE UNIQUE INDEX "0686cd40-3324-1aa6-a400-37d3a0d0f0b1" ON seo_translations (category_id, locale_id) WHERE category_id IS NOT NULL;
+CREATE UNIQUE INDEX "0686cd40-3324-1aa6-a400-37d3a0d0f0b1" ON seo_translations (product_category_id, locale_id) WHERE product_category_id IS NOT NULL;
 CREATE UNIQUE INDEX "0686cd40-3324-1bec-4400-94fab7cc5f1f" ON seo_translations (collection_id, locale_id) WHERE collection_id IS NOT NULL;

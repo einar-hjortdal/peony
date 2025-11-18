@@ -3,8 +3,10 @@ module peony
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
+// TODO deprecate
 const order_asc = 'ASC'
 const order_desc = 'DESC'
+
 const default_offset = 0
 
 fn newln(ln string) string {
@@ -94,10 +96,12 @@ fn if_true_then_a_else_b(condition bool, a string, b string) string {
 	return b
 }
 
+// TODO deprecate
 fn is_order_desc(s string) bool {
 	return s.to_upper() == order_desc
 }
 
+// TODO deprecate
 fn get_sorting_order(zs ZeroString) string {
 	if zs.is_set && is_order_desc(zs.v) {
 		return order_desc

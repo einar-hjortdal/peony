@@ -11,10 +11,13 @@ const error_header_invalid = 'Invalid header'
 const error_header_missing = 'Missing header'
 const error_id_generation = 'Failed to generate id'
 const error_id_invalid = 'Invalid id'
+const error_order_direction_invalid = 'Invalid order direction'
 const error_missing_default_translation = 'Default translation is required'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
 const error_transaction_start = 'Failed to start transaction'
+
+const details_order_direction_invalid = 'order direction must either be ${order_direction_asc} or ${order_direction_desc}'
 
 fn success(mut ctx Context) veb.Result {
 	return ctx.json(PeonySuccess{
@@ -68,6 +71,11 @@ fn handle_error_login(mut ctx Context) veb.Result {
 		'No further details')
 }
 
+fn handle_suite_error(mut ctx Context, e InternalError) veb.Result {
+	return handle_error_500(mut ctx, e.message, e.details)
+}
+
+// TODO deprecate
 fn handle_fetch_zero(mut ctx Context) veb.Result {
 	return handle_error_400(mut ctx, 'Requested 0 results', 'fetch cannot be 0')
 }

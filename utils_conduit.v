@@ -1,11 +1,6 @@
 module peony
 
 import arrays
-import veb
-
-fn handle_suite_error(mut ctx Context, e InternalError) veb.Result {
-	return handle_error_500(mut ctx, e.message, e.details)
-}
 
 fn assign_product_option_translations(product_option_translations []ProductOptionTranslation, mut product_options_map map[string]ProductOption) {
 	for i := 0; i < product_option_translations.len; i++ {
@@ -141,8 +136,7 @@ fn assign_seo_translations(seo_translations []ProductSEOTranslation, mut product
 		translation := seo_translations[i]
 		product_id := translation.product_id
 		old := products_map[product_id].seo_translations
-		new := arrays.concat(old, translation)
-		products_map[product_id].seo_translations = new
+		products_map[product_id].seo_translations = arrays.concat(old, translation)
 	}
 }
 

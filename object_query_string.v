@@ -173,10 +173,20 @@ fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string s
 	}
 }
 
+pub struct ProductCategoryGetRequestQuery {
+	locale_id ZeroString
+}
+
+fn extract_product_category_get_request_params(m map[string]string) ProductCategoryGetRequestQuery {
+	return ProductCategoryGetRequestQuery{
+		locale_id: zero_string(m, 'locale_id')
+	}
+}
+
 // handles expects a string that is a single handle, or many comma-separated handles.
 // parent_category_ids expects a string that is a single id, or many comma-separated ids. All children
 // of these will be returned.
-struct ProductCategoryParams {
+pub struct ProductCategoryListRequestQuery {
 	ids                 ZeroArrayString
 	handles             ZeroArrayString
 	is_active           ZeroBool
@@ -190,8 +200,8 @@ struct ProductCategoryParams {
 	locale_id           ZeroString
 }
 
-fn extract_retrieve_product_category_params(m map[string]string) ProductCategoryParams {
-	return ProductCategoryParams{
+fn extract_product_category_list_request_query(m map[string]string) ProductCategoryListRequestQuery {
+	return ProductCategoryListRequestQuery{
 		ids:                 zero_array_string(m, 'ids')
 		handles:             zero_array_string(m, 'handle')
 		is_active:           zero_bool(m, 'is_active')

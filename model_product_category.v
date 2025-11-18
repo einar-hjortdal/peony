@@ -102,8 +102,11 @@ struct ProductCategory {
 	metadata               firebird.NullString
 	name                   firebird.NullString
 	description            firebird.NullString
+	seo_title              firebird.NullString
+	seo_description        firebird.NullString
 mut:
-	translations []ProductCategoryTranslation
+	translations     []ProductCategoryTranslation
+	seo_translations []ProductCategorySEOTranslation
 }
 
 fn model_product_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph ProductCategoryRequestHygienised) ! {
@@ -187,63 +190,87 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 		...params)!
 }
 
-fn model_product_category_retrieve_cte(ph ProductCategoryParamsHygienised) (string, []firebird.Value) {
-	if ph.parent_category_ids.is_set {
+struct ProductCategoryRetrieveParams {
+	filter_by_id                  bool
+	ids_bin                       [][]u8
+	filter_by_handle              bool
+	handles                       []string
+	filter_by_is_active           bool
+	is_active                     bool
+	filter_by_is_internal         bool
+	is_internal                   bool
+	filter_by_product_ids         bool
+	product_ids_bin               [][]u8
+	filter_by_parent_category_ids bool
+	parent_category_ids_bin       [][]u8
+	include_parents               bool
+	include_deleted               bool
+	locale_id_bin                 []u8
+	use_offset                    bool
+	offset                        i32
+	use_fetch                     bool
+	fetch                         i32
+	use_order_direction           bool
+	order_direction               string
+}
+
+fn model_product_category_retrieve_cte(p ProductCategoryRetrieveParams) (string, []firebird.Value) {
+	if p.filter_by_parent_category_ids {
 		return 'WITH RECURSIVE descendants (id) AS (
 			SELECT id FROM product_category pc
-				WHERE parent_category_id IN (${get_placeholders(ph.parent_category_id_bins)})
+				WHERE parent_category_id IN (${get_placeholders(p.parent_category_ids_bin)})
 			UNION ALL
 			SELECT pc.id
 				FROM product_category pc JOIN descendants d
 				ON pc.parent_category_id = d.id
-			)', workaround_24757(ph.parent_category_id_bins)
+			)', workaround_24757(p.parent_category_ids_bin)
 	}
 	return '', []firebird.Value{}
 }
 
-fn model_product_category_retrieve_conditions(ph ProductCategoryParamsHygienised) (string, []firebird.Value) {
+fn model_product_category_retrieve_conditions(p ProductCategoryRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'pc.id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
+	if p.filter_by_id {
+		conditions = arrays.concat(conditions, 'pc.id IN (${get_placeholders(p.ids_bin)})')
+		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
-	if ph.handles.is_set {
-		conditions = arrays.concat(conditions, 'pc.handle IN (${get_placeholders(ph.handles.v)})')
-		params = arrays.concat(params, ...ph.handles.v)
+	if p.filter_by_handle {
+		conditions = arrays.concat(conditions, 'pc.handle IN (${get_placeholders(p.handles)})')
+		params = arrays.concat(params, ...p.handles)
 	}
 
-	if ph.is_active.is_set {
+	if p.filter_by_is_active {
 		conditions = arrays.concat(conditions, 'pc.is_active = ?')
-		params = arrays.concat(params, ph.is_active.v)
+		params = arrays.concat(params, p.is_active)
 	}
 
-	if ph.is_internal.is_set {
+	if p.filter_by_is_internal {
 		conditions = arrays.concat(conditions, 'pc.is_internal = ?')
-		params = arrays.concat(params, ph.is_internal.v)
+		params = arrays.concat(params, p.is_internal)
 	}
 
-	if ph.product_ids.is_set {
+	if p.filter_by_product_ids {
 		conditions = arrays.concat(conditions, 'EXISTS (
 		SELECT 1 FROM product_category_product pcp
 		WHERE pcp.product_category_id = pc.id
-			AND pcp.product_id IN (${get_placeholders(ph.product_ids_bin)})
+			AND pcp.product_id IN (${get_placeholders(p.product_ids_bin)})
 		)')
-		params = arrays.concat(params, ...workaround_24757(ph.product_ids_bin))
+		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
 	}
 
-	if !ph.with_deleted.is_set || ph.with_deleted.v {
+	if !p.include_deleted {
 		conditions = arrays.concat(conditions, 'pc.deleted_at IS NULL')
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph ProductCategoryParamsHygienised) !i64 {
-	cte, cte_params := model_product_category_retrieve_cte(ph)
-	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
+fn model_product_category_retrieve_count(mut tx firebird.Transaction, p ProductCategoryRetrieveParams) !i64 {
+	cte, cte_params := model_product_category_retrieve_cte(p)
+	conditions, conditions_params := model_product_category_retrieve_conditions(p)
 
 	query := appendln(cte, '${cte} SELECT COUNT(*) FROM product_category pc ${conditions}')
 	params := arrays.append(cte_params, conditions_params)
@@ -256,31 +283,38 @@ fn model_product_category_retrieve_count(mut tx firebird.Transaction, ph Product
 	return count
 }
 
-fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCategoryParamsHygienised) ![]ProductCategory {
+fn model_product_category_retrieve(mut tx firebird.Transaction, p ProductCategoryRetrieveParams) ![]ProductCategory {
 	mut params := []firebird.Value{}
-	cte, cte_params := model_product_category_retrieve_cte(ph)
+	cte, cte_params := model_product_category_retrieve_cte(p)
 	params = arrays.append(params, cte_params)
 
-	if ph.locale_id.is_set {
-		params = arrays.concat(params, ph.locale_id_bin, ph.locale_id_bin)
+	// 2 for translations, 2 for seo
+	if p.locale_id_bin.len > 0 {
+		params = arrays.concat(params, p.locale_id_bin, p.locale_id_bin, p.locale_id_bin,
+			p.locale_id_bin)
 	} else {
-		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
+		params = arrays.concat(params, firebird.Null{}, firebird.Null{}, firebird.Null{},
+			firebird.Null{})
 	}
 
-	conditions, conditions_params := model_product_category_retrieve_conditions(ph)
+	conditions, conditions_params := model_product_category_retrieve_conditions(p)
 	params = arrays.append(params, conditions_params)
 
-	mut sorting := 'ORDER BY pc.created_at ${get_sorting_order(ph.order)},
-		pc.category_rank ${get_sorting_order(ph.order)}'
-
-	if ph.offset.is_set {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, ph.offset.v)
+	mut order_direction := order_direction_default
+	if p.use_order_direction {
+		order_direction = p.order_direction
 	}
 
-	if ph.fetch.is_set {
+	mut sorting := 'ORDER BY pc.created_at ${order_direction}, pc.category_rank ${order_direction}'
+
+	if p.use_offset {
+		sorting = appendln(sorting, 'OFFSET ? ROWS')
+		params = arrays.concat(params, p.offset)
+	}
+
+	if p.use_fetch {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, ph.fetch.v)
+		params = arrays.concat(params, p.fetch)
 	}
 
 	data := tx.execute('${cte} SELECT
@@ -295,7 +329,9 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCatego
 		pc.category_rank,
 		pc.metadata,
 		COALESCE(pct_requested.name, pct_default.name) AS name,
-		COALESCE(pct_requested.description, pct_default.description) AS description
+		COALESCE(pct_requested.description, pct_default.description) AS description,
+		COALESCE(seo_requested.title, seo_default.title) AS seo_title,
+		COALESCE(seo_requested.description, seo_default.description) AS seo_description
 		FROM product_category pc
 		LEFT JOIN product_category_translations pct_default
 			ON pct_default.product_category_id = pc.id
@@ -306,6 +342,15 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, ph ProductCatego
 			ON CAST(? AS BINARY(16)) IS NOT NULL
 			AND pct_requested.product_category_id = pc.id
 			AND pct_requested.locale_id = ?
+		LEFT JOIN seo_translations seo_default
+			ON seo_default.product_category_id = pc.id
+			AND seo_default.locale_id = (
+				SELECT default_locale_id FROM store
+			)
+		LEFT JOIN seo_translations seo_requested
+			ON CAST(? AS BINARY(16)) IS NOT NULL
+			AND seo_requested.product_category_id = pc.id
+			AND seo_requested.locale_id = ?
 		${conditions} ${sorting}',
 		...params)!
 

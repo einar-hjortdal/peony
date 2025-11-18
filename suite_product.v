@@ -38,11 +38,9 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		return new_internal_error('Failed to retrieve product_category_product', err.msg())
 	}
 
-	pcp := ProductCategoryParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: product_ids_bin
+	pcp := ProductCategoryRetrieveParams{
+		filter_by_product_ids: true
+		product_ids_bin:       product_ids_bin
 	}
 	product_categories := model_product_category_retrieve(mut tx, pcp) or {
 		return new_internal_error('Failed to retrieve product_category', err.msg())
