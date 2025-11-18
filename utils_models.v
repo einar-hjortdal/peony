@@ -141,6 +141,38 @@ fn (mut app App) new_id() (string, []u8) {
 	return id_string, id_bin
 }
 
+struct Firebird_ID {
+	is_null   bool
+	as_string string
+	as_bin    []u8
+}
+
+fn (mut app App) new_firebird_id() Firebird_ID {
+	id_string := app.luuid_generator.v1().to_upper()
+	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
+
+	return Firebird_ID{
+		as_string: id_string
+		as_bin:    id_bin
+	}
+}
+
+fn get_null_id(v firebird.Value) !Firebird_ID {
+	db_id := v.get_null_array_u8()!
+	if db_id.is_null {
+		return Firebird_ID{
+			is_null: true
+		}
+	}
+
+	id_bin := db_id.value
+	id_string := id_bin_to_string(id_bin)!
+	return Firebird_ID{
+		as_string: id_string
+		as_bin:    id_bin
+	}
+}
+
 // https://github.com/vlang/v/issues/24757
 fn workaround_24757(bins [][]u8) []firebird.Value {
 	mut r := []firebird.Value{len: bins.len, init: firebird.Value(0)}

@@ -87,7 +87,8 @@ pub fn (mut app App) admin_product_category_get(mut ctx Context, product_categor
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_category_list_request_query')
 	}
 
-	return conduit_product_category_get(mut app, mut ctx, product_category_id_bin, p)
+	return conduit_product_category_get(mut app, mut ctx, product_category_id, product_category_id_bin,
+		p)
 }
 
 // updates a product_category

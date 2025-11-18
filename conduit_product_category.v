@@ -79,17 +79,51 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 		external_product_categories[i] = format_product_category_response(complete_product_categories[i])
 	}
 
-	// TODO build parent/child tree
+	mut child_to_parent_map := map[string]string{}
+	for i := 0; i < complete_product_categories.len; i++ {
+		cpc := complete_product_categories[i]
+		id := cpc.id
+		parent_id := cpc.parent_category_id
+		child_to_parent_map[id] = parent_id
+	}
+
+	mut external_product_categories_map := map[string]ProductCategoryResponse{}
+	for i := 0; i < external_product_categories.len; i++ {
+		epc := external_product_categories[i]
+		id := epc.id
+		external_product_categories_map[id] = epc
+	}
+
+	for id, parent_id in child_to_parent_map {
+		if parent_id == '' {
+			continue
+		}
+		epc := external_product_categories_map[id]
+		mut epc_parent := external_product_categories_map[parent_id]
+		old := epc_parent.children
+		epc_parent.children = arrays.concat(old, epc)
+		external_product_categories_map[parent_id] = epc_parent
+	}
+
+	mut root_categories := []ProductCategoryResponse{}
+	for i := 0; i < complete_product_categories.len; i++ {
+		cpc := complete_product_categories[i]
+		if cpc.parent_category_id == '' {
+			id := cpc.id
+			epc := external_product_categories_map[id]
+			root_categories = arrays.concat(root_categories, epc)
+		}
+	}
 
 	return ctx.json(ProductCategoryResponseListEnvelope{
-		product_categories: external_product_categories
+		product_categories: root_categories
 		count:              count
 		offset:             p.offset
 		fetch:              p.fetch
 	})
 }
 
-fn conduit_product_category_get(mut app App, mut ctx Context, product_category_id_bin []u8, p ProductCategoryRetrieveParams) veb.Result {
+fn conduit_product_category_get(mut app App, mut ctx Context, product_category_id string, product_category_id_bin []u8, p ProductCategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -159,13 +193,36 @@ fn conduit_product_category_get(mut app App, mut ctx Context, product_category_i
 		external_product_categories[i] = format_product_category_response(complete_product_categories[i])
 	}
 
-	// TODO build parent/child tree, then return ProductCategoryResponseEnvelope
+	mut child_to_parent_map := map[string]string{}
+	for i := 0; i < complete_product_categories.len; i++ {
+		cpc := complete_product_categories[i]
+		id := cpc.id
+		parent_id := cpc.parent_category_id
+		child_to_parent_map[id] = parent_id
+	}
 
-	return ctx.json(ProductCategoryResponseListEnvelope{
-		product_categories: external_product_categories
-		count:              count
-		offset:             p.offset
-		fetch:              p.fetch
+	mut external_product_categories_map := map[string]ProductCategoryResponse{}
+	for i := 0; i < external_product_categories.len; i++ {
+		epc := external_product_categories[i]
+		id := epc.id
+		external_product_categories_map[id] = epc
+	}
+
+	for id, parent_id in child_to_parent_map {
+		if parent_id == '' {
+			continue
+		}
+		epc := external_product_categories_map[id]
+		mut epc_parent := external_product_categories_map[parent_id]
+		old := epc_parent.children
+		epc_parent.children = arrays.concat(old, epc)
+		external_product_categories_map[parent_id] = epc_parent
+	}
+
+	root_category := external_product_categories_map[product_category_id]
+
+	return ctx.json(ProductCategoryResponseEnvelope{
+		product_category: root_category
 	})
 }
 

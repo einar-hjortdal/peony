@@ -400,7 +400,8 @@ struct ProductCategoryResponse {
 	seo_description  string @[omitempty]
 	translations     []ProductCategoryTranslationResponse // TODO admin only
 	seo_translations []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
-	children         []ProductCategoryResponse // TODO implement
+mut:
+	children []ProductCategoryResponse // TODO implement
 }
 
 struct ProductCategoryResponseEnvelope {

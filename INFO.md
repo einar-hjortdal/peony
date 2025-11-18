@@ -30,11 +30,12 @@ them are null, the row should be deleted.
 
 Each `product` must have at least one `product_variant`.
 
-#### product_category
+#### product_category (WIP)
 
-A `product_category` allows to categorize `product`. A `product` can have many `product_category`. A 
-`product_category` can describe a hierarchical structure thanks to the `parent_category_id` field. The 
-`category_rank` field allows for sorting.
+A `product_category` allows to categorize `product`. A `product` can have many `product_category`. The 
+`category_rank` field allows sorting.
+
+A `product_category` may have 0 or more children `product_category`, describing a hierarchical structure. 
 
 #### product_collection (WIP)
 

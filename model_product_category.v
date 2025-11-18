@@ -98,7 +98,7 @@ struct ProductCategory {
 	is_internal            bool
 	category_rank          i32
 	parent_category_id     string
-	parent_category_id_bin firebird.NullArrayU8
+	parent_category_id_bin []u8
 	metadata               firebird.NullString
 	name                   firebird.NullString
 	description            firebird.NullString
@@ -366,7 +366,7 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, p ProductCategor
 		handle, _ := v[4].get_string()!
 		is_active, _ := v[5].get_bool()!
 		is_internal, _ := v[6].get_bool()!
-		parent_category_id_bin := v[7].get_null_array_u8()!
+		parent_category_id_bin, _ := v[7].get_array_u8()!
 		category_rank, _ := v[8].get_i32()!
 		metadata := v[9].get_null_string()!
 		name := v[10].get_null_string()!
@@ -375,8 +375,8 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, p ProductCategor
 		id := id_bin_to_string(id_bin)!
 
 		mut parent_category_id := ''
-		if !parent_category_id_bin.is_null {
-			parent_category_id = id_bin_to_string(parent_category_id_bin.value)!
+		if parent_category_id_bin.len > 0 {
+			parent_category_id = id_bin_to_string(parent_category_id_bin)!
 		}
 
 		product_categories[i] = ProductCategory{
