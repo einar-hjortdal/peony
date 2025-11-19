@@ -269,45 +269,47 @@ struct InventoryLevelResponse {
 }
 
 struct InventoryItemResponse {
-	id                 string
-	created_at         time.Time                @[json: 'createdAt']
-	updated_at         time.Time                @[json: 'updatedAt']
-	deleted_at         time.Time                @[json: 'deletedAt'; omitempty]
-	variant_id         string                   @[json: 'variantId']
-	sku                string                   @[omitempty]
-	origin_country     string                   @[json: 'originCountry'; omitempty]
-	hs_code            string                   @[json: 'hsCode'; omitempty]
-	mid_code           string                   @[json: 'midCode'; omitempty]
-	material           string                   @[omitempty]
-	weight             i32                      @[omitempty]
-	length             i32                      @[omitempty]
-	height             i32                      @[omitempty]
-	width              i32                      @[omitempty]
-	requires_shipping  bool                     @[json: 'requiresShipping']
-	manage_inventory   bool                     @[json: 'manageInventory']
-	allow_backorder    bool                     @[json: 'allowBackorder']
-	inventory_levels   []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
-	inventory_quantity i32                      @[json: 'inventoryQuantity']
+	id                string
+	created_at        time.Time                @[json: 'createdAt']
+	updated_at        time.Time                @[json: 'updatedAt']
+	deleted_at        time.Time                @[json: 'deletedAt'; omitempty]
+	variant_id        string                   @[json: 'variantId']
+	sku               string                   @[omitempty]
+	origin_country    string                   @[json: 'originCountry'; omitempty]
+	hs_code           string                   @[json: 'hsCode'; omitempty]
+	mid_code          string                   @[json: 'midCode'; omitempty]
+	material          string                   @[omitempty]
+	weight            i32                      @[omitempty]
+	length            i32                      @[omitempty]
+	height            i32                      @[omitempty]
+	width             i32                      @[omitempty]
+	requires_shipping bool                     @[json: 'requiresShipping']
+	manage_inventory  bool                     @[json: 'manageInventory']
+	allow_backorder   bool                     @[json: 'allowBackorder']
+	inventory_levels  []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
 }
 
+// TODO split ProductVariantResponse to admin and store version.
+// store version does not include inventory_item. (that is why purchasable and inventory_quantity are on variant)
 struct ProductVariantResponse {
-	id             string
-	created_at     time.Time                    @[json: 'createdAt']
-	updated_at     time.Time                    @[json: 'updatedAt']
-	deleted_at     time.Time                    @[json: 'deletedAt'; omitempty]
-	product_id     string                       @[json: 'productId']
-	title          string                       @[omitempty]
-	barcode        string                       @[omitempty]
-	ean            string                       @[omitempty]
-	upc            string                       @[omitempty]
-	variant_rank   i32                          @[json: 'variantRank']
-	metadata       string                       @[omitempty]
-	image          string                       @[omitempty]
-	option_values  []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	money_amounts  []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
-	inventory_item InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
-	purchasable    bool
-	price          ProductVariantPriceResponse
+	id                 string
+	created_at         time.Time                    @[json: 'createdAt']
+	updated_at         time.Time                    @[json: 'updatedAt']
+	deleted_at         time.Time                    @[json: 'deletedAt'; omitempty]
+	product_id         string                       @[json: 'productId']
+	title              string                       @[omitempty]
+	barcode            string                       @[omitempty]
+	ean                string                       @[omitempty]
+	upc                string                       @[omitempty]
+	variant_rank       i32                          @[json: 'variantRank']
+	metadata           string                       @[omitempty]
+	image              string                       @[omitempty]
+	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
+	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
+	inventory_item     InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
+	inventory_quantity i32 @[json: 'inventoryQuantity']
+	purchasable        bool
+	price              ProductVariantPriceResponse
 }
 
 fn format_product_variant_response(v ProductVariant, p ProductVariantPrice, product_variants_availability map[string]ProductVariantAvailability) ProductVariantResponse {
@@ -336,11 +338,12 @@ fn format_product_variant_response(v ProductVariant, p ProductVariantPrice, prod
 		variant_rank: v.variant_rank
 		metadata:     v.metadata.value
 		// TODO images
-		inventory_item: format_inventory_item_response(v.inventory_item) // TODO not for /store/
-		option_values:  option_values
-		money_amounts:  money_amounts
-		price:          format_price_response(p)
-		purchasable:    product_variant_availability.purchasable
+		inventory_item:     format_inventory_item_response(v.inventory_item) // TODO not for /store/
+		inventory_quantity: product_variant_availability.inventory_quantity
+		option_values:      option_values
+		money_amounts:      money_amounts
+		price:              format_price_response(p)
+		purchasable:        product_variant_availability.purchasable
 	}
 }
 

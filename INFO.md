@@ -30,12 +30,12 @@ them are null, the row should be deleted.
 
 Each `product` must have at least one `product_variant`.
 
-#### product_category (WIP)
+#### product_category
 
 A `product_category` allows to categorize `product`. A `product` can have many `product_category`. The 
 `category_rank` field allows sorting.
 
-A `product_category` may have 0 or more children `product_category`, describing a hierarchical structure. 
+A `product_category` may have 0 or 1 parent `product_category`. This allows to build hierarchical structures.
 
 #### product_collection (WIP)
 
@@ -117,9 +117,10 @@ property set on `region`.
 B2B customers may need custom prices: a `price_list` allows to assign prices and taxes to `product_variant` 
 that modify or override their regional price and tax settings.
 
-Price rules are used to create discounts and volume pricing.
+`price_list` are used to set volume pricing: prices only valid when a specific number of variants is 
+placed in a cart.
 
-Volume pricing are prices only valid when a specific number of variants is placed in a cart.
+`price_rule` are used to create discounts.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 

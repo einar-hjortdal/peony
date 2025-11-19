@@ -59,7 +59,7 @@ struct ProductSEOUpdateParams {
 
 // replaces all seo_translations related to product_id with new ones
 fn model_product_seo_update(mut tx firebird.Transaction, p ProductSEOUpdateParams) ! {
-	tx.execute('SELETE FROM seo_translations WHERE product_id = ?', p.product_id_bin)!
+	tx.execute('DELETE FROM seo_translations WHERE product_id = ?', p.product_id_bin)!
 
 	mut src := []string{len: p.seo_translations.len}
 	mut params := []firebird.Value{len: p.seo_translations.len * 5, init: firebird.Value(firebird.Null{})}
@@ -107,9 +107,9 @@ struct ProductCategorySEOTranslation {
 
 // TODO use
 fn model_product_category_seo_retrieve(mut tx firebird.Transaction, product_category_ids_bin [][]u8) ![]ProductCategorySEOTranslation {
-	data := tx.execute('SELECT id, category_id, locale_id, title, description
+	data := tx.execute('SELECT id, product_category_id, locale_id, title, description
 		FROM seo_translations
-		WHERE category_id IN (${get_placeholders(product_category_ids_bin)})',
+		WHERE product_category_id IN (${get_placeholders(product_category_ids_bin)})',
 		...workaround_24757(product_category_ids_bin))!
 
 	rows := data.rows()

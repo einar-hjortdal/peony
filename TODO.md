@@ -88,7 +88,7 @@
 - [ ] Separate model parameter objects from Request objects
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
-- [ ] Soft-delete where needed, and only where needed
+- [ ] Soft-delete only where needed
 - [ ] Reduce boilerplating
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
