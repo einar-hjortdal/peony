@@ -85,7 +85,12 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]
 
 	mut conditions, mut params := conditions_region_retrieve(p)
 
-	mut sorting := 'ORDER BY name ${p.order_direction}'
+	mut order_direction := order_direction_default
+	if p.use_order_direction {
+		order_direction = p.order_direction
+	}
+
+	mut sorting := 'ORDER BY name ${order_direction}'
 
 	if p.use_offset {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
