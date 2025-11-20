@@ -901,7 +901,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	}
 
 	if images := p.images {
-		mut h := []ImageRequestHygienised{}
+		mut h := []ImageRequestHygienised{len: images.len}
 		for i := 0; i < images.len; i++ {
 			h[i] = images[i].hygienise()!
 		}

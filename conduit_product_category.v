@@ -99,8 +99,8 @@ fn conduit_product_category_get(mut app App, mut ctx Context, p ProductCategoryR
 	}
 
 	if count == 0 {
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-		return handle_error_404(mut ctx, '', '') // TODO
+		tx.rollback() or {}
+		return handle_error_404(mut ctx, 'Not found', 'No category exists with the given id.')
 	}
 
 	categories := model_product_category_retrieve(mut tx, p) or {
