@@ -6,9 +6,9 @@ import json
 // lists product_category
 @['/admin/product-categories'; get]
 pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
-	query_params := extract_product_category_get_request_params(ctx.query)
+	query_params := extract_product_category_list_request_query(ctx.query)
 
-	p := hygienise_product_category_get_request_query(query_params) or {
+	p := hygienise_product_category_list_request_query(query_params) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -78,17 +78,16 @@ pub fn (mut app App) admin_product_category_get(mut ctx Context, product_categor
 		return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
 	}
 
-	query_params := extract_product_category_list_request_query(ctx.query)
+	query_params := extract_product_category_get_request_params(ctx.query)
 
-	p := hygienise_product_category_list_request_query(query_params) or {
+	p := hygienise_product_category_get_request_query(query_params, product_category_id_bin) or {
 		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_category_list_request_query')
 	}
 
-	return conduit_product_category_get(mut app, mut ctx, product_category_id, product_category_id_bin,
-		p)
+	return conduit_product_category_get(mut app, mut ctx, p)
 }
 
 // updates a product_category

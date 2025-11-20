@@ -214,20 +214,6 @@ struct ProductCategoryRetrieveParams {
 	order_direction               string
 }
 
-fn model_product_category_retrieve_cte(p ProductCategoryRetrieveParams) (string, []firebird.Value) {
-	if p.filter_by_parent_category_ids {
-		return 'WITH RECURSIVE descendants (id) AS (
-			SELECT id FROM product_category pc
-				WHERE parent_category_id IN (${get_placeholders(p.parent_category_ids_bin)})
-			UNION ALL
-			SELECT pc.id
-				FROM product_category pc JOIN descendants d
-				ON pc.parent_category_id = d.id
-			)', workaround_24757(p.parent_category_ids_bin)
-	}
-	return '', []firebird.Value{}
-}
-
 fn model_product_category_retrieve_conditions(p ProductCategoryRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
@@ -269,14 +255,8 @@ fn model_product_category_retrieve_conditions(p ProductCategoryRetrieveParams) (
 }
 
 fn model_product_category_retrieve_count(mut tx firebird.Transaction, p ProductCategoryRetrieveParams) !i64 {
-	cte, cte_params := model_product_category_retrieve_cte(p)
-	conditions, conditions_params := model_product_category_retrieve_conditions(p)
-
-	query := appendln(cte, '${cte} SELECT COUNT(*) FROM product_category pc ${conditions}')
-	params := arrays.append(cte_params, conditions_params)
-
-	data := tx.execute(query, ...params)!
-
+	conditions, params := model_product_category_retrieve_conditions(p)
+	data := tx.execute('SELECT COUNT(*) FROM product_category pc ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
@@ -285,8 +265,6 @@ fn model_product_category_retrieve_count(mut tx firebird.Transaction, p ProductC
 
 fn model_product_category_retrieve(mut tx firebird.Transaction, p ProductCategoryRetrieveParams) ![]ProductCategory {
 	mut params := []firebird.Value{}
-	cte, cte_params := model_product_category_retrieve_cte(p)
-	params = arrays.append(params, cte_params)
 
 	// 2 for translations, 2 for seo
 	if p.locale_id_bin.len > 0 {
@@ -317,7 +295,7 @@ fn model_product_category_retrieve(mut tx firebird.Transaction, p ProductCategor
 		params = arrays.concat(params, p.fetch)
 	}
 
-	data := tx.execute('${cte} SELECT
+	data := tx.execute('SELECT
 		pc.id,
 		pc.created_at,
 		pc.updated_at,

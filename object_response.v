@@ -388,23 +388,22 @@ struct ProductCategoryTranslationResponse {
 
 // TODO split to StoreResponse and AdminResponse: store does not need translations and seo_translations.
 struct ProductCategoryResponse {
-	id               string
-	created_at       time.Time @[json: 'createdAt']
-	updated_at       time.Time @[json: 'updatedAt']
-	deleted_at       time.Time @[json: 'deletedAt'; omitempty]
-	handle           string
-	is_active        bool   @[json: 'isActive']
-	is_internal      bool   @[json: 'isInternal']
-	category_rank    i32    @[json: 'categoryRank']
-	metadata         string @[omitempty]
-	name             string @[omitempty]
-	description      string @[omitempty]
-	seo_title        string @[omitempty]
-	seo_description  string @[omitempty]
-	translations     []ProductCategoryTranslationResponse // TODO admin only
-	seo_translations []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
-mut:
-	children []ProductCategoryResponse // TODO implement
+	id                 string
+	created_at         time.Time @[json: 'createdAt']
+	updated_at         time.Time @[json: 'updatedAt']
+	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
+	handle             string
+	parent_category_id string @[json: 'parentCategoryId']
+	is_active          bool   @[json: 'isActive']
+	is_internal        bool   @[json: 'isInternal']
+	category_rank      i32    @[json: 'categoryRank']
+	metadata           string @[omitempty]
+	name               string @[omitempty]
+	description        string @[omitempty]
+	seo_title          string @[omitempty]
+	seo_description    string @[omitempty]
+	translations       []ProductCategoryTranslationResponse // TODO admin only
+	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
 }
 
 struct ProductCategoryResponseEnvelope {

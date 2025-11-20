@@ -52,12 +52,14 @@ fn hygienise_product_category_list_request_query(p ProductCategoryListRequestQue
 	}
 }
 
-fn hygienise_product_category_get_request_query(p ProductCategoryGetRequestQuery) !ProductCategoryRetrieveParams {
+fn hygienise_product_category_get_request_query(p ProductCategoryGetRequestQuery, category_id_bin []u8) !ProductCategoryRetrieveParams {
 	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
 
 	return ProductCategoryRetrieveParams{
+		filter_by_id:  true
+		ids_bin:       [category_id_bin]
 		locale_id_bin: locale_id_bin
 	}
 }
