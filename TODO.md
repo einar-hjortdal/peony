@@ -75,31 +75,30 @@
 
 - [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
-- [ ] Allow variants creation on product creation.
-  - [ ] Allow InventoryItem properties on variant creation.
-  - [ ] Request validation.
-- [x] Enforce at least one price per variant per region.
-  - [x] Request validation.
+- [x] Enforce at least one price per variant per region on variant creation and updates
+  - [x] Request validation
+  - [ ] Enforce on variant created during product creation
 - [ ] Separate sales from price_list
 
 ## Internals
 
 - [x] Separate response structs from internal structs
-- [ ] Separate model parameter objects from Request objects, make Request objects public
+- [ ] Separate model parameter objects from Request objects
+  - [ ] Make Request objects public
+  - [ ] Remove `parse_` functions from methods
+- [ ] Merge hygienise functions with extraction functions for object_query_string objects
+- [ ] Rename query string structs to include `Query` in their name
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
 - [ ] Reduce boilerplating
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
-- [ ] Remove `parse_` functions from methods
-- [ ] Merge hygienise functions with extraction functions for object_query_string objects
-- [ ] Rename query string structs to include `Query` in their name
 - [ ] Request objects should have no mutable fields
-- [ ] Graceful shutdown, or [wait for upstream patch](https://github.com/vlang/v/issues/25655)
 
 ## Upstream
 
+- [ ] [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)
 - [ ] Firebird connection pooling
 - [ ] Firebird connection management
 - [ ] Firebird transaction attempts

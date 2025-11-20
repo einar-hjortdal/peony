@@ -197,7 +197,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	regions := model_region_retrieve(mut tx, RegionListParams{}) or {
+	regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Failed to retrieve region', err.msg())
 	}
@@ -302,7 +302,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	if money_amounts := ph.money_amounts {
-		regions := model_region_retrieve(mut tx, RegionListParams{}) or {
+		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to retrieve region', err.msg())
 		}

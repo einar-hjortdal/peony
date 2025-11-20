@@ -2,7 +2,7 @@ module peony
 
 import veb
 
-fn conduit_region_list(mut app App, mut ctx Context, p RegionListParams) veb.Result {
+fn conduit_region_list(mut app App, mut ctx Context, p RegionRetriveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -15,8 +15,8 @@ fn conduit_region_list(mut app App, mut ctx Context, p RegionListParams) veb.Res
 	if count == 0 {
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(RegionResponseListEnvelope{
-			offset: get_offset_amount(p.offset)
-			fetch:  p.fetch.v
+			offset: p.offset
+			fetch:  p.fetch
 		})
 	}
 
@@ -37,17 +37,15 @@ fn conduit_region_list(mut app App, mut ctx Context, p RegionListParams) veb.Res
 	return ctx.json(RegionResponseListEnvelope{
 		regions: external_regions
 		count:   count
-		offset:  get_offset_amount(p.offset)
-		fetch:   p.fetch.v
+		offset:  p.offset
+		fetch:   p.fetch
 	})
 }
 
 fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Result {
-	p := RegionListParams{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [id_bin]
+	p := RegionRetriveParams{
+		filter_by_id: true
+		ids_bin:      [id_bin]
 	}
 
 	mut tx := app.start_transaction() or {
@@ -62,8 +60,8 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 	if count == 0 {
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(RegionResponseListEnvelope{
-			offset: get_offset_amount(p.offset)
-			fetch:  p.fetch.v
+			offset: p.offset
+			fetch:  p.fetch
 		})
 	}
 	mut regions := model_region_retrieve(mut tx, p) or {

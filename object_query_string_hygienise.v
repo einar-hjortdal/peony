@@ -1,5 +1,35 @@
 module peony
 
+fn hygienise_region_list_request_query(p RegionListListRequestQuery) !RegionRetriveParams {
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return new_internal_error(error_id_invalid, 'ids')
+	}
+
+	include_deleted := p.with_deleted.is_set && p.with_deleted.v
+
+	order_direction := get_order_direction(p.order) or {
+		return new_internal_error(error_order_direction_invalid, details_order_direction_invalid)
+	}
+
+	if p.fetch.is_set && p.fetch.v == 0 {
+		return new_internal_error('Requested 0 results', 'fetch cannot be 0')
+	}
+
+	return RegionRetriveParams{
+		filter_by_id:        p.ids.is_set
+		ids_bin:             ids_bin
+		filter_by_name:      p.name.is_set
+		name:                p.name.v
+		include_deleted:     include_deleted
+		use_offset:          p.offset.is_set
+		offset:              p.offset.v
+		use_fetch:           p.fetch.is_set
+		fetch:               p.fetch.v
+		use_order_direction: p.order.is_set
+		order_direction:     order_direction
+	}
+}
+
 // TODO return error if invalid sorting order
 fn hygienise_product_category_list_request_query(p ProductCategoryListRequestQuery) !ProductCategoryRetrieveParams {
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {

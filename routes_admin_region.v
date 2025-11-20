@@ -6,19 +6,17 @@ import json
 // lists regions
 @['/admin/regions'; get]
 pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
-	p := hygienise_region_list_params(ctx.query) or {
+	p := extract_region_list_request_query(ctx.query)
+
+	ph := hygienise_region_list_request_query(p) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at hygienise_retrieve_regions_params',
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_region_list_request_query',
 			err.msg())
 	}
 
-	if p.fetch.is_set && p.fetch.v == 0 {
-		return handle_fetch_zero(mut ctx)
-	}
-
-	return conduit_region_list(mut app, mut ctx, p)
+	return conduit_region_list(mut app, mut ctx, ph)
 }
 
 // creates a region
@@ -78,7 +76,9 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
-	p := RegionListParams{}
+	p := RegionRetriveParams{
+		ids_bin: [region_id_bin]
+	}
 
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())

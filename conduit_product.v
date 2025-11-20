@@ -18,6 +18,12 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 	}
 
+	// regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
+	// 	tx.rollback() or {} // ignore error
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
+	// }
+	// TODO pass to variant creation to insert default base prices
+
 	if _ := ph.tag_ids {
 		// TODO
 	}
@@ -80,6 +86,7 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		}
 	}
 
+	// TODO set default base prices
 	if product_options := ph.options {
 		model_product_variant_create_default_with_options(mut app, mut tx, product_id_bin,
 			product_options) or {

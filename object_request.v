@@ -266,8 +266,7 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 	}
 }
 
-// TODO use id or index at product creation?
-struct ProductOptionCreateRequest {
+pub struct ProductOptionCreateRequest {
 	translations []ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
@@ -494,9 +493,6 @@ struct InventoryItemUpdateRequest {
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
-// Because option ids cannot be provided during product creation, as they have yet to be created, variants
-// cannot be created at the same time as a product is created.
-// This can be handled by the frontend application in a non-atomic way.
 struct ProductVariantCreateRequest {
 	title            ?string
 	ean              ?string

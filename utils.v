@@ -29,6 +29,9 @@ fn keys[T](m map[string]T) []string {
 	}
 }
 
+// TODO create interface Identifiable with .id() method returning the id
+// This would allow to merge all these methods into one
+// but first need to decide what id type to use
 fn make_product_map(p []Product) (map[string]Product, [][]u8) {
 	mut m := map[string]Product{}
 	mut a := [][]u8{len: p.len}

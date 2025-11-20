@@ -5,17 +5,15 @@ import veb
 // lists regions
 @['/admin/regions'; get]
 pub fn (mut app App) store_regions_get(mut ctx Context) veb.Result {
-	p := hygienise_region_list_params(ctx.query) or {
+	p := extract_region_list_request_query(ctx.query)
+
+	ph := hygienise_region_list_request_query(p) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at hygienise_retrieve_regions_params',
+		return handle_error_500(mut ctx, 'Unhandled error at hygienise_region_list_request_query',
 			err.msg())
 	}
 
-	if p.fetch.is_set && p.fetch.v == 0 {
-		return handle_fetch_zero(mut ctx)
-	}
-
-	return conduit_region_list(mut app, mut ctx, p)
+	return conduit_region_list(mut app, mut ctx, ph)
 }

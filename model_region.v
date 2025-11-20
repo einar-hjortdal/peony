@@ -26,28 +26,42 @@ mut:
 	tax_rates []TaxRate
 }
 
-fn conditions_region_retrieve(p RegionListParams) (string, []firebird.Value) {
+struct RegionRetriveParams {
+	filter_by_id        bool
+	ids_bin             [][]u8
+	filter_by_name      bool
+	name                string
+	include_deleted     bool
+	use_offset          bool
+	offset              i32
+	use_fetch           bool
+	fetch               i32
+	use_order_direction bool
+	order_direction     string
+}
+
+fn conditions_region_retrieve(p RegionRetriveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if p.ids.is_set {
+	if p.filter_by_id {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
-	if p.name.is_set {
+	if p.filter_by_name {
 		conditions = arrays.concat(conditions, "name LIKE '%' || ? || '%'")
-		params = arrays.concat(params, p.name.v)
+		params = arrays.concat(params, p.name)
 	}
 
-	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
+	if !p.include_deleted {
 		conditions = arrays.concat(conditions, 'deleted_at is NULL')
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_region_retrieve_count(mut tx firebird.Transaction, p RegionListParams) !i64 {
+fn model_region_retrieve_count(mut tx firebird.Transaction, p RegionRetriveParams) !i64 {
 	conditions, params := conditions_region_retrieve(p)
 	data := tx.execute('SELECT COUNT(*) FROM region ${conditions}', ...params)!
 	rows := data.rows()
@@ -56,7 +70,7 @@ fn model_region_retrieve_count(mut tx firebird.Transaction, p RegionListParams) 
 	return count
 }
 
-fn model_region_retrieve(mut tx firebird.Transaction, p RegionListParams) ![]Region {
+fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]Region {
 	base_query := 'SELECT
 		id,
 		name,
@@ -71,16 +85,16 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionListParams) ![]Reg
 
 	mut conditions, mut params := conditions_region_retrieve(p)
 
-	mut sorting := 'ORDER BY name ${get_sorting_order(p.order)}'
+	mut sorting := 'ORDER BY name ${p.order_direction}'
 
-	if p.offset.is_set {
+	if p.use_offset {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
+		params = arrays.concat(params, p.offset)
 	}
 
-	if p.fetch.is_set {
+	if p.use_fetch {
 		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch.v)
+		params = arrays.concat(params, p.fetch)
 	}
 
 	data := tx.execute('${base_query} ${conditions} ${sorting}', ...params)!

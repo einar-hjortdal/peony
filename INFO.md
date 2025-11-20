@@ -96,8 +96,8 @@ a price before any adjustment or sale.
 
 One or more additional prices are set using `price_list`.
 
-peony guarantees there is at least one base price per `region`. When a new `region` is created, all 
-existing `product_variant` will be given a default base price of 0 for that region.
+Note: whenever a new `region` is created, all existing `product_variant` will have no base price for 
+the new `region`.
 
 Note: `is_original` is never `true` when the `money_amount` is part of a `price_list`.
 

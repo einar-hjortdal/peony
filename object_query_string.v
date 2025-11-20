@@ -2,9 +2,8 @@ module peony
 
 // TODO delete object_query_string_hygienised file. Extract and hygienise parameters in one function.
 // TODO query string parameters are not object_, they're route_
-struct RegionListParams {
+pub struct RegionListListRequestQuery {
 	ids          ZeroArrayString
-	ids_bin      [][]u8
 	name         ZeroString
 	with_deleted ZeroBool
 	offset       ZeroI32
@@ -12,15 +11,9 @@ struct RegionListParams {
 	order        ZeroString
 }
 
-fn hygienise_region_list_params(m map[string]string) !RegionListParams {
-	ids := zero_array_string(m, 'ids')
-	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
-		return new_internal_error(error_id_invalid, 'ids')
-	}
-
-	return RegionListParams{
-		ids:          ids
-		ids_bin:      ids_bin
+fn extract_region_list_request_query(m map[string]string) RegionListListRequestQuery {
+	return RegionListListRequestQuery{
+		ids:          zero_array_string(m, 'ids')
 		name:         zero_string(m, 'name')
 		with_deleted: zero_bool(m, 'with_deleted')
 		offset:       zero_i32(m, 'offset')

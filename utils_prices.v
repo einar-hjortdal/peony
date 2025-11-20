@@ -36,6 +36,7 @@ fn is_fitting_price(ma MoneyAmount, region_id_bin []u8, quantity i32) bool {
 		&& (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
 }
 
+// returns empty MoneyAmount if no original_price exists
 fn get_original_price(mas []MoneyAmount, region_id_bin []u8) MoneyAmount {
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
@@ -46,6 +47,7 @@ fn get_original_price(mas []MoneyAmount, region_id_bin []u8) MoneyAmount {
 	return MoneyAmount{}
 }
 
+// returns empty MoneyAmount if no price exists for the region
 fn get_fitting_prices(mas []MoneyAmount, region_id_bin []u8, quantity i32) []MoneyAmount {
 	mut fitting_prices := []MoneyAmount{}
 	for i := 0; i < mas.len; i++ {
@@ -75,17 +77,16 @@ fn get_lowest_price(mas []MoneyAmount) MoneyAmount {
 
 // this function should find the lowest possible price that fits all the criteria.
 // it considers: quantity, region.
-// TODO consider price_list.
+// TODO ignore min/max_quantity if no price_list. Consider price_list when customer fits criteria
 fn calculate_price(variant ProductVariant, quantity i32, pctx PriceContext) ProductVariantPrice {
 	// for now just consider variant.money_amounts and pctx.region
 	original_price := get_original_price(variant.money_amounts, pctx.region_id_bin)
 	fitting_prices := get_fitting_prices(variant.money_amounts, pctx.region_id_bin, quantity)
 	base_price := get_lowest_price(fitting_prices)
 
-	// all prices match the given region, therefore they have the same currency_code and includes_tax
 	return ProductVariantPrice{
-		currency_code:  original_price.currency_code
-		includes_tax:   original_price.includes_tax
+		currency_code:  base_price.currency_code
+		includes_tax:   base_price.includes_tax
 		original_price: original_price.amount
 		base_price:     base_price.amount
 	}
