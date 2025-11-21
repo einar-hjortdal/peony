@@ -120,7 +120,7 @@ fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, prod
 }
 
 // money_amount that are related to a price_list are left untouched.
-fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductVaraintMoneyAmountRequestHygienised) ! {
+fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []ProductVariantMoneyAmountRequestHygienised) ! {
 	mut money_amount_ids_bin := [][]u8{len: ph.len}
 	for i := 0; i < ph.len; i++ {
 		_, id_bin := app.new_id()

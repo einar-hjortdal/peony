@@ -66,7 +66,7 @@ fn get_header_content_type(mut ctx Context) !string {
 	return ctx.get_header(http.CommonHeader.content_type)
 }
 
-fn verify_money_amounts(money_amounts []ProductVaraintMoneyAmountRequestHygienised, existing_regions []Region) ! {
+fn verify_money_amounts(money_amounts []ProductVariantMoneyAmountRequestHygienised, existing_regions []Region) ! {
 	mut region_id_map := map[string]bool{}
 	for i := 0; i < existing_regions.len; i++ {
 		region_id := existing_regions[i].id

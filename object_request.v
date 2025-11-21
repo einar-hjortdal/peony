@@ -1,11 +1,11 @@
 module peony
 
-struct AuthRequest {
+pub struct AuthRequest {
 	email    string
 	password string
 }
 
-struct StoreRequest {
+pub struct StoreRequest {
 	name                      ?string
 	default_locale_id         ?string   @[json: 'defaultLocaleId']
 	default_region_id         ?string   @[json: 'defaultRegionId']
@@ -67,19 +67,19 @@ fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
 	}
 }
 
-struct SalesChannelRequest {
+pub struct SalesChannelRequest {
 	name        string
 	description ?string
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
-struct SalesChannelUpdateRequest {
+pub struct SalesChannelUpdateRequest {
 	name        ?string
 	description ?string
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
-struct ImageRequest {
+pub struct ImageRequest {
 	url          string
 	translations ?[]ImageTranslationRequest
 }
@@ -105,7 +105,7 @@ fn (p ImageRequest) hygienise() !ImageRequestHygienised {
 	return image
 }
 
-struct UserCreateRequest {
+pub struct UserCreateRequest {
 	email      string
 	password   string
 	first_name ?string @[json: 'firstName']
@@ -115,7 +115,7 @@ struct UserCreateRequest {
 	metadata   ?string @[raw]
 }
 
-struct UserUpdateRequest {
+pub struct UserUpdateRequest {
 	email      ?string
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
@@ -124,7 +124,7 @@ struct UserUpdateRequest {
 	metadata   ?string @[raw]
 }
 
-struct ImageTranslationRequest {
+pub struct ImageTranslationRequest {
 	locale_id string @[json: 'localeId']
 	alt       string
 }
@@ -151,7 +151,7 @@ fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	}
 }
 
-struct ProductTranslationRequest {
+pub struct ProductTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
@@ -180,7 +180,7 @@ fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTr
 	}
 }
 
-struct ProductOptionValueTranslationRequest {
+pub struct ProductOptionValueTranslationRequest {
 	locale_id string @[json: 'localeId']
 	name      string
 }
@@ -203,7 +203,7 @@ fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTrans
 	}
 }
 
-struct ProductOptionValueRequest {
+pub struct ProductOptionValueRequest {
 	translations []ProductOptionValueTranslationRequest
 }
 
@@ -244,7 +244,7 @@ fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! 
 	}
 }
 
-struct ProductOptionTranslationRequest {
+pub struct ProductOptionTranslationRequest {
 	title     string
 	locale_id string @[json: 'localeId']
 }
@@ -326,7 +326,7 @@ fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) 
 	}
 }
 
-struct ProductOptionUpdateRequest {
+pub struct ProductOptionUpdateRequest {
 	translations []ProductOptionTranslationRequest
 }
 
@@ -367,25 +367,25 @@ fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) 
 	}
 }
 
-struct ProductVaraintMoneyAmountRequest {
+pub struct ProductVariantMoneyAmountRequest {
 	amount      i32
 	region_id   string @[json: 'regionId']
 	is_original ?bool  @[json: 'isOriginal']
 }
 
-struct ProductVaraintMoneyAmountRequestHygienised {
+struct ProductVariantMoneyAmountRequestHygienised {
 	amount        i32
 	region_id     string
 	region_id_bin []u8
 	is_original   ?bool
 }
 
-fn (p ProductVaraintMoneyAmountRequest) hygienise() !ProductVaraintMoneyAmountRequestHygienised {
+fn (p ProductVariantMoneyAmountRequest) hygienise() !ProductVariantMoneyAmountRequestHygienised {
 	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
 		return new_internal_error(error_id_invalid, 'region_id')
 	}
 
-	return ProductVaraintMoneyAmountRequestHygienised{
+	return ProductVariantMoneyAmountRequestHygienised{
 		amount:        p.amount
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
@@ -393,7 +393,7 @@ fn (p ProductVaraintMoneyAmountRequest) hygienise() !ProductVaraintMoneyAmountRe
 }
 
 // used during product and product_variant creation
-struct InventoryLevelCreateRequest {
+pub struct InventoryLevelCreateRequest {
 	stock_location_id string @[json: 'stockLocationId']
 	stocked_quantity  i32    @[json: 'stockedQuantity']
 }
@@ -413,12 +413,12 @@ fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygie
 	}
 }
 
-struct InventoryLevelUpdateRequest {
+pub struct InventoryLevelUpdateRequest {
 	stocked_quantity i32 @[json: 'stockedQuantity']
 }
 
 // used during product and product_variant creation
-struct InventoryItemCreateRequest {
+pub struct InventoryItemCreateRequest {
 	sku               ?string
 	origin_country    ?string @[json: 'originCountry']
 	hs_code           ?string @[json: 'hsCode']
@@ -478,7 +478,7 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 	return inventory_item
 }
 
-struct InventoryItemUpdateRequest {
+pub struct InventoryItemUpdateRequest {
 	sku               ?string
 	origin_country    ?string @[json: 'originCountry']
 	hs_code           ?string @[json: 'hsCode']
@@ -493,7 +493,7 @@ struct InventoryItemUpdateRequest {
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
-struct ProductVariantCreateRequest {
+pub struct VariantCreateRequest {
 	title            ?string
 	ean              ?string
 	upc              ?string
@@ -502,7 +502,7 @@ struct ProductVariantCreateRequest {
 	inventory_item   ?InventoryItemCreateRequest        @[json: 'inventoryItem']
 	option_value_ids ?[]string                          @[json: 'optionValueIds']
 	metadata         ?string                            @[raw]
-	money_amounts    []ProductVaraintMoneyAmountRequest @[json: 'moneyAmounts']
+	money_amounts    []ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct ProductVariantCreateRequestHygienised {
@@ -514,17 +514,17 @@ struct ProductVariantCreateRequestHygienised {
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
-	money_amounts        []ProductVaraintMoneyAmountRequestHygienised
+	money_amounts        []ProductVariantMoneyAmountRequestHygienised
 mut:
 	inventory_item ?InventoryItemCreateRequestHygienised
 }
 
-fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
+fn (p VariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
 		return new_internal_error(error_id_invalid, 'ids_bin')
 	}
 
-	mut money_amounts := []ProductVaraintMoneyAmountRequestHygienised{len: p.money_amounts.len}
+	mut money_amounts := []ProductVariantMoneyAmountRequestHygienised{len: p.money_amounts.len}
 	for i := 0; i < p.money_amounts.len; i++ {
 		money_amounts[i] = p.money_amounts[i].hygienise()!
 	}
@@ -548,7 +548,7 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 	return ph
 }
 
-struct ProductVariantUpdateRequest {
+pub struct VariantUpdateRequest {
 	title            ?string
 	ean              ?string
 	upc              ?string
@@ -557,7 +557,7 @@ struct ProductVariantUpdateRequest {
 	inventory_item   ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
 	option_value_ids ?[]string                           @[json: 'optionValueIds']
 	metadata         ?string                             @[raw]
-	money_amounts    ?[]ProductVaraintMoneyAmountRequest @[json: 'moneyAmounts']
+	money_amounts    ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct ProductVariantUpdateRequestHygienised {
@@ -571,10 +571,10 @@ struct ProductVariantUpdateRequestHygienised {
 	option_value_ids_bin [][]u8
 	metadata             ?string
 mut:
-	money_amounts ?[]ProductVaraintMoneyAmountRequestHygienised
+	money_amounts ?[]ProductVariantMoneyAmountRequestHygienised
 }
 
-fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
+fn (p VariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
 		return new_internal_error(error_id_invalid, 'ids_bin')
 	}
@@ -592,7 +592,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 	}
 
 	if money_amounts := p.money_amounts {
-		mut h := []ProductVaraintMoneyAmountRequestHygienised{len: money_amounts.len}
+		mut h := []ProductVariantMoneyAmountRequestHygienised{len: money_amounts.len}
 		for i := 0; i < money_amounts.len; i++ {
 			h[i] = money_amounts[i].hygienise()!
 		}
@@ -604,7 +604,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
 // for a region to limit the requests being sent to a tax provider.
-struct RegionCreateRequest {
+pub struct RegionCreateRequest {
 	automatic_taxes ?bool    @[json: 'automaticTaxes']
 	country_codes   []string @[json: 'countryCodes']
 	currency_code   string   @[json: 'currencyCode']
@@ -613,7 +613,7 @@ struct RegionCreateRequest {
 	// taxes
 }
 
-struct RegionUpdateRequest {
+pub struct RegionUpdateRequest {
 	automatic_taxes ?bool     @[json: 'automaticTaxes']
 	country_codes   ?[]string @[json: 'countryCodes']
 	currency_code   ?string   @[json: 'currencyCode']
@@ -622,7 +622,7 @@ struct RegionUpdateRequest {
 	//  taxes
 }
 
-struct ProductCategoryTranslationRequest {
+pub struct ProductCategoryTranslationRequest {
 	locale_id   string @[json: 'localeId']
 	name        ?string
 	description ?string
@@ -635,7 +635,7 @@ struct ProductCategoryTranslationRequestHygienised {
 	description   ?string
 }
 
-struct ProductCategoryRequest {
+pub struct ProductCategoryRequest {
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']

@@ -42,8 +42,13 @@ fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin
 	return inventory_levels
 }
 
-fn model_inventory_level_update(mut tx firebird.Transaction, inventory_item_id_bin []u8, stock_location_id_bin []u8,
-	p InventoryLevelUpdateRequest) ! {
+struct InventoryLevelUpdateParams {
+	inventory_item_id_bin []u8
+	stock_location_id_bin []u8
+	stocked_quantity      i32
+}
+
+fn model_inventory_level_update(mut tx firebird.Transaction, p InventoryLevelUpdateParams) ! {
 	tx.execute('MERGE INTO inventory_level t
 		USING (
 			SELECT
@@ -59,7 +64,7 @@ fn model_inventory_level_update(mut tx firebird.Transaction, inventory_item_id_b
 		WHEN NOT MATCHED THEN
 			INSERT (inventory_item_id, stock_location_id, stocked_quantity)
 			VALUES (s.inventory_item_id, s.stock_location_id, s.stocked_quantity)',
-		inventory_item_id_bin, stock_location_id_bin, p.stocked_quantity)!
+		p.inventory_item_id_bin, p.stock_location_id_bin, p.stocked_quantity)!
 }
 
 struct InventoryItem {

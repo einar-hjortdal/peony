@@ -19,8 +19,6 @@ pub fn (mut app App) admin_inventory_level_update(mut ctx Context, inventory_ite
 			err.msg())
 	}
 
-	// TODO validate new stocked_quantity is not less than reserved_quantity
-
 	return conduit_inventory_level_update(mut app, mut ctx, inventory_item_id_bin, stock_location_id_bin,
 		p)
 }
