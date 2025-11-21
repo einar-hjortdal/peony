@@ -217,7 +217,7 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	}
 
 	if inventory_item := ph.inventory_item {
-		model_product_variant_inventory_item_update(mut tx, variant_id_bin, inventory_item) or {
+		model_inventory_item_update(mut tx, variant_id_bin, inventory_item) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Could not update inventory_item', err.msg())
 		}
