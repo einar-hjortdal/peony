@@ -156,11 +156,11 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 		if is_original := ph[i].is_original {
 			params[i * 5 + 3] = is_original
 		} else {
-			params[i * 5 + 3] = firebird.Null{}
+			params[i * 5 + 3] = false
 		}
 	}
 
-	tx.execute('INSERT INTO money_amount (id, amount, is_original, region_id)
+	tx.execute('INSERT INTO money_amount (id, amount, region_id, is_original)
 		${get_merge_source(src)}',
 		...params)!
 
