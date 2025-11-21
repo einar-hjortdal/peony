@@ -216,7 +216,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 
 	mut external_products := []ProductResponse{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
-		external_products[i] = format_product_response_admin(complete_products[i], product_variants_availability)
+		external_products[i] = format_product_response(complete_products[i], product_variants_availability)
 	}
 
 	return ctx.json(ProductResponseListEnvelope{
@@ -314,13 +314,13 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
 
-	mut external_products := []ProductResponse{len: complete_products.len}
+	mut external_products := []ProductResponseStore{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
 		external_products[i] = format_product_response_store(complete_products[i], pctx,
 			product_variants_availability)
 	}
 
-	return ctx.json(ProductResponseListEnvelope{
+	return ctx.json(ProductResponseStoreListEnvelope{
 		products: external_products
 		count:    count
 		offset:   get_offset_amount(ph.offset)
@@ -386,7 +386,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
 
-	external_product := format_product_response_admin(product, product_variants_availability)
+	external_product := format_product_response(product, product_variants_availability)
 
 	return ctx.json(ProductResponseEnvelope{
 		product: external_product
@@ -459,7 +459,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 
 	external_product := format_product_response_store(product, pctx, product_variants_availability)
 
-	return ctx.json(ProductResponseEnvelope{
+	return ctx.json(ProductResponseStoreEnvelope{
 		product: external_product
 	})
 }

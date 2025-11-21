@@ -79,6 +79,7 @@
   - [x] Request validation
   - [x] Enforce on variant created during product creation
 - [ ] Separate sales from price_list
+- [ ] Remove all `product_` prefixes from database, structs and function names
 
 ## Internals
 
@@ -108,6 +109,7 @@
 - Creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
+- Put Request and Response structs in independent package
 
 ## Documentation
 

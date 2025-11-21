@@ -285,10 +285,6 @@ fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
 	}
 }
 
-fn format_product_response_admin(p Product, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
-	return format_product_response_store(p, PriceContext{}, product_variants_availability)
-}
-
 fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 	mut tr := []ProductCategoryTranslationResponse{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {

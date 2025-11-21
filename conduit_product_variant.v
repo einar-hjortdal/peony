@@ -1,97 +1,6 @@
 module peony
 
-import arrays
-import log
 import veb
-
-fn conduit_product_variants_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	count := model_product_variants_retrieve_count(mut tx, ph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_variant count', err.msg())
-	}
-
-	if count == 0 {
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-		return ctx.json(VariantResponseListEnvelope{
-			offset: get_offset_amount(ph.offset)
-			fetch:  ph.fetch.v
-		})
-	}
-
-	product_variants := model_product_variants_retrieve(mut tx, ph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve variants', err.msg())
-	}
-
-	mut product_variant_map, product_variant_ids_bin := make_product_variant_map(product_variants)
-
-	mut product_variant_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin) or {
-		tx.rollback() or {}
-		if err is InternalError {
-			return handle_suite_error(mut ctx, err)
-		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_variant_data_get')
-	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	product_variant_data.assign_inventory_levels()
-
-	mut complete_inventory_items := []InventoryItem{len: product_variant_data.inventory_items.len}
-	for i := 0; i < product_variant_data.inventory_items.len; i++ {
-		id := product_variant_data.inventory_items[i].id
-		complete_inventory_items[i] = product_variant_data.inventory_item_map[id]
-	}
-
-	for i := 0; i < complete_inventory_items.len; i++ {
-		inventory_item := complete_inventory_items[i]
-		id := inventory_item.variant_id
-		product_variant_map[id].inventory_item = inventory_item
-	}
-
-	// assing money_amount
-	for i := 0; i < product_variant_data.money_amounts.len; i++ {
-		money_amount := product_variant_data.money_amounts[i]
-		product_variant_id_bin := money_amount.variant_id_bin.value
-		product_variant_id := id_bin_to_string(product_variant_id_bin) or {
-			return handle_error_500(mut ctx, 'money_amount has invalid or missing product_variant_id_bin',
-				err.msg())
-		}
-		old_money_amounts := product_variant_map[product_variant_id].money_amounts
-		new_money_amounts := arrays.concat(old_money_amounts, money_amount)
-		product_variant_map[product_variant_id].money_amounts = new_money_amounts
-	}
-
-	mut complete_product_variants := []ProductVariant{len: product_variants.len}
-	for i := 0; i < product_variants.len; i++ {
-		id := product_variants[i].id
-		complete_product_variants[i] = product_variant_map[id]
-	}
-
-	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
-		product_variants: complete_product_variants
-	})
-
-	mut external_variants := []ProductVariantResponse{len: complete_product_variants.len}
-	for i := 0; i < complete_product_variants.len; i++ {
-		external_variants[i] = format_product_variant_response_admin(complete_product_variants[i],
-			product_variants_availability) or {
-			log.error('Failed to format ProductVariantResponse: ${err}')
-			return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
-		}
-	}
-
-	return ctx.json(VariantResponseListEnvelope{
-		variants: external_variants
-		count:    count
-		offset:   get_offset_amount(ph.offset)
-		fetch:    ph.fetch.v
-	})
-}
 
 fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
@@ -142,14 +51,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	product_variant.money_amounts = money_amounts
 	product_variant.inventory_item = inventory_item
 
-	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
-		product_variants: [product_variant]
-	})
-
-	external_variant := format_product_variant_response_admin(product_variant, product_variants_availability) or {
-		log.error('Failed to format ProductVariantResponse: ${err}')
-		return handle_error_500(mut ctx, error_database_data_malformed, err.msg())
-	}
+	external_variant := format_variant_response(product_variant)
 
 	return ctx.json(VariantResponseEnvelope{
 		variant: external_variant
