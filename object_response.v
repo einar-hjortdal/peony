@@ -524,34 +524,34 @@ pub struct SalesChannelResponseEnvelope {
 }
 
 pub struct ProductResponse {
-	id               string
-	created_at       time.Time @[json: 'createdAt']
-	updated_at       time.Time @[json: 'updatedAt']
-	deleted_at       time.Time @[json: 'deletedAt'; omitempty]
-	handle           string
-	is_giftcard      bool @[json: 'isGiftcard']
-	status           string
-	thumbnail        string @[omitempty]
-	type_id          string @[json: 'typeId'; omitempty]
-	discountable     bool
-	translations     []ProductTranslationResponse
-	metadata         string @[omitempty]
-	title            string
-	subtitle         string                    @[omitempty]
-	description      string                    @[omitempty]
-	seo_title        string                    @[json: 'seoTitle'; omitempty]
-	seo_description  string                    @[json: 'seoDescription'; omitempty]
-	categories       []ProductCategoryResponse @[omitempty]
-	images           []ProductImageResponse    @[omitempty]
-	options          []ProductOptionResponse   @[omitempty]
-	variants         []VariantResponse         @[omitempty]
-	sales_channels   []SalesChannelResponse    @[json: 'salesChannels']
-	seo_translations []SEOTranslationResponse  @[json: 'seoTranslations'; omitempty]
-	// collections  []ProductCollectionResponse @[omitempty]
-	// tags         []Tag                       @[omitempty]
+	id                string
+	created_at        time.Time @[json: 'createdAt']
+	updated_at        time.Time @[json: 'updatedAt']
+	deleted_at        time.Time @[json: 'deletedAt'; omitempty]
+	handle            string
+	is_giftcard       bool @[json: 'isGiftcard']
+	status            string
+	thumbnail         string @[omitempty]
+	type_id           string @[json: 'typeId'; omitempty]
+	discountable      bool
+	translations      []ProductTranslationResponse
+	metadata          string @[omitempty]
+	title             string
+	subtitle          string                   @[omitempty]
+	description       string                   @[omitempty]
+	seo_title         string                   @[json: 'seoTitle'; omitempty]
+	seo_description   string                   @[json: 'seoDescription'; omitempty]
+	category_ids      []string                 @[json: 'categoryIds'; omitempty]
+	images            []ProductImageResponse   @[omitempty]
+	options           []ProductOptionResponse  @[omitempty]
+	variants          []VariantResponse        @[omitempty]
+	sales_channel_ids []string                 @[json: 'salesChannels']
+	seo_translations  []SEOTranslationResponse @[json: 'seoTranslations'; omitempty]
+	// collections  []ProductCollectionResponse @[omitempty] // return ids only
+	// tags         []Tag                       @[omitempty] // return ids only
 }
 
-fn format_product_response(p Product, product_variants_availability map[string]ProductVariantAvailability) ProductResponse {
+fn format_product_response(p Product) ProductResponse {
 	mut type_id := ''
 	if !p.type_id_bin.is_null {
 		type_id = id_bin_to_string(p.type_id_bin.value) or {
@@ -576,41 +576,31 @@ fn format_product_response(p Product, product_variants_availability map[string]P
 		variants[i] = format_variant_response(p.variants[i])
 	}
 
-	mut sales_channels := []SalesChannelResponse{len: p.sales_channels.len}
-	for i := 0; i < p.sales_channels.len; i++ {
-		sales_channels[i] = format_sales_channel_response(p.sales_channels[i])
-	}
-
-	mut categories := []ProductCategoryResponse{len: p.categories.len}
-	for i := 0; i < p.categories.len; i++ {
-		categories[i] = format_product_category_response(p.categories[i])
-	}
-
 	mut translations := []ProductTranslationResponse{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
 		translations[i] = format_product_translation_response(p.translations[i])
 	}
 
 	return ProductResponse{
-		id:           p.id
-		created_at:   p.created_at.Time
-		updated_at:   p.updated_at.Time
-		deleted_at:   p.deleted_at.value.Time
-		handle:       p.handle
-		is_giftcard:  p.is_giftcard
-		status:       p.status
-		thumbnail:    p.thumbnail.value
-		type_id:      type_id
-		discountable: p.discountable
-		metadata:     p.metadata.value
-		title:        p.title.value
-		subtitle:     p.subtitle.value
-		description:  p.description.value
-		images:       images
-		options:      options
-		variants:     variants
-		categories:   categories
-		// collections:    collections
+		id:                p.id
+		created_at:        p.created_at.Time
+		updated_at:        p.updated_at.Time
+		deleted_at:        p.deleted_at.value.Time
+		handle:            p.handle
+		is_giftcard:       p.is_giftcard
+		status:            p.status
+		thumbnail:         p.thumbnail.value
+		type_id:           type_id
+		discountable:      p.discountable
+		metadata:          p.metadata.value
+		title:             p.title.value
+		subtitle:          p.subtitle.value
+		description:       p.description.value
+		images:            images
+		options:           options
+		variants:          variants
+		category_ids:      p.category_ids
+		sales_channel_ids: p.sales_channels_ids
 		// tags:          tags
 	}
 }
@@ -643,6 +633,7 @@ pub struct ProductResponseStore {
 	description     string                  @[omitempty]
 	seo_title       string                  @[json: 'seoTitle'; omitempty]
 	seo_description string                  @[json: 'seoDescription'; omitempty]
+	category_ids    []string                @[json: 'categoryIds'; omitempty]
 	images          []ProductImageResponse  @[omitempty]
 	options         []ProductOptionResponse @[omitempty]
 	variants        []VariantResponseStore  @[omitempty]
@@ -677,11 +668,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		variants[i] = format_variant_response_store(variant, prices, product_variants_availability)
 	}
 
-	mut sales_channels := []SalesChannelResponse{len: p.sales_channels.len}
-	for i := 0; i < p.sales_channels.len; i++ {
-		sales_channels[i] = format_sales_channel_response(p.sales_channels[i])
-	}
-
 	// mut collections := []ProductCollectionResponse{len: p.collections.len}
 	// for i := 0; i < p.collections.len; i++ {
 	// 	collections[i] = format_product_collection_response(p.collections[i])
@@ -707,6 +693,7 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		images:       images
 		options:      options
 		variants:     variants
+		category_ids: p.category_ids
 		// collections:    collections
 		// tags:          tags
 	}

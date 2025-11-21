@@ -27,13 +27,15 @@ struct Product {
 	seo_title       firebird.NullString
 	seo_description firebird.NullString
 mut:
-	categories       []ProductCategory
-	images           []ProductImage
-	options          []ProductOption
-	sales_channels   []SalesChannel
-	translations     []ProductTranslation
-	seo_translations []ProductSEOTranslation
-	variants         []ProductVariant
+	images                 []ProductImage
+	options                []ProductOption
+	translations           []ProductTranslation
+	seo_translations       []ProductSEOTranslation
+	variants               []ProductVariant
+	category_ids           []string
+	category_ids_bin       [][]u8
+	sales_channels_ids     []string
+	sales_channels_ids_bin [][]u8
 	// tags         []Tag
 }
 

@@ -93,7 +93,7 @@ pub fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
 	return ctx.json('TODO')
 }
 
-// get a product
+// get a product by id
 @['/admin/products/:id'; get]
 pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
 	id_bin := id_string_to_bin(id) or {

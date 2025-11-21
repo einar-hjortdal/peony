@@ -7,11 +7,8 @@ struct SuiteProductData {
 	SuiteProductVariantData
 	product_translations     []ProductTranslation
 	product_category_product []ProductCategoryProduct
-	product_categories       []ProductCategory
-	category_translations    []ProductCategoryTranslation
 	product_images           []ProductImage
 	product_sales_channels   []ProductSalesChannel
-	sales_channels           []SalesChannel
 	product_variants         []ProductVariant
 	product_variant_ids_bin  [][]u8
 	seo_translations         []ProductSEOTranslation
@@ -39,18 +36,6 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		return new_internal_error('Failed to retrieve product_category_product', err.msg())
 	}
 
-	pcp := ProductCategoryRetrieveParams{
-		filter_by_product_ids: true
-		product_ids_bin:       product_ids_bin
-	}
-	product_categories := model_product_category_retrieve(mut tx, pcp) or {
-		return new_internal_error('Failed to retrieve product_category', err.msg())
-	}
-
-	category_translations := model_category_translations_get(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve category_translations', err.msg())
-	}
-
 	product_images := model_product_image_retrieve(mut tx, []u8{}, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_image', err.msg())
 	}
@@ -58,16 +43,6 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 
 	product_sales_channels := model_product_sales_channel_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_sales_channel', err.msg())
-	}
-
-	scp := ListSalesChannelsParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: product_ids_bin
-	}
-	sales_channels := model_sales_channel_retrieve(mut tx, scp) or {
-		return new_internal_error('Failed to retrieve sales_channel', err.msg())
 	}
 
 	product_variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
@@ -86,11 +61,8 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		SuiteProductVariantData:  variants_data
 		product_translations:     product_translations
 		product_category_product: product_category_product
-		product_categories:       product_categories
-		category_translations:    category_translations
 		product_images:           product_images
 		product_sales_channels:   product_sales_channels
-		sales_channels:           sales_channels
 		product_variants:         product_variants
 		product_variants_map:     product_variants_map
 		product_variant_ids_bin:  product_variant_ids_bin

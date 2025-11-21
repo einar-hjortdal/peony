@@ -174,21 +174,6 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 			err.msg())
 	}
 
-	// product_variants_availability
-	sales_channel_ids_bin := get_sales_channel_ids_bin(products_data.sales_channels)
-	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
-		sales_channel_ids_bin: sales_channel_ids_bin
-	}
-	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
-		model_sales_channel_stock_location_retrieve_params) or {
-		tx.rollback() or {}
-		if err is InternalError {
-			return handle_error_500(mut ctx, err.message, err.details)
-		}
-		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
-			err.msg())
-	}
-
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	assign_products_data(mut products_data, mut products_map)
@@ -200,23 +185,9 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 		complete_products[i] = products_map[id]
 	}
 
-	// product_variants_availability
-	mut complete_product_variants := []ProductVariant{len: products_data.product_variants.len}
-	for i := 0; i < products_data.product_variants.len; i++ {
-		variant_id := products_data.product_variants[i].id
-		complete_product_variants[i] = products_data.product_variants_map[variant_id]
-	}
-
-	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
-		product_variants:              complete_product_variants
-		sales_channel_ids_bin:         ph.sales_channel_ids_bin
-		product_sales_channels:        products_data.product_sales_channels
-		sales_channel_stock_locations: sales_channel_stock_locations
-	})
-
 	mut external_products := []ProductResponse{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
-		external_products[i] = format_product_response(complete_products[i], product_variants_availability)
+		external_products[i] = format_product_response(complete_products[i])
 	}
 
 	return ctx.json(ProductResponseListEnvelope{
@@ -227,9 +198,6 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	})
 }
 
-// TODO: store endpoints do not need all the data admin endpoints need.
-// do not fetch translations
-// do not fetch sales channels
 fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
@@ -270,9 +238,14 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	}
 
 	// product_variants_availability
-	sales_channel_ids_bin := get_sales_channel_ids_bin(products_data.sales_channels)
+	// TODO use sales_channel id from request context created in the route handler
+	// For now just use default sales_channel.id_bin
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'could not retrieve store', err.msg())
+	}
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
-		sales_channel_ids_bin: sales_channel_ids_bin
+		sales_channel_ids_bin: [store.default_sales_channel_id_bin]
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
@@ -353,21 +326,6 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 			err.msg())
 	}
 
-	// product_variants_availability
-	sales_channel_ids_bin := get_sales_channel_ids_bin(product_data.sales_channels)
-	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
-		sales_channel_ids_bin: sales_channel_ids_bin
-	}
-	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
-		model_sales_channel_stock_location_retrieve_params) or {
-		tx.rollback() or {} // ignore error
-		if err is InternalError {
-			return handle_error_500(mut ctx, err.message, err.details)
-		}
-		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
-			err.msg())
-	}
-
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	assign_product_data(mut product_data, mut product)
@@ -379,14 +337,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 		complete_product_variants[i] = product_data.product_variants_map[variant_id]
 	}
 
-	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
-		product_variants:              complete_product_variants
-		sales_channel_ids_bin:         ph.sales_channel_ids_bin
-		product_sales_channels:        product_data.product_sales_channels
-		sales_channel_stock_locations: sales_channel_stock_locations
-	})
-
-	external_product := format_product_response(product, product_variants_availability)
+	external_product := format_product_response(product)
 
 	return ctx.json(ProductResponseEnvelope{
 		product: external_product
@@ -418,9 +369,14 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	}
 
 	// product_variants_availability
-	sales_channel_ids_bin := get_sales_channel_ids_bin(product_data.sales_channels)
+	// TODO use sales_channel id from request context created in the route handler
+	// For now just use default sales_channel.id_bin
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'could not retrieve store', err.msg())
+	}
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
-		sales_channel_ids_bin: sales_channel_ids_bin
+		sales_channel_ids_bin: [store.default_sales_channel_id_bin]
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
