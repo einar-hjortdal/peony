@@ -428,14 +428,13 @@ pub struct ProductCategoryTranslationResponse {
 	description         string @[omitempty]
 }
 
-// TODO split to StoreResponse and AdminResponse: store does not need translations and seo_translations.
-struct ProductCategoryResponse {
+pub struct ProductCategoryResponse {
 	id                 string
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
 	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
 	handle             string
-	parent_category_id string @[json: 'parentCategoryId']
+	parent_category_id string @[json: 'parentCategoryId'; omitempty]
 	is_active          bool   @[json: 'isActive']
 	is_internal        bool   @[json: 'isInternal']
 	category_rank      i32    @[json: 'categoryRank']
@@ -444,8 +443,52 @@ struct ProductCategoryResponse {
 	description        string @[omitempty]
 	seo_title          string @[omitempty]
 	seo_description    string @[omitempty]
-	translations       []ProductCategoryTranslationResponse // TODO admin only
-	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty] // TODO admin only
+	translations       []ProductCategoryTranslationResponse
+	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty]
+}
+
+fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
+	mut tr := []ProductCategoryTranslationResponse{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translation := p.translations[i]
+		tr[i] = ProductCategoryTranslationResponse{
+			product_category_id: translation.product_category_id
+			locale_id:           translation.locale_id
+			name:                translation.name.value
+			description:         translation.description.value
+		}
+	}
+
+	return ProductCategoryResponse{
+		id:                 p.id
+		created_at:         p.created_at.Time
+		updated_at:         p.updated_at.Time
+		deleted_at:         p.deleted_at.value.Time
+		handle:             p.handle
+		parent_category_id: p.parent_category_id
+		is_active:          p.is_active
+		is_internal:        p.is_internal
+		category_rank:      p.category_rank
+		metadata:           p.metadata.value
+		name:               p.name.value
+		description:        p.description.value
+		translations:       tr
+	}
+}
+
+pub struct ProductCategoryResponseStore {
+	id                 string
+	created_at         time.Time @[json: 'createdAt']
+	updated_at         time.Time @[json: 'updatedAt']
+	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
+	handle             string
+	parent_category_id string @[json: 'parentCategoryId'; omitempty]
+	category_rank      i32    @[json: 'categoryRank']
+	metadata           string @[omitempty]
+	name               string @[omitempty]
+	description        string @[omitempty]
+	seo_title          string @[omitempty]
+	seo_description    string @[omitempty]
 }
 
 pub struct ProductCategoryResponseEnvelope {
@@ -596,14 +639,13 @@ pub struct ProductResponseStore {
 	discountable    bool
 	metadata        string @[omitempty]
 	title           string
-	subtitle        string                    @[omitempty]
-	description     string                    @[omitempty]
-	seo_title       string                    @[json: 'seoTitle'; omitempty]
-	seo_description string                    @[json: 'seoDescription'; omitempty]
-	categories      []ProductCategoryResponse @[omitempty]
-	images          []ProductImageResponse    @[omitempty]
-	options         []ProductOptionResponse   @[omitempty]
-	variants        []VariantResponseStore    @[omitempty]
+	subtitle        string                  @[omitempty]
+	description     string                  @[omitempty]
+	seo_title       string                  @[json: 'seoTitle'; omitempty]
+	seo_description string                  @[json: 'seoDescription'; omitempty]
+	images          []ProductImageResponse  @[omitempty]
+	options         []ProductOptionResponse @[omitempty]
+	variants        []VariantResponseStore  @[omitempty]
 	// collections  []ProductCollectionResponse @[omitempty]
 	// tags         []Tag                       @[omitempty]
 }
@@ -640,11 +682,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		sales_channels[i] = format_sales_channel_response(p.sales_channels[i])
 	}
 
-	mut categories := []ProductCategoryResponse{len: p.categories.len}
-	for i := 0; i < p.categories.len; i++ {
-		categories[i] = format_product_category_response(p.categories[i])
-	}
-
 	// mut collections := []ProductCollectionResponse{len: p.collections.len}
 	// for i := 0; i < p.collections.len; i++ {
 	// 	collections[i] = format_product_collection_response(p.collections[i])
@@ -670,7 +707,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		images:       images
 		options:      options
 		variants:     variants
-		categories:   categories
 		// collections:    collections
 		// tags:          tags
 	}

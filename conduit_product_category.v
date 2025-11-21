@@ -41,7 +41,7 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 	}
 
 	// TODO split endpoint for store: store does not need to get translations and seo_translations
-	translations := model_product_category_translations_get(mut tx, product_categories_ids_bin) or {
+	translations := model_category_translations_get(mut tx, product_categories_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations',
 			err.msg())
@@ -108,7 +108,7 @@ fn conduit_product_category_get(mut app App, mut ctx Context, p ProductCategoryR
 		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
 	}
 
-	translations := model_product_category_translations_get(mut tx, p.ids_bin) or {
+	translations := model_category_translations_get(mut tx, p.ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations from database',
 			err.msg())

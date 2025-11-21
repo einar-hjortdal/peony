@@ -8,6 +8,7 @@ struct SuiteProductData {
 	product_translations     []ProductTranslation
 	product_category_product []ProductCategoryProduct
 	product_categories       []ProductCategory
+	category_translations    []ProductCategoryTranslation
 	product_images           []ProductImage
 	product_sales_channels   []ProductSalesChannel
 	sales_channels           []SalesChannel
@@ -45,7 +46,10 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	product_categories := model_product_category_retrieve(mut tx, pcp) or {
 		return new_internal_error('Failed to retrieve product_category', err.msg())
 	}
-	// TODO category translations
+
+	category_translations := model_category_translations_get(mut tx, product_ids_bin) or {
+		return new_internal_error('Failed to retrieve category_translations', err.msg())
+	}
 
 	product_images := model_product_image_retrieve(mut tx, []u8{}, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_image', err.msg())
@@ -83,6 +87,7 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		product_translations:     product_translations
 		product_category_product: product_category_product
 		product_categories:       product_categories
+		category_translations:    category_translations
 		product_images:           product_images
 		product_sales_channels:   product_sales_channels
 		sales_channels:           sales_channels

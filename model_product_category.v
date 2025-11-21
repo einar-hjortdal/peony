@@ -56,7 +56,7 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 		...params)!
 }
 
-fn model_product_category_translations_get(mut tx firebird.Transaction, product_category_ids_bin [][]u8) ![]ProductCategoryTranslation {
+fn model_category_translations_get(mut tx firebird.Transaction, product_category_ids_bin [][]u8) ![]ProductCategoryTranslation {
 	data := tx.execute('SELECT product_category_id, locale_id, name, description
 		FROM product_category_translations
 		WHERE product_category_id IN (${get_placeholders(product_category_ids_bin)})',
