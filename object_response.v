@@ -601,6 +601,7 @@ fn format_product_response(p Product) ProductResponse {
 		variants:          variants
 		category_ids:      p.category_ids
 		sales_channel_ids: p.sales_channels_ids
+		translations:      translations
 		// tags:          tags
 	}
 }
