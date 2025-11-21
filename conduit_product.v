@@ -18,11 +18,10 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 	}
 
-	// regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
-	// 	tx.rollback() or {} // ignore error
-	// 	return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
-	// }
-	// TODO pass to variant creation to insert default base prices
+	regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
+	}
 
 	if _ := ph.tag_ids {
 		// TODO
@@ -86,20 +85,49 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		}
 	}
 
-	// TODO set default base prices
+	_, variant_id_bin := app.new_id()
+	mut region_ids_bin := [][]u8{len: regions.len}
+	mut money_amount_ids_bin := [][]u8{len: regions.len}
+	for i := 0; i < regions.len; i++ {
+		region_ids_bin[i] = regions[i].id_bin
+		_, money_amount_ids_bin[i] = app.new_id()
+	}
+
+	ma_p := VariantMoneyAmountCreateDefaultParams{
+		variant_id_bin:       variant_id_bin
+		region_ids_bin:       region_ids_bin
+		money_amount_ids_bin: money_amount_ids_bin
+	}
+
 	if product_options := ph.options {
-		model_product_variant_create_default_with_options(mut app, mut tx, product_id_bin,
+		model_variant_create_default_with_options(mut app, mut tx, product_id_bin, variant_id_bin,
 			product_options) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to create default product_variant with provided options',
 				err.msg())
 		}
 	} else {
-		model_product_variant_create_default(mut app, mut tx, product_id_bin) or {
+		_, option_id_bin := app.new_id()
+		_, option_value_id_bin := app.new_id()
+		_, inventory_item_id_bin := app.new_id()
+		pv_p := VariantCreateDefaultParams{
+			product_id_bin:        product_id_bin
+			variant_id_bin:        variant_id_bin
+			option_id_bin:         option_id_bin
+			option_value_id_bin:   option_value_id_bin
+			inventory_item_id_bin: inventory_item_id_bin
+		}
+
+		model_variant_create_default(mut tx, pv_p) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to create default product_variant',
 				err.msg())
 		}
+	}
+
+	model_product_variant_money_amount_create_default(mut tx, ma_p) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to create default money_amount', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

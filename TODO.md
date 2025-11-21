@@ -77,7 +77,7 @@
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
 - [x] Enforce at least one price per variant per region on variant creation and updates
   - [x] Request validation
-  - [ ] Enforce on variant created during product creation
+  - [x] Enforce on variant created during product creation
 - [ ] Separate sales from price_list
 
 ## Internals

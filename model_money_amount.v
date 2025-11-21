@@ -2,6 +2,8 @@ module peony
 
 import einar_hjortdal.firebird
 
+const default_moeny_amount = i32(0)
+
 struct MoneyAmount {
 	id                string
 	id_bin            []u8
@@ -15,6 +17,47 @@ struct MoneyAmount {
 	currency_code     string               // from region
 	includes_tax      bool                 // from region
 	variant_id_bin    firebird.NullArrayU8 // from product_variant_money_amount
+}
+
+struct VariantMoneyAmountCreateDefaultParams {
+	variant_id_bin       []u8
+	region_ids_bin       [][]u8
+	money_amount_ids_bin [][]u8
+}
+
+fn model_product_variant_money_amount_create_default(mut tx firebird.Transaction, p VariantMoneyAmountCreateDefaultParams) ! {
+	mut src := []string{len: p.region_ids_bin.len}
+	mut params := []firebird.Value{len: p.region_ids_bin.len * 3, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < p.region_ids_bin.len; i++ {
+		region_id_bin := p.region_ids_bin[i]
+		money_amount_id_bin := p.money_amount_ids_bin[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS region_id,
+			CAST(? AS INTEGER) AS amount
+			FROM RDB\$DATABASE'
+		params[i * 3] = money_amount_id_bin
+		params[i * 3 + 1] = region_id_bin
+		params[i * 3 + 2] = default_moeny_amount
+	}
+
+	tx.execute('INSERT INTO money_amount (id, region_id, amount) ${get_merge_source(src)}',
+		...params)!
+
+	params = []firebird.Value{len: p.money_amount_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	for i := 0; i < p.money_amount_ids_bin.len; i++ {
+		money_amount_id_bin := p.money_amount_ids_bin[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS variant_id,
+			CAST(? AS BINARY(16)) AS money_amount_id
+			FROM RDB\$DATABASE'
+		params[i * 2] = p.variant_id_bin
+		params[i * 2 + 1] = money_amount_id_bin
+	}
+
+	tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)
+		${get_merge_source(src)}',
+		...params)!
 }
 
 fn model_product_variant_money_amount_retrieve(mut tx firebird.Transaction, product_variant_ids_bin [][]u8) ![]MoneyAmount {

@@ -28,10 +28,14 @@ mut:
 	option_values  []ProductOptionValue
 }
 
+struct VariantCreateDefaultWithOptionsParams {
+	// TODO
+}
+
 // Used in product creation
 // Creates options, their translations, their values and translations.
 // Then it creates a default variant using the first value of each option.
-fn model_product_variant_create_default_with_options(mut app App, mut tx firebird.Transaction, product_id_bin []u8, ph []ProductOptionCreateRequestHygienised) ! {
+fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, ph []ProductOptionCreateRequestHygienised) ! {
 	mut product_option_ids_bin := [][]u8{len: ph.len}
 	mut n_option_translations := 0
 	mut n_option_value_translations := 0
@@ -148,13 +152,12 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 		(product_option_value_id, locale_id, name) ${get_merge_source(src)}',
 		...params)!
 
-	_, product_variant_id_bin := app.new_id()
 	tx.execute('INSERT INTO product_variant (id, product_id, title) VALUES (?, ?, ?)',
-		product_variant_id_bin, product_id_bin, product_variant_default_title)!
+		variant_id_bin, product_id_bin, product_variant_default_title)!
 
 	_, inventory_item_id_bin := app.new_id()
 	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', inventory_item_id_bin,
-		product_variant_id_bin)!
+		variant_id_bin)!
 
 	// relations to new product_variant
 	// give the variant the first value of each option
@@ -167,7 +170,7 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 			FROM RDB\$DATABASE'
 		first_value_index := first_value_of_option[i]
 		params[i * 2] = product_option_value_ids_bin[first_value_index]
-		params[i * 2 + 1] = product_variant_id_bin
+		params[i * 2 + 1] = variant_id_bin
 	}
 
 	tx.execute('INSERT INTO product_option_value_product_variant (option_value_id, variant_id)
@@ -175,34 +178,38 @@ fn model_product_variant_create_default_with_options(mut app App, mut tx firebir
 		...params)!
 }
 
-fn model_product_variant_create_default(mut app App, mut tx firebird.Transaction, product_id_bin []u8) ! {
-	_, product_option_id_bin := app.new_id()
-	tx.execute('INSERT INTO product_option (id, product_id) VALUES (?, ?)', product_option_id_bin,
-		product_id_bin)!
+struct VariantCreateDefaultParams {
+	product_id_bin        []u8
+	variant_id_bin        []u8
+	option_id_bin         []u8
+	option_value_id_bin   []u8
+	inventory_item_id_bin []u8
+}
+
+fn model_variant_create_default(mut tx firebird.Transaction, p VariantCreateDefaultParams) ! {
+	tx.execute('INSERT INTO product_option (id, product_id) VALUES (?, ?)', p.option_id_bin,
+		p.product_id_bin)!
 
 	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title)
 		VALUES(?, (SELECT default_locale_id FROM store), ?)',
-		product_option_id_bin, product_option_default_title)!
+		p.option_id_bin, product_option_default_title)!
 
-	_, product_option_value_id_bin := app.new_id()
-	tx.execute('INSERT INTO product_option_value (id, option_id) VALUES (?, ?)', product_option_value_id_bin,
-		product_option_id_bin)!
+	tx.execute('INSERT INTO product_option_value (id, option_id) VALUES (?, ?)', p.option_value_id_bin,
+		p.option_id_bin)!
 
 	tx.execute('INSERT INTO product_option_value_translations
 		(product_option_value_id, locale_id, name) VALUES (?, (SELECT default_locale_id FROM store), ?)',
-		product_option_value_id_bin, product_option_value_default_name)!
+		p.option_value_id_bin, product_option_value_default_name)!
 
-	_, product_variant_id_bin := app.new_id()
 	tx.execute('INSERT INTO product_variant (id, product_id, title) VALUES (?, ?, ?)',
-		product_variant_id_bin, product_id_bin, product_variant_default_title)!
+		p.variant_id_bin, p.product_id_bin, product_variant_default_title)!
 
-	_, inventory_item_id_bin := app.new_id()
-	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', inventory_item_id_bin,
-		product_variant_id_bin)!
+	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', p.inventory_item_id_bin,
+		p.variant_id_bin)!
 
 	tx.execute('INSERT INTO product_option_value_product_variant (option_value_id, variant_id)
 		VALUES (?, ?)',
-		product_option_value_id_bin, product_variant_id_bin)!
+		p.option_value_id_bin, p.variant_id_bin)!
 }
 
 fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygienised) (string, []firebird.Value) {
