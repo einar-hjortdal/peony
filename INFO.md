@@ -127,7 +127,7 @@ there cannot exist more than one `region` with the same `country`, in order to s
 to a select audience, a `price-list` must be used: its `includes_tax` property will override the `includes_tax`
 property set on `region`.
 
-### price_list and price_rules (WIP)
+### price_list (WIP)
 
 B2B customers may need custom prices: a `price_list` allows to assign prices and taxes to `product_variant` 
 that modify or override their regional price and tax settings.
@@ -135,7 +135,18 @@ that modify or override their regional price and tax settings.
 `price_list` are used to set volume pricing: prices only valid when a specific number of variants is 
 placed in a cart.
 
-`price_rule` are used to create discounts.
+### cart_rule (WIP)
+
+`cart_rule` are used to create behaviors for carts, such behaviors are discounts and gift products. 
+`cart_rule` may be automatically applied or applied using a discount code.
+
+A discount may be a percentage, a fixed amount or applied on shipping. A gift product is a product, 
+with price of 0, added to the cart when conditions are met: when a total threshold is passed, or when 
+a certain number of products or variants are added to the cart (buy X get Y).
+
+Other `cart_rule` conditions: they may only be applied on some products, variants, collections, require 
+minimum amount of one item in the cart, have a per-customer usage limit, have a time-window, or reserved 
+only to some channel and/or customers.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 

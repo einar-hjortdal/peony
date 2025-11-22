@@ -37,7 +37,7 @@
 ### To be implement
 
 - [ ] Reservations
-- [ ] Price rules
+- [ ] Cart rules
 - [ ] Price lists
 - [ ] Unit pricing
 - [ ] Product tags
