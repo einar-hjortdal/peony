@@ -45,7 +45,7 @@
 - [ ] Product collections
 - [ ] Product bundles
 - [ ] Posts
-- [ ] Post tags
+- [ ] Topics
 - [ ] Customer
 - [ ] Cart
 - [ ] Orders

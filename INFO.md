@@ -24,32 +24,47 @@ one translation column, this column should not be nullable. To remove a translat
 a translations table contains many translation columns, these columns should be nullable. If all of 
 them are null, the row should be deleted.
 
-### product
+### Classification
 
-#### product_option, product_option_value and product_variant
+#### Products
 
-Each `product` must have at least one `product_variant`.
-
-#### product_category
+##### product_category
 
 A `product_category` allows to categorize `product`. A `product` can have many `product_category`. The 
 `category_rank` field allows sorting.
 
 A `product_category` may have 0 or 1 parent `product_category`. This allows to build hierarchical structures.
 
-#### product_collection (WIP)
+##### product_collection (WIP)
 
 A `product_collection` is a group of `product`. A `product` can be part of many `product_collection`. 
 Unlike `product_category`, a `product_collection` is not hierarchical. These are useful to group together 
 products for the purpose of a marketing campaign.
 
-#### product_type (WIP)
+##### product_type (WIP)
 
 A `product_type` is a group of `product`. A `product` can be of one `product_type`. For example: `physical`,
 `digital`, `service`. 
 
 A `product_type` is also used to control the tax rates for all `product` that share it. For example: 
 a shop may need to apply different taxes to all `product` of `product_type` with value `service`.
+
+#### Posts
+
+##### type
+
+A post may be of type `post` or `page`.
+
+##### topic
+
+A post may have 0 or more `topic`. This is not a hierarchical classification, it is meant to group related 
+posts together, analogous to product collections.
+
+### product
+
+#### product_option, product_option_value and product_variant
+
+Each `product` must have at least one `product_variant`.
 
 ### metadata
 
@@ -156,8 +171,6 @@ A `post` is typically a blog entry, an article, etc.
 
 A `page` is a `post` that is independent. Typically a `page` is an about page, a landing page, a terms 
 of service page, etc.
-
-Each `post` may have one or more `post_tag` that categorizes it.
 
 ## Schema
 

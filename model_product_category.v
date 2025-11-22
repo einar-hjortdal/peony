@@ -383,8 +383,6 @@ fn model_product_category_delete(mut tx firebird.Transaction, product_category_i
 		product_category_id_bin)!
 }
 
-// TODO get tranlsations
-
 struct ProductCategoryProduct {
 	product_category_id     string
 	product_category_id_bin []u8
