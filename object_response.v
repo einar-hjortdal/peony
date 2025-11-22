@@ -474,7 +474,7 @@ pub struct ProductCategoryResponseEnvelope {
 }
 
 pub struct ProductCategoryResponseListEnvelope {
-	categories []ProductCategoryResponse @[json: 'productCategories']
+	categories []ProductCategoryResponse
 	count      i64
 	offset     i32
 	fetch      i32 @[omitempty]
