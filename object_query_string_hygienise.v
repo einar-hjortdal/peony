@@ -31,7 +31,7 @@ fn hygienise_region_list_request_query(p RegionListListRequestQuery) !RegionRetr
 }
 
 // TODO return error if invalid sorting order
-fn hygienise_product_category_list_request_query(p ProductCategoryListRequestQuery) !ProductCategoryRetrieveParams {
+fn hygienise_product_category_list_request_query(p ProductCategoryListRequestQuery) !CategoryRetrieveParams {
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
 		return new_internal_error(error_id_invalid, 'ids')
 	}
@@ -58,7 +58,7 @@ fn hygienise_product_category_list_request_query(p ProductCategoryListRequestQue
 		return new_internal_error('Requested 0 results', 'fetch cannot be 0')
 	}
 
-	return ProductCategoryRetrieveParams{
+	return CategoryRetrieveParams{
 		filter_by_id:                  p.ids.is_set
 		ids_bin:                       ids_bin
 		filter_by_handle:              p.handles.is_set
@@ -82,12 +82,12 @@ fn hygienise_product_category_list_request_query(p ProductCategoryListRequestQue
 	}
 }
 
-fn hygienise_product_category_get_request_query(p ProductCategoryGetRequestQuery, category_id_bin []u8) !ProductCategoryRetrieveParams {
+fn hygienise_product_category_get_request_query(p ProductCategoryGetRequestQuery, category_id_bin []u8) !CategoryRetrieveParams {
 	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
 
-	return ProductCategoryRetrieveParams{
+	return CategoryRetrieveParams{
 		filter_by_id:  true
 		ids_bin:       [category_id_bin]
 		locale_id_bin: locale_id_bin
