@@ -81,8 +81,8 @@ pub struct StoreResponse {
 	name                      string
 	default_region_id         string @[json: 'defaultRegionId']
 	default_locale_id         string @[json: 'defaultLocaleId']
-	default_stock_location_id string @[json: 'defaultStockLocationId'; omitempty]
-	default_sales_channel_id  string @[json: 'defaultSalesChannelId'; omitempty]
+	default_stock_location_id string @[json: 'defaultStockLocationId']
+	default_sales_channel_id  string @[json: 'defaultSalesChannelId']
 	default_currency_code     string @[json: 'defaultCurrencyCode']
 	locales                   []LocaleResponse
 	currencies                []CurrencyResponse
@@ -206,7 +206,7 @@ pub struct MoneyAmountResponse {
 	min_quantity  i32    @[json: 'minQuantity'; omitempty]
 	max_quantity  i32    @[json: 'maxQuantity'; omitempty]
 	price_list_id string @[json: 'priceListId'; omitempty]
-	region_id     string @[json: 'regionId'; omitempty] // TODO this should always set
+	region_id     string @[json: 'regionId']
 	variant_id    string @[json: 'variantId'; omitempty]
 }
 
@@ -353,7 +353,6 @@ pub struct VariantResponseStore {
 	metadata           string                       @[omitempty]
 	image              string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 	purchasable        bool
 	price              ProductVariantPriceResponse
@@ -365,11 +364,6 @@ fn format_variant_response_store(v ProductVariant, p ProductVariantPrice, produc
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
-	}
-
-	mut money_amounts := []MoneyAmountResponse{len: v.money_amounts.len}
-	for i := 0; i < v.money_amounts.len; i++ {
-		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
 	}
 
 	return VariantResponseStore{
@@ -387,7 +381,6 @@ fn format_variant_response_store(v ProductVariant, p ProductVariantPrice, produc
 		// TODO images
 		inventory_quantity: product_variant_availability.inventory_quantity
 		option_values:      option_values
-		money_amounts:      money_amounts
 		price:              format_price_response(p) // TODO not for /admin/
 		purchasable:        product_variant_availability.purchasable
 	}
