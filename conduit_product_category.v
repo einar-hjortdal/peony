@@ -4,7 +4,7 @@ import arrays
 import veb
 
 // TODO split store/admin conduit to fetch only data required by the endpoint
-fn conduit_category_list(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
+fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -17,37 +17,37 @@ fn conduit_category_list(mut app App, mut ctx Context, p ProductCategoryRetrieve
 
 	if count == 0 {
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-		return ctx.json(ProductCategoryResponseListEnvelope{
-			categories: []ProductCategoryResponse{}
+		return ctx.json(CategoryResponseListEnvelope{
+			categories: []CategoryResponse{}
 			count:      count
 			offset:     p.offset
 			fetch:      p.fetch
 		})
 	}
 
-	product_categories := model_product_category_retrieve(mut tx, p) or {
+	categories := model_product_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
 	}
 
-	mut product_categories_map := map[string]ProductCategory{}
-	mut product_categories_ids := []string{len: product_categories.len}
-	mut product_categories_ids_bin := [][]u8{len: product_categories.len}
-	for i := 0; i < product_categories.len; i++ {
-		pc := product_categories[i]
+	mut categories_map := map[string]ProductCategory{}
+	mut categories_ids := []string{len: categories.len}
+	mut categories_ids_bin := [][]u8{len: categories.len}
+	for i := 0; i < categories.len; i++ {
+		pc := categories[i]
 		id_string := pc.id
-		product_categories_map[id_string] = pc
-		product_categories_ids[i] = pc.id
-		product_categories_ids_bin[i] = pc.id_bin
+		categories_map[id_string] = pc
+		categories_ids[i] = pc.id
+		categories_ids_bin[i] = pc.id_bin
 	}
 
-	translations := model_category_translations_get(mut tx, product_categories_ids_bin) or {
+	translations := model_category_translations_get(mut tx, categories_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations',
 			err.msg())
 	}
 
-	seo_translations := model_product_category_seo_retrieve(mut tx, product_categories_ids_bin) or {
+	seo_translations := model_product_category_seo_retrieve(mut tx, categories_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
 	}
@@ -57,37 +57,37 @@ fn conduit_category_list(mut app App, mut ctx Context, p ProductCategoryRetrieve
 	for i := 0; i < translations.len; i++ {
 		translation := translations[i]
 		owner_id := translation.product_category_id
-		old := product_categories_map[owner_id].translations
-		product_categories_map[owner_id].translations = arrays.concat(old, translation)
+		old := categories_map[owner_id].translations
+		categories_map[owner_id].translations = arrays.concat(old, translation)
 	}
 
 	for i := 0; i < seo_translations.len; i++ {
 		seo_translation := seo_translations[i]
 		owner_id := seo_translation.product_category_id
-		old := product_categories_map[owner_id].seo_translations
-		product_categories_map[owner_id].seo_translations = arrays.concat(old, seo_translation)
+		old := categories_map[owner_id].seo_translations
+		categories_map[owner_id].seo_translations = arrays.concat(old, seo_translation)
 	}
 
-	mut complete_product_categories := []ProductCategory{len: product_categories_ids.len}
-	for i := 0; i < product_categories_ids.len; i++ {
-		id := product_categories_ids[i]
-		complete_product_categories[i] = product_categories_map[id]
+	mut complete_categories := []ProductCategory{len: categories_ids.len}
+	for i := 0; i < categories_ids.len; i++ {
+		id := categories_ids[i]
+		complete_categories[i] = categories_map[id]
 	}
 
-	mut external_product_categories := []ProductCategoryResponse{len: complete_product_categories.len}
-	for i := 0; i < complete_product_categories.len; i++ {
-		external_product_categories[i] = format_product_category_response(complete_product_categories[i])
+	mut external_categories := []CategoryResponse{len: complete_categories.len}
+	for i := 0; i < complete_categories.len; i++ {
+		external_categories[i] = format_category_response(complete_categories[i])
 	}
 
-	return ctx.json(ProductCategoryResponseListEnvelope{
-		categories: external_product_categories
+	return ctx.json(CategoryResponseListEnvelope{
+		categories: external_categories
 		count:      count
 		offset:     p.offset
 		fetch:      p.fetch
 	})
 }
 
-fn conduit_category_get(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
+fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -135,14 +135,14 @@ fn conduit_category_get(mut app App, mut ctx Context, p ProductCategoryRetrieveP
 		category.seo_translations = arrays.concat(old, seo_translation)
 	}
 
-	external_category := format_product_category_response(category)
+	external_category := format_category_response(category)
 
-	return ctx.json(ProductCategoryResponseEnvelope{
+	return ctx.json(CategoryResponseEnvelope{
 		category: external_category
 	})
 }
 
-fn conduit_category_get_store(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
+fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}

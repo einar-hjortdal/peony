@@ -421,7 +421,7 @@ pub struct ProductCategoryTranslationResponse {
 	description         string @[omitempty]
 }
 
-pub struct ProductCategoryResponse {
+pub struct CategoryResponse {
 	id                 string
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
@@ -440,7 +440,7 @@ pub struct ProductCategoryResponse {
 	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty]
 }
 
-fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
+fn format_category_response(p ProductCategory) CategoryResponse {
 	mut tr := []ProductCategoryTranslationResponse{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
 		translation := p.translations[i]
@@ -452,7 +452,7 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 		}
 	}
 
-	return ProductCategoryResponse{
+	return CategoryResponse{
 		id:                 p.id
 		created_at:         p.created_at.Time
 		updated_at:         p.updated_at.Time
@@ -469,12 +469,12 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 	}
 }
 
-pub struct ProductCategoryResponseEnvelope {
-	category ProductCategoryResponse
+pub struct CategoryResponseEnvelope {
+	category CategoryResponse
 }
 
-pub struct ProductCategoryResponseListEnvelope {
-	categories []ProductCategoryResponse
+pub struct CategoryResponseListEnvelope {
+	categories []CategoryResponse
 	count      i64
 	offset     i32
 	fetch      i32 @[omitempty]

@@ -190,7 +190,7 @@ fn model_product_category_update(mut tx firebird.Transaction, product_category_i
 		...params)!
 }
 
-struct ProductCategoryRetrieveParams {
+struct CategoryRetrieveParams {
 	filter_by_id                  bool
 	ids_bin                       [][]u8
 	filter_by_handle              bool
@@ -214,7 +214,7 @@ struct ProductCategoryRetrieveParams {
 	order_direction               string
 }
 
-fn model_product_category_retrieve_conditions(p ProductCategoryRetrieveParams) (string, []firebird.Value) {
+fn model_product_category_retrieve_conditions(p CategoryRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
@@ -254,7 +254,7 @@ fn model_product_category_retrieve_conditions(p ProductCategoryRetrieveParams) (
 	return get_where_conditions(conditions), params
 }
 
-fn model_product_category_retrieve_count(mut tx firebird.Transaction, p ProductCategoryRetrieveParams) !i64 {
+fn model_product_category_retrieve_count(mut tx firebird.Transaction, p CategoryRetrieveParams) !i64 {
 	conditions, params := model_product_category_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM product_category pc ${conditions}', ...params)!
 	rows := data.rows()
@@ -263,7 +263,7 @@ fn model_product_category_retrieve_count(mut tx firebird.Transaction, p ProductC
 	return count
 }
 
-fn model_product_category_retrieve(mut tx firebird.Transaction, p ProductCategoryRetrieveParams) ![]ProductCategory {
+fn model_product_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]ProductCategory {
 	mut params := []firebird.Value{}
 
 	// 2 for translations, 2 for seo
