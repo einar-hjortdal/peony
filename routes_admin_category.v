@@ -16,7 +16,7 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 			err.msg())
 	}
 
-	return conduit_product_category_list(mut app, mut ctx, p)
+	return conduit_category_list(mut app, mut ctx, p)
 }
 
 // creates product_category
@@ -87,7 +87,7 @@ pub fn (mut app App) admin_product_category_get(mut ctx Context, product_categor
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_category_list_request_query')
 	}
 
-	return conduit_product_category_get(mut app, mut ctx, p)
+	return conduit_category_get(mut app, mut ctx, p)
 }
 
 // updates a product_category

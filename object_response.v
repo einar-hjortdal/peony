@@ -469,11 +469,21 @@ fn format_product_category_response(p ProductCategory) ProductCategoryResponse {
 	}
 }
 
-pub struct ProductCategoryResponseStore {
+pub struct ProductCategoryResponseEnvelope {
+	category ProductCategoryResponse
+}
+
+pub struct ProductCategoryResponseListEnvelope {
+	categories []ProductCategoryResponse @[json: 'productCategories']
+	count      i64
+	offset     i32
+	fetch      i32 @[omitempty]
+}
+
+pub struct CategoryResponseStore {
 	id                 string
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
-	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
 	handle             string
 	parent_category_id string @[json: 'parentCategoryId'; omitempty]
 	category_rank      i32    @[json: 'categoryRank']
@@ -484,15 +494,29 @@ pub struct ProductCategoryResponseStore {
 	seo_description    string @[omitempty]
 }
 
-pub struct ProductCategoryResponseEnvelope {
-	product_category ProductCategoryResponse
+fn format_category_response_store(p ProductCategory) CategoryResponseStore {
+	return CategoryResponseStore{
+		id:                 p.id
+		created_at:         p.created_at.Time
+		updated_at:         p.updated_at.Time
+		handle:             p.handle
+		parent_category_id: p.parent_category_id
+		category_rank:      p.category_rank
+		metadata:           p.metadata.value
+		name:               p.name.value
+		description:        p.description.value
+	}
 }
 
-pub struct ProductCategoryResponseListEnvelope {
-	product_categories []ProductCategoryResponse @[json: 'productCategories']
-	count              i64
-	offset             i32
-	fetch              i32 @[omitempty]
+pub struct CategoryResponseStoreEnvelope {
+	category CategoryResponseStore
+}
+
+pub struct CategoryResponseStoreListEnvelope {
+	categories []CategoryResponseStore
+	count      i64
+	offset     i32
+	fetch      i32 @[omitempty]
 }
 
 pub struct VariantResponseEnvelope {

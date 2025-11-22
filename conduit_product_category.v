@@ -3,7 +3,8 @@ module peony
 import arrays
 import veb
 
-fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
+// TODO split store/admin conduit to fetch only data required by the endpoint
+fn conduit_category_list(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -17,10 +18,10 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 	if count == 0 {
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 		return ctx.json(ProductCategoryResponseListEnvelope{
-			product_categories: []ProductCategoryResponse{}
-			count:              count
-			offset:             p.offset
-			fetch:              p.fetch
+			categories: []ProductCategoryResponse{}
+			count:      count
+			offset:     p.offset
+			fetch:      p.fetch
 		})
 	}
 
@@ -40,7 +41,6 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 		product_categories_ids_bin[i] = pc.id_bin
 	}
 
-	// TODO split endpoint for store: store does not need to get translations and seo_translations
 	translations := model_category_translations_get(mut tx, product_categories_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations',
@@ -80,14 +80,14 @@ fn conduit_product_category_list(mut app App, mut ctx Context, p ProductCategory
 	}
 
 	return ctx.json(ProductCategoryResponseListEnvelope{
-		product_categories: external_product_categories
-		count:              count
-		offset:             p.offset
-		fetch:              p.fetch
+		categories: external_product_categories
+		count:      count
+		offset:     p.offset
+		fetch:      p.fetch
 	})
 }
 
-fn conduit_product_category_get(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
+fn conduit_category_get(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -138,7 +138,39 @@ fn conduit_product_category_get(mut app App, mut ctx Context, p ProductCategoryR
 	external_category := format_product_category_response(category)
 
 	return ctx.json(ProductCategoryResponseEnvelope{
-		product_category: external_category
+		category: external_category
+	})
+}
+
+fn conduit_category_get_store(mut app App, mut ctx Context, p ProductCategoryRetrieveParams) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	count := model_product_category_retrieve_count(mut tx, p) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_category count',
+			err.msg())
+	}
+
+	if count == 0 {
+		tx.rollback() or {}
+		return handle_error_404(mut ctx, 'Not found', 'No category exists with the given id.')
+	}
+
+	categories := model_product_category_retrieve(mut tx, p) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	mut category := categories[0]
+
+	external_category := format_category_response_store(category)
+
+	return ctx.json(CategoryResponseStoreEnvelope{
+		category: external_category
 	})
 }
 
