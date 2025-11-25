@@ -2,7 +2,7 @@ module peony
 
 // TODO delete object_query_string_hygienised file. Extract and hygienise parameters in one function.
 // TODO query string parameters are not object_, they're route_
-pub struct RegionListListRequestQuery {
+pub struct RegionListRequestQuery {
 	ids          ZeroArrayString
 	name         ZeroString
 	with_deleted ZeroBool
@@ -11,8 +11,8 @@ pub struct RegionListListRequestQuery {
 	order        ZeroString
 }
 
-fn extract_region_list_request_query(m map[string]string) RegionListListRequestQuery {
-	return RegionListListRequestQuery{
+fn extract_region_list_request_query(m map[string]string) RegionListRequestQuery {
+	return RegionListRequestQuery{
 		ids:          zero_array_string(m, 'ids')
 		name:         zero_string(m, 'name')
 		with_deleted: zero_bool(m, 'with_deleted')
@@ -106,7 +106,7 @@ fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductV
 	}
 }
 
-struct RetrieveProductParams {
+pub struct ProductListRequestQuery {
 	ids               ZeroArrayString
 	handle            ZeroString
 	is_giftcard       ZeroBool
@@ -128,8 +128,8 @@ struct RetrieveProductParams {
 	locale_id         ZeroString
 }
 
-fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductParams {
-	return RetrieveProductParams{
+fn extract_product_list_request_query(m map[string]string) ProductListRequestQuery {
+	return ProductListRequestQuery{
 		cart_id:           zero_string(m, 'cart_id')
 		category_ids:      zero_array_string(m, 'category_ids')
 		collection_ids:    zero_array_string(m, 'collection_id')
@@ -151,18 +151,102 @@ fn extract_retrieve_store_products_params(m map[string]string) RetrieveProductPa
 	}
 }
 
-fn extract_retrieve_store_products_by_id_params(m map[string]string, id_string string) RetrieveProductParams {
-	id := ZeroArrayString{
-		v:      [id_string]
-		is_set: true
-	}
+pub struct ProductListRequestQueryStore {
+	ids               ZeroArrayString
+	handle            ZeroString
+	is_giftcard       ZeroBool
+	collection_ids    ZeroArrayString
+	type_ids          ZeroArrayString
+	tag_ids           ZeroArrayString
+	title             ZeroString
+	description       ZeroString
+	category_ids      ZeroArrayString
+	price_list_ids    ZeroArrayString
+	sales_channel_ids ZeroArrayString
+	region_id         ZeroString
+	offset            ZeroI32
+	fetch             ZeroI32
+	order             ZeroString
+	cart_id           ZeroString
+	locale_id         ZeroString
+}
 
-	return RetrieveProductParams{
+fn extract_product_list_request_query_store(m map[string]string) ProductListRequestQueryStore {
+	return ProductListRequestQueryStore{
 		cart_id:           zero_string(m, 'cart_id')
-		ids:               id
+		category_ids:      zero_array_string(m, 'category_ids')
+		collection_ids:    zero_array_string(m, 'collection_id')
+		description:       zero_string(m, 'description')
+		fetch:             zero_i32(m, 'fetch')
+		handle:            zero_string(m, 'handle')
+		ids:               zero_array_string(m, 'id')
+		is_giftcard:       zero_bool(m, 'is_giftcard')
+		offset:            zero_i32(m, 'offset')
+		order:             zero_string(m, 'order')
+		price_list_ids:    zero_array_string(m, 'price_list_id')
+		region_id:         zero_string(m, 'region_id')
+		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
+		tag_ids:           zero_array_string(m, 'tag_id')
+		title:             zero_string(m, 'title')
+		type_ids:          zero_array_string(m, 'type_id')
+		locale_id:         zero_string(m, 'locale_id')
+	}
+}
+
+pub struct ProductGetRequestQueryStore {
+	price_list_ids    ZeroArrayString
+	sales_channel_ids ZeroArrayString
+	region_id         ZeroString
+	cart_id           ZeroString
+	locale_id         ZeroString
+}
+
+fn extract_product_get_request_query_store(m map[string]string) ProductGetRequestQueryStore {
+	return ProductGetRequestQueryStore{
+		cart_id:           zero_string(m, 'cart_id')
 		region_id:         zero_string(m, 'region_id')
 		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
 		locale_id:         zero_string(m, 'locale_id')
+	}
+}
+
+fn (p ProductGetRequestQueryStore) hygienise(product_id string) !RetrieveProductParamsHygienised {
+	ids := ZeroArrayString{
+		is_set: true
+		v:      [product_id]
+	}
+
+	id_bin := id_string_to_bin(product_id) or {
+		return new_internal_error(error_id_invalid, 'product_id')
+	}
+
+	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
+		return new_internal_error(error_id_invalid, 'cart_id')
+	}
+
+	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
+		return new_internal_error(error_id_invalid, 'sales_channel_id')
+	}
+
+	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
+		return new_internal_error(error_id_invalid, 'region_id')
+	}
+
+	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	return RetrieveProductParamsHygienised{
+		ids:                   ids
+		ids_bin:               [id_bin]
+		region_id:             p.region_id
+		region_id_bin:         region_id_bin
+		cart_id:               p.cart_id
+		cart_id_bin:           cart_id_bin
+		sales_channel_ids:     p.sales_channel_ids
+		sales_channel_ids_bin: sales_channel_ids_bin
+		locale_id:             p.locale_id
+		locale_id_bin:         locale_id_bin
 	}
 }
 

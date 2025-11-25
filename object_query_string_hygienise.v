@@ -1,6 +1,6 @@
 module peony
 
-fn hygienise_region_list_request_query(p RegionListListRequestQuery) !RegionRetriveParams {
+fn hygienise_region_list_request_query(p RegionListRequestQuery) !RegionRetriveParams {
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
 		return new_internal_error(error_id_invalid, 'ids')
 	}

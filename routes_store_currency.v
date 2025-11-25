@@ -3,6 +3,7 @@ module peony
 import veb
 
 // list currencies
+// TODO cache
 @['/store/currencies/'; get]
 pub fn (mut app App) store_currencies_get(mut ctx Context) veb.Result {
 	p := extract_retrieve_currencies_params(ctx.query)
@@ -14,6 +15,7 @@ pub fn (mut app App) store_currencies_get(mut ctx Context) veb.Result {
 }
 
 // get currency by code
+// TODO cache
 @['/store/currencies/:code'; get]
 pub fn (mut app App) store_currencies_get_by_code(mut ctx Context, code string) veb.Result {
 	if code.len != 3 {

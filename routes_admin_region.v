@@ -41,6 +41,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 }
 
 // get a region
+// TODO add query params
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {

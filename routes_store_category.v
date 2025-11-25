@@ -3,6 +3,7 @@ module peony
 import veb
 
 // lists category
+// TODO cache
 @['/store/categories'; get]
 pub fn (mut app App) store_product_category_list(mut ctx Context) veb.Result {
 	query_params := extract_product_category_list_request_query(ctx.query)
@@ -17,6 +18,7 @@ pub fn (mut app App) store_product_category_list(mut ctx Context) veb.Result {
 }
 
 // get a category by its id
+// TODO cache
 @['/store/categories/:category_id'; get]
 pub fn (mut app App) store_product_category_get(mut ctx Context, product_category_id string) veb.Result {
 	product_category_id_bin := id_string_to_bin(product_category_id) or {
