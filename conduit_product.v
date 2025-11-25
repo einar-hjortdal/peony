@@ -72,6 +72,7 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 			_, seo_translation_ids_bin[i] = app.new_id()
 		}
 
+		// TODO just use function params
 		p := ProductSEOUpdateParams{
 			product_id_bin:          product_id_bin
 			seo_translation_ids_bin: seo_translation_ids_bin

@@ -193,6 +193,7 @@ fn extract_product_list_request_query_store(m map[string]string) ProductListRequ
 	}
 }
 
+// TODO change sales_channel_ids ZeroArrayString to sales_channel_id ZeroString
 pub struct ProductGetRequestQueryStore {
 	price_list_ids    ZeroArrayString
 	sales_channel_ids ZeroArrayString
@@ -201,16 +202,7 @@ pub struct ProductGetRequestQueryStore {
 	locale_id         ZeroString
 }
 
-fn extract_product_get_request_query_store(m map[string]string) ProductGetRequestQueryStore {
-	return ProductGetRequestQueryStore{
-		cart_id:           zero_string(m, 'cart_id')
-		region_id:         zero_string(m, 'region_id')
-		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
-		locale_id:         zero_string(m, 'locale_id')
-	}
-}
-
-fn (p ProductGetRequestQueryStore) hygienise(product_id string) !RetrieveProductParamsHygienised {
+fn hygienise_product_get_request_query_store(m map[string]string, product_id string) !RetrieveProductParamsHygienised {
 	ids := ZeroArrayString{
 		is_set: true
 		v:      [product_id]
@@ -220,32 +212,36 @@ fn (p ProductGetRequestQueryStore) hygienise(product_id string) !RetrieveProduct
 		return new_internal_error(error_id_invalid, 'product_id')
 	}
 
-	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
+	cart_id := zero_string(m, 'cart_id')
+	cart_id_bin := zero_id_string_to_id_bin(cart_id) or {
 		return new_internal_error(error_id_invalid, 'cart_id')
 	}
 
-	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
+	sales_channel_ids := zero_array_string(m, 'sales_channel_id')
+	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
 		return new_internal_error(error_id_invalid, 'sales_channel_id')
 	}
 
-	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
+	region_id := zero_string(m, 'region_id')
+	region_id_bin := zero_id_string_to_id_bin(region_id) or {
 		return new_internal_error(error_id_invalid, 'region_id')
 	}
 
-	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
+	locale_id := zero_string(m, 'locale_id')
+	locale_id_bin := zero_id_string_to_id_bin(locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
 
 	return RetrieveProductParamsHygienised{
 		ids:                   ids
 		ids_bin:               [id_bin]
-		region_id:             p.region_id
+		region_id:             region_id
 		region_id_bin:         region_id_bin
-		cart_id:               p.cart_id
+		cart_id:               cart_id
 		cart_id_bin:           cart_id_bin
-		sales_channel_ids:     p.sales_channel_ids
+		sales_channel_ids:     sales_channel_ids
 		sales_channel_ids_bin: sales_channel_ids_bin
-		locale_id:             p.locale_id
+		locale_id:             locale_id
 		locale_id_bin:         locale_id_bin
 	}
 }

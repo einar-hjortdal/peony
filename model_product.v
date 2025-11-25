@@ -130,7 +130,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 			WHERE psc.product_id = p.id
 				AND sales_channel_id IN (${get_placeholders(ph.sales_channel_ids_bin)})
 			)')
-		params = arrays.concat(params, ...ph.sales_channel_ids_bin)
+		params = arrays.concat(params, ...workaround_24757(ph.sales_channel_ids_bin))
 	}
 
 	return get_where_conditions(conditions), params

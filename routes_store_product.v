@@ -41,14 +41,12 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 // TODO cache
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
-	p := extract_product_get_request_query_store(ctx.query)
-
-	ph := p.hygienise(product_id) or {
+	p := hygienise_product_get_request_query_store(ctx.query, product_id) or {
 		if err is InternalError {
 			return handle_error_500(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'ProductGetRequestQueryStore.hygienise')
 	}
 
-	return conduit_products_get_by_id_store(mut app, mut ctx, ph)
+	return conduit_products_get_by_id_store(mut app, mut ctx, p)
 }
