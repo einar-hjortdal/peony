@@ -13,6 +13,10 @@ pub struct PeonyError {
 	details string
 }
 
+pub struct IDResponseEnvelope {
+	id string
+}
+
 pub struct UserResponse {
 	id         string
 	handle     string
