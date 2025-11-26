@@ -123,7 +123,7 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, locale_id_bin []u8,
 	return product_images
 }
 
-fn model_product_images_update(mut app App, mut tx firebird.Transaction, product_id_bin []u8, images []ImageRequestHygienised) ! {
+fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ImageRequestHygienised, image_ids_bin [][]u8) ! {
 	// always delete all images
 	tx.execute('DELETE FROM image i
 		WHERE EXISTS (
@@ -137,12 +137,6 @@ fn model_product_images_update(mut app App, mut tx firebird.Transaction, product
 	// early return when nothing else to do
 	if images.len == 0 {
 		return
-	}
-
-	mut image_ids_bin := [][]u8{len: images.len}
-	for i := 0; i < images.len; i++ {
-		_, id_bin := app.new_id()
-		image_ids_bin[i] = id_bin
 	}
 
 	// insert new images

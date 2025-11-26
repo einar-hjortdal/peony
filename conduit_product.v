@@ -28,9 +28,25 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	}
 
 	if images := ph.images {
-		model_product_images_update(mut app, mut tx, product_id_bin, images) or {
+		mut image_ids_bin := [][]u8{len: images.len}
+		for i := 0; i < images.len; i++ {
+			_, id_bin := app.new_id()
+			image_ids_bin[i] = id_bin
+		}
+
+		model_product_images_update(mut tx, product_id_bin, images, image_ids_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
+		}
+
+		mut thumbnail_id_bin := image_ids_bin[0]
+		if thumbnail := ph.thumbnail {
+			thumbnail_id_bin = image_ids_bin[thumbnail]
+		}
+
+		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	}
 
@@ -421,13 +437,14 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	})
 }
 
+// TODO handle ph.thumbnail
 fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph ProductUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	if ph.handle != none || ph.is_giftcard != none || ph.status != none || ph.thumbnail != none
-		|| ph.type_id != none || ph.discountable != none || ph.metadata != none {
+	if ph.handle != none || ph.is_giftcard != none || ph.status != none || ph.type_id != none
+		|| ph.discountable != none || ph.metadata != none {
 		model_product_update(mut tx, product_id_bin, ph) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to update product', err.msg())
@@ -439,9 +456,29 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 	}
 
 	if images := ph.images {
-		model_product_images_update(mut app, mut tx, product_id_bin, images) or {
+		model_product_thumbnail_delete(mut tx, product_id_bin) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to delete product thumbnail', err.msg())
+		}
+
+		mut image_ids_bin := [][]u8{len: images.len}
+		for i := 0; i < images.len; i++ {
+			_, id_bin := app.new_id()
+			image_ids_bin[i] = id_bin
+		}
+
+		model_product_images_update(mut tx, product_id_bin, images, image_ids_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
+		}
+
+		mut thumbnail_id_bin := image_ids_bin[0]
+		if thumbnail := ph.thumbnail {
+			thumbnail_id_bin = image_ids_bin[thumbnail]
+		}
+
+		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
+			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	}
 

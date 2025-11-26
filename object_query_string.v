@@ -194,6 +194,7 @@ fn extract_product_list_request_query_store(m map[string]string) ProductListRequ
 }
 
 // TODO change sales_channel_ids ZeroArrayString to sales_channel_id ZeroString
+// there can only be one sales_channel in price context
 pub struct ProductGetRequestQueryStore {
 	price_list_ids    ZeroArrayString
 	sales_channel_ids ZeroArrayString

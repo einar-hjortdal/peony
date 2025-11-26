@@ -149,12 +149,13 @@ CREATE TABLE product (
   handle VARCHAR(63) NOT NULL,
   is_giftcard BOOLEAN DEFAULT false NOT NULL,
   status VARCHAR(9) DEFAULT 'draft' NOT NULL,
-  thumbnail BLOB SUB_TYPE TEXT,
+  thumbnail_id BINARY(16),
   type_id BINARY(16),
   discountable BOOLEAN DEFAULT true NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad81-1b60-4400-c6c74051e5fb" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad81-1baf-9800-2b10d817dc21" CHECK (status IN ('draft', 'proposed', 'published', 'rejected')),
+  CONSTRAINT "0686cd40-3325-10bb-3c00-d37e22aa5104" FOREIGN KEY (thumbnail_id) REFERENCES image (id),
   CONSTRAINT "0681493b-ad81-1c9b-6000-de3e24ed7e4a" FOREIGN KEY (type_id) REFERENCES product_type (id)
 );
 

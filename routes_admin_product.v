@@ -84,6 +84,20 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		}
 	}
 
+	if thumbnail := ph.thumbnail {
+		if thumbnail < 0 {
+			return handle_error_400(mut ctx, 'thumbnail invalid', 'negative value')
+		}
+
+		if images := ph.images {
+			if !(thumbnail < images.len) {
+				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of range')
+			}
+		} else {
+			return handle_error_400(mut ctx, 'thumbnail invalid', 'images array not provided')
+		}
+	}
+
 	return conduit_product_create(mut app, mut ctx, ph)
 }
 
@@ -129,12 +143,50 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 			err.msg())
 	}
 
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	// store := model_store_retrieve(mut tx) or {
+	// 	tx.rollback() or {}
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	// }
+
 	if translations := ph.translations {
 		if translations.len == 0 {
+			tx.rollback() or {}
 			return handle_error_400(mut ctx, 'A product name is required', 'translations')
 		}
 		// TODO verify provided locale_id exist in database
 	}
+
+	if thumbnail := ph.thumbnail {
+		if thumbnail < 0 {
+			tx.rollback() or {}
+			return handle_error_400(mut ctx, 'thumbnail invalid', 'negative value')
+		}
+
+		if images := ph.images {
+			if !(thumbnail < images.len) {
+				tx.rollback() or {}
+				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of range')
+			}
+		} else {
+			product_images := model_product_image_retrieve(mut tx, []u8{}, [
+				product_id_bin,
+			]) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to retrieve product_images',
+					err.msg())
+			}
+
+			if !(thumbnail < product_images.len) {
+				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of image_rank range')
+			}
+		}
+	}
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	// if seo_translations := ph.seo_translations {
 	// 	// TODO verify provided locale_id exist in database

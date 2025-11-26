@@ -1,6 +1,5 @@
 module peony
 
-import log
 import time
 
 pub struct PeonySuccess {
@@ -552,7 +551,6 @@ pub struct ProductResponse {
 	handle            string
 	is_giftcard       bool @[json: 'isGiftcard']
 	status            string
-	thumbnail         string @[omitempty]
 	type_id           string @[json: 'typeId'; omitempty]
 	discountable      bool
 	translations      []ProductTranslationResponse
@@ -563,6 +561,7 @@ pub struct ProductResponse {
 	seo_title         string                   @[json: 'seoTitle'; omitempty]
 	seo_description   string                   @[json: 'seoDescription'; omitempty]
 	category_ids      []string                 @[json: 'categoryIds'; omitempty]
+	thumbnail         ProductImageResponse     @[omitempty]
 	images            []ProductImageResponse   @[omitempty]
 	options           []ProductOptionResponse  @[omitempty]
 	variants          []VariantResponse        @[omitempty]
@@ -573,18 +572,15 @@ pub struct ProductResponse {
 }
 
 fn format_product_response(p Product) ProductResponse {
-	mut type_id := ''
-	if !p.type_id_bin.is_null {
-		type_id = id_bin_to_string(p.type_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('product.type_id_bin is invalid')
-			''
-		}
-	}
-
+	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
-		images[i] = format_product_image_response(p.images[i])
+		image := p.images[i]
+		external_image := format_product_image_response(image)
+		images[i] = external_image
+		if p.thumbnail_id != '' && p.thumbnail_id == image.id {
+			thumbnail = external_image
+		}
 	}
 
 	mut options := []ProductOptionResponse{len: p.options.len}
@@ -610,13 +606,13 @@ fn format_product_response(p Product) ProductResponse {
 		handle:            p.handle
 		is_giftcard:       p.is_giftcard
 		status:            p.status
-		thumbnail:         p.thumbnail.value
-		type_id:           type_id
+		type_id:           p.type_id
 		discountable:      p.discountable
 		metadata:          p.metadata.value
 		title:             p.title.value
 		subtitle:          p.subtitle.value
 		description:       p.description.value
+		thumbnail:         thumbnail
 		images:            images
 		options:           options
 		variants:          variants
@@ -646,7 +642,6 @@ pub struct ProductResponseStore {
 	handle          string
 	is_giftcard     bool @[json: 'isGiftcard']
 	status          string
-	thumbnail       string @[omitempty]
 	type_id         string @[json: 'typeId'; omitempty]
 	discountable    bool
 	metadata        string @[omitempty]
@@ -656,6 +651,7 @@ pub struct ProductResponseStore {
 	seo_title       string                  @[json: 'seoTitle'; omitempty]
 	seo_description string                  @[json: 'seoDescription'; omitempty]
 	category_ids    []string                @[json: 'categoryIds'; omitempty]
+	thumbnail       ProductImageResponse    @[omitempty]
 	images          []ProductImageResponse  @[omitempty]
 	options         []ProductOptionResponse @[omitempty]
 	variants        []VariantResponseStore  @[omitempty]
@@ -664,18 +660,15 @@ pub struct ProductResponseStore {
 }
 
 fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) ProductResponseStore {
-	mut type_id := ''
-	if !p.type_id_bin.is_null {
-		type_id = id_bin_to_string(p.type_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('product.type_id_bin is invalid')
-			''
-		}
-	}
-
+	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
-		images[i] = format_product_image_response(p.images[i])
+		image := p.images[i]
+		external_image := format_product_image_response(image)
+		images[i] = external_image
+		if p.thumbnail_id != '' && p.thumbnail_id == image.id {
+			thumbnail = external_image
+		}
 	}
 
 	mut options := []ProductOptionResponse{len: p.options.len}
@@ -705,13 +698,13 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		handle:       p.handle
 		is_giftcard:  p.is_giftcard
 		status:       p.status
-		thumbnail:    p.thumbnail.value
-		type_id:      type_id
+		type_id:      p.type_id
 		discountable: p.discountable
 		metadata:     p.metadata.value
 		title:        p.title.value
 		subtitle:     p.subtitle.value
 		description:  p.description.value
+		thumbnail:    thumbnail
 		images:       images
 		options:      options
 		variants:     variants

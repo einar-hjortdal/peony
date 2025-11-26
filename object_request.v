@@ -683,11 +683,13 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
+// The `thumbnail` field must always be the index of one image in the `images` array.
+// If `thumbnail` is not provided, peony selects the first image in `images` as the thumbnail.
+// If `images` is empty or omitted, the product is created without a thumbnail or images.
 pub struct ProductCreateRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
-	thumbnail         ?string
 	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
 	metadata          ?string   @[raw]
@@ -698,6 +700,7 @@ pub struct ProductCreateRequest {
 	translations      ?[]ProductTranslationRequest
 	seo_translations  ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
 	options           ?[]ProductOptionCreateRequest
+	thumbnail         ?i32
 	images            ?[]ImageRequest
 }
 
@@ -705,7 +708,6 @@ struct ProductCreateRequestHygienised {
 	handle                ?string
 	is_giftcard           ?bool
 	status                ?string
-	thumbnail             ?string
 	type_id               ?string
 	type_id_bin           []u8
 	discountable          ?bool
@@ -718,6 +720,7 @@ struct ProductCreateRequestHygienised {
 	category_ids_bin      [][]u8
 	collection_ids        ?[]string
 	collection_ids_bin    [][]u8
+	thumbnail             ?i32
 mut:
 	options          ?[]ProductOptionCreateRequestHygienised
 	translations     ?[]ProductTranslationRequestHygienised
@@ -800,11 +803,14 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	return ph
 }
 
+// If `thumbnail` is provided and `images` is empty, the image whose `rank` equals `thumbnail` is used
+// as the product thumbnail.
+// If both `thumbnail` and `images` are provided, the thumbnail is the image at index `thumbnail` in
+// the `images` array.
 struct ProductUpdateRequest {
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
-	thumbnail         ?string
 	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
 	metadata          ?string   @[raw]
@@ -814,6 +820,7 @@ struct ProductUpdateRequest {
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
 	seo_translations  ?[]SEOTranslationUpdateRequest
+	thumbnail         ?i32
 	images            ?[]ImageRequest
 }
 
@@ -821,7 +828,6 @@ struct ProductUpdateRequestHygienised {
 	handle                ?string
 	is_giftcard           ?bool
 	status                ?string
-	thumbnail             ?string
 	type_id               ?string
 	type_id_bin           []u8
 	discountable          ?bool
@@ -834,6 +840,7 @@ struct ProductUpdateRequestHygienised {
 	category_ids_bin      [][]u8
 	collection_ids        ?[]string
 	collection_ids_bin    [][]u8
+	thumbnail             ?i32
 mut:
 	translations     ?[]ProductTranslationRequestHygienised
 	seo_translations ?[]SEOTranslationUpdateRequestHygienised
@@ -865,7 +872,6 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status
-		thumbnail:             p.thumbnail
 		type_id:               p.type_id
 		type_id_bin:           type_id_bin
 		discountable:          p.discountable
@@ -878,6 +884,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		category_ids_bin:      category_ids_bin
 		collection_ids:        p.collection_ids
 		collection_ids_bin:    collection_id_bin
+		thumbnail:             p.thumbnail
 	}
 
 	if translations := p.translations {
@@ -903,6 +910,8 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		}
 		ph.images = h
 	}
+
+	// thumbnail:             p.thumbnail
 
 	return ph
 }
