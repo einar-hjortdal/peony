@@ -105,7 +105,6 @@ pub struct ProductImageResponse {
 	id           string
 	url          string
 	product_id   string                     @[json: 'productId']
-	image_rank   i32                        @[json: 'imageRank']
 	alt          string                     @[omitempty]
 	translations []ImageTranslationResponse @[omitempty]
 }

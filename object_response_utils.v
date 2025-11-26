@@ -168,7 +168,6 @@ fn format_product_image_response(p ProductImage) ProductImageResponse {
 		id:           p.id
 		url:          p.url
 		product_id:   p.product_id
-		image_rank:   p.image_rank
 		alt:          p.alt.value
 		translations: translations
 	}
