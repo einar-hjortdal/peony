@@ -361,5 +361,5 @@ fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []
 }
 
 fn model_product_thumbnail_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('UPDATE product SET thumbanil_id = NULL WHERE id = ?', product_id_bin)!
+	tx.execute('UPDATE product SET thumbnail_id = NULL WHERE id = ?', product_id_bin)!
 }
