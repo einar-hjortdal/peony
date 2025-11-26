@@ -478,7 +478,27 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		}
 
 		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
+			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
+		}
+	} else if thumbnail := ph.thumbnail {
+		product_images := model_product_image_retrieve(mut tx, []u8{}, [
+			product_id_bin,
+		]) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to retrieve product_image', err.msg())
+		}
+
+		for i := 0; i < product_images.len; i++ {
+			image := product_images[i]
+			if image.image_rank == thumbnail {
+				model_product_thumbnail_update(mut tx, product_id_bin, image.id_bin) or {
+					tx.rollback() or {}
+					return handle_error_500(mut ctx, 'Failed to update product thumbnail',
+						err.msg())
+				}
+				break
+			}
 		}
 	}
 
