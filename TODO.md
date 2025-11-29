@@ -95,7 +95,6 @@
 - [ ] Reduce boilerplating
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
-- [ ] Request objects should have no mutable fields
 
 ## Upstream
 

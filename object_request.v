@@ -635,28 +635,6 @@ struct ProductCategoryTranslationRequestHygienised {
 	description   ?string
 }
 
-pub struct ProductCategoryRequest {
-	handle             ?string
-	is_internal        ?bool   @[json: 'isInternal']
-	is_active          ?bool   @[json: 'isActive']
-	parent_category_id ?string @[json: 'parentCategoryId']
-	category_rank      ?i32    @[json: 'categoryRank']
-	metadata           ?string @[raw]
-	translations       ?[]ProductCategoryTranslationRequest
-}
-
-struct ProductCategoryRequestHygienised {
-	handle                 ?string
-	is_internal            ?bool
-	is_active              ?bool
-	parent_category_id     ?string
-	parent_category_id_bin []u8
-	category_rank          ?i32
-	metadata               ?string
-mut:
-	translations ?[]ProductCategoryTranslationRequestHygienised
-}
-
 pub struct SEOTranslationUpdateRequest {
 	locale_id   string @[json: 'localeId']
 	title       ?string
@@ -681,6 +659,180 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 		title:         p.title
 		description:   p.description
 	}
+}
+
+pub struct CategoryCreateRequest {
+	handle             ?string
+	is_internal        ?bool   @[json: 'isInternal']
+	is_active          ?bool   @[json: 'isActive']
+	parent_category_id ?string @[json: 'parentCategoryId']
+	category_rank      ?i32    @[json: 'categoryRank']
+	metadata           ?string @[raw]
+	translations       []ProductCategoryTranslationRequest
+	seo_translations   ?[]SEOTranslationUpdateRequest
+}
+
+struct CategoryCreateRequestHygienised {
+	handle                 ?string
+	is_internal            ?bool
+	is_active              ?bool
+	parent_category_id     ?string
+	parent_category_id_bin []u8
+	category_rank          ?i32
+	metadata               ?string
+	translations           []ProductCategoryTranslationRequestHygienised
+mut:
+	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+}
+
+fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
+	mut parent_category_id_bin := []u8{}
+	if parent_category_id := p.parent_category_id {
+		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
+			return new_internal_error(error_id_invalid, 'parent_category_id')
+		}
+	}
+
+	if p.translations.len == 0 {
+		return new_internal_error(error_missing_default_translation, 'Provide at least one translation')
+	}
+
+	mut translations := []ProductCategoryTranslationRequestHygienised{len: p.translations.len}
+	for i := 0; i < p.translations.len; i++ {
+		translation := p.translations[i]
+		locale_id_bin := id_string_to_bin(translation.locale_id) or {
+			return new_internal_error(error_id_invalid, 'locale_id')
+		}
+		translations[i] = ProductCategoryTranslationRequestHygienised{
+			locale_id:     translation.locale_id
+			locale_id_bin: locale_id_bin
+			name:          translation.name
+			description:   translation.description
+		}
+	}
+
+	mut ph := CategoryCreateRequestHygienised{
+		handle:                 p.handle
+		is_internal:            p.is_internal
+		is_active:              p.is_active
+		parent_category_id:     p.parent_category_id
+		parent_category_id_bin: parent_category_id_bin
+		category_rank:          p.category_rank
+		metadata:               p.metadata
+		translations:           translations
+	}
+
+	if seo_translations := p.seo_translations {
+		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
+		for i := 0; i < seo_translations.len; i++ {
+			translation := seo_translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return new_internal_error(error_id_invalid, 'locale_id')
+			}
+			st[i] = SEOTranslationUpdateRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				title:         translation.title
+				description:   translation.description
+			}
+		}
+		ph.seo_translations = st
+	}
+
+	return ph
+}
+
+pub struct CategoryUpdateRequest {
+	handle             ?string
+	is_internal        ?bool   @[json: 'isInternal']
+	is_active          ?bool   @[json: 'isActive']
+	parent_category_id ?string @[json: 'parentCategoryId']
+	category_rank      ?i32    @[json: 'categoryRank']
+	metadata           ?string @[raw]
+	translations       ?[]ProductCategoryTranslationRequest
+	seo_translations   ?[]SEOTranslationUpdateRequest
+}
+
+struct CategoryUpdateRequestHygienised {
+	handle                 ?string
+	is_internal            ?bool
+	is_active              ?bool
+	parent_category_id     ?string
+	parent_category_id_bin []u8
+	category_rank          ?i32
+	metadata               ?string
+mut:
+	translations     ?[]ProductCategoryTranslationRequestHygienised
+	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+}
+
+fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
+	if p.handle == none && p.is_internal == none && p.is_active == none
+		&& p.parent_category_id == none && p.metadata == none && p.translations == none
+		&& p.seo_translations == none {
+		return new_internal_error(error_empty_object, 'CategoryUpdateRequest')
+	}
+
+	mut parent_category_id_bin := []u8{}
+	if parent_category_id := p.parent_category_id {
+		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
+			return new_internal_error(error_id_invalid, 'parent_category_id')
+		}
+	}
+
+	mut ph := CategoryUpdateRequestHygienised{
+		handle:                 p.handle
+		is_internal:            p.is_internal
+		is_active:              p.is_active
+		parent_category_id:     p.parent_category_id
+		parent_category_id_bin: parent_category_id_bin
+		category_rank:          p.category_rank
+		metadata:               p.metadata
+	}
+
+	if seo_translations := p.seo_translations {
+		if seo_translations.len == 0 {
+			return new_internal_error(error_empty_object, 'seo_translations')
+		}
+
+		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
+		for i := 0; i < seo_translations.len; i++ {
+			translation := seo_translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return new_internal_error(error_id_invalid, 'locale_id')
+			}
+			st[i] = SEOTranslationUpdateRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				title:         translation.title
+				description:   translation.description
+			}
+		}
+		ph.seo_translations = st
+	}
+
+	if translations := p.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_object, 'translations')
+		}
+
+		mut t := []ProductCategoryTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return new_internal_error(error_id_invalid, 'locale_id')
+			}
+			t[i] = ProductCategoryTranslationRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				name:          translation.name
+				description:   translation.description
+			}
+		}
+		ph.translations = t
+	}
+
+	return ph
 }
 
 // The `thumbnail` field must always be the index of one image in the `images` array.

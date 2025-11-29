@@ -22,53 +22,23 @@ pub fn (mut app App) admin_product_category_list(mut ctx Context) veb.Result {
 // creates product_category
 @['/admin/product-categories'; post]
 pub fn (mut app App) admin_product_category_create(mut ctx Context) veb.Result {
-	p := json.decode(ProductCategoryRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductCategoryRequest', err.msg())
+	p := json.decode(CategoryCreateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode CategoryCreateRequest', err.msg())
 	}
 
-	translations := p.translations or {
-		return handle_error_400(mut ctx, 'Translations missing', 'Provide at least one translation')
-	}
-
-	if translations.len == 0 {
-		return handle_error_400(mut ctx, 'Translations missing', 'Provide at least one translation')
-	}
-
-	if translations.len == 1 {
-		// TODO verify it is default locale
-	}
-
-	mut parent_category_id_bin := []u8{}
-	if parent_category_id := p.parent_category_id {
-		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
-			return handle_error_400(mut ctx, error_id_invalid, 'parent_category_id')
+	ph := p.hygienise() or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
 		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'CategoryCreateRequest.hygienise')
 	}
 
-	ph := ProductCategoryRequestHygienised{
-		handle:                 p.handle
-		is_internal:            p.is_internal
-		is_active:              p.is_active
-		parent_category_id:     p.parent_category_id
-		parent_category_id_bin: parent_category_id_bin
-		metadata:               p.metadata
+	for i := 0; i < p.translations.len; i++ {
+		// TODO verify default locale is in array
+		// TODO verify locale_ids exist
 	}
 
-	mut pcth := []ProductCategoryTranslationRequestHygienised{len: translations.len}
-	for i := 0; i < translations.len; i++ {
-		translation := translations[i]
-		locale_id_bin := id_string_to_bin(translation.locale_id) or {
-			return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
-		}
-		pcth[i] = ProductCategoryTranslationRequestHygienised{
-			locale_id:     translation.locale_id
-			locale_id_bin: locale_id_bin
-			name:          translation.name
-			description:   translation.description
-		}
-	}
-
-	return conduit_product_category_create(mut app, mut ctx, ph, pcth)
+	return conduit_category_create(mut app, mut ctx, ph)
 }
 
 // get a product_category by its id
@@ -97,50 +67,30 @@ pub fn (mut app App) admin_product_category_update(mut ctx Context, product_cate
 		return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
 	}
 
-	p := json.decode(ProductCategoryRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductCategoryRequest', err.msg())
+	p := json.decode(CategoryUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode CategoryUpdateRequest', err.msg())
 	}
 
-	if p.translations == none && p.handle == none && p.is_internal == none && p.is_active == none
-		&& p.parent_category_id == none && p.metadata == none {
-		return handle_error_400(mut ctx, error_empty_object, 'ProductCategoryRequest')
-	}
-
-	mut parent_category_id_bin := []u8{}
-	if parent_category_id := p.parent_category_id {
-		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
-			return handle_error_400(mut ctx, error_id_invalid, 'product_category_id')
+	ph := p.hygienise() or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
 		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'CategoryUpdateRequest.hygienise')
 	}
 
-	mut ph := ProductCategoryRequestHygienised{
-		handle:                 p.handle
-		is_internal:            p.is_internal
-		is_active:              p.is_active
-		parent_category_id:     p.parent_category_id
-		parent_category_id_bin: parent_category_id_bin
-		metadata:               p.metadata
+	if _ := ph.parent_category_id {
+		// TODO verify ph.parent_category_id exists
 	}
 
-	if translations := p.translations {
-		mut pcth := []ProductCategoryTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return handle_error_400(mut ctx, error_id_invalid, 'locale_id')
-			}
-			pcth[i] = ProductCategoryTranslationRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				name:          translation.name
-				description:   translation.description
-			}
-		}
-		ph.translations = pcth
+	if _ := ph.translations {
+		// TODO verify ids
 	}
 
-	return conduit_product_category_update(mut app, mut ctx, product_category_id_bin,
-		ph)
+	if _ := ph.seo_translations {
+		// TODO verify ids
+	}
+
+	return conduit_category_update(mut app, mut ctx, product_category_id_bin, ph)
 }
 
 // deletes a product_category

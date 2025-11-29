@@ -174,22 +174,41 @@ fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrievePa
 	})
 }
 
-fn conduit_product_category_create(mut app App, mut ctx Context, ph ProductCategoryRequestHygienised, pcth []ProductCategoryTranslationRequestHygienised) veb.Result {
-	id, id_bin := app.new_id()
+fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateRequestHygienised) veb.Result {
+	category_id, category_id_bin := app.new_id()
 
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_category_create(mut tx, id, id_bin, ph) or {
+	model_category_create(mut tx, category_id, category_id_bin, ph) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_category', err.msg())
 	}
 
-	model_product_category_translations_merge(mut tx, id_bin, pcth) or {
+	model_category_translations_update(mut tx, category_id_bin, ph.translations) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not create product_category_translations',
 			err.msg())
+	}
+
+	if seo_translations := ph.seo_translations {
+		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
+		for i := 0; i < seo_translations.len; i++ {
+			_, id_bin := app.new_id()
+			seo_translation_ids_bin[i] = id_bin
+		}
+
+		p := CategorySEOUpdateParams{
+			category_id_bin:         category_id_bin
+			seo_translation_ids_bin: seo_translation_ids_bin
+			seo_translations:        seo_translations
+		}
+
+		model_category_seo_update(mut tx, p) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not create seo_translations', err.msg())
+		}
 	}
 
 	tx.commit() or {
@@ -200,7 +219,7 @@ fn conduit_product_category_create(mut app App, mut ctx Context, ph ProductCateg
 	return success(mut ctx)
 }
 
-fn conduit_product_category_update(mut app App, mut ctx Context, product_category_id_bin []u8, ph ProductCategoryRequestHygienised) veb.Result {
+fn conduit_category_update(mut app App, mut ctx Context, product_category_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -211,7 +230,7 @@ fn conduit_product_category_update(mut app App, mut ctx Context, product_categor
 	}
 
 	if translations := ph.translations {
-		model_product_category_translations_merge(mut tx, product_category_id_bin, translations) or {
+		model_category_translations_update(mut tx, product_category_id_bin, translations) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Could not update product_category_translations',
 				err.msg())

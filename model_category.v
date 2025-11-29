@@ -12,7 +12,7 @@ struct ProductCategoryTranslation {
 	description             firebird.NullString
 }
 
-fn model_product_category_translations_merge(mut tx firebird.Transaction, product_category_id_bin []u8, ph []ProductCategoryTranslationRequestHygienised) ! {
+fn model_category_translations_update(mut tx firebird.Transaction, category_id_bin []u8, ph []ProductCategoryTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Value(firebird.Null{})}
 	for i := 0; i < ph.len; i++ {
@@ -23,7 +23,7 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 			CAST(? as BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE'
 
-		params[i * 4] = product_category_id_bin
+		params[i * 4] = category_id_bin
 		params[i * 4 + 1] = ph[i].locale_id_bin
 
 		if name := ph[i].name {
@@ -39,7 +39,7 @@ fn model_product_category_translations_merge(mut tx firebird.Transaction, produc
 		}
 	}
 
-	params[ph.len * 4] = product_category_id_bin
+	params[ph.len * 4] = category_id_bin
 
 	tx.execute('MERGE INTO product_category_translations t
 		USING (${get_merge_source(src)}) s
@@ -109,7 +109,7 @@ mut:
 	seo_translations []ProductCategorySEOTranslation
 }
 
-fn model_product_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph ProductCategoryRequestHygienised) ! {
+fn model_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph CategoryCreateRequestHygienised) ! {
 	mut columns := ['id']
 	mut params := [firebird.Value(id_bin)]
 
@@ -150,7 +150,7 @@ fn model_product_category_create(mut tx firebird.Transaction, id string, id_bin 
 		...params)!
 }
 
-fn model_product_category_update(mut tx firebird.Transaction, product_category_id_bin []u8, ph ProductCategoryRequestHygienised) ! {
+fn model_product_category_update(mut tx firebird.Transaction, product_category_id_bin []u8, ph CategoryUpdateRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
