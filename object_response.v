@@ -400,30 +400,31 @@ fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 	}
 }
 
+// for store frontend
+pub struct SEOResponse {
+pub:
+	title       string @[omitempty]
+	description string @[omitempty]
+}
+
 pub struct SEOTranslationResponse {
+pub:
 	id          string
 	locale_id   string @[json: 'localeId']
 	title       string @[omitempty]
 	description string @[omitempty]
 }
 
-fn format_seo_translation_response(p ProductSEOTranslation) SEOTranslationResponse {
-	return SEOTranslationResponse{
-		id:          p.id
-		locale_id:   p.locale_id
-		title:       p.title.value
-		description: p.description.value
-	}
-}
-
 pub struct ProductCategoryTranslationResponse {
-	product_category_id string @[json: 'productCategoryId']
-	locale_id           string @[json: 'localeId']
-	name                string @[omitempty]
-	description         string @[omitempty]
+pub:
+	category_id string @[json: 'productCategoryId']
+	locale_id   string @[json: 'localeId']
+	name        string @[omitempty]
+	description string @[omitempty]
 }
 
 pub struct CategoryResponse {
+pub:
 	id                 string
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
@@ -436,21 +437,30 @@ pub struct CategoryResponse {
 	metadata           string @[omitempty]
 	name               string @[omitempty]
 	description        string @[omitempty]
-	seo_title          string @[omitempty]
-	seo_description    string @[omitempty]
 	translations       []ProductCategoryTranslationResponse
 	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty]
 }
 
-fn format_category_response(p ProductCategory) CategoryResponse {
+fn format_category_response(p Category) CategoryResponse {
 	mut tr := []ProductCategoryTranslationResponse{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
 		translation := p.translations[i]
 		tr[i] = ProductCategoryTranslationResponse{
-			product_category_id: translation.product_category_id
-			locale_id:           translation.locale_id
-			name:                translation.name.value
-			description:         translation.description.value
+			category_id: translation.category_id
+			locale_id:   translation.locale_id
+			name:        translation.name.value
+			description: translation.description.value
+		}
+	}
+
+	mut seo_tr := []SEOTranslationResponse{len: p.seo_translations.len}
+	for i := 0; i < p.seo_translations.len; i++ {
+		translation := p.seo_translations[i]
+		seo_tr[i] = SEOTranslationResponse{
+			id:          translation.id
+			locale_id:   translation.locale_id
+			title:       translation.title.value
+			description: translation.description.value
 		}
 	}
 
@@ -468,14 +478,17 @@ fn format_category_response(p ProductCategory) CategoryResponse {
 		name:               p.name.value
 		description:        p.description.value
 		translations:       tr
+		seo_translations:   seo_tr
 	}
 }
 
 pub struct CategoryResponseEnvelope {
+pub:
 	category CategoryResponse
 }
 
 pub struct CategoryResponseListEnvelope {
+pub:
 	categories []CategoryResponse
 	count      i64
 	offset     i32
@@ -483,20 +496,25 @@ pub struct CategoryResponseListEnvelope {
 }
 
 pub struct CategoryResponseStore {
+pub:
 	id                 string
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
 	handle             string
-	parent_category_id string @[json: 'parentCategoryId'; omitempty]
-	category_rank      i32    @[json: 'categoryRank']
-	metadata           string @[omitempty]
-	name               string @[omitempty]
-	description        string @[omitempty]
-	seo_title          string @[omitempty]
-	seo_description    string @[omitempty]
+	parent_category_id string      @[json: 'parentCategoryId'; omitempty]
+	category_rank      i32         @[json: 'categoryRank']
+	metadata           string      @[omitempty]
+	name               string      @[omitempty]
+	description        string      @[omitempty]
+	seo                SEOResponse @[omitempty]
 }
 
-fn format_category_response_store(p ProductCategory) CategoryResponseStore {
+fn format_category_response_store(p Category) CategoryResponseStore {
+	seo := SEOResponse{
+		title:       p.seo_title.value
+		description: p.seo_description.value
+	}
+
 	return CategoryResponseStore{
 		id:                 p.id
 		created_at:         p.created_at.Time
@@ -507,6 +525,7 @@ fn format_category_response_store(p ProductCategory) CategoryResponseStore {
 		metadata:           p.metadata.value
 		name:               p.name.value
 		description:        p.description.value
+		seo:                seo
 	}
 }
 

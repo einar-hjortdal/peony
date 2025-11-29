@@ -251,7 +251,7 @@ pub struct ProductCategoryGetRequestQuery {
 	locale_id ZeroString
 }
 
-fn extract_product_category_get_request_params(m map[string]string) ProductCategoryGetRequestQuery {
+fn extract_category_get_request_params(m map[string]string) ProductCategoryGetRequestQuery {
 	return ProductCategoryGetRequestQuery{
 		locale_id: zero_string(m, 'locale_id')
 	}
@@ -272,7 +272,7 @@ pub struct ProductCategoryListRequestQuery {
 	locale_id           ZeroString
 }
 
-fn extract_product_category_list_request_query(m map[string]string) ProductCategoryListRequestQuery {
+fn extract_category_list_request_query(m map[string]string) ProductCategoryListRequestQuery {
 	return ProductCategoryListRequestQuery{
 		ids:                 zero_array_string(m, 'ids')
 		handles:             zero_array_string(m, 'handle')

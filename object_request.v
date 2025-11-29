@@ -1,11 +1,13 @@
 module peony
 
 pub struct AuthRequest {
+pub:
 	email    string
 	password string
 }
 
 pub struct StoreRequest {
+pub:
 	name                      ?string
 	default_locale_id         ?string   @[json: 'defaultLocaleId']
 	default_region_id         ?string   @[json: 'defaultRegionId']
@@ -68,18 +70,21 @@ fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
 }
 
 pub struct SalesChannelRequest {
+pub:
 	name        string
 	description ?string
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
 pub struct SalesChannelUpdateRequest {
+pub:
 	name        ?string
 	description ?string
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
 pub struct ImageRequest {
+pub:
 	url          string
 	translations ?[]ImageTranslationRequest
 }
@@ -106,6 +111,7 @@ fn (p ImageRequest) hygienise() !ImageRequestHygienised {
 }
 
 pub struct UserCreateRequest {
+pub:
 	email      string
 	password   string
 	first_name ?string @[json: 'firstName']
@@ -116,6 +122,7 @@ pub struct UserCreateRequest {
 }
 
 pub struct UserUpdateRequest {
+pub:
 	email      ?string
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
@@ -125,6 +132,7 @@ pub struct UserUpdateRequest {
 }
 
 pub struct ImageTranslationRequest {
+pub:
 	locale_id string @[json: 'localeId']
 	alt       string
 }
@@ -152,6 +160,7 @@ fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 }
 
 pub struct ProductTranslationRequest {
+pub:
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
@@ -181,6 +190,7 @@ fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTr
 }
 
 pub struct ProductOptionValueTranslationRequest {
+pub:
 	locale_id string @[json: 'localeId']
 	name      string
 }
@@ -204,6 +214,7 @@ fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTrans
 }
 
 pub struct ProductOptionValueRequest {
+pub:
 	translations []ProductOptionValueTranslationRequest
 }
 
@@ -245,6 +256,7 @@ fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! 
 }
 
 pub struct ProductOptionTranslationRequest {
+pub:
 	title     string
 	locale_id string @[json: 'localeId']
 }
@@ -267,6 +279,7 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 }
 
 pub struct ProductOptionCreateRequest {
+pub:
 	translations []ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
@@ -327,6 +340,7 @@ fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) 
 }
 
 pub struct ProductOptionUpdateRequest {
+pub:
 	translations []ProductOptionTranslationRequest
 }
 
@@ -368,6 +382,7 @@ fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) 
 }
 
 pub struct ProductVariantMoneyAmountRequest {
+pub:
 	amount      i32
 	region_id   string @[json: 'regionId']
 	is_original ?bool  @[json: 'isOriginal']
@@ -394,6 +409,7 @@ fn (p ProductVariantMoneyAmountRequest) hygienise() !ProductVariantMoneyAmountRe
 
 // used during product and product_variant creation
 pub struct InventoryLevelCreateRequest {
+pub:
 	stock_location_id string @[json: 'stockLocationId']
 	stocked_quantity  i32    @[json: 'stockedQuantity']
 }
@@ -414,11 +430,13 @@ fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygie
 }
 
 pub struct InventoryLevelUpdateRequest {
+pub:
 	stocked_quantity i32 @[json: 'stockedQuantity']
 }
 
 // used during product and product_variant creation
 pub struct InventoryItemCreateRequest {
+pub:
 	sku               ?string
 	origin_country    ?string @[json: 'originCountry']
 	hs_code           ?string @[json: 'hsCode']
@@ -479,6 +497,7 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 }
 
 pub struct InventoryItemUpdateRequest {
+pub:
 	sku               ?string
 	origin_country    ?string @[json: 'originCountry']
 	hs_code           ?string @[json: 'hsCode']
@@ -494,6 +513,7 @@ pub struct InventoryItemUpdateRequest {
 }
 
 pub struct VariantCreateRequest {
+pub:
 	title            ?string
 	ean              ?string
 	upc              ?string
@@ -549,6 +569,7 @@ fn (p VariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
 }
 
 pub struct VariantUpdateRequest {
+pub:
 	title            ?string
 	ean              ?string
 	upc              ?string
@@ -605,6 +626,7 @@ fn (p VariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
 // for a region to limit the requests being sent to a tax provider.
 pub struct RegionCreateRequest {
+pub:
 	automatic_taxes ?bool    @[json: 'automaticTaxes']
 	country_codes   []string @[json: 'countryCodes']
 	currency_code   string   @[json: 'currencyCode']
@@ -614,6 +636,7 @@ pub struct RegionCreateRequest {
 }
 
 pub struct RegionUpdateRequest {
+pub:
 	automatic_taxes ?bool     @[json: 'automaticTaxes']
 	country_codes   ?[]string @[json: 'countryCodes']
 	currency_code   ?string   @[json: 'currencyCode']
@@ -622,13 +645,14 @@ pub struct RegionUpdateRequest {
 	//  taxes
 }
 
-pub struct ProductCategoryTranslationRequest {
+pub struct CategoryTranslationRequest {
+pub:
 	locale_id   string @[json: 'localeId']
 	name        ?string
 	description ?string
 }
 
-struct ProductCategoryTranslationRequestHygienised {
+struct CategoryTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8
 	name          ?string
@@ -636,6 +660,7 @@ struct ProductCategoryTranslationRequestHygienised {
 }
 
 pub struct SEOTranslationUpdateRequest {
+pub:
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	description ?string
@@ -662,14 +687,15 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 }
 
 pub struct CategoryCreateRequest {
+pub:
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
-	translations       []ProductCategoryTranslationRequest
-	seo_translations   ?[]SEOTranslationUpdateRequest
+	translations       []CategoryTranslationRequest
+	seo_translations   ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
 }
 
 struct CategoryCreateRequestHygienised {
@@ -680,7 +706,7 @@ struct CategoryCreateRequestHygienised {
 	parent_category_id_bin []u8
 	category_rank          ?i32
 	metadata               ?string
-	translations           []ProductCategoryTranslationRequestHygienised
+	translations           []CategoryTranslationRequestHygienised
 mut:
 	seo_translations ?[]SEOTranslationUpdateRequestHygienised
 }
@@ -697,13 +723,13 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		return new_internal_error(error_missing_default_translation, 'Provide at least one translation')
 	}
 
-	mut translations := []ProductCategoryTranslationRequestHygienised{len: p.translations.len}
+	mut translations := []CategoryTranslationRequestHygienised{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
 		translation := p.translations[i]
 		locale_id_bin := id_string_to_bin(translation.locale_id) or {
 			return new_internal_error(error_id_invalid, 'locale_id')
 		}
-		translations[i] = ProductCategoryTranslationRequestHygienised{
+		translations[i] = CategoryTranslationRequestHygienised{
 			locale_id:     translation.locale_id
 			locale_id_bin: locale_id_bin
 			name:          translation.name
@@ -743,14 +769,15 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 }
 
 pub struct CategoryUpdateRequest {
+pub:
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
-	translations       ?[]ProductCategoryTranslationRequest
-	seo_translations   ?[]SEOTranslationUpdateRequest
+	translations       ?[]CategoryTranslationRequest
+	seo_translations   ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
 }
 
 struct CategoryUpdateRequestHygienised {
@@ -762,7 +789,7 @@ struct CategoryUpdateRequestHygienised {
 	category_rank          ?i32
 	metadata               ?string
 mut:
-	translations     ?[]ProductCategoryTranslationRequestHygienised
+	translations     ?[]CategoryTranslationRequestHygienised
 	seo_translations ?[]SEOTranslationUpdateRequestHygienised
 }
 
@@ -816,13 +843,13 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 			return new_internal_error(error_empty_object, 'translations')
 		}
 
-		mut t := []ProductCategoryTranslationRequestHygienised{len: translations.len}
+		mut t := []CategoryTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {
 				return new_internal_error(error_id_invalid, 'locale_id')
 			}
-			t[i] = ProductCategoryTranslationRequestHygienised{
+			t[i] = CategoryTranslationRequestHygienised{
 				locale_id:     translation.locale_id
 				locale_id_bin: locale_id_bin
 				name:          translation.name
@@ -839,6 +866,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // If `thumbnail` is not provided, peony selects the first image in `images` as the thumbnail.
 // If `images` is empty or omitted, the product is created without a thumbnail or images.
 pub struct ProductCreateRequest {
+pub:
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string

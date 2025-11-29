@@ -75,14 +75,14 @@ fn assign_product_translations(product_translations []ProductTranslation, mut pr
 	}
 }
 
-fn assign_product_category_ids(pcps []ProductCategoryProduct, mut products_map map[string]Product) {
-	for i := 0; i < pcps.len; i++ {
-		pcp := pcps[i]
+fn assign_category_ids(cps []CategoryProduct, mut products_map map[string]Product) {
+	for i := 0; i < cps.len; i++ {
+		pcp := cps[i]
 		product_id := pcp.product_id
 		old_ids := products_map[product_id].category_ids
 		old_ids_bin := products_map[product_id].category_ids_bin
-		new_ids := arrays.concat(old_ids, pcp.product_category_id)
-		new_ids_bin := arrays.concat(old_ids_bin, pcp.product_category_id_bin)
+		new_ids := arrays.concat(old_ids, pcp.category_id)
+		new_ids_bin := arrays.concat(old_ids_bin, pcp.category_id_bin)
 		products_map[product_id].category_ids = new_ids
 		products_map[product_id].category_ids_bin = new_ids_bin
 	}
@@ -166,7 +166,7 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 
 	assign_product_translations(products_data.product_translations, mut products_map)
 
-	assign_product_category_ids(products_data.product_category_product, mut products_map)
+	assign_category_ids(products_data.category_product, mut products_map)
 
 	assign_product_images(products_data.product_images, mut products_map)
 

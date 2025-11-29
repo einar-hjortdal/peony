@@ -9,10 +9,9 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	count := model_product_category_retrieve_count(mut tx, p) or {
+	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category count',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category count', err.msg())
 	}
 
 	if count == 0 {
@@ -25,12 +24,12 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 		})
 	}
 
-	categories := model_product_category_retrieve(mut tx, p) or {
+	categories := model_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category', err.msg())
 	}
 
-	mut categories_map := map[string]ProductCategory{}
+	mut categories_map := map[string]Category{}
 	mut categories_ids := []string{len: categories.len}
 	mut categories_ids_bin := [][]u8{len: categories.len}
 	for i := 0; i < categories.len; i++ {
@@ -43,11 +42,10 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 
 	translations := model_category_translations_get(mut tx, categories_ids_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category_translations', err.msg())
 	}
 
-	seo_translations := model_product_category_seo_retrieve(mut tx, categories_ids_bin) or {
+	seo_translations := model_category_seo_retrieve(mut tx, categories_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
 	}
@@ -56,19 +54,19 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 
 	for i := 0; i < translations.len; i++ {
 		translation := translations[i]
-		owner_id := translation.product_category_id
+		owner_id := translation.category_id
 		old := categories_map[owner_id].translations
 		categories_map[owner_id].translations = arrays.concat(old, translation)
 	}
 
 	for i := 0; i < seo_translations.len; i++ {
 		seo_translation := seo_translations[i]
-		owner_id := seo_translation.product_category_id
+		owner_id := seo_translation.category_id
 		old := categories_map[owner_id].seo_translations
 		categories_map[owner_id].seo_translations = arrays.concat(old, seo_translation)
 	}
 
-	mut complete_categories := []ProductCategory{len: categories_ids.len}
+	mut complete_categories := []Category{len: categories_ids.len}
 	for i := 0; i < categories_ids.len; i++ {
 		id := categories_ids[i]
 		complete_categories[i] = categories_map[id]
@@ -92,10 +90,9 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	count := model_product_category_retrieve_count(mut tx, p) or {
+	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category count',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category count', err.msg())
 	}
 
 	if count == 0 {
@@ -103,18 +100,18 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 		return handle_error_404(mut ctx, 'Not found', 'No category exists with the given id.')
 	}
 
-	categories := model_product_category_retrieve(mut tx, p) or {
+	categories := model_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category', err.msg())
 	}
 
 	translations := model_category_translations_get(mut tx, p.ids_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category_translations from database',
+		return handle_error_500(mut ctx, 'Could not retrieve category_translations from database',
 			err.msg())
 	}
 
-	seo_translations := model_product_category_seo_retrieve(mut tx, p.ids_bin) or {
+	seo_translations := model_category_seo_retrieve(mut tx, p.ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
 	}
@@ -147,10 +144,9 @@ fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrievePa
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	count := model_product_category_retrieve_count(mut tx, p) or {
+	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category count',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category count', err.msg())
 	}
 
 	if count == 0 {
@@ -158,9 +154,9 @@ fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrievePa
 		return handle_error_404(mut ctx, 'Not found', 'No category exists with the given id.')
 	}
 
-	categories := model_product_category_retrieve(mut tx, p) or {
+	categories := model_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve product_category', err.msg())
+		return handle_error_500(mut ctx, 'Could not retrieve category', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
@@ -183,13 +179,12 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 
 	model_category_create(mut tx, category_id, category_id_bin, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create product_category', err.msg())
+		return handle_error_500(mut ctx, 'Could not create category', err.msg())
 	}
 
 	model_category_translations_update(mut tx, category_id_bin, ph.translations) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create product_category_translations',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not create category_translations', err.msg())
 	}
 
 	if seo_translations := ph.seo_translations {
@@ -219,20 +214,20 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 	return success(mut ctx)
 }
 
-fn conduit_category_update(mut app App, mut ctx Context, product_category_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
+fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_category_update(mut tx, product_category_id_bin, ph) or {
+	model_category_update(mut tx, category_id_bin, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not update product_category', err.msg())
+		return handle_error_500(mut ctx, 'Could not update category', err.msg())
 	}
 
 	if translations := ph.translations {
-		model_category_translations_update(mut tx, product_category_id_bin, translations) or {
+		model_category_translations_update(mut tx, category_id_bin, translations) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not update product_category_translations',
+			return handle_error_500(mut ctx, 'Could not update category_translations',
 				err.msg())
 		}
 	}
@@ -245,14 +240,14 @@ fn conduit_category_update(mut app App, mut ctx Context, product_category_id_bin
 	return success(mut ctx)
 }
 
-fn conduit_product_category_delete(mut app App, mut ctx Context, product_category_id_bin []u8) veb.Result {
+fn conduit_category_delete(mut app App, mut ctx Context, category_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_category_delete(mut tx, product_category_id_bin) or {
+	model_category_delete(mut tx, category_id_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not delete product_category', err.msg())
+		return handle_error_500(mut ctx, 'Could not delete category', err.msg())
 	}
 
 	tx.commit() or {

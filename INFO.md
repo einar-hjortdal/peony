@@ -28,17 +28,17 @@ them are null, the row should be deleted.
 
 #### Products
 
-##### product_category
+##### category
 
-A `product_category` allows to categorize `product`. A `product` can have many `product_category`. The 
+A `category` allows to categorize `product`. A `product` can have many `category`. The 
 `category_rank` field allows sorting.
 
-A `product_category` may have 0 or 1 parent `product_category`. This allows to build hierarchical structures.
+A `category` may have 0 or 1 parent `category`. This allows to build hierarchical structures.
 
 ##### product_collection (WIP)
 
 A `product_collection` is a group of `product`. A `product` can be part of many `product_collection`. 
-Unlike `product_category`, a `product_collection` is not hierarchical. These are useful to group together 
+Unlike `category`, a `product_collection` is not hierarchical. These are useful to group together 
 products for the purpose of a marketing campaign.
 
 ##### product_type (WIP)

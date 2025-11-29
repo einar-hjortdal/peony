@@ -109,9 +109,9 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 
 	if ph.category_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
-			SELECT 1 FROM product_category_product pcp
-			WHERE pcp.product_id = p.id
-				AND pcp.product_category_id IN (${get_placeholders(ph.category_ids_bin)})
+			SELECT 1 FROM category_product cp
+			WHERE cp.product_id = p.id
+				AND cp.category_id IN (${get_placeholders(ph.category_ids_bin)})
 			)')
 		params = arrays.concat(params, ...workaround_24757(ph.category_ids_bin))
 	}

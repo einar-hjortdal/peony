@@ -68,8 +68,8 @@ fn make_inventory_item_map(p []InventoryItem) (map[string]InventoryItem, [][]u8)
 	return m, a
 }
 
-fn make_product_category_map(p []ProductCategory) (map[string]ProductCategory, [][]u8) {
-	mut m := map[string]ProductCategory{}
+fn make_category_map(p []Category) (map[string]Category, [][]u8) {
+	mut m := map[string]Category{}
 	mut a := [][]u8{len: p.len}
 	for i := 0; i < p.len; i++ {
 		id := p[i].id
