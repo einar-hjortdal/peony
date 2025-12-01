@@ -83,6 +83,7 @@
 
 ## Internals
 
+- [ ] Add tests
 - [x] Separate response structs from internal structs
 - [ ] Separate model parameter objects from Request objects
   - [ ] Make Request objects public

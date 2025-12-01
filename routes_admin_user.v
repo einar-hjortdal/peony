@@ -70,6 +70,5 @@ pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.
 		return handle_error_400(mut ctx, error_id_invalid, 'user_id')
 	}
 
-	// TODO move to conduit function
 	return conduit_user_delete(mut app, mut ctx, user_id_bin)
 }
