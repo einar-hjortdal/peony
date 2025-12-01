@@ -80,27 +80,27 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 	mut params := []firebird.Value{}
 
 	if p.filter_by_id {
-		conditions = arrays.concat(conditions, 'u.id IN (${get_placeholders(p.ids_bin)})')
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
 	}
 
 	if p.filter_by_handle {
-		conditions = arrays.concat(conditions, 'u.handle = ?')
+		conditions = arrays.concat(conditions, 'handle = ?')
 		params = arrays.concat(params, p.handle)
 	}
 
 	if p.filter_by_email {
-		conditions = arrays.concat(conditions, 'u.email = ?')
+		conditions = arrays.concat(conditions, 'email = ?')
 		params = arrays.concat(params, p.email)
 	}
 
 	if p.filter_by_role {
-		conditions = arrays.concat(conditions, 'u.role IN (${get_placeholders(p.roles)})')
+		conditions = arrays.concat(conditions, 'role IN (${get_placeholders(p.roles)})')
 		params = arrays.concat(params, ...p.roles)
 	}
 
 	if !p.include_deleted {
-		conditions = arrays.concat(conditions, 'c.deleted_at IS NULL')
+		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 
 	return get_where_conditions(conditions), params
@@ -108,7 +108,7 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 
 fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 	conditions, params := model_user_list_conditions(p)
-	data := tx.execute('SELECT COUNT OVER(*) FROM app_user u ${conditions}', ...params)!
+	data := tx.execute('SELECT COUNT OVER(*) FROM app_user ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
@@ -125,8 +125,8 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		order_direction = p.order_direction
 	}
 
-	mut sorting := 'ORDER BY c.created_at ${order_direction},
-		c.category_rank ${order_direction}'
+	mut sorting := 'ORDER BY created_at ${order_direction},
+		category_rank ${order_direction}'
 
 	if p.use_offset {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
