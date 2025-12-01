@@ -33,6 +33,13 @@ pub struct UserResponseEnvelope {
 	user UserResponse
 }
 
+pub struct UserListResponseEnvelope {
+	users  []UserResponse
+	count  i64
+	offset i32
+	fetch  i32 @[omitempty]
+}
+
 pub struct LocaleResponse {
 	id   string
 	code string

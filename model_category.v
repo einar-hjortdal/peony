@@ -283,7 +283,8 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		order_direction = p.order_direction
 	}
 
-	mut sorting := 'ORDER BY c.created_at ${order_direction}, c.category_rank ${order_direction}'
+	mut sorting := 'ORDER BY c.created_at ${order_direction},
+		c.category_rank ${order_direction}'
 
 	if p.use_offset {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')

@@ -1,5 +1,35 @@
 module peony
 
+fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
+	p := extract_user_list_request_query(m)
+
+	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
+		return new_internal_error(error_id_invalid, 'ids')
+	}
+
+	include_deleted := p.with_deleted.is_set && p.with_deleted.v
+
+	order_direction := get_order_direction(p.order) or {
+		return new_internal_error(error_order_direction_invalid, details_order_direction_invalid)
+	}
+
+	return UserListParams{
+		filter_by_id:        p.ids.is_set
+		ids_bin:             ids_bin
+		filter_by_email:     p.email.is_set
+		email:               p.email.v
+		filter_by_handle:    p.handle.is_set
+		handle:              p.handle.v
+		include_deleted:     include_deleted
+		use_offset:          p.offset.is_set
+		offset:              p.offset.v
+		use_fetch:           p.fetch.is_set
+		fetch:               p.fetch.v
+		use_order_direction: p.order.is_set
+		order_direction:     order_direction
+	}
+}
+
 fn hygienise_region_list_request_query(p RegionListRequestQuery) !RegionRetriveParams {
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
 		return new_internal_error(error_id_invalid, 'ids')

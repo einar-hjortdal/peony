@@ -22,8 +22,8 @@
 - [x] Product categories
 - [x] Product variants
 - [x] Products
-- [x] Uploads
 - [x] SEO
+- [x] Uploads
 
 ### Currently being implemented
 
@@ -86,8 +86,7 @@
 - [x] Separate response structs from internal structs
 - [ ] Separate model parameter objects from Request objects
   - [ ] Make Request objects public
-  - [ ] Remove `parse_` functions from methods
-- [ ] Merge hygienise functions with extraction functions for object_query_string objects
+  - [x] Remove `parse_` functions from methods
 - [ ] Rename query string structs to include `Query` in their name
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
@@ -95,6 +94,7 @@
 - [ ] Reduce boilerplating
 - [ ] Engineer a way to allow sorting products by price
 - [ ] Engineer a way to allow filtering by availability
+- [ ] Do not fetch default seo translations with a join, just format response with locale_id
 
 ## Upstream
 

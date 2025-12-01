@@ -1,8 +1,31 @@
 module peony
 
-// TODO delete object_query_string_hygienised file. Extract and hygienise parameters in one function.
 // TODO query string parameters are not object_, they're route_
+pub struct UserListRequestQuery {
+pub:
+	ids          ZeroArrayString
+	email        ZeroString
+	handle       ZeroString
+	with_deleted ZeroBool
+	offset       ZeroI32
+	fetch        ZeroI32
+	order        ZeroString
+}
+
+fn extract_user_list_request_query(m map[string]string) UserListRequestQuery {
+	return UserListRequestQuery{
+		ids:          zero_array_string(m, 'ids')
+		email:        zero_string(m, 'email')
+		handle:       zero_string(m, 'handle')
+		with_deleted: zero_bool(m, 'with_deleted')
+		offset:       zero_i32(m, 'offset')
+		fetch:        zero_i32(m, 'fetch')
+		order:        zero_string(m, 'order')
+	}
+}
+
 pub struct RegionListRequestQuery {
+pub:
 	ids          ZeroArrayString
 	name         ZeroString
 	with_deleted ZeroBool
@@ -23,6 +46,7 @@ fn extract_region_list_request_query(m map[string]string) RegionListRequestQuery
 }
 
 struct ListCountriesParams {
+pub:
 	offset ZeroI32
 	fetch  ZeroI32
 	order  ZeroString
@@ -37,6 +61,7 @@ fn extract_retrieve_countries_params(p map[string]string) ListCountriesParams {
 }
 
 struct RetrieveCurrenciesParams {
+pub:
 	codes  ZeroArrayString
 	offset ZeroI32
 	fetch  ZeroI32
@@ -53,6 +78,7 @@ fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesPar
 }
 
 struct LocaleRetrieveParams {
+pub:
 	ids    ZeroArrayString
 	offset ZeroI32
 	fetch  ZeroI32
@@ -60,6 +86,7 @@ struct LocaleRetrieveParams {
 }
 
 struct ListSalesChannelsParams {
+pub:
 	ids         ZeroArrayString
 	name        ZeroString
 	description ZeroString
@@ -82,6 +109,7 @@ fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannels
 }
 
 struct RetrieveProductVariantParams {
+pub:
 	ids             ZeroArrayString
 	product_ids     ZeroArrayString
 	allow_backorder ZeroBool
@@ -107,6 +135,7 @@ fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductV
 }
 
 pub struct ProductListRequestQuery {
+pub:
 	ids               ZeroArrayString
 	handle            ZeroString
 	is_giftcard       ZeroBool
@@ -152,6 +181,7 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 }
 
 pub struct ProductListRequestQueryStore {
+pub:
 	ids               ZeroArrayString
 	handle            ZeroString
 	is_giftcard       ZeroBool
@@ -196,6 +226,7 @@ fn extract_product_list_request_query_store(m map[string]string) ProductListRequ
 // TODO change sales_channel_ids ZeroArrayString to sales_channel_id ZeroString
 // there can only be one sales_channel in price context
 pub struct ProductGetRequestQueryStore {
+pub:
 	price_list_ids    ZeroArrayString
 	sales_channel_ids ZeroArrayString
 	region_id         ZeroString
@@ -248,6 +279,7 @@ fn hygienise_product_get_request_query_store(m map[string]string, product_id str
 }
 
 pub struct ProductCategoryGetRequestQuery {
+pub:
 	locale_id ZeroString
 }
 
@@ -259,6 +291,7 @@ fn extract_category_get_request_params(m map[string]string) ProductCategoryGetRe
 
 // handles expects a string that is a single handle, or many comma-separated handles.
 pub struct ProductCategoryListRequestQuery {
+pub:
 	ids                 ZeroArrayString
 	handles             ZeroArrayString
 	is_active           ZeroBool

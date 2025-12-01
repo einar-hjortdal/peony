@@ -3,10 +3,17 @@ module peony
 import json
 import veb
 
-// retrieves a list of users
+// lists users
 @['/admin/users/'; get]
-pub fn (mut app App) admin_users_get(mut ctx Context) veb.Result {
-	return ctx.json('TODO')
+pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
+	p := hygienise_user_list_request_query(ctx.query) or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_user_list_request_query')
+	}
+
+	return conduit_user_list(mut app, mut ctx, p)
 }
 
 // creates a user
@@ -39,11 +46,7 @@ pub fn (mut app App) admin_users_id_get(mut ctx Context, user_id string) veb.Res
 	user_id_bin := id_string_to_bin(user_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'user_id')
 	}
-
-	user := app.retrieve_user_by_id(user_id_bin) or {
-		return handle_error_500(mut ctx, 'Could not retrieve user from database', err.msg())
-	}
-	return ctx.json(format_user_response(user))
+	return conduit_user_get_by_id(mut app, mut ctx, user_id_bin)
 }
 
 // updates a user
