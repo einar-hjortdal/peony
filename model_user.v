@@ -54,7 +54,7 @@ fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id s
 	}
 
 	tx.execute('INSERT INTO app_user (${get_columns(c)}) VALUES (${get_placeholders(c)})',
-		arrays.concat([firebird.Value(user_id)], params))!
+		...params)!
 }
 
 struct UserListParams {
