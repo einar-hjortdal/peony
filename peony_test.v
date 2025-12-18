@@ -50,7 +50,6 @@ fn (bp BlobProviderDummy) delete(id string) ! {
 // Remember to `sudo usermod -aG docker $USER`
 fn container_firebird_start() ! {
 	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${test_firebird_port}:3050 firebirdsql/firebird')
-
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -65,7 +64,6 @@ fn container_firebird_clean() {
 
 fn container_redict_start() ! {
 	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=${test_redict_port}:6379 registry.redict.io/redict')
-
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -81,9 +79,10 @@ fn container_redict_clean() {
 // Note: veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
 // Note: containers aren't stopped on panic
 fn app_routine(ch chan bool) {
-	go new_peony_app(Providers{
+	mut app := new_peony_app(Providers{
 		blob_provider: new_provider_blob_dummy()
 	})
+	go app.run()
 	_ := <-ch
 
 	container_firebird_clean()
