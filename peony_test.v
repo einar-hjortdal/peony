@@ -49,7 +49,7 @@ fn (bp BlobProviderDummy) delete(id string) ! {
 
 // Remember to `sudo usermod -aG docker $USER`
 fn container_firebird_start() ! {
-	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=3050:${test_firebird_port} firebirdsql/firebird')
+	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${test_firebird_port}:3050 firebirdsql/firebird')
 
 	if result.exit_code != 0 {
 		return error(result.output)
@@ -64,7 +64,7 @@ fn container_firebird_clean() {
 }
 
 fn container_redict_start() ! {
-	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=6379:${test_redict_port} registry.redict.io/redict')
+	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=${test_redict_port}:6379 registry.redict.io/redict')
 
 	if result.exit_code != 0 {
 		return error(result.output)
@@ -105,7 +105,7 @@ fn run_app() !chan bool {
 
 	ch := chan bool{}
 	go app_routine(ch)
-	time.sleep(10 * time.second) // need to wait for app startup. TODO fix magic number
+	time.sleep(15 * time.second) // need to wait for app startup. TODO fix magic number
 	return ch
 }
 
@@ -122,7 +122,7 @@ fn test_store_list_regions() {
 	}
 	mut request := http.new_request(http.Method.get, 'http://localhost:${test_peony_port}/store/regions',
 		'')
-	response := request.do()! // TODO fix: fails dial_tcp on localhost:3051 (firebird) code 111 (refused)
+	response := request.do()!
 	if response.status_code != 200 {
 		eprintln('${response.status_code}: ${response.status_msg}')
 	}
