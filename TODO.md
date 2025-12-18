@@ -80,10 +80,12 @@
   - [x] Enforce on variant created during product creation
 - [ ] Separate sales from price_list
 - [ ] Remove all `product_` prefixes from database, structs and function names
+- [ ] Get configuration from `Config` struct instead of env
 
 ## Internals
 
 - [ ] Add tests
+- [ ] Add debug level logs everywhere
 - [x] Separate response structs from internal structs
 - [ ] Separate model parameter objects from Request objects
   - [ ] Make Request objects public

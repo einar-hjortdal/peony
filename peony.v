@@ -43,8 +43,13 @@ fn set_log_level() {
 	}
 }
 
+pub struct Providers {
+pub mut:
+	blob_provider &BlobProvider
+}
+
 // returns the initialized peony App, you can register your custom veb middleware on it.
-pub fn new_peony_app(blob_provider &BlobProvider) &App {
+pub fn new_peony_app(p &Providers) &App {
 	load_settings()
 	set_log_level()
 
@@ -70,7 +75,7 @@ pub fn new_peony_app(blob_provider &BlobProvider) &App {
 	session_store := sessions.new_redict_store_cookie_from_redict_client(rso, co, redict_client)
 
 	mut app := &App{
-		blob_provider:   blob_provider
+		blob_provider:   p.blob_provider
 		luuid_generator: luuid.new_generator()
 		firebird:        firebird_connection
 		redict:          redict_client

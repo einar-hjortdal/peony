@@ -1,0 +1,130 @@
+module peony
+
+import os
+import net.http
+import time
+import einar_hjortdal.luuid
+
+const test_fail_key = 'fail'
+const test_firebird_container_name = 'test_firebird_server'
+const test_firebird_port = '3051'
+const test_firebird_user = 'test_user'
+const test_firebird_root_password = 'test_root_password'
+const test_firebird_password = 'test_password'
+const test_firebird_database = 'test_database.fdb'
+const test_firebird_url = 'firebird://${test_firebird_user}:${test_firebird_password}@localhost:${test_firebird_port}/var/lib/firebird/data/${test_firebird_database}'
+const test_redict_container_name = 'test_redict_server'
+const test_redict_port = '6380'
+const test_redict_url = 'redict://@localhost:${test_redict_port}/0'
+const test_session_secret = 'testSessionSecret'
+const test_peony_port = '8081'
+const test_peony_email = 'info@peony.com'
+const test_peony_password = 'very-secret-password'
+
+// mock providers (each implementation requires its own independent tests)
+struct BlobProviderDummy {
+}
+
+fn new_provider_blob_dummy() &BlobProviderDummy {
+	return &BlobProviderDummy{}
+}
+
+fn (bp BlobProviderDummy) create(fd http.FileData) !ProviderBlobFileData {
+	if fd.filename == test_fail_key {
+		return error('failed to create file, filename == ${test_fail_key}')
+	}
+
+	id := luuid.v2()
+	return ProviderBlobFileData{
+		id:  id
+		url: 'https://BlobProvider.Dummy/${id}'
+	}
+}
+
+fn (bp BlobProviderDummy) delete(id string) ! {
+	if id == test_fail_key {
+		return error('failed to delete file, filename == ${test_fail_key}')
+	}
+}
+
+// Remember to `sudo usermod -aG docker $USER`
+fn container_firebird_start() ! {
+	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=3050:${test_firebird_port} firebirdsql/firebird')
+
+	if result.exit_code != 0 {
+		return error(result.output)
+	}
+}
+
+fn container_firebird_clean() {
+	result := os.execute('docker stop ${test_firebird_container_name}')
+	if result.exit_code != 0 {
+		eprintln(result.output)
+	}
+}
+
+fn container_redict_start() ! {
+	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=6379:${test_redict_port} registry.redict.io/redict')
+
+	if result.exit_code != 0 {
+		return error(result.output)
+	}
+}
+
+fn container_redict_clean() {
+	result := os.execute('docker stop ${test_redict_container_name}')
+	if result.exit_code != 0 {
+		eprintln(result.output)
+	}
+}
+
+// veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
+fn app_routine(ch chan bool) {
+	go new_peony_app(Providers{
+		blob_provider: new_provider_blob_dummy()
+	})
+	_ := <-ch
+
+	// cleanup
+	container_firebird_clean()
+	container_redict_clean()
+}
+
+// starts a test app, when stopped it closes the containers.
+fn run_app() !chan bool {
+	os.setenv(env_firebird_url, test_firebird_url, true)
+	os.setenv(env_redict_url, test_redict_url, true)
+	os.setenv(env_session_secret, test_session_secret, true)
+	os.setenv(env_port, test_peony_port, true)
+	os.setenv(env_email, test_peony_email, true)
+	os.setenv(env_password, test_peony_password, true)
+
+	container_firebird_start()!
+	container_redict_start()!
+	time.sleep(5 * time.second) // need to wait for cotnainers startup. TODO fix magic number
+
+	ch := chan bool{}
+	go app_routine(ch)
+	time.sleep(10 * time.second) // need to wait for app startup. TODO fix magic number
+	return ch
+}
+
+fn stop_app(ch chan bool) {
+	ch <- true
+	time.sleep(5 * time.second) // wait for docker to stop containers. TODO fix magic number
+}
+
+fn test_store_list_regions() {
+	ch := run_app()!
+	defer {
+		// TODO fix: containers aren't stopped on exit
+		stop_app(ch)
+	}
+	mut request := http.new_request(http.Method.get, 'http://localhost:${test_peony_port}/store/regions',
+		'')
+	response := request.do()! // TODO fix: fails dial_tcp on localhost:3051 (firebird) code 111 (refused)
+	if response.status_code != 200 {
+		eprintln('${response.status_code}: ${response.status_msg}')
+	}
+	println(response.body)
+}
