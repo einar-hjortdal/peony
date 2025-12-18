@@ -78,14 +78,14 @@ fn container_redict_clean() {
 	}
 }
 
-// veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
+// Note: veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
+// Note: containers aren't stopped on panic
 fn app_routine(ch chan bool) {
 	go new_peony_app(Providers{
 		blob_provider: new_provider_blob_dummy()
 	})
 	_ := <-ch
 
-	// cleanup
 	container_firebird_clean()
 	container_redict_clean()
 }
@@ -105,7 +105,7 @@ fn run_app() !chan bool {
 
 	ch := chan bool{}
 	go app_routine(ch)
-	time.sleep(15 * time.second) // need to wait for app startup. TODO fix magic number
+	time.sleep(30 * time.second) // need to wait for app startup. TODO fix magic number
 	return ch
 }
 
@@ -114,15 +114,22 @@ fn stop_app(ch chan bool) {
 	time.sleep(5 * time.second) // wait for docker to stop containers. TODO fix magic number
 }
 
-fn test_store_list_regions() {
+fn build_url(s string) string {
+	return 'http://localhost:${test_peony_port}${s}'
+}
+
+fn do_get_request(path string) !http.Response {
+	request := http.new_request(http.Method.get, build_url(path), '') // TODO error 111 (rejected)
+	return request.do()!
+}
+
+fn test_peony() {
 	ch := run_app()!
 	defer {
-		// TODO fix: containers aren't stopped on exit
 		stop_app(ch)
 	}
-	mut request := http.new_request(http.Method.get, 'http://localhost:${test_peony_port}/store/regions',
-		'')
-	response := request.do()!
+
+	response := do_get_request('/store/regions')!
 	if response.status_code != 200 {
 		eprintln('${response.status_code}: ${response.status_msg}')
 	}
