@@ -4,6 +4,7 @@ import os
 import net.http
 import time
 import einar_hjortdal.luuid
+import json
 
 const test_fail_key = 'fail'
 const test_firebird_container_name = 'test_firebird_server'
@@ -22,8 +23,7 @@ const test_peony_email = 'info@peony.com'
 const test_peony_password = 'very-secret-password'
 
 // mock providers (each implementation requires its own independent tests)
-struct BlobProviderDummy {
-}
+struct BlobProviderDummy {}
 
 fn new_provider_blob_dummy() &BlobProviderDummy {
 	return &BlobProviderDummy{}
@@ -117,20 +117,37 @@ fn build_url(s string) string {
 	return 'http://localhost:${test_peony_port}${s}'
 }
 
+// TODO handle params
 fn do_get_request(path string) !http.Response {
 	request := http.new_request(http.Method.get, build_url(path), '') // TODO error 111 (rejected)
 	return request.do()!
 }
 
-fn test_peony() {
+fn check_response(r http.Response) ! {
+	if r.status_code != 200 {
+		return error('status ${r.status_code} (${r.status_msg}): ${r.body}')
+	}
+}
+
+// TODO In order to be able to run multiple tests asynchronously:
+// Check if port is in use or not, if in use, change all ports and try again.
+// Use a more reliable technique than time.sleep to wait for things to be done.
+fn test_peony() ! {
 	ch := run_app()!
 	defer {
 		stop_app(ch)
 	}
 
-	response := do_get_request('/store/regions')!
-	if response.status_code != 200 {
-		eprintln('${response.status_code}: ${response.status_msg}')
-	}
-	println(response.body)
+	// list regions
+	mut response := do_get_request('/store/regions')!
+	check_response(response)!
+	regions := json.decode(RegionResponseListEnvelope, response.body)!
+	default_region := regions.regions[0]
+	default_region_id := default_region.id
+	// TODO check all expected fields are populated
+	// TODO taxes
+
+	// get region by id
+	response = do_get_request('/store/regions/${default_region_id}')!
+	check_response(response)!
 }
