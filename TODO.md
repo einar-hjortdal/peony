@@ -31,7 +31,6 @@
 
 ### Soon to be implemented
 
-- [ ] Taxes
 - [ ] Cache
 
 ### To be implement
@@ -53,6 +52,7 @@
 - [ ] User permissions
 - [ ] Variant images
 - [ ] API keys
+- [ ] Taxes
 
 ### Low-priority
 
@@ -75,17 +75,13 @@
 
 - [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
-- [x] Enforce at least one price per variant per region on variant creation and updates
-  - [x] Request validation
-  - [x] Enforce on variant created during product creation
 - [ ] Separate sales from price_list
-- [ ] Remove all `product_` prefixes from database, structs and function names
-- [x] Get configuration from `Config` struct instead of env
+- [ ] Remove all unnecessary `product_` prefixes from database, structs and function names
 
 ## Internals
 
 - [ ] Add tests
-- [ ] Add debug level logs everywhere
+- [ ] Add debug level logs where opportune
 - [x] Separate response structs from internal structs
 - [ ] Separate model parameter objects from Request objects
   - [ ] Make Request objects public
