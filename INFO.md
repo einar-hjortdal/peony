@@ -116,6 +116,8 @@ the new `region`.
 
 Note: `is_original` is never `true` when the `money_amount` is part of a `price_list`.
 
+Note: sorting products by price should be handled by the frontend (eg. [Redict Sorted Sets](https://redict.io/docs/data-types/sorted-sets/)).
+
 ### Taxes (WIP)
 
 Some entities may have a `tax_rate`. Each `region` must have at least one `tax_rate`. The default `region` 
@@ -164,6 +166,8 @@ A `inventory_level` is the amount of `inventory_item` in one `stock_location`.
 - `reserved_quantity` is the amount of `inventory_item` located at the `stock_location` that is not 
   available to be ordered. This must be subtracted from `stocked_quantity` to determine the amount of 
   `inventory_item` that can be ordered.
+
+Note: filtering products by availability should be handled by the frontend (eg. [Redict Sorted Sets](https://redict.io/docs/data-types/sorted-sets/)).
 
 ### Inventory management
 

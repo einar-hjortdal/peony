@@ -91,8 +91,6 @@
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
 - [ ] Reduce boilerplating
-- [ ] Engineer a way to allow sorting products by price
-- [ ] Engineer a way to allow filtering by availability
 - [ ] Do not fetch default seo translations with a join, just format response with locale_id
 
 ## Upstream
