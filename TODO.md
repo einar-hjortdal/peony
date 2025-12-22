@@ -106,6 +106,7 @@
 - Query builder to keep select columns together with their referenced table aliases.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 - Put Request and Response structs in independent package
+- While price‑sorting and availability‑filtering belong in the frontend, a naive fallback using complex Firebird queries can still work acceptably for stores with very few variants.
 
 ## Documentation
 
