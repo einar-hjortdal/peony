@@ -80,7 +80,7 @@ fn container_redict_clean() {
 // Note: containers aren't stopped on panic
 fn app_routine(ch chan bool) {
 	mut app := new_peony_app(Providers{
-		blob_provider: new_provider_blob_dummy()
+		blob: new_provider_blob_dummy()
 	})
 	go app.run()
 	_ := <-ch
@@ -118,6 +118,7 @@ fn build_url(s string) string {
 }
 
 // TODO handle params
+// TODO handle headers
 fn do_get_request(path string) !http.Response {
 	request := http.new_request(http.Method.get, build_url(path), '') // TODO error 111 (rejected)
 	return request.do()!

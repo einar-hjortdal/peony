@@ -1,7 +1,6 @@
 module peony
 
 import log
-import os
 import strconv
 import einar_hjortdal.firebird
 
@@ -84,10 +83,9 @@ fn firebird_insert_locale_codes(mut app App, mut tx firebird.Transaction) ! {
 	stmt.close()!
 }
 
-fn firebird_insert_default_user(mut tx firebird.Transaction, user_id string, user_id_bin []u8) ! {
+fn firebird_insert_default_user(mut tx firebird.Transaction, email string, password string, user_id string, user_id_bin []u8) ! {
 	log.debug('insert_default_user')
-	email := os.getenv(env_email)
-	password_salt, password_hash := hash_password(os.getenv(env_password))!
+	password_salt, password_hash := hash_password(password)!
 	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, role)
 	VALUES (?, ?, ?, ?, ?, ?)',
 		user_id_bin, user_id, email, password_hash, password_salt, role_admin)!
@@ -204,7 +202,8 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	firebird_insert_country_codes(mut tx)!
 	firebird_insert_currency_data(mut tx)!
 	firebird_insert_locale_codes(mut app, mut tx)!
-	firebird_insert_default_user(mut tx, user_id, user_id_bin)!
+	firebird_insert_default_user(mut tx, app.config.default_user_email, app.config.default_user_password,
+		user_id, user_id_bin)!
 	firebird_insert_default_region(mut tx, region_id_bin)!
 	firebird_insert_default_stock_location(mut tx, stock_location_id_bin)!
 	firebird_insert_default_sales_channel(mut tx, sales_channel_id_bin)!

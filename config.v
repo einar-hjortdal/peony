@@ -1,115 +1,119 @@
 module peony
 
-import arrays
-import os
-import einar_hjortdal.dotenv
+import time
 
-const env_prefix = lib.to_upper() + '_'
+pub const default_port = 8080
+pub const default_cache_duration = time.minute * 30
+pub const default_session_max_age = time.hour * 24
+pub const default_session_name = 'Session'
+pub const default_session_admin_prefix = 'Admin'
 
-const env_email = 'EMAIL'
-const env_password = 'PASSWORD'
-const env_session_secret = 'SESSION_SECRET'
-const env_firebird_url = 'FIREBIRD_URL'
-const env_redict_url = 'REDICT_URL'
-const env_debug = 'DEBUG'
-const env_port = 'PORT'
-const env_cache_duration = 'CACHE_DURATION'
-const env_session_max_age = 'SESSION_MAX_AGE'
-const env_session_name = 'SESSION_NAME'
-const env_session_refresh_expire = 'SESSION_REFRESH_EXPIRE'
-const env_session_admin_prefix = 'SESSION_ADMIN_PREFIX'
-const env_admin_url = 'ADMIN_URL'
-const env_store_url = 'STORE_URL'
-
-const env_required = [
-	env_email,
-	env_password,
-	env_session_secret,
-	env_firebird_url,
-	env_redict_url,
-]
-
-const env_expected = arrays.append(env_required, [
-	env_debug,
-	env_port,
-	env_cache_duration,
-	env_session_max_age,
-	env_session_name,
-	env_session_refresh_expire,
-	env_session_admin_prefix,
-	env_admin_url,
-	env_store_url,
-])
-
-const bool_to_be_parsed = [
-	env_debug,
-	env_session_refresh_expire,
-]
-
-const env_defaults = {
-	env_debug:                  'false'
-	env_port:                   '8080'
-	env_cache_duration:         '1800' // 30 minutes
-	env_session_max_age:        '86400' // One day
-	env_session_name:           'Session'
-	env_session_refresh_expire: 'false'
-	env_session_admin_prefix:   'Admin'
-	env_admin_url:              'http://localhost:8081'
-	env_store_url:              'http://localhost:8082'
+pub struct Config {
+pub:
+	default_user_email     string
+	default_user_password  string
+	session_secret         string
+	firebird_url           string
+	redict_url             string
+	debug                  bool
+	port                   u16
+	cache_duration         time.Duration
+	session_max_age        time.Duration
+	session_refresh_expire bool
+	session_name           string
+	session_admin_prefix   string
+	admin_frontend_url     string
+	store_frontend_url     string
 }
 
-// remove_invalid_settings checks if the settings provided are valid: if the provided settings are invalid,
-// and these settings have defaults (added with add_default_settings), they are removed from the environment.
-fn remove_invalid_settings() {
-	for str in bool_to_be_parsed {
-		if !can_parse_bool(os.getenv(env_prefix + str)) {
-			os.unsetenv(env_prefix + str)
-		}
+// TODO validate
+fn (c Config) get_default_user_email() !string {
+	if c.default_user_email == '' {
+		return error('default_user_email is required')
 	}
+	return c.default_user_email
 }
 
-// add_default_settings adds any missing setting to the environment.
-fn add_default_settings() {
-	for key, val in env_defaults {
-		os.setenv(env_prefix + key, val, false)
+// TODO reject simple passwords
+fn (c Config) get_default_user_password() !string {
+	if c.default_user_password == '' {
+		return error('default_user_password is required')
 	}
+	return c.default_user_password
 }
 
-// prepare_settings provides the list of expected environment variable keys.
-// These keys are expected to be provided with a prefix, this prefix is removed by remove_prefix.
-// This list contains all the environment variables used by peony.
-fn prepare_settings() {
-	verify_settings()
-	remove_prefix()
-}
-
-// verify_settings verifies all required settings are available in the environment, and panics if any
-// is missing.
-fn verify_settings() {
-	for key in env_required {
-		if os.getenv(env_prefix + key) == '' {
-			panic(format_error_message('Missing environment variable ${key}'))
-		}
+// TODO reject simple secrets
+fn (c Config) get_session_secret() !string {
+	if c.session_secret == '' {
+		return error('session_secret is required')
 	}
+	return c.session_secret
 }
 
-// remove_prefix removes the prefixed variables from the environment,
-// replacing them with unprefixed ones.
-fn remove_prefix() {
-	for key in env_expected {
-		val := os.getenv(env_prefix + key)
-		os.unsetenv(env_prefix + key)
-		os.setenv(key, val, false)
+fn (c Config) get_firebird_url() !string {
+	if c.firebird_url == '' {
+		return error('firebird_url is required')
 	}
+	return c.firebird_url
 }
 
-// load_settings reads .env file and loads settings into the environment,
-// settings are validated and default settings are set if missing
-//
-// This function should be called first in the main function
-fn load_settings() {
-	dotenv.load()
-	remove_invalid_settings()
-	add_default_settings()
-	prepare_settings()
+fn (c Config) get_redict_url() !string {
+	if c.redict_url == '' {
+		return error('redict_url is required')
+	}
+	return c.redict_url
+}
+
+fn (c Config) get_port() !u16 {
+	if c.port == 0 {
+		return default_port
+	}
+	return c.port
+}
+
+fn (c Config) get_cache_duration() time.Duration {
+	if c.cache_duration == 0 {
+		return default_cache_duration
+	}
+	return c.cache_duration
+}
+
+fn (c Config) get_session_max_age() time.Duration {
+	if c.session_max_age == 0 {
+		return default_session_max_age
+	}
+	return c.session_max_age
+}
+
+// TODO sanitize
+fn (c Config) get_session_name() !string {
+	if c.session_name == '' {
+		return default_session_name
+	}
+	return c.session_name
+}
+
+// TODO sanitize
+fn (c Config) get_session_admin_prefix() !string {
+	if c.session_admin_prefix == '' {
+		return default_session_admin_prefix
+	}
+	return c.session_admin_prefix
+}
+
+fn (c Config) verify() !Config {
+	return Config{
+		default_user_email:     c.get_default_user_email()!
+		default_user_password:  c.get_default_user_password()!
+		session_secret:         c.get_session_secret()!
+		firebird_url:           c.get_firebird_url()!
+		redict_url:             c.get_redict_url()!
+		debug:                  c.debug
+		port:                   c.get_port()!
+		cache_duration:         c.get_cache_duration()
+		session_max_age:        c.get_session_max_age()
+		session_refresh_expire: c.session_refresh_expire
+		session_name:           c.get_session_name()!
+		session_admin_prefix:   c.get_session_admin_prefix()!
+	}
 }

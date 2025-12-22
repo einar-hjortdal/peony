@@ -1,6 +1,5 @@
 module peony
 
-import os
 import net.http
 import json
 import log
@@ -11,7 +10,7 @@ fn (mut app App) middleware_debug(mut ctx Context) bool {
 }
 
 fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
-	session_name := '${os.getenv(env_session_admin_prefix)}-${os.getenv(env_session_name)}'
+	session_name := '${app.config.session_admin_prefix}-${app.config.session_name}'
 	ctx.user_session = app.session_store.new(ctx.req, session_name)
 
 	// [/admin/auth; post] must accept unauthorized request to allow logins
