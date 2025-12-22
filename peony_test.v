@@ -18,9 +18,9 @@ const test_redict_container_name = 'test_redict_server'
 const test_redict_port = '6380'
 const test_redict_url = 'redict://@localhost:${test_redict_port}/0'
 const test_session_secret = 'testSessionSecret'
-const test_peony_port = '8081'
-const test_peony_email = 'info@peony.com'
-const test_peony_password = 'very-secret-password'
+const test_port = 8081
+const test_default_user_email = 'info@peony.com'
+const test_default_user_password = 'very-secret-password'
 
 // mock providers (each implementation requires its own independent tests)
 struct BlobProviderDummy {}
@@ -79,9 +79,21 @@ fn container_redict_clean() {
 // Note: veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
 // Note: containers aren't stopped on panic
 fn app_routine(ch chan bool) {
-	mut app := new_peony_app(Providers{
+	config := Config{
+		debug:                 true
+		firebird_url:          test_firebird_url
+		redict_url:            test_redict_url
+		port:                  test_port
+		default_user_email:    test_default_user_email
+		default_user_password: test_default_user_password
+		session_secret:        test_session_secret
+	}
+
+	providers := Providers{
 		blob: new_provider_blob_dummy()
-	})
+	}
+
+	mut app := new_peony_app(config, providers)
 	go app.run()
 	_ := <-ch
 
@@ -91,13 +103,6 @@ fn app_routine(ch chan bool) {
 
 // starts a test app, when stopped it closes the containers.
 fn run_app() !chan bool {
-	os.setenv(env_firebird_url, test_firebird_url, true)
-	os.setenv(env_redict_url, test_redict_url, true)
-	os.setenv(env_session_secret, test_session_secret, true)
-	os.setenv(env_port, test_peony_port, true)
-	os.setenv(env_email, test_peony_email, true)
-	os.setenv(env_password, test_peony_password, true)
-
 	container_firebird_start()!
 	container_redict_start()!
 	time.sleep(5 * time.second) // need to wait for cotnainers startup. TODO fix magic number
@@ -114,7 +119,7 @@ fn stop_app(ch chan bool) {
 }
 
 fn build_url(s string) string {
-	return 'http://localhost:${test_peony_port}${s}'
+	return 'http://localhost:${test_port}${s}'
 }
 
 // TODO handle params
