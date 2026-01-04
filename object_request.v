@@ -83,18 +83,51 @@ pub:
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
+pub struct ImageTranslationRequest {
+pub:
+	locale_id string @[json: 'localeId']
+	alt       string
+}
+
+struct ImageTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	alt           string
+}
+
+// TODO check alt.len <= 191
+fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(i.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	if i.alt == '' {
+		return new_internal_error(error_empty_field, 'alt')
+	}
+
+	return ImageTranslationRequestHygienised{
+		locale_id:     i.locale_id
+		locale_id_bin: locale_id_bin
+		alt:           i.alt
+	}
+}
+
 pub struct ImageRequest {
 pub:
 	url          string
+	alt          ?string
 	translations ?[]ImageTranslationRequest
 }
 
 struct ImageRequestHygienised {
 	url string
+	alt ?string
 mut:
 	translations ?[]ImageTranslationRequestHygienised
 }
 
+// TODO check alt.len <= 191
+// TODO if default alt is missing, do not accept translations. (require default alt if want translations)
 fn (p ImageRequest) hygienise() !ImageRequestHygienised {
 	mut image := ImageRequestHygienised{
 		url: p.url
@@ -129,34 +162,6 @@ pub:
 	role       ?string
 	image      ?ImageRequest
 	metadata   ?string @[raw]
-}
-
-pub struct ImageTranslationRequest {
-pub:
-	locale_id string @[json: 'localeId']
-	alt       string
-}
-
-struct ImageTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	alt           string
-}
-
-fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(i.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
-	}
-
-	if i.alt == '' {
-		return new_internal_error(error_empty_field, 'alt')
-	}
-
-	return ImageTranslationRequestHygienised{
-		locale_id:     i.locale_id
-		locale_id_bin: locale_id_bin
-		alt:           i.alt
-	}
 }
 
 pub struct ProductTranslationRequest {
@@ -867,6 +872,9 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // If `images` is empty or omitted, the product is created without a thumbnail or images.
 pub struct ProductCreateRequest {
 pub:
+	title             string
+	subtitle          ?string
+	description       ?string
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
@@ -884,7 +892,14 @@ pub:
 	images            ?[]ImageRequest
 }
 
+// TODO derive handle from title using slugify
+// TODO verify title != ''
+// TODO verify title.len <= 63
+// TODO verify subtitle.len <= 191
 struct ProductCreateRequestHygienised {
+	title                 string
+	subtitle              ?string
+	description           ?string
 	handle                ?string
 	is_giftcard           ?bool
 	status                ?string
@@ -930,6 +945,9 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	mut ph := ProductCreateRequestHygienised{
+		title:                 p.title
+		subtitle:              p.subtitle
+		description:           p.description
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status
@@ -988,6 +1006,9 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // If both `thumbnail` and `images` are provided, the thumbnail is the image at index `thumbnail` in
 // the `images` array.
 struct ProductUpdateRequest {
+	title             ?string
+	subtitle          ?string
+	description       ?string
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
@@ -1004,7 +1025,13 @@ struct ProductUpdateRequest {
 	images            ?[]ImageRequest
 }
 
+// TODO verify title != ''
+// TODO verify title.len <= 63
+// TODO verify subtitle.len <= 191
 struct ProductUpdateRequestHygienised {
+	title                 ?string
+	subtitle              ?string
+	description           ?string
 	handle                ?string
 	is_giftcard           ?bool
 	status                ?string
@@ -1049,6 +1076,9 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	}
 
 	mut ph := ProductUpdateRequestHygienised{
+		title:                 p.title
+		subtitle:              p.subtitle
+		description:           p.description
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status

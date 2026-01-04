@@ -3,21 +3,19 @@ module peony
 import einar_hjortdal.firebird
 
 struct ProductSEOTranslation {
-	id             string
-	id_bin         []u8
-	product_id     string
-	product_id_bin []u8
-	locale_id      string
-	locale_id_bin  []u8
-	title          firebird.NullString
-	description    firebird.NullString
+	seo_id        string
+	seo_id_bin    []u8
+	locale_id     string
+	locale_id_bin []u8
+	title         firebird.NullString
+	description   firebird.NullString
 }
 
-fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSEOTranslation {
-	data := tx.execute('SELECT id, product_id, locale_id, title, description
+fn model_product_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_bin [][]u8) ![]ProductSEOTranslation {
+	data := tx.execute('SELECT seo_id, locale_id, title, description
 		FROM seo_translations
-		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...workaround_24757(product_ids_bin))!
+		WHERE seo_id IN (${get_placeholders(seo_ids_bin)})',
+		...workaround_24757(seo_ids_bin))!
 
 	rows := data.rows()
 
@@ -25,32 +23,73 @@ fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
 
-		id_bin, _ := v[0].get_array_u8()!
-		product_id_bin, _ := v[1].get_array_u8()!
-		locale_id_bin, _ := v[2].get_array_u8()!
-		title := v[3].get_null_string()!
-		description := v[4].get_null_string()!
+		seo_id_bin, _ := v[0].get_array_u8()!
+		locale_id_bin, _ := v[1].get_array_u8()!
+		title := v[2].get_null_string()!
+		description := v[3].get_null_string()!
 
-		id := id_bin_to_string(id_bin)!
-		product_id := id_bin_to_string(product_id_bin)!
+		seo_id := id_bin_to_string(seo_id_bin)!
 		locale_id := id_bin_to_string(locale_id_bin)!
 
 		seo_translations[i] = ProductSEOTranslation{
-			id:             id
-			id_bin:         id_bin
-			product_id:     product_id
-			product_id_bin: product_id_bin
-			locale_id:      locale_id
-			locale_id_bin:  locale_id_bin
-			title:          title
-			description:    description
+			seo_id:        seo_id
+			seo_id_bin:    seo_id_bin
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			title:         title
+			description:   description
 		}
 	}
 
 	return seo_translations
 }
 
+struct ProductSEO {
+	id             string
+	id_bin         []u8
+	product_id     string
+	product_id_bin []u8
+	title          firebird.NullString
+	description    firebird.NullString
+mut:
+	translations []ProductSEOTranslation
+}
+
+fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSEO {
+	data := tx.execute('SELECT id, product_id, title, description FROM seo
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
+		...workaround_24757(product_ids_bin))!
+
+	rows := data.rows()
+
+	mut product_seo := []ProductSEO{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		product_id_bin, _ := v[1].get_array_u8()!
+		title := v[2].get_null_string()!
+		description := v[3].get_null_string()!
+
+		id := id_bin_to_string(id_bin)!
+		product_id := id_bin_to_string(product_id_bin)!
+
+		product_seo[i] = ProductSEO{
+			id:             id
+			id_bin:         id_bin
+			product_id:     product_id
+			product_id_bin: product_id_bin
+			title:          title
+			description:    description
+		}
+	}
+
+	return product_seo
+}
+
 // TODO think more on this struct definition, it still contains a Request struct and I don't like that
+// TODO use function params instead to enforce them being provided.
+// TODO rewrite
 struct ProductSEOUpdateParams {
 	product_id_bin          []u8
 	seo_translation_ids_bin [][]u8
@@ -94,6 +133,8 @@ fn model_product_seo_update(mut tx firebird.Transaction, p ProductSEOUpdateParam
 		...params)!
 }
 
+// TODO CategorySEO
+// TODO rewrite
 struct CategorySEOTranslation {
 	id              string
 	id_bin          []u8

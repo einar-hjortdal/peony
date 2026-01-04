@@ -62,37 +62,17 @@ mut:
 	translations []ImageTranslation
 }
 
-fn model_product_image_retrieve(mut tx firebird.Transaction, locale_id_bin []u8, product_ids_bin [][]u8) ![]ProductImage {
-	mut params := []firebird.Value{}
-
-	if locale_id_bin.len > 0 {
-		params = arrays.concat(params, locale_id_bin, locale_id_bin)
-	} else {
-		params = arrays.concat(params, firebird.Null{}, firebird.Null{})
-	}
-
-	params = arrays.concat(params, ...workaround_24757(product_ids_bin))
-
+fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
 	data := tx.execute('SELECT
 		i.id,
 		i.url,
 		pi.image_rank,
 		pi.product_id,
-		COALESCE(it_requested.alt, it_default.alt) AS alt
+		alt,
 		FROM product_image pi
-		LEFT JOIN image i ON id = image_id
-		LEFT JOIN image_translations it_default
-			ON it_default.image_id = i.id
-			AND it_default.locale_id = (
-				SELECT default_locale_id FROM store
-			)
-		LEFT JOIN image_translations it_requested
-			ON CAST(? AS BINARY(16)) IS NOT NULL
-			AND it_requested.image_id = i.id
-			AND it_requested.locale_id = ?
 		WHERE pi.product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY pi.image_rank',
-		...params)!
+		...workaround_24757(product_ids_bin))!
 
 	rows := data.rows()
 
@@ -141,48 +121,65 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 
 	// insert new images
 	mut src := []string{len: images.len}
-	mut params := []firebird.Value{len: images.len * 2, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
+	mut translation_n := i32(0)
 	for i := 0; i < images.len; i++ {
+		image := images[i]
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)),
-			CAST(? AS BLOB SUB_TYPE TEXT)
+			CAST(? AS BLOB SUB_TYPE TEXT),
+			CAST(? AS VARCHAR(191))
 			FROM RDB\$DATABASE'
-		params[i * 2] = image_ids_bin[i]
-		params[i * 2 + 1] = images[i].url
-	}
+		params[i * 3] = image_ids_bin[i]
+		params[i * 3 + 1] = image.url
+		if alt := image.alt {
+			params[i * 3 + 2] = alt
+		} else {
+			params[i * 3 + 2] = firebird.Null{}
+		}
 
-	tx.execute('INSERT INTO image (id, url) ${get_merge_source(src)}', ...params)!
-
-	// insert translations
-	// TODO precompute array lengths
-	src = []string{}
-	params = []firebird.Value{}
-	for i := 0; i < images.len; i++ {
-		image_id := image_ids_bin[i]
-		if translations := images[i].translations {
-			for k := 0; k < translations.len; k++ {
-				translation := translations[k]
-				locale_id := translation.locale_id
-				alt := translation.alt
-				src = arrays.concat(src, 'SELECT
-				CAST(? AS BINARY(16)),
-				CAST(? AS BINARY(16)),
-				CAST(? AS VARCHAR(191))
-				FROM RDB\$DATABASE')
-
-				params = arrays.concat(params, image_id, locale_id, alt)
-			}
+		// compute number of tranlsations to insert
+		if translations := image.translations {
+			translation_n += translations.len
 		}
 	}
 
-	if src.len > 0 {
+	tx.execute('INSERT INTO image (id, url, alt) ${get_merge_source(src)}', ...params)!
+
+	// insert translations if any
+	if translation_n > 0 {
+		src = []string{len: translation_n}
+		params = []firebird.Value{len: translation_n * 3, init: firebird.Null{}}
+		mut current_translation_i := i32(0)
+		for i := 0; i < images.len; i++ {
+			image_id := image_ids_bin[i]
+			if translations := images[i].translations {
+				for k := 0; k < translations.len; k++ {
+					translation := translations[k]
+					locale_id := translation.locale_id
+					alt := translation.alt
+					src[current_translation_i] = 'SELECT
+						CAST(? AS BINARY(16)),
+						CAST(? AS BINARY(16)),
+						CAST(? AS VARCHAR(191))
+						FROM RDB\$DATABASE'
+
+					params[current_translation_i * 3] = image_id
+					params[current_translation_i * 3 + 1] = locale_id
+					params[current_translation_i * 3 + 2] = alt
+				}
+
+				current_translation_i++
+			}
+		}
+
 		tx.execute('INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}',
 			...params)!
 	}
 
 	// insert product_image relation
 	src = []string{len: images.len}
-	params = []firebird.Value{len: images.len * 3, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	for i := 0; i < images.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)),

@@ -482,7 +482,7 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	} else if thumbnail := ph.thumbnail {
-		product_images := model_product_image_retrieve(mut tx, []u8{}, [
+		product_images := model_product_image_retrieve(mut tx, [
 			product_id_bin,
 		]) or {
 			tx.rollback() or {}

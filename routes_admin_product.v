@@ -172,7 +172,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of range')
 			}
 		} else {
-			product_images := model_product_image_retrieve(mut tx, []u8{}, [
+			product_images := model_product_image_retrieve(mut tx, [
 				product_id_bin,
 			]) or {
 				tx.rollback() or {}

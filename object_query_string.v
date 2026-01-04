@@ -321,6 +321,7 @@ fn extract_category_list_request_query(m map[string]string) ProductCategoryListR
 	}
 }
 
+// TODO extract locale_id to separate struct (request context)
 struct RetrieveProductParamsHygienised {
 	ids                   ZeroArrayString
 	ids_bin               [][]u8

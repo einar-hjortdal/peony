@@ -5,14 +5,17 @@ import einar_hjortdal.firebird
 struct SuiteProductData {
 	SuiteProductOptionData
 	SuiteProductVariantData
-	product_translations    []ProductTranslation
-	category_product        []CategoryProduct
-	product_images          []ProductImage
-	product_sales_channels  []ProductSalesChannel
-	product_variants        []ProductVariant
-	product_variant_ids_bin [][]u8
-	seo_translations        []ProductSEOTranslation
+	product_translations       []ProductTranslation
+	category_product           []CategoryProduct
+	product_images             []ProductImage
+	product_image_ids_bin      [][]u8
+	product_image_translations []ImageTranslation
+	product_sales_channels     []ProductSalesChannel
+	product_variants           []ProductVariant
+	product_variant_ids_bin    [][]u8
+	seo_translations           []ProductSEOTranslation
 mut:
+	product_images_map   map[string]ProductImage
 	product_variants_map map[string]ProductVariant
 }
 
@@ -36,10 +39,23 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		return new_internal_error('Failed to retrieve category_product', err.msg())
 	}
 
-	product_images := model_product_image_retrieve(mut tx, []u8{}, product_ids_bin) or {
+	product_images := model_product_image_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_image', err.msg())
 	}
-	// TODO image translations
+
+	mut images_map := map[string]ProductImage{}
+	mut image_ids_bin := [][]u8{len: product_images.len}
+	for i := 0; i < product_images.len; i++ {
+		image := product_images[i]
+		id := image.id
+		id_bin := image.id_bin
+		images_map[id] = image
+		image_ids_bin[i] = id_bin
+	}
+
+	image_translations := model_image_translation_retrieve(mut tx, image_ids_bin) or {
+		return new_internal_error('Failed to retrieve product_image', err.msg())
+	}
 
 	product_sales_channels := model_product_sales_channel_retrieve(mut tx, product_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_sales_channel', err.msg())
@@ -57,15 +73,18 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	}
 
 	return SuiteProductData{
-		SuiteProductOptionData:  product_options_data
-		SuiteProductVariantData: variants_data
-		product_translations:    product_translations
-		category_product:        category_product
-		product_images:          product_images
-		product_sales_channels:  product_sales_channels
-		product_variants:        product_variants
-		product_variants_map:    product_variants_map
-		product_variant_ids_bin: product_variant_ids_bin
-		seo_translations:        seo_translations
+		SuiteProductOptionData:     product_options_data
+		SuiteProductVariantData:    variants_data
+		product_translations:       product_translations
+		category_product:           category_product
+		product_images:             product_images
+		product_image_ids_bin:      image_ids_bin
+		product_images_map:         images_map
+		product_image_translations: image_translations
+		product_sales_channels:     product_sales_channels
+		product_variants:           product_variants
+		product_variants_map:       product_variants_map
+		product_variant_ids_bin:    product_variant_ids_bin
+		seo_translations:           seo_translations
 	}
 }
