@@ -13,10 +13,13 @@ struct SuiteProductData {
 	product_sales_channels     []ProductSalesChannel
 	product_variants           []ProductVariant
 	product_variant_ids_bin    [][]u8
-	seo_translations           []ProductSEOTranslation
+	product_seo                []ProductSEO
+	product_seo_ids_bin        [][]u8
+	product_seo_translations   []ProductSEOTranslation
 mut:
 	product_images_map   map[string]ProductImage
 	product_variants_map map[string]ProductVariant
+	product_seo_map      map[string]ProductSEO
 }
 
 fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !SuiteProductData {
@@ -68,7 +71,20 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	product_variants_map, product_variant_ids_bin := make_product_variant_map(product_variants)
 	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)!
 
-	seo_translations := model_product_seo_retrieve(mut tx, product_ids_bin) or {
+	seo := model_product_seo_retrieve(mut tx, product_ids_bin) or {
+		return new_internal_error('Failed to retrieve seo', err.msg())
+	}
+
+	mut seo_ids_bin := [][]u8{len: seo.len}
+	mut seo_map := map[string]ProductSEO{}
+	for i := 0; i < seo.len; i++ {
+		id := seo[i].id
+		id_bin := seo[i].id_bin
+		seo_map[id] = seo[i]
+		seo_ids_bin[i] = id_bin
+	}
+
+	seo_translations := model_product_seo_translation_retrieve(mut tx, seo_ids_bin) or {
 		return new_internal_error('Failed to retrieve seo_translations', err.msg())
 	}
 
@@ -85,6 +101,9 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		product_variants:           product_variants
 		product_variants_map:       product_variants_map
 		product_variant_ids_bin:    product_variant_ids_bin
-		seo_translations:           seo_translations
+		product_seo:                seo
+		product_seo_map:            seo_map
+		product_seo_ids_bin:        seo_ids_bin
+		product_seo_translations:   seo_translations
 	}
 }

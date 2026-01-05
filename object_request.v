@@ -691,6 +691,37 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
+pub struct SEOCreateRequest {
+	title        ?string
+	description  ?string
+	translations ?[]SEOTranslationUpdateRequest
+}
+
+struct SEOCreateRequestHygienised {
+	title       ?string
+	description ?string
+mut:
+	translations ?[]SEOTranslationUpdateRequestHygienised
+}
+
+fn (p SEOCreateRequest) hygienise() !SEOCreateRequestHygienised {
+	mut r := SEOCreateRequestHygienised{
+		title:       p.title
+		description: p.description
+	}
+
+	if translations := p.translations {
+		mut hygienised := []SEOTranslationUpdateRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			hygienised[i] = translation.hygienise()!
+		}
+		r.translations = hygienised
+	}
+
+	return r
+}
+
 pub struct CategoryCreateRequest {
 pub:
 	handle             ?string
@@ -886,7 +917,7 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo_translations  ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
+	seo               ?SEOCreateRequest
 	options           ?[]ProductOptionCreateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
@@ -917,10 +948,10 @@ struct ProductCreateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	options          ?[]ProductOptionCreateRequestHygienised
-	translations     ?[]ProductTranslationRequestHygienised
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
-	images           ?[]ImageRequestHygienised
+	seo          ?SEOCreateRequestHygienised
+	options      ?[]ProductOptionCreateRequestHygienised
+	translations ?[]ProductTranslationRequestHygienised
+	images       ?[]ImageRequestHygienised
 }
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
@@ -982,12 +1013,8 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		ph.translations = h
 	}
 
-	if seo_translations := p.seo_translations {
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < st.len; i++ {
-			st[i] = seo_translations[i].hygienise()!
-		}
-		ph.seo_translations = st
+	if seo := p.seo {
+		ph.seo = seo.hygienise()!
 	}
 
 	if images := p.images {

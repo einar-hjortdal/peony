@@ -147,12 +147,22 @@ fn assign_product_variants(product_variants []ProductVariant, product_variants_m
 	}
 }
 
-fn assign_seo_translations(seo_translations []ProductSEOTranslation, mut products_map map[string]Product) {
+fn assign_seo_translations(mut product_seo_map map[string]ProductSEO, seo_translations []ProductSEOTranslation) {
 	for i := 0; i < seo_translations.len; i++ {
 		translation := seo_translations[i]
-		product_id := translation.product_id
-		old := products_map[product_id].seo_translations
-		products_map[product_id].seo_translations = arrays.concat(old, translation)
+		seo_id := translation.seo_id
+		old := product_seo_map[seo_id].translations
+		product_seo_map[seo_id].translations = arrays.concat(old, translation)
+	}
+}
+
+// TODO optimization: there is only one seo object per product, order of the array is not tat useful
+fn assign_seo(product_seo []ProductSEO, product_seo_map map[string]ProductSEO, mut products_map map[string]Product) {
+	for i := 0; i < product_seo.len; i++ {
+		seo := product_seo[i]
+		seo_id := seo.id
+		product_id := seo.product_id
+		products_map[product_id].seo = product_seo_map[seo_id]
 	}
 }
 
@@ -188,7 +198,9 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 	assign_product_variants(products_data.product_variants, products_data.product_variants_map, mut
 		products_map)
 
-	assign_seo_translations(products_data.seo_translations, mut products_map)
+	assign_seo_translations(mut products_data.product_seo_map, products_data.product_seo_translations)
+
+	assign_seo(products_data.product_seo, products_data.product_seo_map, mut products_map)
 }
 
 fn assign_product_data(mut product_data SuiteProductData, mut product Product) {

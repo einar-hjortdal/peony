@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import einar_hjortdal.firebird
 
 struct ProductSEOTranslation {
@@ -55,6 +56,28 @@ mut:
 	translations []ProductSEOTranslation
 }
 
+fn model_product_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8) ! {
+	tx.execute('INSERT INTO seo (id, product_id) VALUES (?, ?)', seo_id_bin, product_id_bin)!
+}
+
+fn model_product_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8, seo SEOCreateRequestHygienised) ! {
+	mut columns := ['id', 'product_id']
+	mut params := [firebird.Value(seo_id_bin), product_id_bin]
+
+	if title := seo.title {
+		columns = arrays.concat(columns, 'title')
+		params = arrays.concat(params, title)
+	}
+
+	if description := seo.description {
+		columns = arrays.concat(columns, 'description')
+		params = arrays.concat(params, description)
+	}
+
+	tx.execute('INSERT INTO seo (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
+		...params)!
+}
+
 fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSEO {
 	data := tx.execute('SELECT id, product_id, title, description FROM seo
 		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
@@ -97,6 +120,7 @@ struct ProductSEOUpdateParams {
 }
 
 // replaces all seo_translations related to product_id with new ones
+// TODO rewrite: there will always be one seo databse row for each product
 fn model_product_seo_update(mut tx firebird.Transaction, p ProductSEOUpdateParams) ! {
 	tx.execute('DELETE FROM seo_translations WHERE product_id = ?', p.product_id_bin)!
 

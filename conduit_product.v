@@ -13,6 +13,23 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
 	}
 
+	_, seo_id_bin := app.new_id()
+	if seo := ph.seo {
+		model_product_seo_create(mut tx, seo_id_bin, product_id_bin, seo) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
+		}
+
+		if translations := seo.translations {
+			// TODO handle
+		}
+	} else {
+		model_product_seo_create_default(mut tx, seo_id_bin, product_id_bin) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to create default seo', err.msg())
+		}
+	}
+
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
