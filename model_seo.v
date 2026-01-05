@@ -3,7 +3,7 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-struct ProductSEOTranslation {
+struct SEOTranslation {
 	seo_id        string
 	seo_id_bin    []u8
 	locale_id     string
@@ -12,7 +12,7 @@ struct ProductSEOTranslation {
 	description   firebird.NullString
 }
 
-fn model_product_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_bin [][]u8) ![]ProductSEOTranslation {
+fn model_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_bin [][]u8) ![]SEOTranslation {
 	data := tx.execute('SELECT seo_id, locale_id, title, description
 		FROM seo_translations
 		WHERE seo_id IN (${get_placeholders(seo_ids_bin)})',
@@ -20,7 +20,7 @@ fn model_product_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_b
 
 	rows := data.rows()
 
-	mut seo_translations := []ProductSEOTranslation{len: rows.len}
+	mut seo_translations := []SEOTranslation{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
 
@@ -32,7 +32,7 @@ fn model_product_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_b
 		seo_id := id_bin_to_string(seo_id_bin)!
 		locale_id := id_bin_to_string(locale_id_bin)!
 
-		seo_translations[i] = ProductSEOTranslation{
+		seo_translations[i] = SEOTranslation{
 			seo_id:        seo_id
 			seo_id_bin:    seo_id_bin
 			locale_id:     locale_id
@@ -53,29 +53,11 @@ struct ProductSEO {
 	title          firebird.NullString
 	description    firebird.NullString
 mut:
-	translations []ProductSEOTranslation
+	translations []SEOTranslation
 }
 
-fn model_product_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8) ! {
+fn model_product_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8) ! {
 	tx.execute('INSERT INTO seo (id, product_id) VALUES (?, ?)', seo_id_bin, product_id_bin)!
-}
-
-fn model_product_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8, seo SEOCreateRequestHygienised) ! {
-	mut columns := ['id', 'product_id']
-	mut params := [firebird.Value(seo_id_bin), product_id_bin]
-
-	if title := seo.title {
-		columns = arrays.concat(columns, 'title')
-		params = arrays.concat(params, title)
-	}
-
-	if description := seo.description {
-		columns = arrays.concat(columns, 'description')
-		params = arrays.concat(params, description)
-	}
-
-	tx.execute('INSERT INTO seo (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
-		...params)!
 }
 
 fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSEO {
@@ -110,141 +92,100 @@ fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_seo
 }
 
-// TODO think more on this struct definition, it still contains a Request struct and I don't like that
-// TODO use function params instead to enforce them being provided.
-// TODO rewrite
-struct ProductSEOUpdateParams {
-	product_id_bin          []u8
-	seo_translation_ids_bin [][]u8
-	seo_translations        []SEOTranslationUpdateRequestHygienised
-}
+// replaces all seo_translations with new ones
+fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRequestHygienised) ! {
+	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
 
-// replaces all seo_translations related to product_id with new ones
-// TODO rewrite: there will always be one seo databse row for each product
-fn model_product_seo_update(mut tx firebird.Transaction, p ProductSEOUpdateParams) ! {
-	tx.execute('DELETE FROM seo_translations WHERE product_id = ?', p.product_id_bin)!
-
-	mut src := []string{len: p.seo_translations.len}
-	mut params := []firebird.Value{len: p.seo_translations.len * 5, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < p.seo_translations.len; i++ {
-		seo_translation := p.seo_translations[i]
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS id,
-			CAST(? AS BINARY(16)) AS locale_id,
-			CAST(? AS BINARY(16)) AS product_id,
-			CAST(? AS VARCHAR(63)) AS title,
-			CAST(? AS VARCHAR(191)) AS description
-			FROM RDB\$DATABASE'
-
-		params[i * 5] = p.seo_translation_ids_bin[i]
-		params[i * 5 + 1] = seo_translation.locale_id_bin
-		params[i * 5 + 2] = p.product_id_bin
-
-		if title := seo_translation.title {
-			params[i * 5 + 3] = title
-		} else {
-			params[i * 5 + 3] = firebird.Null{}
+	if ph.title != none || ph.description != none {
+		mut columns := []string{}
+		mut params := []firebird.Value{}
+		if title := ph.title {
+			columns = arrays.concat(columns, 'title')
+			params = arrays.concat(params, title)
 		}
 
-		if description := seo_translation.description {
-			params[i * 5 + 4] = description
-		} else {
-			params[i * 5 + 4] = firebird.Null{}
+		if description := ph.description {
+			columns = arrays.concat(columns, 'description')
+			params = arrays.concat(params, description)
 		}
+
+		params = arrays.concat(params, seo_id_bin)
+
+		tx.execute('UPDATE seo SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 	}
 
-	tx.execute('INSERT INTO seo_translations (id, locale_id, product_id, title, description) ${get_merge_source(src)}',
-		...params)!
+	if translations := ph.translations {
+		mut src := []string{len: translations.len}
+		mut params := []firebird.Value{len: translations.len * 4, init: firebird.Null{}}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			src[i] = 'SELECT
+				CAST(? AS BINARY(16)) AS seo_id,
+				CAST(? AS BINARY(16)) AS locale_id,
+				CAST(? AS VARCHAR(63)) AS title,
+				CAST(? AS VARCHAR(191)) AS description
+				FROM RDB\$DATABASE'
+
+			params[i * 4] = seo_id_bin
+			params[i * 4 + 1] = translation.locale_id_bin
+
+			if title := translation.title {
+				params[i * 4 + 2] = title
+			} else {
+				params[i * 4 + 2] = firebird.Null{}
+			}
+
+			if description := translation.description {
+				params[i * 4 + 3] = description
+			} else {
+				params[i * 4 + 3] = firebird.Null{}
+			}
+		}
+
+		tx.execute('INSERT INTO seo_translations (id, locale_id, title, description) ${get_merge_source(src)}',
+			...params)!
+	}
 }
 
-// TODO CategorySEO
-// TODO rewrite
-struct CategorySEOTranslation {
+struct CategorySEO {
 	id              string
 	id_bin          []u8
 	category_id     string
 	category_id_bin []u8
-	locale_id       string
-	locale_id_bin   []u8
 	title           firebird.NullString
 	description     firebird.NullString
+mut:
+	translations []SEOTranslation
 }
 
-fn model_category_seo_retrieve(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategorySEOTranslation {
-	data := tx.execute('SELECT id, category_id, locale_id, title, description
-		FROM seo_translations
+fn model_category_seo_retrieve(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategorySEO {
+	data := tx.execute('SELECT id, product_id, title, description FROM seo
 		WHERE category_id IN (${get_placeholders(category_ids_bin)})',
 		...workaround_24757(category_ids_bin))!
 
 	rows := data.rows()
 
-	mut seo_translations := []CategorySEOTranslation{len: rows.len}
+	mut category_seo := []CategorySEO{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
 
 		id_bin, _ := v[0].get_array_u8()!
-		category_id_bin, _ := v[1].get_array_u8()!
-		locale_id_bin, _ := v[2].get_array_u8()!
-		title := v[3].get_null_string()!
-		description := v[4].get_null_string()!
+		product_id_bin, _ := v[1].get_array_u8()!
+		title := v[2].get_null_string()!
+		description := v[3].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
-		category_id := id_bin_to_string(category_id_bin)!
-		locale_id := id_bin_to_string(locale_id_bin)!
+		product_id := id_bin_to_string(product_id_bin)!
 
-		seo_translations[i] = CategorySEOTranslation{
+		category_seo[i] = CategorySEO{
 			id:              id
 			id_bin:          id_bin
-			category_id:     category_id
-			category_id_bin: category_id_bin
-			locale_id:       locale_id
-			locale_id_bin:   locale_id_bin
+			category_id:     product_id
+			category_id_bin: product_id_bin
 			title:           title
 			description:     description
 		}
 	}
 
-	return seo_translations
-}
-
-struct CategorySEOUpdateParams {
-	category_id_bin         []u8
-	seo_translation_ids_bin [][]u8
-	seo_translations        []SEOTranslationUpdateRequestHygienised
-}
-
-fn model_category_seo_update(mut tx firebird.Transaction, p CategorySEOUpdateParams) ! {
-	tx.execute('DELETE FROM seo_translations WHERE category_id = ?', p.category_id_bin)!
-
-	mut src := []string{len: p.seo_translations.len}
-	mut params := []firebird.Value{len: p.seo_translations.len * 5, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < p.seo_translations.len; i++ {
-		seo_translation := p.seo_translations[i]
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS id,
-			CAST(? AS BINARY(16)) AS locale_id,
-			CAST(? AS BINARY(16)) AS category_id,
-			CAST(? AS VARCHAR(63)) AS title,
-			CAST(? AS VARCHAR(191)) AS description
-			FROM RDB\$DATABASE'
-
-		params[i * 5] = p.seo_translation_ids_bin[i]
-		params[i * 5 + 1] = seo_translation.locale_id_bin
-		params[i * 5 + 2] = p.category_id_bin
-
-		if title := seo_translation.title {
-			params[i * 5 + 3] = title
-		} else {
-			params[i * 5 + 3] = firebird.Null{}
-		}
-
-		if description := seo_translation.description {
-			params[i * 5 + 4] = description
-		} else {
-			params[i * 5 + 4] = firebird.Null{}
-		}
-	}
-
-	tx.execute('INSERT INTO seo_translations (id, locale_id, category_id, title, description) ${get_merge_source(src)}',
-		...params)!
+	return category_seo
 }

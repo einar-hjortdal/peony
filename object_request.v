@@ -691,21 +691,21 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
-pub struct SEOCreateRequest {
+pub struct SEOUpdateRequest {
 	title        ?string
 	description  ?string
 	translations ?[]SEOTranslationUpdateRequest
 }
 
-struct SEOCreateRequestHygienised {
+struct SEOUpdateRequestHygienised {
 	title       ?string
 	description ?string
 mut:
 	translations ?[]SEOTranslationUpdateRequestHygienised
 }
 
-fn (p SEOCreateRequest) hygienise() !SEOCreateRequestHygienised {
-	mut r := SEOCreateRequestHygienised{
+fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
+	mut r := SEOUpdateRequestHygienised{
 		title:       p.title
 		description: p.description
 	}
@@ -917,7 +917,7 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo               ?SEOCreateRequest
+	seo               ?SEOUpdateRequest
 	options           ?[]ProductOptionCreateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
@@ -948,7 +948,7 @@ struct ProductCreateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	seo          ?SEOCreateRequestHygienised
+	seo          ?SEOUpdateRequestHygienised
 	options      ?[]ProductOptionCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised

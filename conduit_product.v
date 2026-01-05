@@ -14,19 +14,15 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	}
 
 	_, seo_id_bin := app.new_id()
-	if seo := ph.seo {
-		model_product_seo_create(mut tx, seo_id_bin, product_id_bin, seo) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
-		}
+	model_product_seo_create(mut tx, seo_id_bin, product_id_bin) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
+	}
 
-		if translations := seo.translations {
-			// TODO handle
-		}
-	} else {
-		model_product_seo_create_default(mut tx, seo_id_bin, product_id_bin) or {
+	if seo := ph.seo {
+		model_seo_update(mut tx, seo_id_bin, seo) or {
 			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to create default seo', err.msg())
+			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 	}
 
@@ -95,26 +91,6 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		model_product_translation_update(mut tx, product_id_bin, translations) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product translations',
-				err.msg())
-		}
-	}
-
-	if seo_translations := ph.seo_translations {
-		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			_, seo_translation_ids_bin[i] = app.new_id()
-		}
-
-		// TODO just use function params
-		p := ProductSEOUpdateParams{
-			product_id_bin:          product_id_bin
-			seo_translation_ids_bin: seo_translation_ids_bin
-			seo_translations:        seo_translations
-		}
-
-		model_product_seo_update(mut tx, p) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product seo translations',
 				err.msg())
 		}
 	}
@@ -547,25 +523,6 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		}
 	}
 
-	if seo_translations := ph.seo_translations {
-		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			_, seo_translation_ids_bin[i] = app.new_id()
-		}
-
-		p := ProductSEOUpdateParams{
-			product_id_bin:          product_id_bin
-			seo_translation_ids_bin: seo_translation_ids_bin
-			seo_translations:        seo_translations
-		}
-
-		model_product_seo_update(mut tx, p) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product seo translations',
-				err.msg())
-		}
-	}
-
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
 	return success(mut ctx)
@@ -739,6 +696,21 @@ fn conduit_product_option_value_delete(mut app App, mut ctx Context, product_opt
 	model_product_option_value_delete(mut tx, product_option_value_id_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not delete product_option_value', err.msg())
+	}
+
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	return success(mut ctx)
+}
+
+fn conduit_product_seo_update(mut app App, mut ctx Context, seo_id_bin []u8, ph SEOUpdateRequestHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_seo_update(mut tx, seo_id_bin, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not update seo', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
