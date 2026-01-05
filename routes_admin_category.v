@@ -101,7 +101,7 @@ pub fn (mut app App) admin_category_delete(mut ctx Context, category_id string) 
 
 // updates the category's seo
 @['/admin/categories/:category_id/seo/:seo_id'; post]
-pub fn (mut app App) admin_product_seo_update(mut ctx Context, category_id string, seo_id string) veb.Result {
+pub fn (mut app App) admin_category_seo_update(mut ctx Context, category_id string, seo_id string) veb.Result {
 	category_id_bin := id_string_to_bin(category_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
 	}

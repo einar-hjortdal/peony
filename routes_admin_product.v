@@ -576,7 +576,7 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
@@ -659,7 +659,7 @@ pub fn (mut app App) admin_product_option_value_create(mut ctx Context, product_
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
@@ -744,7 +744,7 @@ pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
@@ -824,7 +824,7 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}

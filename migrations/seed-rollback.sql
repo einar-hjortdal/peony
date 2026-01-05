@@ -1,3 +1,4 @@
+DROP TABLE seo_translations;
 DROP TABLE product_translations;
 DROP TABLE product_collection_translations;
 DROP TABLE category_translations;
@@ -7,6 +8,10 @@ DROP TABLE product_type_translations;
 DROP TABLE product_tag_translations;
 DROP TABLE store_locales;
 DROP TABLE image_translations;
+DROP INDEX "0686cd40-3324-1a4f-2000-d7ff7c962b9d";
+DROP INDEX "0686cd40-3324-1aa6-a400-37d3a0d0f0b1";
+DROP INDEX "0686cd40-3324-1bec-4400-94fab7cc5f1f";
+DROP TABLE seo;
 DROP INDEX "0681493b-ad86-159d-b800-173af620b0b4";
 DROP TABLE store_currencies;
 DROP INDEX "0681493b-ad86-11c8-9c00-2802dd52f5ce";

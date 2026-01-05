@@ -285,11 +285,13 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 
 pub struct ProductOptionCreateRequest {
 pub:
+	title        string
 	translations []ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
 
 struct ProductOptionCreateRequestHygienised {
+	title        string
 	translations []ProductOptionTranslationRequestHygienised
 	values       []ProductOptionValueRequestHygienised
 }
@@ -346,43 +348,44 @@ fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) 
 
 pub struct ProductOptionUpdateRequest {
 pub:
-	translations []ProductOptionTranslationRequest
+	title        ?string
+	translations ?[]ProductOptionTranslationRequest
 }
 
 struct ProductOptionUpdateRequestHygienised {
-	translations []ProductOptionTranslationRequestHygienised
+	title ?string
+mut:
+	translations ?[]ProductOptionTranslationRequestHygienised
 }
 
 fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
-	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = p.translations[i].hygienise()!
+	mut ph := ProductOptionUpdateRequestHygienised{
+		title: p.title
 	}
 
-	return ProductOptionUpdateRequestHygienised{
-		translations: translations
+	if translations := p.translations {
+		mut ts := []ProductOptionTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+		ph.translations = ts
 	}
+
+	return ph
 }
 
 // verifies:
+// title is not empty
 // All locale_id exist TODO
-// The product_option has the default translation
-fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_translations := ph.translations
-
-	if option_translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks translations, at least one translation in the default locale must be provided.')
-	}
-
-	mut found := false
-	for i := 0; i < option_translations.len; i++ {
-		translation := option_translations[i]
-		if translation.locale_id_bin == default_locale_id_bin {
-			found = true
+fn (ph ProductOptionUpdateRequestHygienised) verify() ! {
+	if title := ph.title {
+		if title == '' {
+			return new_internal_error(error_missing_default_translation, 'The product_option lacks a title')
 		}
 	}
-	if found == false {
-		return new_internal_error(error_missing_default_translation, 'a product_option lacks a translation in the default_locale_id')
+
+	if translations := ph.translations {
+		// TODO verify locale_id
 	}
 }
 
