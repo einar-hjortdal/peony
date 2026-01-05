@@ -158,6 +158,10 @@ mut:
 	translations []SEOTranslation
 }
 
+fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8) ! {
+	tx.execute('INSERT INTO seo (id, category_id) VALUES (?, ?)', seo_id_bin, category_id_bin)!
+}
+
 fn model_category_seo_retrieve(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategorySEO {
 	data := tx.execute('SELECT id, product_id, title, description FROM seo
 		WHERE category_id IN (${get_placeholders(category_ids_bin)})',

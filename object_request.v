@@ -724,6 +724,8 @@ fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
 
 pub struct CategoryCreateRequest {
 pub:
+	name               string
+	description        ?string
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
@@ -731,10 +733,12 @@ pub:
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
 	translations       []CategoryTranslationRequest
-	seo_translations   ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
+	seo                ?SEOUpdateRequest
 }
 
 struct CategoryCreateRequestHygienised {
+	name                   string
+	description            ?string
 	handle                 ?string
 	is_internal            ?bool
 	is_active              ?bool
@@ -744,7 +748,7 @@ struct CategoryCreateRequestHygienised {
 	metadata               ?string
 	translations           []CategoryTranslationRequestHygienised
 mut:
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+	seo ?SEOUpdateRequestHygienised
 }
 
 fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
@@ -774,6 +778,8 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 	}
 
 	mut ph := CategoryCreateRequestHygienised{
+		name:                   p.name
+		description:            p.description
 		handle:                 p.handle
 		is_internal:            p.is_internal
 		is_active:              p.is_active
@@ -784,21 +790,8 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		translations:           translations
 	}
 
-	if seo_translations := p.seo_translations {
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			translation := seo_translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_internal_error(error_id_invalid, 'locale_id')
-			}
-			st[i] = SEOTranslationUpdateRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				title:         translation.title
-				description:   translation.description
-			}
-		}
-		ph.seo_translations = st
+	if seo := p.seo {
+		ph.seo = seo.hygienise()!
 	}
 
 	return ph
@@ -806,6 +799,8 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 
 pub struct CategoryUpdateRequest {
 pub:
+	name               ?string
+	description        ?string
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
@@ -813,10 +808,11 @@ pub:
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
 	translations       ?[]CategoryTranslationRequest
-	seo_translations   ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
 }
 
 struct CategoryUpdateRequestHygienised {
+	name                   ?string
+	description            ?string
 	handle                 ?string
 	is_internal            ?bool
 	is_active              ?bool
@@ -825,14 +821,12 @@ struct CategoryUpdateRequestHygienised {
 	category_rank          ?i32
 	metadata               ?string
 mut:
-	translations     ?[]CategoryTranslationRequestHygienised
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+	translations ?[]CategoryTranslationRequestHygienised
 }
 
 fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	if p.handle == none && p.is_internal == none && p.is_active == none
-		&& p.parent_category_id == none && p.metadata == none && p.translations == none
-		&& p.seo_translations == none {
+		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
 		return new_internal_error(error_empty_object, 'CategoryUpdateRequest')
 	}
 
@@ -844,6 +838,8 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	}
 
 	mut ph := CategoryUpdateRequestHygienised{
+		name:                   p.name
+		description:            p.description
 		handle:                 p.handle
 		is_internal:            p.is_internal
 		is_active:              p.is_active
@@ -851,27 +847,6 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 		parent_category_id_bin: parent_category_id_bin
 		category_rank:          p.category_rank
 		metadata:               p.metadata
-	}
-
-	if seo_translations := p.seo_translations {
-		if seo_translations.len == 0 {
-			return new_internal_error(error_empty_object, 'seo_translations')
-		}
-
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			translation := seo_translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_internal_error(error_id_invalid, 'locale_id')
-			}
-			st[i] = SEOTranslationUpdateRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				title:         translation.title
-				description:   translation.description
-			}
-		}
-		ph.seo_translations = st
 	}
 
 	if translations := p.translations {
@@ -1047,7 +1022,6 @@ struct ProductUpdateRequest {
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo_translations  ?[]SEOTranslationUpdateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
 }
@@ -1076,9 +1050,8 @@ struct ProductUpdateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	translations     ?[]ProductTranslationRequestHygienised
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
-	images           ?[]ImageRequestHygienised
+	translations ?[]ProductTranslationRequestHygienised
+	images       ?[]ImageRequestHygienised
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
@@ -1130,14 +1103,6 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 			h[i] = hygienise_product_translation_request(translations[i])!
 		}
 		ph.translations = h
-	}
-
-	if seo_translations := p.seo_translations {
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < st.len; i++ {
-			st[i] = seo_translations[i].hygienise()!
-		}
-		ph.seo_translations = st
 	}
 
 	if images := p.images {

@@ -93,6 +93,8 @@ struct Category {
 	created_at             firebird.DateTime
 	updated_at             firebird.DateTime
 	deleted_at             firebird.NullDateTime
+	name                   string
+	description            firebird.NullString
 	handle                 string
 	is_active              bool
 	is_internal            bool
@@ -100,24 +102,24 @@ struct Category {
 	parent_category_id     string
 	parent_category_id_bin []u8
 	metadata               firebird.NullString
-	name                   firebird.NullString
-	description            firebird.NullString
-	seo_title              firebird.NullString
-	seo_description        firebird.NullString
 mut:
-	translations     []CategoryTranslation
-	seo_translations []CategorySEOTranslation
+	seo          CategorySEO
+	translations []CategoryTranslation
 }
 
 fn model_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph CategoryCreateRequestHygienised) ! {
-	mut columns := ['id']
-	mut params := [firebird.Value(id_bin)]
+	mut columns := ['id', 'name', 'handle']
+	mut params := [firebird.Value(id_bin), ph.name]
 
-	columns = arrays.concat(columns, 'handle')
 	if handle := ph.handle {
 		params = arrays.concat(params, handle)
 	} else {
 		params = arrays.concat(params, id)
+	}
+
+	if description := ph.description {
+		columns = arrays.concat(columns, 'description')
+		params = arrays.concat(params, description)
 	}
 
 	if is_active := ph.is_active {
@@ -264,19 +266,7 @@ fn model_category_retrieve_count(mut tx firebird.Transaction, p CategoryRetrieve
 }
 
 fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
-	mut params := []firebird.Value{}
-
-	// 2 for translations, 2 for seo
-	if p.locale_id_bin.len > 0 {
-		params = arrays.concat(params, p.locale_id_bin, p.locale_id_bin, p.locale_id_bin,
-			p.locale_id_bin)
-	} else {
-		params = arrays.concat(params, firebird.Null{}, firebird.Null{}, firebird.Null{},
-			firebird.Null{})
-	}
-
-	conditions, conditions_params := model_category_retrieve_conditions(p)
-	params = arrays.append(params, conditions_params)
+	conditions, mut params := model_category_retrieve_conditions(p)
 
 	mut order_direction := order_direction_default
 	if p.use_order_direction {
@@ -301,36 +291,17 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		c.created_at,
 		c.updated_at,
 		c.deleted_at,
+		c.name,
+		c.description,
 		c.handle,
 		c.is_active,
 		c.is_internal,
 		c.parent_category_id,
 		c.category_rank,
-		c.metadata,
-		COALESCE(ct_requested.name, ct_default.name) AS name,
-		COALESCE(ct_requested.description, ct_default.description) AS description,
-		COALESCE(seo_requested.title, seo_default.title) AS seo_title,
-		COALESCE(seo_requested.description, seo_default.description) AS seo_description
+		c.metadata
 		FROM category c
-		LEFT JOIN category_translations ct_default
-			ON ct_default.category_id = c.id
-			AND ct_default.locale_id = (
-				SELECT default_locale_id FROM store
-			)
-		LEFT JOIN category_translations ct_requested
-			ON CAST(? AS BINARY(16)) IS NOT NULL
-			AND ct_requested.category_id = c.id
-			AND ct_requested.locale_id = ?
-		LEFT JOIN seo_translations seo_default
-			ON seo_default.category_id = c.id
-			AND seo_default.locale_id = (
-				SELECT default_locale_id FROM store
-			)
-		LEFT JOIN seo_translations seo_requested
-			ON CAST(? AS BINARY(16)) IS NOT NULL
-			AND seo_requested.category_id = c.id
-			AND seo_requested.locale_id = ?
-		${conditions} ${sorting}',
+		${conditions}
+		${sorting}',
 		...params)!
 
 	rows := data.rows()
@@ -338,18 +309,19 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 	mut categories := []Category{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
+
 		id_bin, _ := v[0].get_array_u8()!
 		created_at, _ := v[1].get_date_time()!
 		updated_at, _ := v[2].get_date_time()!
 		deleted_at := v[3].get_null_date_time()!
-		handle, _ := v[4].get_string()!
-		is_active, _ := v[5].get_bool()!
-		is_internal, _ := v[6].get_bool()!
-		parent_category_id_bin, _ := v[7].get_array_u8()!
-		category_rank, _ := v[8].get_i32()!
-		metadata := v[9].get_null_string()!
-		name := v[10].get_null_string()!
-		description := v[11].get_null_string()!
+		name, _ := v[4].get_string()!
+		description := v[5].get_null_string()!
+		handle, _ := v[6].get_string()!
+		is_active, _ := v[7].get_bool()!
+		is_internal, _ := v[8].get_bool()!
+		parent_category_id_bin, _ := v[9].get_array_u8()!
+		category_rank, _ := v[10].get_i32()!
+		metadata := v[11].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
