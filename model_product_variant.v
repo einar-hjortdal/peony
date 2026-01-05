@@ -45,11 +45,17 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 		first_value_of_option[i] = n_option_values
 		o := ph[i]
 		_, product_option_ids_bin[i] = app.new_id()
-		n_option_translations += o.translations.len
+
+		if translations := o.translations {
+			n_option_translations += translations.len
+		}
+
 		n_option_values += o.values.len
 		for j := 0; j < o.values.len; j++ {
 			ov := o.values[j]
-			n_option_value_translations += ov.translations.len
+			if translations := ov.translations {
+				n_option_value_translations += translations.len
+			}
 		}
 	}
 
@@ -59,7 +65,7 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 	}
 
 	mut src := []string{len: product_option_ids_bin.len}
-	mut params := []firebird.Value{len: product_option_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: product_option_ids_bin.len * 2, init: firebird.Null{}}
 	for i := 0; i < product_option_ids_bin.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS product_option_id,
@@ -73,23 +79,24 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 		...params)!
 
 	src = []string{len: n_option_translations}
-	params = []firebird.Value{len: n_option_translations * 3, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: n_option_translations * 3, init: firebird.Null{}}
 	mut n_iteration := 0
 	for i := 0; i < ph.len; i++ {
-		translations := ph[i].translations
 		product_option_id_bin := product_option_ids_bin[i]
-		for j := 0; j < translations.len; j++ {
-			translation := translations[j]
-			src[n_iteration] = 'SELECT
+		if translations := ph[i].translations {
+			for j := 0; j < translations.len; j++ {
+				translation := translations[j]
+				src[n_iteration] = 'SELECT
 				CAST(? AS BINARY(16)) AS product_option_id,
 				CAST(? AS BINARY(16)) AS locale_id,
 				CAST(? AS VARCHAR(63)) AS title
 				FROM RDB\$DATABASE'
 
-			params[n_iteration * 3] = product_option_id_bin
-			params[n_iteration * 3 + 1] = translation.locale_id_bin
-			params[n_iteration * 3 + 2] = translation.title
-			n_iteration++
+				params[n_iteration * 3] = product_option_id_bin
+				params[n_iteration * 3 + 1] = translation.locale_id_bin
+				params[n_iteration * 3 + 2] = translation.title
+				n_iteration++
+			}
 		}
 	}
 
@@ -98,7 +105,7 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 
 	// product_option_value
 	src = []string{len: n_option_values}
-	params = []firebird.Value{len: n_option_values * 2, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: n_option_values * 2, init: firebird.Null{}}
 	mut current_value := 0
 	for i := 0; i < ph.len; i++ {
 		product_option_id_bin := product_option_ids_bin[i]
@@ -122,26 +129,27 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 
 	// product_option_value_translations
 	src = []string{len: n_option_value_translations}
-	params = []firebird.Value{len: n_option_value_translations * 3, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: n_option_value_translations * 3, init: firebird.Null{}}
 	current_value = 0
 	mut current_translation := 0
 	for i := 0; i < ph.len; i++ {
 		product_option_values := ph[i].values
 		for j := 0; j < product_option_values.len; j++ {
 			product_option_value_id_bin := product_option_value_ids_bin[current_value]
-			product_option_value_translations := product_option_values[j].translations
-			for k := 0; k < product_option_value_translations.len; k++ {
-				translation := product_option_value_translations[k]
-				src[current_translation] = 'SELECT
-					CAST(? AS BINARY(16)) AS product_option_value_id,
-					CAST(? AS BINARY(16)) AS locale_id,
-					CAST(? AS VARCHAR(63)) AS name
-					FROM RDB\$DATABASE'
-				params[current_translation * 3] = product_option_value_id_bin
-				params[current_translation * 3 + 1] = translation.locale_id_bin
-				params[current_translation * 3 + 2] = translation.name
+			if value_translations := product_option_values[j].translations {
+				for k := 0; k < value_translations.len; k++ {
+					translation := value_translations[k]
+					src[current_translation] = 'SELECT
+						CAST(? AS BINARY(16)) AS product_option_value_id,
+						CAST(? AS BINARY(16)) AS locale_id,
+						CAST(? AS VARCHAR(63)) AS name
+						FROM RDB\$DATABASE'
+					params[current_translation * 3] = product_option_value_id_bin
+					params[current_translation * 3 + 1] = translation.locale_id_bin
+					params[current_translation * 3 + 2] = translation.name
 
-				current_translation++
+					current_translation++
+				}
 			}
 
 			current_value++
@@ -162,7 +170,7 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 	// relations to new product_variant
 	// give the variant the first value of each option
 	src = []string{len: ph.len}
-	params = []firebird.Value{len: ph.len * 2, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: ph.len * 2, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS option_value_id,

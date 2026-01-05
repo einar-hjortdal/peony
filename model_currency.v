@@ -14,7 +14,7 @@ fn conditions_currency_retrieve(p RetrieveCurrenciesParams) (string, []firebird.
 
 	if p.codes.is_set {
 		// workaround_24757() but for strings
-		mut c := []firebird.Value{len: p.codes.v.len, init: firebird.Value(firebird.Null{})}
+		mut c := []firebird.Value{len: p.codes.v.len, init: firebird.Null{}}
 		for i := 0; i < p.codes.v.len; i++ {
 			c[i] = firebird.Value(p.codes.v[i])
 		}

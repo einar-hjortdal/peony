@@ -1,6 +1,5 @@
 module peony
 
-import arrays
 import einar_hjortdal.firebird
 
 struct ProductOptionValueTranslation {
@@ -87,26 +86,32 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 }
 
 fn model_product_option_value_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, ph ProductOptionValueRequestHygienised) ! {
-	tx.execute('DELETE FROM product_option_value_translations WHERE product_option_value_id = ?',
-		product_option_value_id_bin)!
+	if name := ph.name {
+		tx.execute('UPDATE product_option_value SET name = ? WHERE id = ?', name, product_option_value_id_bin)!
+	}
 
-	mut src := []string{len: ph.translations.len}
-	mut params := []firebird.Value{len: ph.translations.len * 3, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < ph.translations.len; i++ {
-		translation := ph.translations[i]
-		src[i] = 'SELECT
+	if translations := ph.translations {
+		tx.execute('DELETE FROM product_option_value_translations WHERE product_option_value_id = ?',
+			product_option_value_id_bin)!
+
+		mut src := []string{len: translations.len}
+		mut params := []firebird.Value{len: translations.len * 3, init: firebird.Null{}}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			src[i] = 'SELECT
 				CAST(? AS BINARY(16)) AS product_option_value_id,
 				CAST(? AS BINARY(16)) AS locale_id,
 				CAST(? AS VARCHAR(63)) AS name
 				FROM RDB\$DATABASE'
-		params[i * 3] = product_option_value_id_bin
-		params[i * 3 + 1] = translation.locale_id_bin
-		params[i * 3 + 2] = translation.name
-	}
+			params[i * 3] = product_option_value_id_bin
+			params[i * 3 + 1] = translation.locale_id_bin
+			params[i * 3 + 2] = translation.name
+		}
 
-	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
+		tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
 		${get_merge_source(src)}',
-		...params)!
+			...params)!
+	}
 }
 
 fn model_product_option_value_delete(mut tx firebird.Transaction, product_option_value_id_bin []u8) ! {
@@ -200,26 +205,28 @@ fn model_product_option_create(mut tx firebird.Transaction, product_id_bin []u8,
 	tx.execute('INSERT INTO product_option (id, product_id, title) VALUES (?, ?, ?)',
 		product_id_bin, product_option_id_bin, ph.title)!
 
-	mut src := []string{len: ph.translations.len}
-	mut params := []firebird.Value{len: ph.translations.len * 3, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < ph.translations.len; i++ {
-		translation := ph.translations[i]
-		src[i] = 'SELECT
+	if translations := ph.translations {
+		mut src := []string{len: translations.len}
+		mut params := []firebird.Value{len: translations.len * 3, init: firebird.Null{}}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS product_option_id,
 			CAST(? AS BINARY(16)) AS locale_id,
 			CAST(? AS VARCHAR(63)) AS title
 			FROM RDB\$DATABASE'
 
-		params[i * 3] = product_option_id_bin
-		params[i * 3 + 1] = translation.locale_id_bin
-		params[i * 3 + 2] = translation.title
+			params[i * 3] = product_option_id_bin
+			params[i * 3 + 1] = translation.locale_id_bin
+			params[i * 3 + 2] = translation.title
+		}
+
+		tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title) ${get_merge_source(src)}',
+			...params)!
 	}
 
-	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title) ${get_merge_source(src)}',
-		...params)!
-
-	src = []string{len: ph.values.len}
-	params = []firebird.Value{len: ph.values.len * 2, init: firebird.Value(firebird.Null{})}
+	mut src := []string{len: ph.values.len}
+	mut params := []firebird.Value{len: ph.values.len * 2, init: firebird.Null{}}
 	for i := 0; i < ph.values.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS id,
@@ -234,65 +241,74 @@ fn model_product_option_create(mut tx firebird.Transaction, product_id_bin []u8,
 
 	mut n_translations := 0
 	for i := 0; i < ph.values.len; i++ {
-		product_option_value := ph.values[i]
-		for j := 0; j < product_option_value.translations.len; j++ {
-			n_translations++
+		value := ph.values[i]
+		if translations := value.translations {
+			n_translations += translations.len
 		}
 	}
 
-	src = []string{len: n_translations}
-	params = []firebird.Value{len: n_translations * 3, init: firebird.Value(firebird.Null{})}
-	mut current_translation := 0
-	for i := 0; i < ph.values.len; i++ {
-		product_option_value := ph.values[i]
-		product_option_value_id_bin := product_option_value_ids_bin[i]
-		translations := product_option_value.translations
-		for j := 0; j < translations.len; j++ {
-			translation := translations[j]
-			src[current_translation] = 'SELECT
-				CAST(? AS BINARY(16)) AS product_option_value_id,
-				CAST(? AS BINARY(16)) AS locale_id,
-				CAST(? AS VARCHAR(63)) AS name
-				FROM RDB\$DATABASE'
+	if n_translations > 0 {
+		src = []string{len: n_translations}
+		params = []firebird.Value{len: n_translations * 3, init: firebird.Null{}}
+		mut current_translation := 0
+		for i := 0; i < ph.values.len; i++ {
+			product_option_value := ph.values[i]
+			product_option_value_id_bin := product_option_value_ids_bin[i]
+			if translations := product_option_value.translations {
+				for j := 0; j < translations.len; j++ {
+					translation := translations[j]
+					src[current_translation] = 'SELECT
+						CAST(? AS BINARY(16)) AS product_option_value_id,
+						CAST(? AS BINARY(16)) AS locale_id,
+						CAST(? AS VARCHAR(63)) AS name
+						FROM RDB\$DATABASE'
 
-			params[current_translation * 3] = product_option_value_id_bin
-			params[current_translation * 3 + 1] = translation.locale_id_bin
-			params[current_translation * 3 + 2] = translation.name
+					params[current_translation * 3] = product_option_value_id_bin
+					params[current_translation * 3 + 1] = translation.locale_id_bin
+					params[current_translation * 3 + 2] = translation.name
 
-			current_translation++
+					current_translation++
+				}
+			}
 		}
-	}
 
-	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
-		${get_merge_source(src)}',
-		...params)!
+		tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
+			${get_merge_source(src)}',
+			...params)!
+	}
 }
 
-fn model_product_option_update(mut tx firebird.Transaction, product_option_id_bin []u8, ph []ProductOptionTranslationRequestHygienised) ! {
-	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 3 + 1, init: firebird.Value(firebird.Null{})}
-	for i := 0; i < ph.len; i++ {
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS product_option_id,
-			CAST(? AS VARCHAR(63)) AS title,
-			CAST(? AS BINARY(16)) AS locale_id
-			FROM RDB\$DATABASE'
-		params[i * 3] = product_option_id_bin
-		params[i * 3 + 1] = ph[i].title
-		params[i * 3 + 2] = ph[i].locale_id_bin
+fn model_product_option_update(mut tx firebird.Transaction, product_option_id_bin []u8, ph ProductOptionUpdateRequestHygienised) ! {
+	if title := ph.title {
+		tx.execute('UPDATE product_option SET title = ? WHERE id = ?', title, product_option_id_bin)!
 	}
-	params[ph.len * 3] = product_option_id_bin
 
-	tx.execute('MERGE INTO product_option_translations t
-		USING (${get_merge_source(src)}) s (product_option_id, title, locale_id)
-		ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
-		WHEN NOT MATCHED THEN
-			INSERT (product_option_id, locale_id, title)
-			VALUES (s.product_option_id, s.locale_id, s.title)
-		WHEN NOT MATCHED BY SOURCE
-			AND t.product_option_id = ?
-		THEN DELETE',
-		...params)!
+	if translations := ph.translations {
+		mut src := []string{len: translations.len}
+		mut params := []firebird.Value{len: translations.len * 3 + 1, init: firebird.Null{}}
+		for i := 0; i < translations.len; i++ {
+			src[i] = 'SELECT
+				CAST(? AS BINARY(16)) AS product_option_id,
+				CAST(? AS VARCHAR(63)) AS title,
+				CAST(? AS BINARY(16)) AS locale_id
+				FROM RDB\$DATABASE'
+			params[i * 3] = product_option_id_bin
+			params[i * 3 + 1] = translations[i].title
+			params[i * 3 + 2] = translations[i].locale_id_bin
+		}
+		params[translations.len * 3] = product_option_id_bin
+
+		tx.execute('MERGE INTO product_option_translations t
+			USING (${get_merge_source(src)}) s (product_option_id, title, locale_id)
+			ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
+			WHEN NOT MATCHED THEN
+				INSERT (product_option_id, locale_id, title)
+				VALUES (s.product_option_id, s.locale_id, s.title)
+			WHEN NOT MATCHED BY SOURCE
+				AND t.product_option_id = ?
+			THEN DELETE',
+			...params)!
+	}
 }
 
 fn model_product_option_delete(mut tx firebird.Transaction, id_bin []u8) ! {
@@ -334,18 +350,22 @@ fn model_product_option_value_product_variant_retrieve(mut tx firebird.Transacti
 	return product_option_value_product_variants
 }
 
-fn model_product_option_value_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, money_amount_ids_bin [][]u8) ! {
-	mut src := []string{len: money_amount_ids_bin.len}
-	mut params := []firebird.Value{len: money_amount_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+fn model_product_option_value_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, option_value_ids_bin [][]u8) ! {
+	tx.execute('DELETE FROM product_option_value_product_variant WHERE variant_id = ?',
+		variant_id_bin)!
+
+	mut src := []string{len: option_value_ids_bin.len}
+	mut params := []firebird.Value{len: option_value_ids_bin.len * 2, init: firebird.Null{}}
 	for i := 0; i < variant_id_bin.len; i++ {
 		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS option_value_id,
 			CAST(? AS BINARY(16)) AS variant_id,
-			CAST(? AS BINARY(16)) AS money_amount_id,
 			FROM RDB\$DATABASE'
-		params[i * 2] = variant_id_bin
-		params[i * 2 + 1] = money_amount_ids_bin[i]
+		params[i * 2] = option_value_ids_bin[i]
+		params[i * 2 + 1] = variant_id_bin
 	}
-	tx.execute('ISNERT INTO product_variant_money_amount (variant_id, money_amount_id)
+
+	tx.execute('INSERT INTO product_option_value_product_variant (option_value_id, variant_id)
 		${get_merge_source(src)}',
 		...params)!
 }

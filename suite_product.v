@@ -15,7 +15,7 @@ struct SuiteProductData {
 	product_variant_ids_bin    [][]u8
 	product_seo                []ProductSEO
 	product_seo_ids_bin        [][]u8
-	product_seo_translations   []ProductSEOTranslation
+	product_seo_translations   []SEOTranslation
 mut:
 	product_images_map   map[string]ProductImage
 	product_variants_map map[string]ProductVariant
@@ -84,7 +84,7 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		seo_ids_bin[i] = id_bin
 	}
 
-	seo_translations := model_product_seo_translation_retrieve(mut tx, seo_ids_bin) or {
+	seo_translations := model_seo_translation_retrieve(mut tx, seo_ids_bin) or {
 		return new_internal_error('Failed to retrieve seo_translations', err.msg())
 	}
 

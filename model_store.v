@@ -132,7 +132,7 @@ fn model_store_locales_update(mut tx firebird.Transaction, id_bin []u8, locale_i
 		CAST(? AS BINARY(16)) AS locale_id
 		FROM RDB\$DATABASE'
 	mut src := ''
-	mut params := []firebird.Value{len: locale_ids_bin.len * 2 + 2, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: locale_ids_bin.len * 2 + 2, init: firebird.Null{}}
 	for i := 0; i < locale_ids_bin.len; i++ {
 		src = appendln(src, s)
 		params[i * 2] = id_bin
@@ -166,7 +166,7 @@ fn model_store_currencies_update(mut tx firebird.Transaction, id_bin []u8, curre
 		CAST(? AS CHAR(3)) AS currency_code
 		FROM RDB\$DATABASE'
 	mut src := ''
-	mut params := []firebird.Value{len: currency_codes.len * 2 + 2, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: currency_codes.len * 2 + 2, init: firebird.Null{}}
 	for i := 0; i < currency_codes.len; i++ {
 		src = appendln(src, s)
 		params[i * 2] = id_bin

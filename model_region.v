@@ -158,7 +158,7 @@ fn model_region_create(mut tx firebird.Transaction, region_id_bin []u8, d Region
 		...params)!
 
 	// workaround_24757
-	params = []firebird.Value{len: d.country_codes.len, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: d.country_codes.len, init: firebird.Null{}}
 	for i := 0; i < d.country_codes.len; i++ {
 		params[i] = d.country_codes[i]
 	}
@@ -197,7 +197,7 @@ fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d Region
 
 	// workaround_24757
 	if country_codes := d.country_codes {
-		params = []firebird.Value{len: country_codes.len, init: firebird.Value(firebird.Null{})}
+		params = []firebird.Value{len: country_codes.len, init: firebird.Null{}}
 		for i := 0; i < country_codes.len; i++ {
 			params[i] = country_codes[i]
 		}

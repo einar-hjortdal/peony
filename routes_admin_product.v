@@ -517,10 +517,6 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			err.msg())
 	}
 
-	if p.translations.len == 0 {
-		return handle_error_400(mut ctx, 'product_option must have a title', 'No translations provided')
-	}
-
 	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
@@ -529,18 +525,7 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			err.msg())
 	}
 
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	ph.verify(store.default_locale_id_bin) or {
+	ph.verify() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -569,7 +554,7 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
@@ -652,7 +637,7 @@ pub fn (mut app App) admin_product_option_value_create(mut ctx Context, product_
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
@@ -737,7 +722,7 @@ pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
@@ -817,7 +802,7 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}

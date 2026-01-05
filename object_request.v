@@ -220,43 +220,49 @@ fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTrans
 
 pub struct ProductOptionValueRequest {
 pub:
-	translations []ProductOptionValueTranslationRequest
+	name         ?string
+	translations ?[]ProductOptionValueTranslationRequest
 }
 
 struct ProductOptionValueRequestHygienised {
-	translations []ProductOptionValueTranslationRequestHygienised
+	name ?string
+mut:
+	translations ?[]ProductOptionValueTranslationRequestHygienised
 }
 
 fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
-	mut translations := []ProductOptionValueTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = p.translations[i].hygienise()!
+	if p.name == none && p.translations == none {
+		return new_internal_error(error_empty_object, 'ProductOptionValueRequest')
 	}
 
-	return ProductOptionValueRequestHygienised{
-		translations: translations
+	mut res := ProductOptionValueRequestHygienised{
+		name: p.name
 	}
+
+	if translations := p.translations {
+		mut ts := []ProductOptionValueTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+	}
+
+	return res
 }
 
 // verifies:
+// name is not empty
 // TODO all locale_id exist
-// The product_option_value has the default translation
 fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_value_translations := p.translations
-
-	if option_value_translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option_value lacks translations, at least one translation in the default locale must be provided.')
-	}
-
-	mut found := false
-	for i := 0; i < option_value_translations.len; i++ {
-		translation := option_value_translations[i]
-		if translation.locale_id_bin == default_locale_id_bin {
-			found = true
+	if name := p.name {
+		if name == '' {
+			return new_internal_error(error_empty_field, 'name')
 		}
 	}
-	if found == false {
-		return new_internal_error(error_missing_default_translation, 'The product_option_value lacks a translation in the default_locale_id')
+
+	if translations := p.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_field, 'translations')
+		}
 	}
 }
 
@@ -286,59 +292,53 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 pub struct ProductOptionCreateRequest {
 pub:
 	title        string
-	translations []ProductOptionTranslationRequest
+	translations ?[]ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
 
 struct ProductOptionCreateRequestHygienised {
-	title        string
-	translations []ProductOptionTranslationRequestHygienised
-	values       []ProductOptionValueRequestHygienised
+	title  string
+	values []ProductOptionValueRequestHygienised
+mut:
+	translations ?[]ProductOptionTranslationRequestHygienised
 }
 
 fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
-	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = p.translations[i].hygienise()!
-	}
-
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
 	for i := 0; i < p.values.len; i++ {
 		values[i] = p.values[i].hygienise()!
 	}
 
-	return ProductOptionCreateRequestHygienised{
-		translations: translations
-		values:       values
+	mut res := ProductOptionCreateRequestHygienised{
+		title:  p.title
+		values: values
 	}
+
+	if translations := p.translations {
+		mut ts := []ProductOptionTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+		res.translations = ts
+	}
+
+	return res
 }
 
 // verifies:
 // All locale_id exist TODO
-// The product_option has the default translation
 // The product_option has at least one value
-// Each value has the default translation
 fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_translations := ph.translations
 	option_values := ph.values
 
-	if option_translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks translations, at least one translation in the default locale must be provided.')
+	if translations := ph.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_field, 'translations')
+		}
 	}
 
 	if option_values.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks values, at leat one value must be provided.')
-	}
-
-	mut found := false
-	for i := 0; i < option_translations.len; i++ {
-		translation := option_translations[i]
-		if translation.locale_id_bin == default_locale_id_bin {
-			found = true
-		}
-	}
-	if found == false {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks a translation in the default_locale_id')
+		return new_internal_error(error_empty_field, 'The product_option lacks values, at leat one value must be provided.')
 	}
 
 	for i := 0; i < option_values.len; i++ {

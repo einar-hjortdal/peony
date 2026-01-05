@@ -601,10 +601,9 @@ fn conduit_product_option_update(mut app App, mut ctx Context, product_id string
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_option_update(mut tx, product_option_id_bin, ph.translations) or {
+	model_product_option_update(mut tx, product_option_id_bin, ph) or {
 		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not create product_option', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

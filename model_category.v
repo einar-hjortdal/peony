@@ -14,7 +14,7 @@ struct CategoryTranslation {
 
 fn model_category_translations_update(mut tx firebird.Transaction, category_id_bin []u8, ph []CategoryTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS category_id,
@@ -417,7 +417,7 @@ fn model_category_product_retrieve(mut tx firebird.Transaction,
 
 fn model_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
 	mut src := []string{len: category_ids_bin.len}
-	mut params := []firebird.Value{len: category_ids_bin.len * 2 + 1, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: category_ids_bin.len * 2 + 1, init: firebird.Null{}}
 	for i := 0; i < category_ids_bin.len; i++ {
 		src[i] = 'SELECT 
 			CAST(? AS BINARY(16)) AS product_id,
