@@ -93,7 +93,7 @@ fn app_routine(ch chan bool) {
 		blob: new_provider_blob_dummy()
 	}
 
-	mut app := new_peony_app(config, providers)
+	mut app := new_peony_app(config, providers) or { panic(err) }
 	go app.run()
 	_ := <-ch
 

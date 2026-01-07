@@ -30,7 +30,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 	ctx.user_session.values = json.encode(ctx.user_session_values)
 
-	app.session_store.save(mut ctx.res.header, mut ctx.user_session) or {
+	app.session_store.save(mut ctx.res.header, ctx.user_session) or {
 		ctx.res.set_status(http.Status.internal_server_error)
 		ctx.json(new_peony_error('Failed to save session', err.msg()))
 		return false
