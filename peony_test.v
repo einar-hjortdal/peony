@@ -47,23 +47,20 @@ fn (bp BlobProviderDummy) delete(id string) ! {
 	}
 }
 
-// Remember to `sudo usermod -aG docker $USER`
-fn container_firebird_start() ! {
-	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${test_firebird_port}:3050 firebirdsql/firebird')
-	if result.exit_code != 0 {
-		return error(result.output)
-	}
-}
-
 fn container_firebird_clean() {
 	result := os.execute('docker stop ${test_firebird_container_name}')
 	if result.exit_code != 0 {
+		if result.output.contains('No such container') {
+			return
+		}
 		eprintln(result.output)
 	}
 }
 
-fn container_redict_start() ! {
-	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=${test_redict_port}:6379 registry.redict.io/redict')
+// Remember to `sudo usermod -aG docker $USER`
+fn container_firebird_start() ! {
+	container_firebird_clean() // kill container if already running
+	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${test_firebird_port}:3050 firebirdsql/firebird')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -72,7 +69,18 @@ fn container_redict_start() ! {
 fn container_redict_clean() {
 	result := os.execute('docker stop ${test_redict_container_name}')
 	if result.exit_code != 0 {
+		if result.output.contains('No such container') {
+			return
+		}
 		eprintln(result.output)
+	}
+}
+
+fn container_redict_start() ! {
+	container_redict_clean() // kill container if already running
+	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=${test_redict_port}:6379 registry.redict.io/redict')
+	if result.exit_code != 0 {
+		return error(result.output)
 	}
 }
 
