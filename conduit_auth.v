@@ -19,11 +19,14 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	}
 
 	if count == 0 {
+		tx.rollback() or {}
+		log.debug('user count == 0')
 		return handle_error_login(mut ctx)
 	}
 
 	users := model_user_list(mut tx, up) or {
 		tx.rollback() or {}
+		log.debug(err.msg())
 		return handle_error_login(mut ctx)
 	}
 

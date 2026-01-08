@@ -156,7 +156,6 @@ fn assign_seo_translations(mut product_seo_map map[string]ProductSEO, seo_transl
 	}
 }
 
-// TODO optimization: there is only one seo object per product, order of the array is not tat useful
 fn assign_seo(product_seo []ProductSEO, product_seo_map map[string]ProductSEO, mut products_map map[string]Product) {
 	for i := 0; i < product_seo.len; i++ {
 		seo := product_seo[i]

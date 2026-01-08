@@ -125,11 +125,22 @@ fn build_url(s string) string {
 // TODO handle params
 // TODO handle headers
 fn do_get_request(path string) !http.Response {
-	request := http.new_request(http.Method.get, build_url(path), '') // TODO error 111 (rejected)
+	request := http.new_request(http.Method.get, build_url(path), '')
 	return request.do()!
 }
 
-fn check_response(r http.Response) ! {
+fn do_post_request(path string, body string) !http.Response {
+	request := http.new_request(http.Method.post, build_url(path), body)
+	return request.do()!
+}
+
+fn do_authenticated_get_request(path string) !http.Response {
+	request := http.new_request(http.Method.get, build_url(path), '')
+	// TODO add cookie
+	return request.do()!
+}
+
+fn response_is_ok(r http.Response) ! {
 	if r.status_code != 200 {
 		return error('status ${r.status_code} (${r.status_msg}): ${r.body}')
 	}
@@ -144,9 +155,23 @@ fn test_peony() ! {
 		stop_app(ch)
 	}
 
+	// auth
+	// middleware should reject unauthorized request
+	mut response := do_get_request('/admin/auth')!
+	assert response.status_code == 401
+
+	// middleware should allow unauthenticated users to log in
+	body := json.encode(AuthRequest{
+		email:    test_default_user_email
+		password: test_default_user_password
+	})
+	response = do_post_request('/admin/auth', body)!
+	response_is_ok(response)!
+	println(response.header)
+
 	// list regions
-	mut response := do_get_request('/store/regions')!
-	check_response(response)!
+	response = do_get_request('/store/regions')!
+	response_is_ok(response)!
 	regions := json.decode(RegionResponseListEnvelope, response.body)!
 	default_region := regions.regions[0]
 	default_region_id := default_region.id
@@ -155,5 +180,5 @@ fn test_peony() ! {
 
 	// get region by id
 	response = do_get_request('/store/regions/${default_region_id}')!
-	check_response(response)!
+	response_is_ok(response)!
 }

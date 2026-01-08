@@ -73,10 +73,10 @@
 
 ## Changes
 
-- [ ] get_product_variants_availability should handle sales_channel_ids_bin as optional. I think
-- [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431)
-- [ ] Separate sales from price_list
-- [ ] Remove all unnecessary `product_` prefixes from database, structs and function names
+- [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
+- [ ] Separate sales from price_list.
+- [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
+- [ ] Limit returned list items in all requests.
 
 ## Internals
 

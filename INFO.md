@@ -9,10 +9,10 @@ Translation tables define presentation content exposed by the `/store/` API.
 Presentation content (eg. title, description...) in each table is in the store's default locale. Translation tables work as overrides. Whenever a client requests a specific `locale_id`, if any override exists it will be utilized.
 
 Example: 
-1. Client requests products from the `/store/` endpoints, the request contains a locale id.
+1. Client requests products from the `/store/` endpoints, the request contains a locale_id parameter.
 2. Peony always retrieves product rows with their default title, subtitle and description from the product table.
 3. Peony retrieves the translation rows from the product_translations table.
-4. Peony checks if a translation was retrieved, if was: its values override the default values.
+4. Peony checks if a translation for the requested locale_id was retrieved, if was: its values override the default values.
 5. Peony returns the product objects with the overridden values.
 
 Note: A translation should never be set as an empty string. If a `_translations` table contains only one translation column, this column should not be nullable. If a translations table contains many translation columns, these columns should be nullable. If all of them are null, the row should be deleted.
