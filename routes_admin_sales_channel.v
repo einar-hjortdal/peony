@@ -16,13 +16,11 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 	}
 
 	ph := ListSalesChannelsParamsHygienised{
-		ids:         p.ids
-		ids_bin:     ids_bin
-		name:        p.name
-		description: p.description
-		offset:      p.offset
-		fetch:       p.fetch
-		order:       p.order
+		ids:     p.ids
+		ids_bin: ids_bin
+		offset:  p.offset
+		fetch:   p.fetch
+		order:   p.order
 	}
 
 	return conduit_sales_channels_get(mut app, mut ctx, ph)

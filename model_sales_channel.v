@@ -24,16 +24,6 @@ fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised)
 		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
 	}
 
-	if ph.name.is_set {
-		conditions = arrays.concat(conditions, "name LIKE '%' || ? '%'")
-		params = arrays.concat(params, ph.name.v)
-	}
-
-	if ph.description.is_set {
-		conditions = arrays.concat(conditions, "description LIKE '%' || ? '%'")
-		params = arrays.concat(params, ph.description.v)
-	}
-
 	if ph.product_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM product_sales_channel psc
@@ -48,7 +38,7 @@ fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised)
 
 fn model_sales_channel_retrieve_count(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) !i64 {
 	conditions, params := model_sales_channel_retrieve_conditions(ph)
-	data := tx.execute('SELECT COUNT(*) from sales_channel ${conditions}', ...params)!
+	data := tx.execute('SELECT COUNT(*) FROM sales_channel ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column

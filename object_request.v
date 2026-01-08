@@ -384,9 +384,9 @@ fn (ph ProductOptionUpdateRequestHygienised) verify() ! {
 		}
 	}
 
-	if translations := ph.translations {
-		// TODO verify locale_id
-	}
+	// if translations := ph.translations {
+	// TODO verify locale_id
+	// }
 }
 
 pub struct ProductVariantMoneyAmountRequest {

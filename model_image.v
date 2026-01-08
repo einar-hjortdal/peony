@@ -1,6 +1,6 @@
 module peony
 
-import arrays
+// import arrays
 import einar_hjortdal.firebird
 
 struct ImageTranslation {

@@ -300,7 +300,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	mut external_products := []ProductResponseStore{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
 		external_products[i] = format_product_response_store(complete_products[i], pctx,
-			product_variants_availability)
+			product_variants_availability, ph.locale_id.v)
 	}
 
 	return ctx.json(ProductResponseStoreListEnvelope{
@@ -423,7 +423,8 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
 
-	external_product := format_product_response_store(product, pctx, product_variants_availability)
+	external_product := format_product_response_store(product, pctx, product_variants_availability,
+		ph.locale_id.v)
 
 	return ctx.json(ProductResponseStoreEnvelope{
 		product: external_product

@@ -34,5 +34,5 @@ pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_category_list_request_query')
 	}
 
-	return conduit_category_get_store(mut app, mut ctx, p)
+	return conduit_category_get_store(mut app, mut ctx, query_params.locale_id.v, p)
 }

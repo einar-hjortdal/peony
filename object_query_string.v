@@ -37,7 +37,6 @@ pub:
 fn extract_region_list_request_query(m map[string]string) RegionListRequestQuery {
 	return RegionListRequestQuery{
 		ids:          zero_array_string(m, 'ids')
-		name:         zero_string(m, 'name')
 		with_deleted: zero_bool(m, 'with_deleted')
 		offset:       zero_i32(m, 'offset')
 		fetch:        zero_i32(m, 'fetch')
@@ -99,8 +98,6 @@ pub:
 fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannelsParams {
 	return ListSalesChannelsParams{
 		ids:         zero_array_string(p, 'ids')
-		name:        zero_string(p, 'name')
-		description: zero_string(p, 'description')
 		product_ids: zero_array_string(p, 'product_ids')
 		offset:      zero_i32(p, 'offset')
 		fetch:       zero_i32(p, 'fetch')
@@ -127,7 +124,6 @@ fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductV
 		product_ids:     zero_array_string(m, 'product_ids')
 		allow_backorder: zero_bool(m, 'allow_backorder')
 		region_id:       zero_string(m, 'region_id')
-		title:           zero_string(m, 'title')
 		offset:          zero_i32(m, 'offset')
 		fetch:           zero_i32(m, 'fetch')
 		order:           zero_string(m, 'order')
@@ -162,7 +158,6 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 		cart_id:           zero_string(m, 'cart_id')
 		category_ids:      zero_array_string(m, 'category_ids')
 		collection_ids:    zero_array_string(m, 'collection_id')
-		description:       zero_string(m, 'description')
 		fetch:             zero_i32(m, 'fetch')
 		handle:            zero_string(m, 'handle')
 		ids:               zero_array_string(m, 'id')
@@ -174,7 +169,6 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
 		status:            zero_string(m, 'status')
 		tag_ids:           zero_array_string(m, 'tag_id')
-		title:             zero_string(m, 'title')
 		type_ids:          zero_array_string(m, 'type_id')
 		locale_id:         zero_string(m, 'locale_id')
 	}
@@ -188,8 +182,6 @@ pub:
 	collection_ids    ZeroArrayString
 	type_ids          ZeroArrayString
 	tag_ids           ZeroArrayString
-	title             ZeroString
-	description       ZeroString
 	category_ids      ZeroArrayString
 	price_list_ids    ZeroArrayString
 	sales_channel_ids ZeroArrayString
@@ -206,7 +198,6 @@ fn extract_product_list_request_query_store(m map[string]string) ProductListRequ
 		cart_id:           zero_string(m, 'cart_id')
 		category_ids:      zero_array_string(m, 'category_ids')
 		collection_ids:    zero_array_string(m, 'collection_id')
-		description:       zero_string(m, 'description')
 		fetch:             zero_i32(m, 'fetch')
 		handle:            zero_string(m, 'handle')
 		ids:               zero_array_string(m, 'id')
@@ -217,7 +208,6 @@ fn extract_product_list_request_query_store(m map[string]string) ProductListRequ
 		region_id:         zero_string(m, 'region_id')
 		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
 		tag_ids:           zero_array_string(m, 'tag_id')
-		title:             zero_string(m, 'title')
 		type_ids:          zero_array_string(m, 'type_id')
 		locale_id:         zero_string(m, 'locale_id')
 	}
@@ -333,8 +323,6 @@ struct RetrieveProductParamsHygienised {
 	type_ids_bin          [][]u8
 	tag_ids               ZeroArrayString
 	tag_ids_bin           [][]u8
-	title                 ZeroString
-	description           ZeroString
 	category_ids          ZeroArrayString
 	category_ids_bin      [][]u8
 	price_list_ids        ZeroArrayString
@@ -416,8 +404,6 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 		type_ids_bin:          type_ids_bin
 		tag_ids:               tag_ids
 		tag_ids_bin:           tag_ids_bin
-		title:                 zero_string(m, 'title')
-		description:           zero_string(m, 'description')
 		category_ids:          category_ids
 		category_ids_bin:      category_ids_bin
 		price_list_ids:        price_list_ids

@@ -147,7 +147,7 @@ fn assign_product_variants(product_variants []ProductVariant, product_variants_m
 	}
 }
 
-fn assign_seo_translations(mut product_seo_map map[string]ProductSEO, seo_translations []ProductSEOTranslation) {
+fn assign_seo_translations(mut product_seo_map map[string]ProductSEO, seo_translations []SEOTranslation) {
 	for i := 0; i < seo_translations.len; i++ {
 		translation := seo_translations[i]
 		seo_id := translation.seo_id

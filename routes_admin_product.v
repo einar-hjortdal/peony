@@ -859,7 +859,7 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 // updates the product's seo
 @['/admin/products/:product_id/seo/:seo_id'; post]
 pub fn (mut app App) admin_product_seo_update(mut ctx Context, product_id string, seo_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
+	_ := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
 	}
 

@@ -162,7 +162,7 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 	})
 }
 
-fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
+fn conduit_category_get_store(mut app App, mut ctx Context, locale_id string, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -186,7 +186,7 @@ fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrievePa
 
 	mut category := categories[0]
 
-	external_category := format_category_response_store(category)
+	external_category := format_category_response_store(category, locale_id)
 
 	return ctx.json(CategoryResponseStoreEnvelope{
 		category: external_category

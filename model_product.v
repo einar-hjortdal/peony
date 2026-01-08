@@ -87,24 +87,6 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 		params = arrays.concat(params, ...ph.tag_ids_bin)
 	}
 
-	if ph.title.is_set {
-		conditions = arrays.concat(conditions, "EXISTS (
-			SELECT 1 FROM product_translations ptr
-			WHERE ptr.product_id = p.id
-				AND UPPER(ptr.title) LIKE UPPER('%' || ? || '%')
-			)")
-		params = arrays.concat(params, ph.title.v)
-	}
-
-	if ph.description.is_set {
-		conditions = arrays.concat(conditions, "EXISTS (
-			SELECT 1 FROM product_translations ptr
-			WHERE ptr.product_id = p.id
-				AND UPPER(ptr.description) LIKE UPPER('%' || ? || '%')
-			)")
-		params = arrays.concat(params, ph.description.v)
-	}
-
 	if ph.category_ids.is_set {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM category_product cp

@@ -49,7 +49,6 @@ fn hygienise_region_list_request_query(p RegionListRequestQuery) !RegionRetriveP
 		filter_by_id:        p.ids.is_set
 		ids_bin:             ids_bin
 		filter_by_name:      p.name.is_set
-		name:                p.name.v
 		include_deleted:     include_deleted
 		use_offset:          p.offset.is_set
 		offset:              p.offset.v
@@ -150,8 +149,6 @@ fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParamsHy
 struct ListSalesChannelsParamsHygienised {
 	ids             ZeroArrayString
 	ids_bin         [][]u8
-	name            ZeroString
-	description     ZeroString
 	product_ids     ZeroArrayString
 	product_ids_bin [][]u8
 	offset          ZeroI32
@@ -167,7 +164,6 @@ struct RetrieveProductVariantParamsHygienised {
 	allow_backorder ZeroBool
 	region_id       ZeroString
 	region_id_bin   []u8
-	title           ZeroString
 	with_deleted    ZeroBool
 	offset          ZeroI32
 	fetch           ZeroI32

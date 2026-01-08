@@ -245,11 +245,6 @@ fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygi
 	// 	params = arrays.concat(params, p.region_id)
 	// }
 
-	if p.title.is_set {
-		conditions = arrays.concat(conditions, 'title = ?') // TODO use LIKE?
-		params = arrays.concat(params, p.title)
-	}
-
 	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
 		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}

@@ -30,7 +30,7 @@ fn conditions_currency_retrieve(p RetrieveCurrenciesParams) (string, []firebird.
 
 fn model_currency_retrieve_count(mut tx firebird.Transaction, p RetrieveCurrenciesParams) !i64 {
 	conditions, params := conditions_currency_retrieve(p)
-	data := tx.execute('SELECT COUNT(*) OVER() FROM currency ${conditions}', ...params)!
+	data := tx.execute('SELECT COUNT(*) FROM currency ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column

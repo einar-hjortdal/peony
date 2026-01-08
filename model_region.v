@@ -30,7 +30,6 @@ struct RegionRetriveParams {
 	filter_by_id        bool
 	ids_bin             [][]u8
 	filter_by_name      bool
-	name                string
 	include_deleted     bool
 	use_offset          bool
 	offset              i32
@@ -47,11 +46,6 @@ fn conditions_region_retrieve(p RegionRetriveParams) (string, []firebird.Value) 
 	if p.filter_by_id {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
 		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
-	}
-
-	if p.filter_by_name {
-		conditions = arrays.concat(conditions, "name LIKE '%' || ? || '%'")
-		params = arrays.concat(params, p.name)
 	}
 
 	if !p.include_deleted {
