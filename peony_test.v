@@ -13,7 +13,8 @@ const test_firebird_user = 'test_user'
 const test_firebird_root_password = 'test_root_password'
 const test_firebird_password = 'test_password'
 const test_firebird_database = 'test_database.fdb'
-const test_firebird_url = 'firebird://${test_firebird_user}:${test_firebird_password}@localhost:${test_firebird_port}/var/lib/firebird/data/${test_firebird_database}'
+const test_firebird_database_path = '/var/lib/firebird/data/${test_firebird_database}'
+const test_firebird_url = 'firebird://${test_firebird_user}:${test_firebird_password}@localhost:${test_firebird_port}${test_firebird_database_path}'
 const test_redict_container_name = 'test_redict_server'
 const test_redict_port = '6380'
 const test_redict_url = 'redict://@localhost:${test_redict_port}/0'
@@ -84,6 +85,29 @@ fn container_redict_start() ! {
 	}
 }
 
+fn containers_are_ready() {
+	mut firebird_is_loading := true
+	mut redict_is_loading := true
+	for firebird_is_loading || redict_is_loading {
+		if firebird_is_loading {
+			check := os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${test_firebird_container_name} isql localhost:${test_firebird_database_path} -user ${test_firebird_user} -password ${test_firebird_password} -q')
+			if check.output.contains('ALIVE') {
+				firebird_is_loading = false
+			}
+		}
+
+		if redict_is_loading {
+			ping := os.execute('docker exec ${test_redict_container_name} redict-cli ping')
+			if ping.output.contains('PONG') {
+				redict_is_loading = false
+			}
+		}
+
+		time.sleep(1 * time.second)
+	}
+	return
+}
+
 // Note: veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
 // Note: containers aren't stopped on panic
 fn app_routine(ch chan bool) {
@@ -113,7 +137,7 @@ fn app_routine(ch chan bool) {
 fn run_app() !chan bool {
 	container_firebird_start()!
 	container_redict_start()!
-	time.sleep(5 * time.second) // need to wait for cotnainers startup. TODO fix magic number
+	containers_are_ready()
 
 	ch := chan bool{}
 	go app_routine(ch)
@@ -142,9 +166,9 @@ fn do_post_request(path string, body string) !http.Response {
 	return request.do()!
 }
 
-fn do_authenticated_get_request(path string) !http.Response {
-	request := http.new_request(http.Method.get, build_url(path), '')
-	// TODO add cookie
+fn do_authenticated_get_request(path string, cookie_value string) !http.Response {
+	mut request := http.new_request(http.Method.get, build_url(path), '')
+	request.add_header(http.CommonHeader.cookie, cookie_value)
 	return request.do()!
 }
 
@@ -152,6 +176,11 @@ fn response_is_ok(r http.Response) ! {
 	if r.status_code != 200 {
 		return error('status ${r.status_code} (${r.status_msg}): ${r.body}')
 	}
+}
+
+fn extract_set_cookie(r http.Response) !string {
+	v := r.header.get(http.CommonHeader.set_cookie)!
+	return v.split(';')[0] // remove attributes
 }
 
 // TODO In order to be able to run multiple tests asynchronously:
@@ -175,7 +204,11 @@ fn test_peony() ! {
 	})
 	response = do_post_request('/admin/auth', body)!
 	response_is_ok(response)!
-	println(response.header)
+
+	// middleware should allow authenticated requests
+	cookie_value := extract_set_cookie(response)!
+	response = do_authenticated_get_request('/admin/auth', cookie_value)!
+	response_is_ok(response)!
 
 	// list regions
 	response = do_get_request('/store/regions')!
