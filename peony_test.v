@@ -173,10 +173,18 @@ fn do_post_request(path string, body string) !http.Response {
 	return request.do()!
 }
 
-fn do_authenticated_get_request(path string, cookie_value string) !http.Response {
-	mut request := http.new_request(http.Method.get, build_url(path), '')
+fn do_authenticated_request(path string, cookie_value string, body string, method http.Method) !http.Response {
+	mut request := http.new_request(method, build_url(path), body)
 	request.add_header(http.CommonHeader.cookie, cookie_value)
-	return request.do()!
+	return request.do()
+}
+
+fn do_authenticated_get_request(path string, cookie_value string) !http.Response {
+	return do_authenticated_request(path, cookie_value, '', http.Method.get)
+}
+
+fn do_authenticated_delete_request(path string, cookie_value string) !http.Response {
+	return do_authenticated_request(path, cookie_value, '', http.Method.delete)
 }
 
 fn response_is_ok(r http.Response) ! {
@@ -185,24 +193,39 @@ fn response_is_ok(r http.Response) ! {
 	}
 }
 
-fn extract_set_cookie(r http.Response) !string {
+fn extract_cookie_from_set_cookie(r http.Response) !string {
 	v := r.header.get(http.CommonHeader.set_cookie)!
 	return v.split(';')[0] // remove attributes
 }
 
-// TODO In order to be able to run multiple tests asynchronously:
-// Check if port is in use or not, if in use, change all ports and try again.
-// Use a more reliable technique than time.sleep to wait for things to be done.
-fn test_peony() ! {
-	ch := run_app()!
-	defer {
-		stop_app(ch)
-	}
+fn user_login() !string {
+	response := do_post_request('/admin/auth', json.encode(AuthRequest{
+		email:    test_default_user_email
+		password: test_default_user_password
+	}))!
+	return extract_cookie_from_set_cookie(response)
+}
 
+fn user_logout(cookie_value string) ! {
+	_ := do_authenticated_delete_request('/admin/auth', cookie_value)!
+	return
+}
+
+fn authenticated_wrapper(suite fn (provided_cookie_value string) !) ! {
+	cookie_value := user_login()!
+	suite(cookie_value)!
+	defer {
+		user_logout(cookie_value) or {}
+	}
+}
+
+fn admin_auth() ! {
 	// auth
 	// middleware should reject unauthorized request
 	mut response := do_get_request('/admin/auth')!
-	assert response.status_code == 401
+	if response.status_code != 401 {
+		return error('Unathorized request should have been rejected, but it was not.')
+	}
 
 	// middleware should allow unauthenticated users to log in
 	body := json.encode(AuthRequest{
@@ -213,12 +236,26 @@ fn test_peony() ! {
 	response_is_ok(response)!
 
 	// middleware should allow authenticated requests
-	cookie_value := extract_set_cookie(response)!
+	cookie_value := extract_cookie_from_set_cookie(response)!
 	response = do_authenticated_get_request('/admin/auth', cookie_value)!
 	response_is_ok(response)!
 
+	response = do_authenticated_delete_request('/admin/auth', cookie_value)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request('/admin/auth', cookie_value)!
+	if response.status_code != 401 {
+		return error('Expired session was accepted, but it shouldn have not been.')
+	}
+}
+
+fn admin_users(cookie_value string) ! {
+	println(cookie_value)
+}
+
+fn store_regions() ! {
 	// list regions
-	response = do_get_request('/store/regions')!
+	mut response := do_get_request('/store/regions')!
 	response_is_ok(response)!
 	regions := json.decode(RegionResponseListEnvelope, response.body)!
 	default_region := regions.regions[0]
@@ -229,4 +266,16 @@ fn test_peony() ! {
 	// get region by id
 	response = do_get_request('/store/regions/${default_region_id}')!
 	response_is_ok(response)!
+}
+
+fn test_peony() ! {
+	ch := run_app()!
+	defer {
+		stop_app(ch)
+	}
+
+	admin_auth()!
+	authenticated_wrapper(admin_users)!
+
+	store_regions()!
 }
