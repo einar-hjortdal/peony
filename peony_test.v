@@ -141,13 +141,20 @@ fn run_app() !chan bool {
 
 	ch := chan bool{}
 	go app_routine(ch)
-	time.sleep(30 * time.second) // need to wait for app startup. TODO fix magic number
+	mut app_is_loading := true
+	for app_is_loading {
+		request := http.new_request(http.Method.get, 'http://localhost:${test_port}/admin/auth',
+			'')
+		if _ := request.do() {
+			app_is_loading = false
+		}
+		time.sleep(1 * time.second)
+	}
 	return ch
 }
 
 fn stop_app(ch chan bool) {
 	ch <- true
-	time.sleep(5 * time.second) // wait for docker to stop containers. TODO fix magic number
 }
 
 fn build_url(s string) string {
