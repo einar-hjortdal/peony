@@ -6,7 +6,7 @@ pub:
 	password string
 }
 
-pub struct StoreRequest {
+pub struct StoreUpdateRequest {
 pub:
 	name                      ?string
 	default_locale_id         ?string   @[json: 'defaultLocaleId']
@@ -14,10 +14,10 @@ pub:
 	default_stock_location_id ?string   @[json: 'defaultStockLocationId']
 	default_sales_channel_id  ?string   @[json: 'defaultSalesChannelId']
 	locale_ids                ?[]string @[json: 'localeIds']
-	currency_codes            ?[]string @[json: 'currencyCodes']
+	currency_codes            ?[]string @[json: 'currencyCodes'] // TODO remove
 }
 
-struct StoreRequestHygienised {
+struct StoreUpdateRequestHygienised {
 	name                          ?string
 	default_locale_id             ?string
 	default_locale_id_bin         []u8
@@ -32,7 +32,7 @@ struct StoreRequestHygienised {
 	currency_codes                ?[]string
 }
 
-fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
+fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
 		return new_internal_error(error_id_invalid, 'default_locale_id')
 	}
@@ -53,7 +53,7 @@ fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
 		return new_internal_error(error_id_invalid, 'default_sales_channel_id')
 	}
 
-	return StoreRequestHygienised{
+	return StoreUpdateRequestHygienised{
 		name:                          p.name
 		default_locale_id:             p.default_locale_id
 		default_locale_id_bin:         default_locale_id_bin

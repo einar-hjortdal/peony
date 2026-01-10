@@ -77,6 +77,7 @@
 - [ ] Separate sales from price_list.
 - [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Limit returned list items in all requests.
+- [ ] Remove store_currencies table, instead get used currencies by selecting region. Remove currency_codes from StoreUpdateRequest.
 
 ## Internals
 

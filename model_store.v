@@ -194,7 +194,7 @@ fn model_store_currencies_update(mut tx firebird.Transaction, id_bin []u8, curre
 	tx.execute(query, ...params)!
 }
 
-fn model_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreRequestHygienised) ! {
+fn model_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreUpdateRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 

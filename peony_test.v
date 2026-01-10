@@ -183,6 +183,10 @@ fn do_authenticated_get_request(path string, cookie_value string) !http.Response
 	return do_authenticated_request(path, cookie_value, '', http.Method.get)
 }
 
+fn do_authenticated_post_request(path string, cookie_value string, body string) !http.Response {
+	return do_authenticated_request(path, cookie_value, body, http.Method.get)
+}
+
 fn do_authenticated_delete_request(path string, cookie_value string) !http.Response {
 	return do_authenticated_request(path, cookie_value, '', http.Method.delete)
 }
@@ -220,9 +224,9 @@ fn authenticated_wrapper(suite fn (provided_cookie_value string) !) ! {
 }
 
 fn admin_auth() ! {
-	// auth
+	endpoint := '/admin/auth'
 	// middleware should reject unauthorized request
-	mut response := do_get_request('/admin/auth')!
+	mut response := do_get_request(endpoint)!
 	if response.status_code != 401 {
 		return error('Unathorized request should have been rejected, but it was not.')
 	}
@@ -232,25 +236,86 @@ fn admin_auth() ! {
 		email:    test_default_user_email
 		password: test_default_user_password
 	})
-	response = do_post_request('/admin/auth', body)!
+	response = do_post_request(endpoint, body)!
 	response_is_ok(response)!
 
 	// middleware should allow authenticated requests
 	cookie_value := extract_cookie_from_set_cookie(response)!
-	response = do_authenticated_get_request('/admin/auth', cookie_value)!
+	response = do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 
-	response = do_authenticated_delete_request('/admin/auth', cookie_value)!
+	response = do_authenticated_delete_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 
-	response = do_authenticated_get_request('/admin/auth', cookie_value)!
+	response = do_authenticated_get_request(endpoint, cookie_value)!
 	if response.status_code != 401 {
 		return error('Expired session was accepted, but it shouldn have not been.')
 	}
 }
 
 fn admin_users(cookie_value string) ! {
-	println(cookie_value)
+	endpoint := '/admin/users'
+	mut response := do_authenticated_get_request(endpoint, cookie_value)!
+	response_is_ok(response)!
+	mut r := json.decode(UserListResponseEnvelope, response.body)!
+	if r.count != 1 {
+		return error('Unexpected count: ${r.count}')
+	}
+
+	if r.users.len != 1 {
+		return error('Unexpected number of users: ${r.users.len}')
+	}
+
+	if r.offset != 0 {
+		return error('Unexpected offset: ${r.offset}')
+	}
+
+	if r.fetch != 0 {
+		println('TODO decide default fetch amount and apply everywhere')
+	}
+
+	user := r.users[0]
+	// TODO check fields are as expected
+
+	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(UserCreateRequest{
+		email: 'new_user@peony.com'
+	}))!
+	if response.status_code != 400 {
+		return error('Invalid request was accepted.')
+	}
+
+	valid_new_user := UserCreateRequest{
+		email:    'new_user@peony.com'
+		password: 'new user password'
+	}
+	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(valid_new_user))!
+	response_is_ok(response)!
+
+	// TODO /admin/users/:user_id get, post, delete
+}
+
+// TODO create helper functions to:
+// get a valid locale_id
+// create a new region and get its id
+// create a new stock location and get its id
+// create a new sales channel and get its id
+fn admin_store(cookie_value string) ! {
+	endpoint := '/admin/store'
+	mut response := do_authenticated_get_request(endpoint, cookie_value)!
+	response_is_ok(response)!
+	r := json.decode(StoreResponseEnvelope, response.body)!
+
+	new_store_data := StoreUpdateRequest{
+		name: 'new store name'
+		// default_locale_id
+		// default_region_id
+		// default_stock_location_id
+		// default_sales_channel_id
+		// locale_ids
+	}
+	response = do_authenticated_post_request('${endpoint}/:${r.store.id}', cookie_value,
+		json.encode(new_store_data))!
+	response_is_ok(response)!
 }
 
 fn store_regions() ! {
