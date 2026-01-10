@@ -47,13 +47,6 @@ fn conduit_store_update(mut app App, mut ctx Context, store_id_bin []u8, ph Stor
 		}
 	}
 
-	if currency_codes := ph.currency_codes {
-		model_store_currencies_update(mut tx, store_id_bin, currency_codes) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not update store currencies', err.msg())
-		}
-	}
-
 	tx.commit() or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, error_transaction_commit, err.msg())

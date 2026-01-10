@@ -303,7 +303,7 @@ fn admin_store(cookie_value string) ! {
 	endpoint := '/admin/store'
 	mut response := do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
-	r := json.decode(StoreResponseEnvelope, response.body)!
+	mut r := json.decode(StoreResponseEnvelope, response.body)!
 
 	new_store_data := StoreUpdateRequest{
 		name: 'new store name'
@@ -316,6 +316,10 @@ fn admin_store(cookie_value string) ! {
 	response = do_authenticated_post_request('${endpoint}/:${r.store.id}', cookie_value,
 		json.encode(new_store_data))!
 	response_is_ok(response)!
+	r = json.decode(StoreResponseEnvelope, response.body)!
+	if r.store.name != new_store_data.name {
+		return error('Store name was not updated: expected ${new_store_data.name}, got ${r.store.name}')
+	}
 }
 
 fn store_regions() ! {

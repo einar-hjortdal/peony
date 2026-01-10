@@ -14,7 +14,6 @@ pub:
 	default_stock_location_id ?string   @[json: 'defaultStockLocationId']
 	default_sales_channel_id  ?string   @[json: 'defaultSalesChannelId']
 	locale_ids                ?[]string @[json: 'localeIds']
-	currency_codes            ?[]string @[json: 'currencyCodes'] // TODO remove
 }
 
 struct StoreUpdateRequestHygienised {
@@ -29,7 +28,6 @@ struct StoreUpdateRequestHygienised {
 	default_sales_channel_id_bin  []u8
 	locale_ids                    ?[]string
 	locale_ids_bin                [][]u8
-	currency_codes                ?[]string
 }
 
 fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
@@ -65,7 +63,6 @@ fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 		default_sales_channel_id_bin:  default_sales_channel_id_bin
 		locale_ids:                    p.locale_ids
 		locale_ids_bin:                locale_ids_bin
-		currency_codes:                p.currency_codes
 	}
 }
 

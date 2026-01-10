@@ -106,7 +106,7 @@ fn model_store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
 
 fn model_store_currencies_retrieve(mut tx firebird.Transaction) ![]Currency {
 	data := tx.execute('SELECT code, decimal_digits from currency c WHERE EXISTS (
-	SELECT 1 from store_currencies sc WHERE sc.currency_code = c.code)')!
+	SELECT 1 from region r WHERE deleted_at IS NULL AND r.currency_code = c.code)')!
 
 	rows := data.rows()
 
@@ -152,40 +152,6 @@ fn model_store_locales_update(mut tx firebird.Transaction, id_bin []u8, locale_i
 			AND t.store_id = ?
 			AND t.locale_id <> (
 				SELECT default_locale_id
-				FROM store
-				WHERE id = ?)
-			THEN DELETE'
-	params[params.len - 2] = id_bin
-	params[params.len - 1] = id_bin
-	tx.execute(query, ...params)!
-}
-
-fn model_store_currencies_update(mut tx firebird.Transaction, id_bin []u8, currency_codes []string) ! {
-	s := 'SELECT
-		CAST(? AS BINARY(16)) AS store_id,
-		CAST(? AS CHAR(3)) AS currency_code
-		FROM RDB\$DATABASE'
-	mut src := ''
-	mut params := []firebird.Value{len: currency_codes.len * 2 + 2, init: firebird.Null{}}
-	for i := 0; i < currency_codes.len; i++ {
-		src = appendln(src, s)
-		params[i * 2] = id_bin
-		params[i * 2 + 1] = currency_codes[i]
-		if i != currency_codes.len - 1 {
-			src = appendln(src, 'UNION ALL')
-		}
-	}
-
-	query := 'MERGE INTO store_currencies t
-		USING (${src}) s (store_id, currency_code)
-		ON (t.store_id = s.store_id AND t.currency_code = s.currency_code)
-		WHEN NOT MATCHED THEN
-			INSERT (store_id, currency_code)
-			VALUES (s.store_id, s.currency_code)
-		WHEN NOT MATCHED BY SOURCE
-			AND t.store_id = ?
-			AND t.currency_code <> (
-				SELECT default_currency_code
 				FROM store
 				WHERE id = ?)
 			THEN DELETE'

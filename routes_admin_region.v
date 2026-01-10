@@ -31,7 +31,6 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	}
 
 	// TODO validation
-	// error if currency_code not in store currencies
 	// error if currency_code not in currency table
 	// for each country_code error if code not in country table
 	// for each country_code error if country already in another region

@@ -76,8 +76,7 @@
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 - [ ] Separate sales from price_list.
 - [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
-- [ ] Limit returned list items in all requests.
-- [ ] Remove store_currencies table, instead get used currencies by selecting region. Remove currency_codes from StoreUpdateRequest.
+- [ ] Limit returned list items to 100 in all requests.
 
 ## Internals
 

@@ -459,16 +459,6 @@ CREATE TABLE product_sales_channel (
 
 CREATE INDEX "0681493b-ad86-11c8-9c00-2802dd52f5ce" ON product_sales_channel (sales_channel_id);
 
-CREATE TABLE store_currencies (
-  store_id BINARY(16) NOT NULL,
-  currency_code CHAR(3) NOT NULL,
-  CONSTRAINT "0686cd40-331d-1b7e-b000-dab2c031dea1" PRIMARY KEY (store_id, currency_code),
-  CONSTRAINT "0681493b-ad86-13d4-9800-495e48c01eef" FOREIGN KEY (store_id) REFERENCES store (id) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT "0681493b-ad86-1425-1400-ce20c31a4a6e" FOREIGN KEY (currency_code) REFERENCES currency (code) ON DELETE CASCADE ON UPDATE CASCADE
-);
-
-CREATE INDEX "0681493b-ad86-159d-b800-173af620b0b4" ON store_currencies (currency_code);
-
 CREATE TABLE store_locales (
   store_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,

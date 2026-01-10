@@ -148,12 +148,6 @@ fn firebird_insert_default_store_locale(mut tx firebird.Transaction, store_id_bi
 		store_id_bin, seed_default_locale_code)!
 }
 
-fn firebird_insert_default_store_currencies(mut tx firebird.Transaction, store_id_bin []u8) ! {
-	log.debug('insert_default_store_currencies')
-	tx.execute('INSERT INTO store_currencies (store_id, currency_code) VALUES (?, ?)',
-		store_id_bin, seed_default_currency_code)!
-}
-
 fn firebird_create_schema(mut conn firebird.Connection) ! {
 	log.debug('create_schema')
 	schema_queries := firebird_get_schema_queries()
@@ -212,7 +206,6 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	firebird_insert_default_store(mut tx, region_id_bin, store_id_bin, sales_channel_id_bin,
 		stock_location_id_bin)!
 	firebird_insert_default_store_locale(mut tx, store_id_bin)!
-	firebird_insert_default_store_currencies(mut tx, store_id_bin)!
 	model_migration_create(mut tx, migration_id_bin, seed_migration_name)!
 }
 
