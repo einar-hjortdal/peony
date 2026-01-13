@@ -103,11 +103,13 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 
+	println(params) // https://github.com/vlang/v/issues/26293
 	return get_where_conditions(conditions), params
 }
 
 fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 	conditions, params := model_user_list_conditions(p)
+	println(params) // https://github.com/vlang/v/issues/26293
 	data := tx.execute('SELECT COUNT(*) FROM app_user ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
