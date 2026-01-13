@@ -223,6 +223,12 @@ fn authenticated_wrapper(suite fn (provided_cookie_value string) !) ! {
 	}
 }
 
+fn expect(condition bool, error_message string) ! {
+	if !condition {
+		return error(error_message)
+	}
+}
+
 fn admin_auth() ! {
 	endpoint := '/admin/auth'
 	// middleware should reject unauthorized request
@@ -258,31 +264,23 @@ fn admin_users(cookie_value string) ! {
 	mut response := do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(UserListResponseEnvelope, response.body)!
-	if r.count != 1 {
-		return error('Unexpected count: ${r.count}')
-	}
-
-	if r.users.len != 1 {
-		return error('Unexpected number of users: ${r.users.len}')
-	}
-
-	if r.offset != 0 {
-		return error('Unexpected offset: ${r.offset}')
-	}
-
-	if r.fetch != 0 {
-		println('TODO decide default fetch amount and apply everywhere')
-	}
+	expect(r.count == 1, 'Unexpected count: ${r.count}')!
+	expect(r.users.len == 1, 'Unexpected number of users: ${r.users.len}')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO decide default fetch amount and apply everywhere')
 
 	user := r.users[0]
-	// TODO check fields are as expected
+	expect(user.email == test_default_user_email, 'Unexpected user email: ${user.email}')!
+	expect(user.id != '', 'Unexpected user id: ${user.id}')!
+	expect(user.handle == '', 'Unexpected user handle: ${user.handle}')!
+	expect(user.role == role_admin, 'Unexpected user role: ${user.role}')!
+
+	old_updated_at := user.updated_at // TODO use with user update to verify updated_at is updated
 
 	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(UserCreateRequest{
 		email: 'new_user@peony.com'
 	}))!
-	if response.status_code != 400 {
-		return error('Invalid request was accepted.')
-	}
+	expect(response.status_code == 400, 'Invalid request was accepted.')!
 
 	valid_new_user := UserCreateRequest{
 		email:    'new_user@peony.com'
@@ -303,7 +301,12 @@ fn admin_store(cookie_value string) ! {
 	endpoint := '/admin/store'
 	mut response := do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
+
 	mut r := json.decode(StoreResponseEnvelope, response.body)!
+	mut store := r.store
+	// TODO check values
+
+	old_updated_at := store.updated_at
 
 	new_store_data := StoreUpdateRequest{
 		name: 'new store name'
@@ -316,10 +319,11 @@ fn admin_store(cookie_value string) ! {
 	response = do_authenticated_post_request('${endpoint}/:${r.store.id}', cookie_value,
 		json.encode(new_store_data))!
 	response_is_ok(response)!
+
 	r = json.decode(StoreResponseEnvelope, response.body)!
-	if r.store.name != new_store_data.name {
-		return error('Store name was not updated: expected ${new_store_data.name}, got ${r.store.name}')
-	}
+	store = r.store
+	expect(store.name == new_store_data.name, 'Store name was not updated: expected ${new_store_data.name}, got ${r.store.name}')!
+	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
 }
 
 fn store_regions() ! {
