@@ -23,7 +23,8 @@ const test_port = 8081
 const test_default_user_email = 'info@peony.com'
 const test_default_user_password = 'very-secret-password'
 
-endpoint_admin_auth := '/admin/auth'
+const endpoint_admin_auth = '/admin/auth'
+const endpoint_admin_users = '/admin/users'
 
 // mock providers (each implementation requires its own independent tests)
 struct BlobProviderDummy {}
@@ -233,7 +234,7 @@ fn expect(condition bool, error_message string) ! {
 
 fn auth_middleware_rejects_unauthorized() ! {
 	response := do_get_request(endpoint_admin_auth)!
-	expect(response.status_code == 401, 'Unathorized request should have been rejected, but it was not.')
+	expect(response.status_code == 401, 'Unathorized request should have been rejected, but it was not.')!
 }
 
 fn auth_middleware_allows_logins_and_logouts() ! {
@@ -246,50 +247,108 @@ fn auth_middleware_allows_logins_and_logouts() ! {
 
 	cookie_value := extract_cookie_from_set_cookie(response)!
 
-	response = do_authenticated_get_request(endpoint, cookie_value)!
+	response = do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
 	response_is_ok(response)!
 
-	response = do_authenticated_delete_request(endpoint, cookie_value)!
+	response = do_authenticated_delete_request(endpoint_admin_auth, cookie_value)!
 	response_is_ok(response)!
 
-	response = do_authenticated_get_request(endpoint, cookie_value)!
-	expect(response.status_code == 401, 'Expired session was accepted, but it should have not been.')
+	response = do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
+	expect(response.status_code == 401, 'Expired session was accepted, but it should have not been.')!
 }
 
-// TODO admin auth rejects already auth-ed login requests
+fn admin_auth_returns_user_data(cookie_value string) ! {
+	response := do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
+	response_is_ok(response)!
 
-fn admin_users(cookie_value string) ! {
-	endpoint := '/admin/users'
-	mut response := do_authenticated_get_request(endpoint, cookie_value)!
+	r := json.decode(UserResponseEnvelope, response.body)!
+	user := r.user
+	expect(user.id != '', 'Returned empty user id')!
+	expect(user.email == test_default_user_email, 'Unexpected user email: ${user.email}')!
+	expect(user.handle != '', 'Unexpected user handle: ${user.handle}')!
+	expect(user.role == role_admin, 'Unexpected user role: ${user.role}')!
+	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
+}
+
+fn admin_users_lists_users(cookie_value string) ! {
+	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(UserListResponseEnvelope, response.body)!
-	expect(r.count == 1, 'Unexpected count: ${r.count}')!
-	expect(r.users.len == 1, 'Unexpected number of users: ${r.users.len}')!
+	expect(r.count != 0, 'Unexpected count: ${r.count}')!
+	expect(r.users.len != 0, 'No users returned')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
 
-	user := r.users[0]
-	expect(user.email == test_default_user_email, 'Unexpected user email: ${user.email}')!
-	expect(user.id != '', 'Unexpected user id: ${user.id}')!
-	expect(user.handle == '', 'Unexpected user handle: ${user.handle}')!
-	expect(user.role == role_admin, 'Unexpected user role: ${user.role}')!
+	mut default_user := UserResponse{}
+	mut found := false
+	for i := 0; i < r.users.len; i++ {
+		user := r.users[i]
+		if user.email == test_default_user_email {
+			default_user = user
+			found = true
+		}
+	}
+	expect(found, 'Default user not found in response')!
+	expect(default_user.id != '', 'Unexpected user id: ${default_user.id}')!
+	expect(default_user.handle != '', 'Unexpected user handle: ${default_user.handle}')!
+	expect(default_user.role == role_admin, 'Unexpected user role: ${default_user.role}')!
+}
 
-	old_updated_at := user.updated_at // TODO use with user update to verify updated_at is updated
+// Verifies:
+// Correctly create users
+// Correctly delete users
+// Correctly lists new users
+// Correctly lists deleted users
+fn admin_users_creates_and_deletes_user(cookie_value string) ! {
+	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
+	mut r := json.decode(UserListResponseEnvelope, response.body)!
+	old_count := r.count
+	old_users_len := r.users.len
 
-	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(UserCreateRequest{
+	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json.encode(UserCreateRequest{
 		email: 'new_user@peony.com'
 	}))!
 	expect(response.status_code == 400, 'Invalid request was accepted.')!
 
+	// TODO add all fields
 	valid_new_user := UserCreateRequest{
 		email:    'new_user@peony.com'
 		password: 'new user password'
 	}
-	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(valid_new_user))!
+	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json.encode(valid_new_user))!
 	response_is_ok(response)!
 
-	// TODO /admin/users/:user_id get, post, delete
+	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(UserListResponseEnvelope, response.body)!
+	expect(r.count == old_count + 1, 'Unexpected count. Count does not include new user')!
+	expect(r.users.len == old_users_len + 1, 'Unexpected users.len. Count does not include new user')!
+
+	mut new_user := UserResponse{}
+	mut found := false
+	for i := 0; i < r.users.len; i++ {
+		user := r.users[i]
+		if user.email == valid_new_user.email {
+			new_user = user
+			found = true
+			break
+		}
+	}
+	expect(found, 'new user not found')!
+	// TODO test all fields
+
+	response = do_authenticated_delete_request('${endpoint_admin_users}/${new_user.id}',
+		cookie_value)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(UserListResponseEnvelope, response.body)!
+	expect(r.count == old_count, 'Unexpected count. Count includes deleted user')!
+	expect(r.users.len == old_users_len, 'Unexpected users.len. Response includes deleted user')!
 }
+
+// TODO /admin/users/:user_id get, post, delete
 
 // TODO create helper functions to:
 // get a valid locale_id
@@ -401,10 +460,10 @@ fn test_peony() ! {
 	auth_middleware_rejects_unauthorized()!
 	auth_middleware_allows_logins_and_logouts()!
 
-	// starting state verification
+	auth_wrapper(admin_auth_returns_user_data)!
+	auth_wrapper(admin_users_lists_users)!
+	auth_wrapper(admin_users_creates_and_deletes_user)!
 
-	// functionality verfication
-	auth_wrapper(admin_users)!
 	auth_wrapper(admin_store)!
 	auth_wrapper(admin_products)!
 	store_regions()!

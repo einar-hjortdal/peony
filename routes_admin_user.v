@@ -4,7 +4,7 @@ import json
 import veb
 
 // lists users
-@['/admin/users/'; get]
+@['/admin/users'; get]
 pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 	p := hygienise_user_list_request_query(ctx.query) or {
 		if err is InternalError {
@@ -17,7 +17,7 @@ pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 }
 
 // creates a user
-@['/admin/users/'; post]
+@['/admin/users'; post]
 pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	p := json.decode(UserCreateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode UserCreateRequest', err.msg())
