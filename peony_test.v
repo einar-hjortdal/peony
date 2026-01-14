@@ -23,6 +23,8 @@ const test_port = 8081
 const test_default_user_email = 'info@peony.com'
 const test_default_user_password = 'very-secret-password'
 
+endpoint_admin_auth := '/admin/auth'
+
 // mock providers (each implementation requires its own independent tests)
 struct BlobProviderDummy {}
 
@@ -215,7 +217,7 @@ fn user_logout(cookie_value string) ! {
 	return
 }
 
-fn authenticated_wrapper(suite fn (provided_cookie_value string) !) ! {
+fn auth_wrapper(suite fn (provided_cookie_value string) !) ! {
 	cookie_value := user_login()!
 	suite(cookie_value)!
 	defer {
@@ -229,24 +231,21 @@ fn expect(condition bool, error_message string) ! {
 	}
 }
 
-fn admin_auth() ! {
-	endpoint := '/admin/auth'
-	// middleware should reject unauthorized request
-	mut response := do_get_request(endpoint)!
-	if response.status_code != 401 {
-		return error('Unathorized request should have been rejected, but it was not.')
-	}
+fn auth_middleware_rejects_unauthorized() ! {
+	response := do_get_request(endpoint_admin_auth)!
+	expect(response.status_code == 401, 'Unathorized request should have been rejected, but it was not.')
+}
 
-	// middleware should allow unauthenticated users to log in
+fn auth_middleware_allows_logins_and_logouts() ! {
 	body := json.encode(AuthRequest{
 		email:    test_default_user_email
 		password: test_default_user_password
 	})
-	response = do_post_request(endpoint, body)!
+	mut response := do_post_request(endpoint_admin_auth, body)!
 	response_is_ok(response)!
 
-	// middleware should allow authenticated requests
 	cookie_value := extract_cookie_from_set_cookie(response)!
+
 	response = do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 
@@ -254,10 +253,10 @@ fn admin_auth() ! {
 	response_is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint, cookie_value)!
-	if response.status_code != 401 {
-		return error('Expired session was accepted, but it shouldn have not been.')
-	}
+	expect(response.status_code == 401, 'Expired session was accepted, but it should have not been.')
 }
+
+// TODO admin auth rejects already auth-ed login requests
 
 fn admin_users(cookie_value string) ! {
 	endpoint := '/admin/users'
@@ -267,7 +266,7 @@ fn admin_users(cookie_value string) ! {
 	expect(r.count == 1, 'Unexpected count: ${r.count}')!
 	expect(r.users.len == 1, 'Unexpected number of users: ${r.users.len}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO decide default fetch amount and apply everywhere')
+	// expect(r.fetch == 0, 'TODO')
 
 	user := r.users[0]
 	expect(user.email == test_default_user_email, 'Unexpected user email: ${user.email}')!
@@ -308,8 +307,9 @@ fn admin_store(cookie_value string) ! {
 
 	old_updated_at := store.updated_at
 
+	new_store_name := 'new store name'
 	new_store_data := StoreUpdateRequest{
-		name: 'new store name'
+		name: new_store_name
 		// default_locale_id
 		// default_region_id
 		// default_stock_location_id
@@ -322,8 +322,58 @@ fn admin_store(cookie_value string) ! {
 
 	r = json.decode(StoreResponseEnvelope, response.body)!
 	store = r.store
-	expect(store.name == new_store_data.name, 'Store name was not updated: expected ${new_store_data.name}, got ${r.store.name}')!
+	expect(store.name == new_store_name, 'Store name was not updated: expected ${new_store_name}, got ${r.store.name}')!
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
+}
+
+fn admin_products(cookie_value string) ! {
+	endpoint := '/admin/products'
+	mut response := do_authenticated_get_request(endpoint, cookie_value)!
+	response_is_ok(response)!
+
+	mut r := json.decode(ProductResponseListEnvelope, response.body)!
+	expect(r.count == 0, 'Unexpected products count: ${r.count}')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.products.len == 0, 'Unexpected number of products: ${r.products.len}')!
+
+	mut new_product_data := ProductCreateRequest{}
+	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 400, 'Product was created despite request having no title')!
+
+	new_product_data = ProductCreateRequest{
+		title: ''
+	}
+	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 400, 'Product was created despite request having empty title')!
+
+	new_product_title := 'A new product'
+	new_product_data = ProductCreateRequest{
+		title: new_product_title
+	}
+	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(new_product_data))!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint, cookie_value)!
+	r = json.decode(ProductResponseListEnvelope, response.body)!
+	expect(r.count == 1, 'Count does not include newly created product: ${r.count}')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.products.len == 1, 'Products returned do not include newly created product: ${r.products.len}')!
+
+	mut product := r.products[0]
+	expect(product.title == new_product_title, 'Unexpected product title: expected ${new_product_title}, got ${product.title}')!
+
+	response = do_authenticated_delete_request('${endpoint}/${product.id}', cookie_value)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(ProductResponseListEnvelope, response.body)!
+	expect(r.count == 0, 'Count includes deleted product')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.products.len == 0, 'Products returned include deleted product')!
 }
 
 fn store_regions() ! {
@@ -347,8 +397,15 @@ fn test_peony() ! {
 		stop_app(ch)
 	}
 
-	admin_auth()!
-	authenticated_wrapper(admin_users)!
+	// auth middleware must be tested before everything else
+	auth_middleware_rejects_unauthorized()!
+	auth_middleware_allows_logins_and_logouts()!
 
+	// starting state verification
+
+	// functionality verfication
+	auth_wrapper(admin_users)!
+	auth_wrapper(admin_store)!
+	auth_wrapper(admin_products)!
 	store_regions()!
 }
