@@ -25,6 +25,7 @@ const test_default_user_password = 'very-secret-password'
 
 const endpoint_admin_auth = '/admin/auth'
 const endpoint_admin_users = '/admin/users'
+const endpoint_admin_categories = '/admin/categories'
 const endpoint_admin_products = '/admin/products'
 
 // mock providers (each implementation requires its own independent tests)
@@ -387,6 +388,56 @@ fn admin_store(cookie_value string) ! {
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
 }
 
+fn admin_categories_create_minimal_category(cookie_value string) ! {
+	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	response_is_ok(response)!
+	mut r := json.decode(CategoryResponseListEnvelope, response.body)!
+	old_count := r.count
+	old_categories_len := r.categories.len
+	expected_count := old_count + 1
+	expected_categoriess_len := old_categories_len + 1
+
+	name := luuid.v2()
+	new_category_data := CategoryCreateRequest{
+		name: name
+	}
+	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+		json.encode(new_category_data))!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(CategoryResponseListEnvelope, response.body)!
+
+	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.categories.len == expected_categoriess_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
+
+	mut new_category := CategoryResponse{}
+	mut found := false
+	for i := 0; i < r.categories.len; i++ {
+		category := r.categories[i]
+		if category.name == name {
+			new_category = category
+			found = true
+			break
+		}
+	}
+	expect(found, 'Categories returned do not include newly created category')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
+fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
+	new_category_data := CategoryCreateRequest{}
+	response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+		json.encode(new_category_data))!
+	expect(response.status_code == 400, 'Category was created despite having no name')!
+}
+
 // Verifies:
 // Correctly create minimal product (only title provided)
 // Correctly delete product
@@ -416,13 +467,16 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 	expect(r.products.len == expected_products_len, 'Products returned do not include newly created product: ${r.products.len}')!
 
 	mut product_to_delete := ProductResponse{}
+	mut found := false
 	for i := 0; i < r.products.len; i++ {
 		product := r.products[i]
 		if product.title == new_product_title {
 			product_to_delete = product
+			found = true
 			break
 		}
 	}
+	expect(found, 'Products returned do not include newly created product')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product_to_delete.id}',
 		cookie_value)!
@@ -533,7 +587,7 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	mut new_product_data := ProductCreateRequest{}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(new_product_data))!
-	expect(response.status_code == 400, 'Product was created despite request having no title')!
+	expect(response.status_code == 400, 'Product was created despite having no title')!
 
 	new_product_data = ProductCreateRequest{
 		title: ''
@@ -572,6 +626,7 @@ fn test_peony() ! {
 	auth_wrapper(admin_users_list_users)!
 	auth_wrapper(admin_users_create_and_delete_user)!
 	auth_wrapper(admin_store)! // TODO split
+	auth_wrapper(admin_categories_create_minimal_category)!
 	auth_wrapper(admin_products_create_minimal_product)!
 	auth_wrapper(admin_products_create_complex_product)!
 	auth_wrapper(admin_products_create_rejects_bad_requests)!
