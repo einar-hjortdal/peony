@@ -76,22 +76,22 @@
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 - [ ] Separate sales from price_list.
 - [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
-- [ ] Limit returned list items to 100 in all requests.
+- [ ] Limit returned list items to 250 in all requests.
+- [ ] Return id of created objects on creation.
 
 ## Internals
 
-- [ ] Add tests
+- [x] Add tests
 - [ ] Add debug level logs where opportune
 - [x] Separate response structs from internal structs
 - [ ] Separate model parameter objects from Request objects
-  - [ ] Make Request objects public
+  - [x] Make Request objects public
   - [x] Remove `parse_` functions from methods
 - [ ] Rename query string structs to include `Query` in their name
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
 - [ ] Reduce boilerplating
-- [ ] Do not fetch default seo translations with a join, just format response with locale_id
 
 ## Upstream
 
@@ -105,8 +105,6 @@
 - Creating higher order functions to wrap conduit functions to provide tx.
 - Query builder to keep select columns together with their referenced table aliases.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
-- Put Request and Response structs in independent package
-- While price‑sorting and availability‑filtering belong in the frontend, a naive fallback using complex Firebird queries can still work acceptably for stores with very few variants.
 
 ## Documentation
 

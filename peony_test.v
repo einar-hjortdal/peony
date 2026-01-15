@@ -287,6 +287,7 @@ fn admin_users_list_users(cookie_value string) ! {
 		if user.email == test_default_user_email {
 			default_user = user
 			found = true
+			break
 		}
 	}
 	expect(found, 'Default user not found in response')!
@@ -400,7 +401,7 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 	expected_count := old_count + 1
 	expected_products_len := old_products_len + 1
 
-	new_product_title := 'A new product'
+	new_product_title := luuid.v2()
 	new_product_data := ProductCreateRequest{
 		title: new_product_title
 	}
@@ -414,10 +415,16 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 	// expect(r.fetch == 0, 'TODO')
 	expect(r.products.len == expected_products_len, 'Products returned do not include newly created product: ${r.products.len}')!
 
-	mut product := r.products[0]
-	expect(product.title == new_product_title, 'Unexpected product title: expected ${new_product_title}, got ${product.title}')!
+	mut product_to_delete := ProductResponse{}
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.title == new_product_title {
+			product_to_delete = product
+			break
+		}
+	}
 
-	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product_to_delete.id}',
 		cookie_value)!
 	response_is_ok(response)!
 
@@ -439,31 +446,87 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	expected_count := old_count + 1
 	expected_products_len := old_products_len + 1
 
-	new_product_title := 'A new product'
+	title := luuid.v2()
+	subtitle := luuid.v2()
+	description := luuid.v2()
+	handle := luuid.v2()
+	status := product_status_draft
+	discountable := true
+	metadata := luuid.v2()
+	seo_title := luuid.v2()
+	seo_description := luuid.v2()
+	thumbnail := 1 // expecting the new product's thumbail to be equal to image_1
+	image_0_url := luuid.v2()
+	image_0_alt := luuid.v2()
+	image_1_url := luuid.v2()
+	image_1_alt := luuid.v2()
 	new_product_data := ProductCreateRequest{
-		title:        new_product_title
-		subtitle:     'Some subtitle'
-		description:  'Some description'
-		handle:       'a_new_product'
-		status:       product_status_draft
-		discountable: true
-		metadata:     'some data'
+		title:        title
+		subtitle:     subtitle
+		description:  description
+		handle:       handle
+		status:       status
+		discountable: discountable
+		metadata:     metadata
 		seo:          SEOUpdateRequest{
-			title:       'A SEO title'
-			description: 'A SEO description'
+			title:       seo_title
+			description: seo_description
 		}
 		thumbnail:    1
 		images:       [
 			ImageRequest{
-				url: 'https://some.domain/image_0.jpg'
-				alt: 'Alt text 0'
+				url: image_0_url
+				alt: image_0_alt
 			},
 			ImageRequest{
-				url: 'https://some.domain/image_1.jpg'
-				alt: 'Alt text 1'
+				url: image_1_url
+				alt: image_1_alt
 			},
 		]
 	}
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(ProductResponseListEnvelope, response.body)!
+	expect(r.count == expected_count, 'Count does not include the newly created product')!
+	expect(r.products.len == expected_products_len, 'Products returned do not include the newly created product: same length.')!
+
+	mut new_product := ProductResponse{}
+	mut found := false
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.handle == handle {
+			new_product = product
+			found = true
+			break
+		}
+	}
+	expect(found, 'Products returned do not include the newly created product: product not found.')!
+	expect(new_product.id != '', 'Product is missing id')!
+	expect(new_product.title == title, 'title does not match')!
+	expect(new_product.subtitle == subtitle, 'subtitle does not match')!
+	expect(new_product.description == description, 'description does not match')!
+	expect(new_product.status == status, 'status does not match')!
+	expect(new_product.discountable == discountable, 'discountable does not match')!
+	expect(new_product.metadata == metadata, 'metadata does not match')!
+	expect(new_product.seo.title == seo_title, 'seo_title does not match')!
+	expect(new_product.seo.description == seo_description, 'seo_description does not match')!
+	expect(new_product.thumbnail.id != '', 'thumbnail is missing id')!
+	expect(new_product.thumbnail.url == image_1_url, 'thumbnail url does not match')!
+	expect(new_product.thumbnail.alt == image_1_alt, 'thumbnail alt does not match')!
+	expect(new_product.images.len == 2, 'Missing images')!
+	image_0 := new_product.images[0]
+	image_1 := new_product.images[1]
+	expect(image_0.url == image_0_url, 'image_0_url does not match')!
+	expect(image_0.alt == image_0_alt, 'image_0_alt does not match')!
+	expect(image_1.url == image_1_url, 'image_1_url does not match')!
+	expect(image_1.alt == image_1_alt, 'image_1_alt does not match')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${new_product.id}',
+		cookie_value)!
+	response_is_ok(response)!
 }
 
 fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
@@ -477,6 +540,7 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 400, 'Product was created despite request having empty title')!
+	response_is_ok(response)!
 }
 
 fn store_regions() ! {
@@ -510,6 +574,7 @@ fn test_peony() ! {
 	auth_wrapper(admin_store)! // TODO split
 	auth_wrapper(admin_products_create_minimal_product)!
 	auth_wrapper(admin_products_create_complex_product)!
+	auth_wrapper(admin_products_create_rejects_bad_requests)!
 
 	store_regions()!
 }
