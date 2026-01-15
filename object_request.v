@@ -873,9 +873,67 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	return ph
 }
 
-// The `thumbnail` field must always be the index of one image in the `images` array.
-// If `thumbnail` is not provided, peony selects the first image in `images` as the thumbnail.
-// If `images` is empty or omitted, the product is created without a thumbnail or images.
+// ProductCreateRequest describes the body of the request to create a new product.
+//
+// # Fields
+//
+// ## title
+// Product title in the store's default locale.
+//
+// ## subtitle
+// Product subtitle in the default locale.
+//
+// ## description
+// Product description in the default locale.
+//
+// ## handle
+// Product handle. If omitted, one will be generated automatically.
+//
+// ## is_giftcard
+// Whether the product is a gift card.
+//
+// ## status
+// See constants: `product_status_draft`, `product_status_proposed`, `product_status_published`, `product_status_rejected`.
+//
+// ## type_id
+// Product type identifier.
+//
+// ## discountable
+// Whether the product is eligible for discounts.
+//
+// ## metadata
+// Raw metadata stored as a string.
+//
+// ## tag_ids
+// Tags to associate with the product.
+//
+// ## sales_channel_ids
+// Sales channels where the product will be available.
+//
+// ## category_ids
+// Categories the product belongs to.
+//
+// ## collection_ids
+// Collections the product belongs to.
+//
+// ## translations
+// Localized versions of product fields.
+//
+// ## seo
+// SEO metadata.
+//
+// ## options
+// Product options (e.g. size, color).
+//
+// ## thumbnail
+// Index of the thumbnail image within the `images` array.
+// If omitted, the first image in `images` is used.
+// If `images` is empty or omitted, the product is created without a thumbnail.
+//
+// ## images
+// Images to associate with the product.
+//
+// TODO: Support creating variants on product creation (including variant stock, prices, etc.).
 pub struct ProductCreateRequest {
 pub:
 	title             string
@@ -899,6 +957,7 @@ pub:
 }
 
 // TODO derive handle from title using slugify
+// TODO append id to handle if handle already exists in database
 // TODO verify title != ''
 // TODO verify title.len <= 63
 // TODO verify subtitle.len <= 191

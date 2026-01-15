@@ -174,6 +174,56 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 	}
 }
 
+// ProductListRequestQueryStore allows filtering and sorting preoducts.
+//
+// # Fields
+//
+// ## ids
+// Exact match on product IDs. Most efficient lookup.
+//
+// ## handle
+// Exact match on product handle. Less efficient than ids.
+//
+// ## is_giftcard
+// Filters by gift card status. (TODO)
+//
+// ## collection_ids
+// Products belonging to any of the given collections. (TODO)
+//
+// ## type_ids
+// Exact match on product type IDs. (TODO)
+//
+// ## tag_ids
+// Exact match on product tag IDs. (TODO)
+//
+// ## category_ids
+// Exact match on product category IDs.
+//
+// ## price_list_ids
+// Applies price lists for price resolution. Priority rules apply if multiple. (TODO)
+//
+// ## sales_channel_id
+// Filters by availability in the provided sales channels. Defaults to the store's default sales_channel.
+//
+// ## region_id
+// Determines currency for returned prices. Defaults to the store's default region.
+//
+// ## locale_id
+// Returns translated fields if available. Defaults to the store's default locale.
+//
+// ## offset
+// Pagination offset.
+//
+// ## fetch
+// Maximum number of products to return. Cannot exceed 100.
+//
+// ## order
+// See constants: `order_asc`, `order_desc`.
+//
+// ## cart_id
+// Enables cart‑aware price resolution. (TODO)
+//
+// Note: it is recommended to use a frontend search engine for enhanced user experience (pattern matching, matching handles to ids, searching among translations, sorting by price, filtering by availability, etc.)
 pub struct ProductListRequestQueryStore {
 pub:
 	ids               ZeroArrayString
@@ -184,7 +234,7 @@ pub:
 	tag_ids           ZeroArrayString
 	category_ids      ZeroArrayString
 	price_list_ids    ZeroArrayString
-	sales_channel_ids ZeroArrayString
+	sales_channel_ids ZeroArrayString // TODO this should be one not an array
 	region_id         ZeroString
 	offset            ZeroI32
 	fetch             ZeroI32

@@ -25,6 +25,7 @@ const test_default_user_password = 'very-secret-password'
 
 const endpoint_admin_auth = '/admin/auth'
 const endpoint_admin_users = '/admin/users'
+const endpoint_admin_products = '/admin/products'
 
 // mock providers (each implementation requires its own independent tests)
 struct BlobProviderDummy {}
@@ -270,7 +271,7 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
 }
 
-fn admin_users_lists_users(cookie_value string) ! {
+fn admin_users_list_users(cookie_value string) ! {
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(UserListResponseEnvelope, response.body)!
@@ -299,7 +300,7 @@ fn admin_users_lists_users(cookie_value string) ! {
 // Correctly delete users
 // Correctly lists new users
 // Correctly lists deleted users
-fn admin_users_creates_and_deletes_user(cookie_value string) ! {
+fn admin_users_create_and_delete_user(cookie_value string) ! {
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	mut r := json.decode(UserListResponseEnvelope, response.body)!
 	old_count := r.count
@@ -385,54 +386,97 @@ fn admin_store(cookie_value string) ! {
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
 }
 
-fn admin_products(cookie_value string) ! {
-	endpoint := '/admin/products'
-	mut response := do_authenticated_get_request(endpoint, cookie_value)!
+// Verifies:
+// Correctly create minimal product (only title provided)
+// Correctly delete product
+// Correctly lists new product
+// Correctly lists deleted product
+fn admin_products_create_minimal_product(cookie_value string) ! {
+	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	response_is_ok(response)!
+	mut r := json.decode(ProductResponseListEnvelope, response.body)!
+	old_count := r.count
+	old_products_len := r.products.len
+	expected_count := old_count + 1
+	expected_products_len := old_products_len + 1
+
+	new_product_title := 'A new product'
+	new_product_data := ProductCreateRequest{
+		title: new_product_title
+	}
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	response_is_ok(response)!
 
-	mut r := json.decode(ProductResponseListEnvelope, response.body)!
-	expect(r.count == 0, 'Unexpected products count: ${r.count}')!
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	r = json.decode(ProductResponseListEnvelope, response.body)!
+	expect(r.count == expected_count, 'Count does not include newly created product: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
-	expect(r.products.len == 0, 'Unexpected number of products: ${r.products.len}')!
+	expect(r.products.len == expected_products_len, 'Products returned do not include newly created product: ${r.products.len}')!
 
+	mut product := r.products[0]
+	expect(product.title == new_product_title, 'Unexpected product title: expected ${new_product_title}, got ${product.title}')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(ProductResponseListEnvelope, response.body)!
+	expect(r.count == old_count, 'Count includes deleted product')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.products.len == old_products_len, 'Products returned include deleted product')!
+}
+
+fn admin_products_create_complex_product(cookie_value string) ! {
+	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	response_is_ok(response)!
+	mut r := json.decode(ProductResponseListEnvelope, response.body)!
+	old_count := r.count
+	old_products_len := r.products.len
+	expected_count := old_count + 1
+	expected_products_len := old_products_len + 1
+
+	new_product_title := 'A new product'
+	new_product_data := ProductCreateRequest{
+		title:        new_product_title
+		subtitle:     'Some subtitle'
+		description:  'Some description'
+		handle:       'a_new_product'
+		status:       product_status_draft
+		discountable: true
+		metadata:     'some data'
+		seo:          SEOUpdateRequest{
+			title:       'A SEO title'
+			description: 'A SEO description'
+		}
+		thumbnail:    1
+		images:       [
+			ImageRequest{
+				url: 'https://some.domain/image_0.jpg'
+				alt: 'Alt text 0'
+			},
+			ImageRequest{
+				url: 'https://some.domain/image_1.jpg'
+				alt: 'Alt text 1'
+			},
+		]
+	}
+}
+
+fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	mut new_product_data := ProductCreateRequest{}
-	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(new_product_data))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 400, 'Product was created despite request having no title')!
 
 	new_product_data = ProductCreateRequest{
 		title: ''
 	}
-	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 400, 'Product was created despite request having empty title')!
-
-	new_product_title := 'A new product'
-	new_product_data = ProductCreateRequest{
-		title: new_product_title
-	}
-	response = do_authenticated_post_request(endpoint, cookie_value, json.encode(new_product_data))!
-	response_is_ok(response)!
-
-	response = do_authenticated_get_request(endpoint, cookie_value)!
-	r = json.decode(ProductResponseListEnvelope, response.body)!
-	expect(r.count == 1, 'Count does not include newly created product: ${r.count}')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.products.len == 1, 'Products returned do not include newly created product: ${r.products.len}')!
-
-	mut product := r.products[0]
-	expect(product.title == new_product_title, 'Unexpected product title: expected ${new_product_title}, got ${product.title}')!
-
-	response = do_authenticated_delete_request('${endpoint}/${product.id}', cookie_value)!
-	response_is_ok(response)!
-
-	response = do_authenticated_get_request(endpoint, cookie_value)!
-	response_is_ok(response)!
-	r = json.decode(ProductResponseListEnvelope, response.body)!
-	expect(r.count == 0, 'Count includes deleted product')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.products.len == 0, 'Products returned include deleted product')!
 }
 
 fn store_regions() ! {
@@ -461,10 +505,11 @@ fn test_peony() ! {
 	auth_middleware_allows_logins_and_logouts()!
 
 	auth_wrapper(admin_auth_returns_user_data)!
-	auth_wrapper(admin_users_lists_users)!
-	auth_wrapper(admin_users_creates_and_deletes_user)!
+	auth_wrapper(admin_users_list_users)!
+	auth_wrapper(admin_users_create_and_delete_user)!
+	auth_wrapper(admin_store)! // TODO split
+	auth_wrapper(admin_products_create_minimal_product)!
+	auth_wrapper(admin_products_create_complex_product)!
 
-	auth_wrapper(admin_store)!
-	auth_wrapper(admin_products)!
 	store_regions()!
 }
