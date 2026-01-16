@@ -66,10 +66,12 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 	data := tx.execute('SELECT
 		i.id,
 		i.url,
+		i.alt,
 		pi.image_rank,
-		pi.product_id,
-		alt,
-		FROM product_image pi
+		pi.product_id
+		FROM image i
+		LEFT JOIN product_image pi
+		ON i.id = pi.image_id
 		WHERE pi.product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY pi.image_rank',
 		...workaround_24757(product_ids_bin))!
@@ -82,9 +84,9 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 
 		id_bin, _ := v[0].get_array_u8()!
 		url, _ := v[1].get_string()!
-		image_rank, _ := v[2].get_i32()!
-		product_id_bin, _ := v[3].get_array_u8()!
-		alt := v[4].get_null_string()!
+		alt := v[2].get_null_string()!
+		image_rank, _ := v[3].get_i32()!
+		product_id_bin, _ := v[4].get_array_u8()!
 
 		id := id_bin_to_string(id_bin)!
 		product_id := id_bin_to_string(product_id_bin)!
@@ -93,10 +95,10 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 			id:             id
 			id_bin:         id_bin
 			url:            url
+			alt:            alt
 			image_rank:     image_rank
 			product_id:     product_id
 			product_id_bin: product_id_bin
-			alt:            alt
 		}
 	}
 

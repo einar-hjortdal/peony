@@ -224,9 +224,12 @@ fn user_logout(cookie_value string) ! {
 	return
 }
 
-fn auth_wrapper(test_function fn (provided_cookie_value string) !) ! {
+fn admin_auth_wrapper(test_functions []fn (provided_cookie_value string) !) ! {
 	cookie_value := user_login()!
-	test_function(cookie_value)!
+	for i := 0; i < test_functions.len; i++ {
+		test_function := test_functions[i]
+		test_function(cookie_value)!
+	}
 	defer {
 		user_logout(cookie_value) or {}
 	}
@@ -467,6 +470,7 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 	response_is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	response_is_ok(response)!
 	r = json.decode(ProductResponseListEnvelope, response.body)!
 	expect(r.count == expected_count, 'Count does not include newly created product: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
@@ -629,14 +633,16 @@ fn test_peony() ! {
 	auth_middleware_rejects_unauthorized()!
 	auth_middleware_allows_logins_and_logouts()!
 
-	auth_wrapper(admin_auth_returns_user_data)!
-	auth_wrapper(admin_users_list_users)!
-	auth_wrapper(admin_users_create_and_delete_user)!
-	auth_wrapper(admin_store)! // TODO split
-	auth_wrapper(admin_categories_create_minimal_category)!
-	auth_wrapper(admin_products_create_minimal_product)!
-	auth_wrapper(admin_products_create_complex_product)!
-	auth_wrapper(admin_products_create_rejects_bad_requests)!
+	admin_auth_wrapper([
+		admin_auth_returns_user_data,
+		admin_users_list_users,
+		admin_users_create_and_delete_user,
+		admin_store,
+		admin_categories_create_minimal_category,
+		admin_products_create_minimal_product,
+		admin_products_create_complex_product,
+		admin_products_create_rejects_bad_requests,
+	])!
 
 	store_regions()!
 }

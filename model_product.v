@@ -156,7 +156,7 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 		p.metadata,
 		p.title,
 		p.subtitle,
-		p.description,
+		p.description
 		FROM product p
 		${conditions}
 		${sorting}',

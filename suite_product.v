@@ -56,8 +56,11 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		image_ids_bin[i] = id_bin
 	}
 
-	image_translations := model_image_translation_retrieve(mut tx, image_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_image', err.msg())
+	mut image_translations := []ImageTranslation{}
+	if image_ids_bin.len > 0 {
+		image_translations = model_image_translation_retrieve(mut tx, image_ids_bin) or {
+			return new_internal_error('Failed to retrieve image_translation', err.msg())
+		}
 	}
 
 	product_sales_channels := model_product_sales_channel_retrieve(mut tx, product_ids_bin) or {

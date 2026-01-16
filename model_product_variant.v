@@ -3,9 +3,9 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-const product_variant_default_title = 'default variant'
-const product_option_default_title = 'default option'
-const product_option_value_default_name = 'default value'
+pub const variant_default_title = 'default variant'
+pub const option_default_title = 'default option'
+pub const option_value_default_name = 'default value'
 
 struct ProductVariant {
 	id             string
@@ -161,7 +161,7 @@ fn model_variant_create_default_with_options(mut app App, mut tx firebird.Transa
 		...params)!
 
 	tx.execute('INSERT INTO product_variant (id, product_id, title) VALUES (?, ?, ?)',
-		variant_id_bin, product_id_bin, product_variant_default_title)!
+		variant_id_bin, product_id_bin, variant_default_title)!
 
 	_, inventory_item_id_bin := app.new_id()
 	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', inventory_item_id_bin,
@@ -195,22 +195,14 @@ struct VariantCreateDefaultParams {
 }
 
 fn model_variant_create_default(mut tx firebird.Transaction, p VariantCreateDefaultParams) ! {
-	tx.execute('INSERT INTO product_option (id, product_id) VALUES (?, ?)', p.option_id_bin,
-		p.product_id_bin)!
+	tx.execute('INSERT INTO product_option (id, product_id, title) VALUES (?, ?, ?)',
+		p.option_id_bin, p.product_id_bin, option_default_title)!
 
-	tx.execute('INSERT INTO product_option_translations (product_option_id, locale_id, title)
-		VALUES(?, (SELECT default_locale_id FROM store), ?)',
-		p.option_id_bin, product_option_default_title)!
-
-	tx.execute('INSERT INTO product_option_value (id, option_id) VALUES (?, ?)', p.option_value_id_bin,
-		p.option_id_bin)!
-
-	tx.execute('INSERT INTO product_option_value_translations
-		(product_option_value_id, locale_id, name) VALUES (?, (SELECT default_locale_id FROM store), ?)',
-		p.option_value_id_bin, product_option_value_default_name)!
+	tx.execute('INSERT INTO product_option_value (id, option_id, name) VALUES (?, ?, ?)',
+		p.option_value_id_bin, p.option_id_bin, option_value_default_name)!
 
 	tx.execute('INSERT INTO product_variant (id, product_id, title) VALUES (?, ?, ?)',
-		p.variant_id_bin, p.product_id_bin, product_variant_default_title)!
+		p.variant_id_bin, p.product_id_bin, variant_default_title)!
 
 	tx.execute('INSERT INTO inventory_item (id, variant_id) VALUES (?, ?)', p.inventory_item_id_bin,
 		p.variant_id_bin)!

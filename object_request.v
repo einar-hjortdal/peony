@@ -217,21 +217,17 @@ fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTrans
 
 pub struct ProductOptionValueRequest {
 pub:
-	name         ?string
+	name         string
 	translations ?[]ProductOptionValueTranslationRequest
 }
 
 struct ProductOptionValueRequestHygienised {
-	name ?string
+	name string
 mut:
 	translations ?[]ProductOptionValueTranslationRequestHygienised
 }
 
 fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
-	if p.name == none && p.translations == none {
-		return new_internal_error(error_empty_object, 'ProductOptionValueRequest')
-	}
-
 	mut res := ProductOptionValueRequestHygienised{
 		name: p.name
 	}
@@ -249,7 +245,50 @@ fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienise
 // verifies:
 // name is not empty
 // TODO all locale_id exist
-fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! {
+fn (p ProductOptionValueRequestHygienised) verify() ! {
+	if p.name == '' {
+		return new_internal_error(error_empty_field, 'name')
+	}
+
+	if translations := p.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_field, 'translations')
+		}
+	}
+}
+
+pub struct ProductOptionValueUpdateRequest {
+pub:
+	name         ?string
+	translations ?[]ProductOptionValueTranslationRequest
+}
+
+struct ProductOptionValueUpdateRequestHygienised {
+	name ?string
+mut:
+	translations ?[]ProductOptionValueTranslationRequestHygienised
+}
+
+fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequestHygienised {
+	if p.name == none && p.translations == none {
+		return new_internal_error(error_empty_object, 'ProductOptionValueUpdateRequest')
+	}
+
+	mut res := ProductOptionValueUpdateRequestHygienised{
+		name: p.name
+	}
+
+	if translations := p.translations {
+		mut ts := []ProductOptionValueTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+	}
+
+	return res
+}
+
+fn (p ProductOptionValueUpdateRequestHygienised) verify() ! {
 	if name := p.name {
 		if name == '' {
 			return new_internal_error(error_empty_field, 'name')
@@ -325,21 +364,25 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 // verifies:
 // All locale_id exist TODO
 // The product_option has at least one value
-fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_values := ph.values
+fn (p ProductOptionCreateRequestHygienised) verify() ! {
+	if p.title == '' {
+		return new_internal_error(error_empty_field, 'title')
+	}
 
-	if translations := ph.translations {
+	option_values := p.values
+
+	if translations := p.translations {
 		if translations.len == 0 {
 			return new_internal_error(error_empty_field, 'translations')
 		}
 	}
 
 	if option_values.len == 0 {
-		return new_internal_error(error_empty_field, 'The product_option lacks values, at leat one value must be provided.')
+		return new_internal_error(error_empty_field, 'The product_option lacks values, at least one value must be provided.')
 	}
 
 	for i := 0; i < option_values.len; i++ {
-		option_values[i].verify(default_locale_id_bin)!
+		option_values[i].verify()!
 	}
 }
 
@@ -987,6 +1030,10 @@ mut:
 }
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
+	if p.title == '' {
+		return new_internal_error(error_empty_field, 'title')
+	}
+
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
 		return new_internal_error(error_id_invalid, 'type_id')
 	}

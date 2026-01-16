@@ -85,33 +85,40 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 	return product_option_values
 }
 
-fn model_product_option_value_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, ph ProductOptionValueRequestHygienised) ! {
-	if name := ph.name {
-		tx.execute('UPDATE product_option_value SET name = ? WHERE id = ?', name, product_option_value_id_bin)!
-	}
+struct ProductOptionValueUpdateParams {
+	name string
+}
 
-	if translations := ph.translations {
-		tx.execute('DELETE FROM product_option_value_translations WHERE product_option_value_id = ?',
-			product_option_value_id_bin)!
+fn model_product_option_value_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, p ProductOptionValueUpdateParams) ! {
+	tx.execute('UPDATE product_option_value SET name = ? WHERE id = ?', p.name, product_option_value_id_bin)!
+}
 
-		mut src := []string{len: translations.len}
-		mut params := []firebird.Value{len: translations.len * 3, init: firebird.Null{}}
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			src[i] = 'SELECT
+struct ProductOptionValueTranslationUpdateParams {
+	locale_id_bin []u8
+	name          string
+}
+
+fn model_product_option_value_translations_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, p []ProductOptionValueTranslationUpdateParams) ! {
+	tx.execute('DELETE FROM product_option_value_translations WHERE product_option_value_id = ?',
+		product_option_value_id_bin)!
+
+	mut src := []string{len: p.len}
+	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		src[i] = 'SELECT
 				CAST(? AS BINARY(16)) AS product_option_value_id,
 				CAST(? AS BINARY(16)) AS locale_id,
 				CAST(? AS VARCHAR(63)) AS name
 				FROM RDB\$DATABASE'
-			params[i * 3] = product_option_value_id_bin
-			params[i * 3 + 1] = translation.locale_id_bin
-			params[i * 3 + 2] = translation.name
-		}
-
-		tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
-		${get_merge_source(src)}',
-			...params)!
+		params[i * 3] = product_option_value_id_bin
+		params[i * 3 + 1] = translation.locale_id_bin
+		params[i * 3 + 2] = translation.name
 	}
+
+	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
+		${get_merge_source(src)}',
+		...params)!
 }
 
 fn model_product_option_value_delete(mut tx firebird.Transaction, product_option_value_id_bin []u8) ! {
