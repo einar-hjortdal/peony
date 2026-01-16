@@ -16,8 +16,16 @@ pub fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Could not decode AuthRequest', err.msg())
 	}
 
-	// TODO quick validate email: min/max char length, shape and presence of @ and .
 	// return error 400 if bad email
+	if p.email == '' {
+		return handle_error_400(mut ctx, error_empty_field, 'email')
+	}
+
+	if p.password == '' {
+		return handle_error_400(mut ctx, error_empty_field, 'password')
+	}
+
+	// TODO quick validate email: min/max char length, shape and presence of @ and .
 	// return error if user already logged in
 
 	return conduit_auth_user(mut app, mut ctx, p)

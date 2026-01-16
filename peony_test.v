@@ -180,7 +180,11 @@ fn do_post_request(path string, body string) !http.Response {
 
 fn do_authenticated_request(path string, cookie_value string, body string, method http.Method) !http.Response {
 	mut request := http.new_request(method, build_url(path), body)
-	request.add_header(http.CommonHeader.cookie, cookie_value)
+	segments := cookie_value.split('=')
+	request.add_cookie(http.Cookie{
+		name:  segments[0]
+		value: segments[1]
+	})
 	return request.do()
 }
 
@@ -189,7 +193,7 @@ fn do_authenticated_get_request(path string, cookie_value string) !http.Response
 }
 
 fn do_authenticated_post_request(path string, cookie_value string, body string) !http.Response {
-	return do_authenticated_request(path, cookie_value, body, http.Method.get)
+	return do_authenticated_request(path, cookie_value, body, http.Method.post)
 }
 
 fn do_authenticated_delete_request(path string, cookie_value string) !http.Response {

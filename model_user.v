@@ -28,7 +28,7 @@ mut:
 }
 
 fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id string, user_id_bin []u8) ! {
-	password_hash, password_salt := hash_password(p.password)!
+	password_salt, password_hash := hash_password(p.password)!
 
 	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
 	mut params := [firebird.Value(user_id_bin), user_id, p.email, password_hash, password_salt]
