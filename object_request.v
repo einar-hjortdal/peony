@@ -128,6 +128,7 @@ mut:
 fn (p ImageRequest) hygienise() !ImageRequestHygienised {
 	mut image := ImageRequestHygienised{
 		url: p.url
+		alt: p.alt
 	}
 
 	if translations := p.translations {

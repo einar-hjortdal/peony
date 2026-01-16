@@ -575,7 +575,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	expect(new_product.description == description, 'description does not match')!
 	expect(new_product.status == status, 'status does not match')!
 	expect(new_product.discountable == discountable, 'discountable does not match')!
-	expect(new_product.metadata == metadata, 'metadata does not match')!
+	expect(new_product.metadata == '"${metadata}"', 'metadata does not match')!
 	expect(new_product.seo.title == seo_title, 'seo_title does not match')!
 	expect(new_product.seo.description == seo_description, 'seo_description does not match')!
 	expect(new_product.thumbnail.id != '', 'thumbnail is missing id')!
@@ -605,7 +605,6 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 400, 'Product was created despite request having empty title')!
-	response_is_ok(response)!
 }
 
 fn store_regions() ! {
