@@ -205,9 +205,12 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 		return handle_error_500(mut ctx, 'Could not create category', err.msg())
 	}
 
-	model_category_translations_update(mut tx, category_id_bin, ph.translations) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create category_translations', err.msg())
+	if translations := ph.translations {
+		model_category_translations_update(mut tx, category_id_bin, translations) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not create category_translations',
+				err.msg())
+		}
 	}
 
 	_, seo_id_bin := app.new_id()

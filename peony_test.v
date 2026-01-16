@@ -224,9 +224,9 @@ fn user_logout(cookie_value string) ! {
 	return
 }
 
-fn auth_wrapper(suite fn (provided_cookie_value string) !) ! {
+fn auth_wrapper(test_function fn (provided_cookie_value string) !) ! {
 	cookie_value := user_login()!
-	suite(cookie_value)!
+	test_function(cookie_value)!
 	defer {
 		user_logout(cookie_value) or {}
 	}

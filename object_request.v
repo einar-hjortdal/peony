@@ -377,7 +377,7 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 fn (ph ProductOptionUpdateRequestHygienised) verify() ! {
 	if title := ph.title {
 		if title == '' {
-			return new_internal_error(error_missing_default_translation, 'The product_option lacks a title')
+			return new_internal_error(error_empty_field, 'The product_option lacks a title')
 		}
 	}
 
@@ -732,7 +732,7 @@ pub:
 	parent_category_id ?string @[json: 'parentCategoryId']
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
-	translations       []CategoryTranslationRequest
+	translations       ?[]CategoryTranslationRequest
 	seo                ?SEOUpdateRequest
 }
 
@@ -746,9 +746,9 @@ struct CategoryCreateRequestHygienised {
 	parent_category_id_bin []u8
 	category_rank          ?i32
 	metadata               ?string
-	translations           []CategoryTranslationRequestHygienised
 mut:
-	seo ?SEOUpdateRequestHygienised
+	seo          ?SEOUpdateRequestHygienised
+	translations ?[]CategoryTranslationRequestHygienised
 }
 
 fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
@@ -756,24 +756,6 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
 			return new_internal_error(error_id_invalid, 'parent_category_id')
-		}
-	}
-
-	if p.translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'Provide at least one translation')
-	}
-
-	mut translations := []CategoryTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
-		locale_id_bin := id_string_to_bin(translation.locale_id) or {
-			return new_internal_error(error_id_invalid, 'locale_id')
-		}
-		translations[i] = CategoryTranslationRequestHygienised{
-			locale_id:     translation.locale_id
-			locale_id_bin: locale_id_bin
-			name:          translation.name
-			description:   translation.description
 		}
 	}
 
@@ -787,7 +769,23 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		parent_category_id_bin: parent_category_id_bin
 		category_rank:          p.category_rank
 		metadata:               p.metadata
-		translations:           translations
+	}
+
+	if translations := p.translations {
+		mut ts := []CategoryTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			locale_id_bin := id_string_to_bin(translation.locale_id) or {
+				return new_internal_error(error_id_invalid, 'locale_id')
+			}
+			ts[i] = CategoryTranslationRequestHygienised{
+				locale_id:     translation.locale_id
+				locale_id_bin: locale_id_bin
+				name:          translation.name
+				description:   translation.description
+			}
+		}
+		ph.translations = ts
 	}
 
 	if seo := p.seo {

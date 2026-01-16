@@ -33,9 +33,11 @@ pub fn (mut app App) admin_category_create(mut ctx Context) veb.Result {
 		return handle_error_unhandled(mut ctx, err.msg(), 'CategoryCreateRequest.hygienise')
 	}
 
-	for i := 0; i < p.translations.len; i++ {
-		// TODO verify default locale is in array
-		// TODO verify locale_ids exist
+	if translations := ph.translations {
+		for i := 0; i < translations.len; i++ {
+			// TODO verify default locale is in array
+			// TODO verify locale_ids exist
+		}
 	}
 
 	return conduit_category_create(mut app, mut ctx, ph)

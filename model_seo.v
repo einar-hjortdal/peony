@@ -163,7 +163,7 @@ fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, categ
 }
 
 fn model_category_seo_retrieve(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategorySEO {
-	data := tx.execute('SELECT id, product_id, title, description FROM seo
+	data := tx.execute('SELECT id, category_id, title, description FROM seo
 		WHERE category_id IN (${get_placeholders(category_ids_bin)})',
 		...workaround_24757(category_ids_bin))!
 

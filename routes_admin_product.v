@@ -48,24 +48,8 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	if translations := ph.translations {
-		if translations.len == 0 {
-			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is empty')
-		}
-
+		println(translations)
 		// TODO verify provided locale_id exist in database
-
-		mut found := false
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			if translation.locale_id_bin == store.default_locale_id_bin {
-				found = true
-			}
-		}
-		if found == false {
-			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array does not contain default_locale_id translation')
-		}
-	} else {
-		return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is not set')
 	}
 
 	// if seo_translations := ph.seo_translations {
