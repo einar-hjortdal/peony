@@ -373,7 +373,7 @@ fn admin_store(cookie_value string) ! {
 
 	old_updated_at := store.updated_at
 
-	new_store_name := 'new store name'
+	new_store_name := luuid.v2()
 	new_store_data := StoreUpdateRequest{
 		name: new_store_name
 		// default_locale_id
@@ -382,13 +382,16 @@ fn admin_store(cookie_value string) ! {
 		// default_sales_channel_id
 		// locale_ids
 	}
-	response = do_authenticated_post_request('${endpoint}/:${r.store.id}', cookie_value,
+	response = do_authenticated_post_request('${endpoint}/${r.store.id}', cookie_value,
 		json.encode(new_store_data))!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 
 	r = json.decode(StoreResponseEnvelope, response.body)!
 	store = r.store
-	expect(store.name == new_store_name, 'Store name was not updated: expected ${new_store_name}, got ${r.store.name}')!
+	expect(store.name == new_store_name, 'Store name was not updated')!
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
 }
 

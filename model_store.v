@@ -190,5 +190,6 @@ fn model_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreUpdateRe
 	}
 
 	params = arrays.concat(params, id_bin)
-	tx.execute('UPDATE store ${get_set_columns(columns)} WHERE id = ?', ...params)!
+	tx.execute('UPDATE store SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
+		...params)!
 }
