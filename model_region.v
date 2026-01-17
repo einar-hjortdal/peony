@@ -33,7 +33,6 @@ struct RegionRetriveParams {
 	include_deleted     bool
 	use_offset          bool
 	offset              i32
-	use_fetch           bool
 	fetch               i32
 	use_order_direction bool
 	order_direction     string
@@ -91,10 +90,8 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]
 		params = arrays.concat(params, p.offset)
 	}
 
-	if p.use_fetch {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch)
-	}
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	params = arrays.concat(params, p.fetch)
 
 	data := tx.execute('${base_query} ${conditions} ${sorting}', ...params)!
 
