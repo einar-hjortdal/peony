@@ -4,7 +4,7 @@ import json
 import veb
 
 // lists users
-@['/admin/users/'; get]
+@['/admin/users'; get]
 pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 	p := hygienise_user_list_request_query(ctx.query) or {
 		if err is InternalError {
@@ -17,10 +17,18 @@ pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 }
 
 // creates a user
-@['/admin/users/'; post]
+@['/admin/users'; post]
 pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	p := json.decode(UserCreateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode UserCreateRequest', err.msg())
+	}
+
+	if p.email == '' {
+		return handle_error_400(mut ctx, error_empty_field, 'email')
+	}
+
+	if p.password == '' {
+		return handle_error_400(mut ctx, error_empty_field, 'password')
 	}
 
 	// TODO validate email, error if email obviously bad
@@ -64,7 +72,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 }
 
 // deletes a user
-@['/admin/users/:user_id'; post]
+@['/admin/users/:user_id'; delete]
 pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.Result {
 	user_id_bin := id_string_to_bin(user_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'user_id')

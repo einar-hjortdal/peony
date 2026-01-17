@@ -6,7 +6,7 @@ pub:
 	password string
 }
 
-pub struct StoreRequest {
+pub struct StoreUpdateRequest {
 pub:
 	name                      ?string
 	default_locale_id         ?string   @[json: 'defaultLocaleId']
@@ -14,10 +14,9 @@ pub:
 	default_stock_location_id ?string   @[json: 'defaultStockLocationId']
 	default_sales_channel_id  ?string   @[json: 'defaultSalesChannelId']
 	locale_ids                ?[]string @[json: 'localeIds']
-	currency_codes            ?[]string @[json: 'currencyCodes']
 }
 
-struct StoreRequestHygienised {
+struct StoreUpdateRequestHygienised {
 	name                          ?string
 	default_locale_id             ?string
 	default_locale_id_bin         []u8
@@ -29,10 +28,9 @@ struct StoreRequestHygienised {
 	default_sales_channel_id_bin  []u8
 	locale_ids                    ?[]string
 	locale_ids_bin                [][]u8
-	currency_codes                ?[]string
 }
 
-fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
+fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
 		return new_internal_error(error_id_invalid, 'default_locale_id')
 	}
@@ -53,7 +51,7 @@ fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
 		return new_internal_error(error_id_invalid, 'default_sales_channel_id')
 	}
 
-	return StoreRequestHygienised{
+	return StoreUpdateRequestHygienised{
 		name:                          p.name
 		default_locale_id:             p.default_locale_id
 		default_locale_id_bin:         default_locale_id_bin
@@ -65,7 +63,6 @@ fn hygienise_store_request(p StoreRequest) !StoreRequestHygienised {
 		default_sales_channel_id_bin:  default_sales_channel_id_bin
 		locale_ids:                    p.locale_ids
 		locale_ids_bin:                locale_ids_bin
-		currency_codes:                p.currency_codes
 	}
 }
 
@@ -83,21 +80,55 @@ pub:
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
+pub struct ImageTranslationRequest {
+pub:
+	locale_id string @[json: 'localeId']
+	alt       string
+}
+
+struct ImageTranslationRequestHygienised {
+	locale_id     string
+	locale_id_bin []u8
+	alt           string
+}
+
+// TODO check alt.len <= 191
+fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
+	locale_id_bin := id_string_to_bin(i.locale_id) or {
+		return new_internal_error(error_id_invalid, 'locale_id')
+	}
+
+	if i.alt == '' {
+		return new_internal_error(error_empty_field, 'alt')
+	}
+
+	return ImageTranslationRequestHygienised{
+		locale_id:     i.locale_id
+		locale_id_bin: locale_id_bin
+		alt:           i.alt
+	}
+}
+
 pub struct ImageRequest {
 pub:
 	url          string
+	alt          ?string
 	translations ?[]ImageTranslationRequest
 }
 
 struct ImageRequestHygienised {
 	url string
+	alt ?string
 mut:
 	translations ?[]ImageTranslationRequestHygienised
 }
 
+// TODO check alt.len <= 191
+// TODO if default alt is missing, do not accept translations. (require default alt if want translations)
 fn (p ImageRequest) hygienise() !ImageRequestHygienised {
 	mut image := ImageRequestHygienised{
 		url: p.url
+		alt: p.alt
 	}
 
 	if translations := p.translations {
@@ -129,34 +160,6 @@ pub:
 	role       ?string
 	image      ?ImageRequest
 	metadata   ?string @[raw]
-}
-
-pub struct ImageTranslationRequest {
-pub:
-	locale_id string @[json: 'localeId']
-	alt       string
-}
-
-struct ImageTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	alt           string
-}
-
-fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(i.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
-	}
-
-	if i.alt == '' {
-		return new_internal_error(error_empty_field, 'alt')
-	}
-
-	return ImageTranslationRequestHygienised{
-		locale_id:     i.locale_id
-		locale_id_bin: locale_id_bin
-		alt:           i.alt
-	}
 }
 
 pub struct ProductTranslationRequest {
@@ -215,43 +218,88 @@ fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTrans
 
 pub struct ProductOptionValueRequest {
 pub:
-	translations []ProductOptionValueTranslationRequest
+	name         string
+	translations ?[]ProductOptionValueTranslationRequest
 }
 
 struct ProductOptionValueRequestHygienised {
-	translations []ProductOptionValueTranslationRequestHygienised
+	name string
+mut:
+	translations ?[]ProductOptionValueTranslationRequestHygienised
 }
 
 fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
-	mut translations := []ProductOptionValueTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = p.translations[i].hygienise()!
+	mut res := ProductOptionValueRequestHygienised{
+		name: p.name
 	}
 
-	return ProductOptionValueRequestHygienised{
-		translations: translations
+	if translations := p.translations {
+		mut ts := []ProductOptionValueTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
 	}
+
+	return res
 }
 
 // verifies:
+// name is not empty
 // TODO all locale_id exist
-// The product_option_value has the default translation
-fn (p ProductOptionValueRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_value_translations := p.translations
-
-	if option_value_translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option_value lacks translations, at least one translation in the default locale must be provided.')
+fn (p ProductOptionValueRequestHygienised) verify() ! {
+	if p.name == '' {
+		return new_internal_error(error_empty_field, 'name')
 	}
 
-	mut found := false
-	for i := 0; i < option_value_translations.len; i++ {
-		translation := option_value_translations[i]
-		if translation.locale_id_bin == default_locale_id_bin {
-			found = true
+	if translations := p.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_field, 'translations')
 		}
 	}
-	if found == false {
-		return new_internal_error(error_missing_default_translation, 'The product_option_value lacks a translation in the default_locale_id')
+}
+
+pub struct ProductOptionValueUpdateRequest {
+pub:
+	name         ?string
+	translations ?[]ProductOptionValueTranslationRequest
+}
+
+struct ProductOptionValueUpdateRequestHygienised {
+	name ?string
+mut:
+	translations ?[]ProductOptionValueTranslationRequestHygienised
+}
+
+fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequestHygienised {
+	if p.name == none && p.translations == none {
+		return new_internal_error(error_empty_object, 'ProductOptionValueUpdateRequest')
+	}
+
+	mut res := ProductOptionValueUpdateRequestHygienised{
+		name: p.name
+	}
+
+	if translations := p.translations {
+		mut ts := []ProductOptionValueTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+	}
+
+	return res
+}
+
+fn (p ProductOptionValueUpdateRequestHygienised) verify() ! {
+	if name := p.name {
+		if name == '' {
+			return new_internal_error(error_empty_field, 'name')
+		}
+	}
+
+	if translations := p.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_field, 'translations')
+		}
 	}
 }
 
@@ -280,105 +328,106 @@ fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequ
 
 pub struct ProductOptionCreateRequest {
 pub:
-	translations []ProductOptionTranslationRequest
+	title        string
+	translations ?[]ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
 
 struct ProductOptionCreateRequestHygienised {
-	translations []ProductOptionTranslationRequestHygienised
-	values       []ProductOptionValueRequestHygienised
+	title  string
+	values []ProductOptionValueRequestHygienised
+mut:
+	translations ?[]ProductOptionTranslationRequestHygienised
 }
 
 fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
-	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = p.translations[i].hygienise()!
-	}
-
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
 	for i := 0; i < p.values.len; i++ {
 		values[i] = p.values[i].hygienise()!
 	}
 
-	return ProductOptionCreateRequestHygienised{
-		translations: translations
-		values:       values
+	mut res := ProductOptionCreateRequestHygienised{
+		title:  p.title
+		values: values
 	}
+
+	if translations := p.translations {
+		mut ts := []ProductOptionTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+		res.translations = ts
+	}
+
+	return res
 }
 
 // verifies:
 // All locale_id exist TODO
-// The product_option has the default translation
 // The product_option has at least one value
-// Each value has the default translation
-fn (ph ProductOptionCreateRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_translations := ph.translations
-	option_values := ph.values
+fn (p ProductOptionCreateRequestHygienised) verify() ! {
+	if p.title == '' {
+		return new_internal_error(error_empty_field, 'title')
+	}
 
-	if option_translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks translations, at least one translation in the default locale must be provided.')
+	option_values := p.values
+
+	if translations := p.translations {
+		if translations.len == 0 {
+			return new_internal_error(error_empty_field, 'translations')
+		}
 	}
 
 	if option_values.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks values, at leat one value must be provided.')
-	}
-
-	mut found := false
-	for i := 0; i < option_translations.len; i++ {
-		translation := option_translations[i]
-		if translation.locale_id_bin == default_locale_id_bin {
-			found = true
-		}
-	}
-	if found == false {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks a translation in the default_locale_id')
+		return new_internal_error(error_empty_field, 'The product_option lacks values, at least one value must be provided.')
 	}
 
 	for i := 0; i < option_values.len; i++ {
-		option_values[i].verify(default_locale_id_bin)!
+		option_values[i].verify()!
 	}
 }
 
 pub struct ProductOptionUpdateRequest {
 pub:
-	translations []ProductOptionTranslationRequest
+	title        ?string
+	translations ?[]ProductOptionTranslationRequest
 }
 
 struct ProductOptionUpdateRequestHygienised {
-	translations []ProductOptionTranslationRequestHygienised
+	title ?string
+mut:
+	translations ?[]ProductOptionTranslationRequestHygienised
 }
 
 fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
-	mut translations := []ProductOptionTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = p.translations[i].hygienise()!
+	mut ph := ProductOptionUpdateRequestHygienised{
+		title: p.title
 	}
 
-	return ProductOptionUpdateRequestHygienised{
-		translations: translations
+	if translations := p.translations {
+		mut ts := []ProductOptionTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			ts[i] = translations[i].hygienise()!
+		}
+		ph.translations = ts
 	}
+
+	return ph
 }
 
 // verifies:
+// title is not empty
 // All locale_id exist TODO
-// The product_option has the default translation
-fn (ph ProductOptionUpdateRequestHygienised) verify(default_locale_id_bin []u8) ! {
-	option_translations := ph.translations
-
-	if option_translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'The product_option lacks translations, at least one translation in the default locale must be provided.')
-	}
-
-	mut found := false
-	for i := 0; i < option_translations.len; i++ {
-		translation := option_translations[i]
-		if translation.locale_id_bin == default_locale_id_bin {
-			found = true
+fn (ph ProductOptionUpdateRequestHygienised) verify() ! {
+	if title := ph.title {
+		if title == '' {
+			return new_internal_error(error_empty_field, 'The product_option lacks a title')
 		}
 	}
-	if found == false {
-		return new_internal_error(error_missing_default_translation, 'a product_option lacks a translation in the default_locale_id')
-	}
+
+	// if translations := ph.translations {
+	// TODO verify locale_id
+	// }
 }
 
 pub struct ProductVariantMoneyAmountRequest {
@@ -686,19 +735,54 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
+pub struct SEOUpdateRequest {
+	title        ?string
+	description  ?string
+	translations ?[]SEOTranslationUpdateRequest
+}
+
+struct SEOUpdateRequestHygienised {
+	title       ?string
+	description ?string
+mut:
+	translations ?[]SEOTranslationUpdateRequestHygienised
+}
+
+fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
+	mut r := SEOUpdateRequestHygienised{
+		title:       p.title
+		description: p.description
+	}
+
+	if translations := p.translations {
+		mut hygienised := []SEOTranslationUpdateRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			hygienised[i] = translation.hygienise()!
+		}
+		r.translations = hygienised
+	}
+
+	return r
+}
+
 pub struct CategoryCreateRequest {
 pub:
+	name               string
+	description        ?string
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
-	translations       []CategoryTranslationRequest
-	seo_translations   ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
+	translations       ?[]CategoryTranslationRequest
+	seo                ?SEOUpdateRequest
 }
 
 struct CategoryCreateRequestHygienised {
+	name                   string
+	description            ?string
 	handle                 ?string
 	is_internal            ?bool
 	is_active              ?bool
@@ -706,9 +790,9 @@ struct CategoryCreateRequestHygienised {
 	parent_category_id_bin []u8
 	category_rank          ?i32
 	metadata               ?string
-	translations           []CategoryTranslationRequestHygienised
 mut:
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+	seo          ?SEOUpdateRequestHygienised
+	translations ?[]CategoryTranslationRequestHygienised
 }
 
 fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
@@ -719,25 +803,9 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		}
 	}
 
-	if p.translations.len == 0 {
-		return new_internal_error(error_missing_default_translation, 'Provide at least one translation')
-	}
-
-	mut translations := []CategoryTranslationRequestHygienised{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
-		locale_id_bin := id_string_to_bin(translation.locale_id) or {
-			return new_internal_error(error_id_invalid, 'locale_id')
-		}
-		translations[i] = CategoryTranslationRequestHygienised{
-			locale_id:     translation.locale_id
-			locale_id_bin: locale_id_bin
-			name:          translation.name
-			description:   translation.description
-		}
-	}
-
 	mut ph := CategoryCreateRequestHygienised{
+		name:                   p.name
+		description:            p.description
 		handle:                 p.handle
 		is_internal:            p.is_internal
 		is_active:              p.is_active
@@ -745,24 +813,27 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		parent_category_id_bin: parent_category_id_bin
 		category_rank:          p.category_rank
 		metadata:               p.metadata
-		translations:           translations
 	}
 
-	if seo_translations := p.seo_translations {
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			translation := seo_translations[i]
+	if translations := p.translations {
+		mut ts := []CategoryTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {
 				return new_internal_error(error_id_invalid, 'locale_id')
 			}
-			st[i] = SEOTranslationUpdateRequestHygienised{
+			ts[i] = CategoryTranslationRequestHygienised{
 				locale_id:     translation.locale_id
 				locale_id_bin: locale_id_bin
-				title:         translation.title
+				name:          translation.name
 				description:   translation.description
 			}
 		}
-		ph.seo_translations = st
+		ph.translations = ts
+	}
+
+	if seo := p.seo {
+		ph.seo = seo.hygienise()!
 	}
 
 	return ph
@@ -770,6 +841,8 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 
 pub struct CategoryUpdateRequest {
 pub:
+	name               ?string
+	description        ?string
 	handle             ?string
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
@@ -777,10 +850,11 @@ pub:
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
 	translations       ?[]CategoryTranslationRequest
-	seo_translations   ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
 }
 
 struct CategoryUpdateRequestHygienised {
+	name                   ?string
+	description            ?string
 	handle                 ?string
 	is_internal            ?bool
 	is_active              ?bool
@@ -789,14 +863,12 @@ struct CategoryUpdateRequestHygienised {
 	category_rank          ?i32
 	metadata               ?string
 mut:
-	translations     ?[]CategoryTranslationRequestHygienised
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
+	translations ?[]CategoryTranslationRequestHygienised
 }
 
 fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	if p.handle == none && p.is_internal == none && p.is_active == none
-		&& p.parent_category_id == none && p.metadata == none && p.translations == none
-		&& p.seo_translations == none {
+		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
 		return new_internal_error(error_empty_object, 'CategoryUpdateRequest')
 	}
 
@@ -808,6 +880,8 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	}
 
 	mut ph := CategoryUpdateRequestHygienised{
+		name:                   p.name
+		description:            p.description
 		handle:                 p.handle
 		is_internal:            p.is_internal
 		is_active:              p.is_active
@@ -815,27 +889,6 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 		parent_category_id_bin: parent_category_id_bin
 		category_rank:          p.category_rank
 		metadata:               p.metadata
-	}
-
-	if seo_translations := p.seo_translations {
-		if seo_translations.len == 0 {
-			return new_internal_error(error_empty_object, 'seo_translations')
-		}
-
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			translation := seo_translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_internal_error(error_id_invalid, 'locale_id')
-			}
-			st[i] = SEOTranslationUpdateRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				title:         translation.title
-				description:   translation.description
-			}
-		}
-		ph.seo_translations = st
 	}
 
 	if translations := p.translations {
@@ -862,11 +915,72 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	return ph
 }
 
-// The `thumbnail` field must always be the index of one image in the `images` array.
-// If `thumbnail` is not provided, peony selects the first image in `images` as the thumbnail.
-// If `images` is empty or omitted, the product is created without a thumbnail or images.
+// ProductCreateRequest describes the body of the request to create a new product.
+//
+// # Fields
+//
+// ## title
+// Product title in the store's default locale.
+//
+// ## subtitle
+// Product subtitle in the default locale.
+//
+// ## description
+// Product description in the default locale.
+//
+// ## handle
+// Product handle. If omitted, one will be generated automatically.
+//
+// ## is_giftcard
+// Whether the product is a gift card.
+//
+// ## status
+// See constants: `product_status_draft`, `product_status_proposed`, `product_status_published`, `product_status_rejected`.
+//
+// ## type_id
+// Product type identifier.
+//
+// ## discountable
+// Whether the product is eligible for discounts.
+//
+// ## metadata
+// Raw metadata stored as a string.
+//
+// ## tag_ids
+// Tags to associate with the product.
+//
+// ## sales_channel_ids
+// Sales channels where the product will be available.
+//
+// ## category_ids
+// Categories the product belongs to.
+//
+// ## collection_ids
+// Collections the product belongs to.
+//
+// ## translations
+// Localized versions of product fields.
+//
+// ## seo
+// SEO metadata.
+//
+// ## options
+// Product options (e.g. size, color).
+//
+// ## thumbnail
+// Index of the thumbnail image within the `images` array.
+// If omitted, the first image in `images` is used.
+// If `images` is empty or omitted, the product is created without a thumbnail.
+//
+// ## images
+// Images to associate with the product.
+//
+// TODO: Support creating variants on product creation (including variant stock, prices, etc.).
 pub struct ProductCreateRequest {
 pub:
+	title             string
+	subtitle          ?string
+	description       ?string
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
@@ -878,13 +992,21 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo_translations  ?[]SEOTranslationUpdateRequest @[json: 'seoTranslations']
+	seo               ?SEOUpdateRequest
 	options           ?[]ProductOptionCreateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
 }
 
+// TODO derive handle from title using slugify
+// TODO append id to handle if handle already exists in database
+// TODO verify title != ''
+// TODO verify title.len <= 63
+// TODO verify subtitle.len <= 191
 struct ProductCreateRequestHygienised {
+	title                 string
+	subtitle              ?string
+	description           ?string
 	handle                ?string
 	is_giftcard           ?bool
 	status                ?string
@@ -902,13 +1024,17 @@ struct ProductCreateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	options          ?[]ProductOptionCreateRequestHygienised
-	translations     ?[]ProductTranslationRequestHygienised
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
-	images           ?[]ImageRequestHygienised
+	seo          ?SEOUpdateRequestHygienised
+	options      ?[]ProductOptionCreateRequestHygienised
+	translations ?[]ProductTranslationRequestHygienised
+	images       ?[]ImageRequestHygienised
 }
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
+	if p.title == '' {
+		return new_internal_error(error_empty_field, 'title')
+	}
+
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
 		return new_internal_error(error_id_invalid, 'type_id')
 	}
@@ -930,6 +1056,9 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	mut ph := ProductCreateRequestHygienised{
+		title:                 p.title
+		subtitle:              p.subtitle
+		description:           p.description
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status
@@ -964,12 +1093,8 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		ph.translations = h
 	}
 
-	if seo_translations := p.seo_translations {
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < st.len; i++ {
-			st[i] = seo_translations[i].hygienise()!
-		}
-		ph.seo_translations = st
+	if seo := p.seo {
+		ph.seo = seo.hygienise()!
 	}
 
 	if images := p.images {
@@ -988,6 +1113,9 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // If both `thumbnail` and `images` are provided, the thumbnail is the image at index `thumbnail` in
 // the `images` array.
 struct ProductUpdateRequest {
+	title             ?string
+	subtitle          ?string
+	description       ?string
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
@@ -999,12 +1127,17 @@ struct ProductUpdateRequest {
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo_translations  ?[]SEOTranslationUpdateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
 }
 
+// TODO verify title != ''
+// TODO verify title.len <= 63
+// TODO verify subtitle.len <= 191
 struct ProductUpdateRequestHygienised {
+	title                 ?string
+	subtitle              ?string
+	description           ?string
 	handle                ?string
 	is_giftcard           ?bool
 	status                ?string
@@ -1022,9 +1155,8 @@ struct ProductUpdateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	translations     ?[]ProductTranslationRequestHygienised
-	seo_translations ?[]SEOTranslationUpdateRequestHygienised
-	images           ?[]ImageRequestHygienised
+	translations ?[]ProductTranslationRequestHygienised
+	images       ?[]ImageRequestHygienised
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
@@ -1049,6 +1181,9 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	}
 
 	mut ph := ProductUpdateRequestHygienised{
+		title:                 p.title
+		subtitle:              p.subtitle
+		description:           p.description
 		handle:                p.handle
 		is_giftcard:           p.is_giftcard
 		status:                p.status
@@ -1073,14 +1208,6 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 			h[i] = hygienise_product_translation_request(translations[i])!
 		}
 		ph.translations = h
-	}
-
-	if seo_translations := p.seo_translations {
-		mut st := []SEOTranslationUpdateRequestHygienised{len: seo_translations.len}
-		for i := 0; i < st.len; i++ {
-			st[i] = seo_translations[i].hygienise()!
-		}
-		ph.seo_translations = st
 	}
 
 	if images := p.images {

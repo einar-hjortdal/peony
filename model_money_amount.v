@@ -27,7 +27,7 @@ struct VariantMoneyAmountCreateDefaultParams {
 
 fn model_product_variant_money_amount_create_default(mut tx firebird.Transaction, p VariantMoneyAmountCreateDefaultParams) ! {
 	mut src := []string{len: p.region_ids_bin.len}
-	mut params := []firebird.Value{len: p.region_ids_bin.len * 3, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: p.region_ids_bin.len * 3, init: firebird.Null{}}
 	for i := 0; i < p.region_ids_bin.len; i++ {
 		region_id_bin := p.region_ids_bin[i]
 		money_amount_id_bin := p.money_amount_ids_bin[i]
@@ -44,7 +44,7 @@ fn model_product_variant_money_amount_create_default(mut tx firebird.Transaction
 	tx.execute('INSERT INTO money_amount (id, region_id, amount) ${get_merge_source(src)}',
 		...params)!
 
-	params = []firebird.Value{len: p.money_amount_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: p.money_amount_ids_bin.len * 2, init: firebird.Null{}}
 	for i := 0; i < p.money_amount_ids_bin.len; i++ {
 		money_amount_id_bin := p.money_amount_ids_bin[i]
 		src[i] = 'SELECT
@@ -141,7 +141,7 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 	}
 
 	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 4, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: ph.len * 4, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) as id,
@@ -165,7 +165,7 @@ fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transa
 		...params)!
 
 	src = []string{len: money_amount_ids_bin.len}
-	params = []firebird.Value{len: money_amount_ids_bin.len * 2, init: firebird.Value(firebird.Null{})}
+	params = []firebird.Value{len: money_amount_ids_bin.len * 2, init: firebird.Null{}}
 	for i := 0; i < money_amount_ids_bin.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) as variant_id,

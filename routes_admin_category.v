@@ -33,9 +33,11 @@ pub fn (mut app App) admin_category_create(mut ctx Context) veb.Result {
 		return handle_error_unhandled(mut ctx, err.msg(), 'CategoryCreateRequest.hygienise')
 	}
 
-	for i := 0; i < p.translations.len; i++ {
-		// TODO verify default locale is in array
-		// TODO verify locale_ids exist
+	if translations := ph.translations {
+		for i := 0; i < translations.len; i++ {
+			// TODO verify default locale is in array
+			// TODO verify locale_ids exist
+		}
 	}
 
 	return conduit_category_create(mut app, mut ctx, ph)
@@ -86,10 +88,6 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 		// TODO verify ids
 	}
 
-	if _ := ph.seo_translations {
-		// TODO verify ids
-	}
-
 	return conduit_category_update(mut app, mut ctx, category_id_bin, ph)
 }
 
@@ -101,4 +99,41 @@ pub fn (mut app App) admin_category_delete(mut ctx Context, category_id string) 
 	}
 
 	return conduit_category_delete(mut app, mut ctx, category_id_bin)
+}
+
+// updates the category's seo
+@['/admin/categories/:category_id/seo/:seo_id'; post]
+pub fn (mut app App) admin_category_seo_update(mut ctx Context, category_id string, seo_id string) veb.Result {
+	_ := id_string_to_bin(category_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
+	}
+
+	seo_id_bin := id_string_to_bin(seo_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'seo_id')
+	}
+
+	p := json.decode(SEOUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode SEOUpdateRequest', err.msg())
+	}
+
+	ph := p.hygienise() or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at SEOUpdateRequest.hygienise',
+			err.msg())
+	}
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	// TODO verify category_id exists
+	// TODO verify seo_id exists
+	// TODO verify seo_id belongs to category_id
+	// TODO verify all locale_id exist
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	return conduit_product_seo_update(mut app, mut ctx, seo_id_bin, ph)
 }

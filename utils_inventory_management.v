@@ -71,6 +71,7 @@ fn get_product_variant_availability(product_variant ProductVariant,
 	}
 }
 
+// TODO should only accept one sales_channel_id_bin
 struct GetProductVariantsAvailabilityParams {
 	product_variants              []ProductVariant
 	sales_channel_ids_bin         [][]u8

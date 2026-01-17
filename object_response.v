@@ -407,17 +407,33 @@ fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 	}
 }
 
-// for store frontend
-pub struct SEOResponse {
+pub struct SEOTranslationResponse {
 pub:
+	seo_id      string
+	locale_id   string @[json: 'localeId']
 	title       string @[omitempty]
 	description string @[omitempty]
 }
 
-pub struct SEOTranslationResponse {
+fn format_seo_translation_response(t SEOTranslation) SEOTranslationResponse {
+	return SEOTranslationResponse{
+		seo_id:      t.seo_id
+		locale_id:   t.locale_id
+		title:       t.title.value
+		description: t.description.value
+	}
+}
+
+pub struct SEOResponse {
 pub:
-	id          string
-	locale_id   string @[json: 'localeId']
+	title       string @[omitempty]
+	description string @[omitempty]
+pub mut:
+	translations []SEOTranslationResponse @[omitempty]
+}
+
+pub struct SEOResponseStore {
+pub:
 	title       string @[omitempty]
 	description string @[omitempty]
 }
@@ -444,8 +460,8 @@ pub:
 	metadata           string @[omitempty]
 	name               string @[omitempty]
 	description        string @[omitempty]
-	translations       []ProductCategoryTranslationResponse
-	seo_translations   []SEOTranslationResponse @[json: 'seoTranslations'; omitempty]
+	translations       []ProductCategoryTranslationResponse @[omitempty]
+	seo                SEOResponse @[omitempty]
 }
 
 fn format_category_response(p Category) CategoryResponse {
@@ -460,15 +476,16 @@ fn format_category_response(p Category) CategoryResponse {
 		}
 	}
 
-	mut seo_tr := []SEOTranslationResponse{len: p.seo_translations.len}
-	for i := 0; i < p.seo_translations.len; i++ {
-		translation := p.seo_translations[i]
-		seo_tr[i] = SEOTranslationResponse{
-			id:          translation.id
-			locale_id:   translation.locale_id
-			title:       translation.title.value
-			description: translation.description.value
-		}
+	mut seo_translations := []SEOTranslationResponse{len: p.seo.translations.len}
+	for i := 0; i < p.seo.translations.len; i++ {
+		translation := p.seo.translations[i]
+		seo_translations[i] = format_seo_translation_response(translation)
+	}
+
+	seo := SEOResponse{
+		title:        p.seo.title.value
+		description:  p.seo.description.value
+		translations: seo_translations
 	}
 
 	return CategoryResponse{
@@ -482,10 +499,10 @@ fn format_category_response(p Category) CategoryResponse {
 		is_internal:        p.is_internal
 		category_rank:      p.category_rank
 		metadata:           p.metadata.value
-		name:               p.name.value
+		name:               p.name
 		description:        p.description.value
 		translations:       tr
-		seo_translations:   seo_tr
+		seo:                seo
 	}
 }
 
@@ -508,18 +525,41 @@ pub:
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
 	handle             string
-	parent_category_id string      @[json: 'parentCategoryId'; omitempty]
-	category_rank      i32         @[json: 'categoryRank']
-	metadata           string      @[omitempty]
-	name               string      @[omitempty]
-	description        string      @[omitempty]
-	seo                SEOResponse @[omitempty]
+	parent_category_id string           @[json: 'parentCategoryId'; omitempty]
+	category_rank      i32              @[json: 'categoryRank']
+	metadata           string           @[omitempty]
+	name               string           @[omitempty]
+	description        string           @[omitempty]
+	seo                SEOResponseStore @[omitempty]
 }
 
-fn format_category_response_store(p Category) CategoryResponseStore {
-	seo := SEOResponse{
-		title:       p.seo_title.value
-		description: p.seo_description.value
+fn format_category_response_store(p Category, locale_id string) CategoryResponseStore {
+	mut seo := SEOResponseStore{
+		title:       p.seo.title.value
+		description: p.seo.description.value
+	}
+
+	if locale_id != '' {
+		for i := 0; i < p.seo.translations.len; i++ {
+			translation := p.seo.translations[i]
+			if translation.locale_id != locale_id {
+				continue
+			}
+
+			if !translation.title.is_null {
+				seo = SEOResponseStore{
+					title:       translation.title.value
+					description: seo.description
+				}
+			}
+
+			if !translation.description.is_null {
+				seo = SEOResponseStore{
+					title:       seo.title
+					description: translation.description.value
+				}
+			}
+		}
 	}
 
 	return CategoryResponseStore{
@@ -530,7 +570,7 @@ fn format_category_response_store(p Category) CategoryResponseStore {
 		parent_category_id: p.parent_category_id
 		category_rank:      p.category_rank
 		metadata:           p.metadata.value
-		name:               p.name.value
+		name:               p.name
 		description:        p.description.value
 		seo:                seo
 	}
@@ -578,20 +618,18 @@ pub struct ProductResponse {
 	status            string
 	type_id           string @[json: 'typeId'; omitempty]
 	discountable      bool
-	translations      []ProductTranslationResponse
 	metadata          string @[omitempty]
 	title             string
-	subtitle          string                   @[omitempty]
-	description       string                   @[omitempty]
-	seo_title         string                   @[json: 'seoTitle'; omitempty]
-	seo_description   string                   @[json: 'seoDescription'; omitempty]
-	category_ids      []string                 @[json: 'categoryIds'; omitempty]
-	thumbnail         ProductImageResponse     @[omitempty]
-	images            []ProductImageResponse   @[omitempty]
-	options           []ProductOptionResponse  @[omitempty]
-	variants          []VariantResponse        @[omitempty]
-	sales_channel_ids []string                 @[json: 'salesChannels']
-	seo_translations  []SEOTranslationResponse @[json: 'seoTranslations'; omitempty]
+	subtitle          string                       @[omitempty]
+	description       string                       @[omitempty]
+	category_ids      []string                     @[json: 'categoryIds'; omitempty]
+	thumbnail         ProductImageResponse         @[omitempty]
+	images            []ProductImageResponse       @[omitempty]
+	options           []ProductOptionResponse      @[omitempty]
+	variants          []VariantResponse            @[omitempty]
+	sales_channel_ids []string                     @[json: 'salesChannels']
+	translations      []ProductTranslationResponse @[omitempty]
+	seo               SEOResponse                  @[omitempty]
 	// collections  []ProductCollectionResponse @[omitempty] // return ids only
 	// tags         []Tag                       @[omitempty] // return ids only
 }
@@ -623,6 +661,18 @@ fn format_product_response(p Product) ProductResponse {
 		translations[i] = format_product_translation_response(p.translations[i])
 	}
 
+	mut seo_translations := []SEOTranslationResponse{len: p.seo.translations.len}
+	for i := 0; i < p.seo.translations.len; i++ {
+		translation := p.seo.translations[i]
+		seo_translations[i] = format_seo_translation_response(translation)
+	}
+
+	seo := SEOResponse{
+		title:        p.seo.title.value
+		description:  p.seo.description.value
+		translations: seo_translations
+	}
+
 	return ProductResponse{
 		id:                p.id
 		created_at:        p.created_at.Time
@@ -634,7 +684,7 @@ fn format_product_response(p Product) ProductResponse {
 		type_id:           p.type_id
 		discountable:      p.discountable
 		metadata:          p.metadata.value
-		title:             p.title.value
+		title:             p.title
 		subtitle:          p.subtitle.value
 		description:       p.description.value
 		thumbnail:         thumbnail
@@ -644,6 +694,7 @@ fn format_product_response(p Product) ProductResponse {
 		category_ids:      p.category_ids
 		sales_channel_ids: p.sales_channels_ids
 		translations:      translations
+		seo:               seo
 		// tags:          tags
 	}
 }
@@ -660,31 +711,31 @@ pub struct ProductResponseListEnvelope {
 }
 
 pub struct ProductResponseStore {
-	id              string
-	created_at      time.Time @[json: 'createdAt']
-	updated_at      time.Time @[json: 'updatedAt']
-	deleted_at      time.Time @[json: 'deletedAt'; omitempty]
-	handle          string
-	is_giftcard     bool @[json: 'isGiftcard']
-	status          string
-	type_id         string @[json: 'typeId'; omitempty]
-	discountable    bool
-	metadata        string @[omitempty]
-	title           string
-	subtitle        string                  @[omitempty]
-	description     string                  @[omitempty]
-	seo_title       string                  @[json: 'seoTitle'; omitempty]
-	seo_description string                  @[json: 'seoDescription'; omitempty]
-	category_ids    []string                @[json: 'categoryIds'; omitempty]
-	thumbnail       ProductImageResponse    @[omitempty]
-	images          []ProductImageResponse  @[omitempty]
-	options         []ProductOptionResponse @[omitempty]
-	variants        []VariantResponseStore  @[omitempty]
+	id           string
+	created_at   time.Time @[json: 'createdAt']
+	updated_at   time.Time @[json: 'updatedAt']
+	deleted_at   time.Time @[json: 'deletedAt'; omitempty]
+	handle       string
+	is_giftcard  bool @[json: 'isGiftcard']
+	status       string
+	type_id      string @[json: 'typeId'; omitempty]
+	discountable bool
+	metadata     string @[omitempty]
+	title        string
+	subtitle     string                  @[omitempty]
+	description  string                  @[omitempty]
+	category_ids []string                @[json: 'categoryIds'; omitempty]
+	thumbnail    ProductImageResponse    @[omitempty]
+	images       []ProductImageResponse  @[omitempty]
+	options      []ProductOptionResponse @[omitempty]
+	variants     []VariantResponseStore  @[omitempty]
+	seo          SEOResponseStore        @[omitempty]
 	// collections  []ProductCollectionResponse @[omitempty]
 	// tags         []Tag                       @[omitempty]
 }
 
-fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability) ProductResponseStore {
+// note: locale_id is derived from pctx.region_id
+fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability, locale_id string) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -708,6 +759,34 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		variants[i] = format_variant_response_store(variant, prices, product_variants_availability)
 	}
 
+	mut seo := SEOResponseStore{
+		title:       p.seo.title.value
+		description: p.seo.description.value
+	}
+
+	if locale_id != '' {
+		for i := 0; i < p.seo.translations.len; i++ {
+			translation := p.seo.translations[i]
+			if translation.locale_id != locale_id {
+				continue
+			}
+
+			if !translation.title.is_null {
+				seo = SEOResponseStore{
+					title:       translation.title.value
+					description: seo.description
+				}
+			}
+
+			if !translation.description.is_null {
+				seo = SEOResponseStore{
+					title:       seo.title
+					description: translation.description.value
+				}
+			}
+		}
+	}
+
 	// mut collections := []ProductCollectionResponse{len: p.collections.len}
 	// for i := 0; i < p.collections.len; i++ {
 	// 	collections[i] = format_product_collection_response(p.collections[i])
@@ -726,7 +805,7 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		type_id:      p.type_id
 		discountable: p.discountable
 		metadata:     p.metadata.value
-		title:        p.title.value
+		title:        p.title
 		subtitle:     p.subtitle.value
 		description:  p.description.value
 		thumbnail:    thumbnail
@@ -734,6 +813,7 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		options:      options
 		variants:     variants
 		category_ids: p.category_ids
+		seo:          seo
 		// collections:    collections
 		// tags:          tags
 	}

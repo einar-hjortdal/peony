@@ -9,7 +9,7 @@ struct Country {
 }
 
 fn model_country_list(mut tx firebird.Transaction, p ListCountriesParams) !([]Country, i64) {
-	mut query := 'SELECT code, region_id, COUNT(*) OVER() FROM country'
+	mut query := 'SELECT code, region_id, COUNT(*) FROM country'
 	mut params := []firebird.Value{}
 
 	mut sorting := ''

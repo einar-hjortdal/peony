@@ -23,8 +23,7 @@ fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
 		include_deleted:     include_deleted
 		use_offset:          p.offset.is_set
 		offset:              p.offset.v
-		use_fetch:           p.fetch.is_set
-		fetch:               p.fetch.v
+		fetch:               hygienise_fetch_amount(p.fetch)!
 		use_order_direction: p.order.is_set
 		order_direction:     order_direction
 	}
@@ -41,20 +40,14 @@ fn hygienise_region_list_request_query(p RegionListRequestQuery) !RegionRetriveP
 		return new_internal_error(error_order_direction_invalid, details_order_direction_invalid)
 	}
 
-	if p.fetch.is_set && p.fetch.v == 0 {
-		return new_internal_error('Requested 0 results', 'fetch cannot be 0')
-	}
-
 	return RegionRetriveParams{
 		filter_by_id:        p.ids.is_set
 		ids_bin:             ids_bin
 		filter_by_name:      p.name.is_set
-		name:                p.name.v
 		include_deleted:     include_deleted
 		use_offset:          p.offset.is_set
 		offset:              p.offset.v
-		use_fetch:           p.fetch.is_set
-		fetch:               p.fetch.v
+		fetch:               hygienise_fetch_amount(p.fetch)!
 		use_order_direction: p.order.is_set
 		order_direction:     order_direction
 	}
@@ -84,10 +77,6 @@ fn hygienise_category_list_request_query(p ProductCategoryListRequestQuery) !Cat
 		return new_internal_error(error_order_direction_invalid, details_order_direction_invalid)
 	}
 
-	if p.fetch.is_set && p.fetch.v == 0 {
-		return new_internal_error('Requested 0 results', 'fetch cannot be 0')
-	}
-
 	return CategoryRetrieveParams{
 		filter_by_id:                  p.ids.is_set
 		ids_bin:                       ids_bin
@@ -105,8 +94,7 @@ fn hygienise_category_list_request_query(p ProductCategoryListRequestQuery) !Cat
 		locale_id_bin:                 locale_id_bin
 		use_offset:                    p.offset.is_set
 		offset:                        p.offset.v
-		use_fetch:                     p.fetch.is_set
-		fetch:                         p.fetch.v
+		fetch:                         hygienise_fetch_amount(p.fetch)!
 		use_order_direction:           p.order.is_set
 		order_direction:               order_direction
 	}
@@ -150,8 +138,6 @@ fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParamsHy
 struct ListSalesChannelsParamsHygienised {
 	ids             ZeroArrayString
 	ids_bin         [][]u8
-	name            ZeroString
-	description     ZeroString
 	product_ids     ZeroArrayString
 	product_ids_bin [][]u8
 	offset          ZeroI32
@@ -167,7 +153,6 @@ struct RetrieveProductVariantParamsHygienised {
 	allow_backorder ZeroBool
 	region_id       ZeroString
 	region_id_bin   []u8
-	title           ZeroString
 	with_deleted    ZeroBool
 	offset          ZeroI32
 	fetch           ZeroI32

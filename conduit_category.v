@@ -45,7 +45,21 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 		return handle_error_500(mut ctx, 'Could not retrieve category_translations', err.msg())
 	}
 
-	seo_translations := model_category_seo_retrieve(mut tx, categories_ids_bin) or {
+	seo := model_category_seo_retrieve(mut tx, categories_ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve seo', err.msg())
+	}
+
+	mut seo_ids_bin := [][]u8{len: seo.len}
+	mut seo_map := map[string]CategorySEO{}
+	for i := 0; i < seo.len; i++ {
+		seo_id := seo[i].id
+		seo_id_bin := seo[i].id_bin
+		seo_ids_bin[i] = seo_id_bin
+		seo_map[seo_id] = seo[i]
+	}
+
+	seo_translations := model_seo_translation_retrieve(mut tx, seo_ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
 	}
@@ -60,10 +74,16 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 	}
 
 	for i := 0; i < seo_translations.len; i++ {
-		seo_translation := seo_translations[i]
-		owner_id := seo_translation.category_id
-		old := categories_map[owner_id].seo_translations
-		categories_map[owner_id].seo_translations = arrays.concat(old, seo_translation)
+		translation := seo_translations[i]
+		seo_id := translation.seo_id
+		old := seo_map[seo_id].translations
+		seo_map[seo_id].translations = arrays.concat(old, translation)
+	}
+
+	for i := 0; i < seo.len; i++ {
+		seo_id := seo[i].id
+		category_id := seo[i].category_id
+		categories_map[category_id].seo = seo_map[seo_id]
 	}
 
 	mut complete_categories := []Category{len: categories_ids.len}
@@ -111,7 +131,13 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 			err.msg())
 	}
 
-	seo_translations := model_category_seo_retrieve(mut tx, p.ids_bin) or {
+	seo := model_category_seo_retrieve(mut tx, p.ids_bin) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve seo', err.msg())
+	}
+
+	// there should always be one seo row.
+	seo_translations := model_seo_translation_retrieve(mut tx, [seo[0].id_bin]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve seo_translations', err.msg())
 	}
@@ -126,11 +152,8 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 		category.translations = arrays.concat(old, translation)
 	}
 
-	for i := 0; i < seo_translations.len; i++ {
-		seo_translation := seo_translations[i]
-		old := category.seo_translations
-		category.seo_translations = arrays.concat(old, seo_translation)
-	}
+	category.seo = seo[0]
+	category.seo.translations = seo_translations
 
 	external_category := format_category_response(category)
 
@@ -139,7 +162,7 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 	})
 }
 
-fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
+fn conduit_category_get_store(mut app App, mut ctx Context, locale_id string, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -163,7 +186,7 @@ fn conduit_category_get_store(mut app App, mut ctx Context, p CategoryRetrievePa
 
 	mut category := categories[0]
 
-	external_category := format_category_response_store(category)
+	external_category := format_category_response_store(category, locale_id)
 
 	return ctx.json(CategoryResponseStoreEnvelope{
 		category: external_category
@@ -182,27 +205,24 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 		return handle_error_500(mut ctx, 'Could not create category', err.msg())
 	}
 
-	model_category_translations_update(mut tx, category_id_bin, ph.translations) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create category_translations', err.msg())
+	if translations := ph.translations {
+		model_category_translations_update(mut tx, category_id_bin, translations) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not create category_translations',
+				err.msg())
+		}
 	}
 
-	if seo_translations := ph.seo_translations {
-		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			_, id_bin := app.new_id()
-			seo_translation_ids_bin[i] = id_bin
-		}
+	_, seo_id_bin := app.new_id()
+	model_category_seo_create(mut tx, seo_id_bin, category_id_bin) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
+	}
 
-		p := CategorySEOUpdateParams{
-			category_id_bin:         category_id_bin
-			seo_translation_ids_bin: seo_translation_ids_bin
-			seo_translations:        seo_translations
-		}
-
-		model_category_seo_update(mut tx, p) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not create seo_translations', err.msg())
+	if seo := ph.seo {
+		model_seo_update(mut tx, seo_id_bin, seo) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 	}
 

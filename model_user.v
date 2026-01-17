@@ -28,7 +28,7 @@ mut:
 }
 
 fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id string, user_id_bin []u8) ! {
-	password_hash, password_salt := hash_password(p.password)!
+	password_salt, password_hash := hash_password(p.password)!
 
 	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
 	mut params := [firebird.Value(user_id_bin), user_id, p.email, password_hash, password_salt]
@@ -69,7 +69,6 @@ struct UserListParams {
 	include_deleted     bool
 	use_offset          bool
 	offset              i32
-	use_fetch           bool
 	fetch               i32
 	use_order_direction bool
 	order_direction     string
@@ -108,7 +107,7 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 
 fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 	conditions, params := model_user_list_conditions(p)
-	data := tx.execute('SELECT COUNT OVER(*) FROM app_user ${conditions}', ...params)!
+	data := tx.execute('SELECT COUNT(*) FROM app_user ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
@@ -133,10 +132,8 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		params = arrays.concat(params, p.offset)
 	}
 
-	if p.use_fetch {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch)
-	}
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
+	params = arrays.concat(params, p.fetch)
 
 	data := tx.execute('SELECT
 		id,

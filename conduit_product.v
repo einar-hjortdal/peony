@@ -13,6 +13,19 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
 	}
 
+	_, seo_id_bin := app.new_id()
+	model_product_seo_create(mut tx, seo_id_bin, product_id_bin) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
+	}
+
+	if seo := ph.seo {
+		model_seo_update(mut tx, seo_id_bin, seo) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
+		}
+	}
+
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
@@ -82,26 +95,6 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		}
 	}
 
-	if seo_translations := ph.seo_translations {
-		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			_, seo_translation_ids_bin[i] = app.new_id()
-		}
-
-		// TODO just use function params
-		p := ProductSEOUpdateParams{
-			product_id_bin:          product_id_bin
-			seo_translation_ids_bin: seo_translation_ids_bin
-			seo_translations:        seo_translations
-		}
-
-		model_product_seo_update(mut tx, p) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product seo translations',
-				err.msg())
-		}
-	}
-
 	_, variant_id_bin := app.new_id()
 	mut region_ids_bin := [][]u8{len: regions.len}
 	mut money_amount_ids_bin := [][]u8{len: regions.len}
@@ -152,7 +145,7 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	return success(mut ctx)
 }
 
-fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
+fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -215,7 +208,7 @@ fn conduit_products_get(mut app App, mut ctx Context, ph RetrieveProductParamsHy
 	})
 }
 
-fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
+fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -307,7 +300,7 @@ fn conduit_products_get_store(mut app App, mut ctx Context, ph RetrieveProductPa
 	mut external_products := []ProductResponseStore{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
 		external_products[i] = format_product_response_store(complete_products[i], pctx,
-			product_variants_availability)
+			product_variants_availability, ph.locale_id.v)
 	}
 
 	return ctx.json(ProductResponseStoreListEnvelope{
@@ -430,7 +423,8 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
 
-	external_product := format_product_response_store(product, pctx, product_variants_availability)
+	external_product := format_product_response_store(product, pctx, product_variants_availability,
+		ph.locale_id.v)
 
 	return ctx.json(ProductResponseStoreEnvelope{
 		product: external_product
@@ -482,7 +476,7 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	} else if thumbnail := ph.thumbnail {
-		product_images := model_product_image_retrieve(mut tx, []u8{}, [
+		product_images := model_product_image_retrieve(mut tx, [
 			product_id_bin,
 		]) or {
 			tx.rollback() or {}
@@ -526,25 +520,6 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 		model_product_translation_update(mut tx, product_id_bin, translations) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product translations',
-				err.msg())
-		}
-	}
-
-	if seo_translations := ph.seo_translations {
-		mut seo_translation_ids_bin := [][]u8{len: seo_translations.len}
-		for i := 0; i < seo_translations.len; i++ {
-			_, seo_translation_ids_bin[i] = app.new_id()
-		}
-
-		p := ProductSEOUpdateParams{
-			product_id_bin:          product_id_bin
-			seo_translation_ids_bin: seo_translation_ids_bin
-			seo_translations:        seo_translations
-		}
-
-		model_product_seo_update(mut tx, p) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product seo translations',
 				err.msg())
 		}
 	}
@@ -627,10 +602,9 @@ fn conduit_product_option_update(mut app App, mut ctx Context, product_id string
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_option_update(mut tx, product_option_id_bin, ph.translations) or {
+	model_product_option_update(mut tx, product_option_id_bin, ph) or {
 		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not create product_option: could not insert translations',
-			err.msg())
+		return handle_error_500(mut ctx, 'Could not create product_option', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
@@ -675,6 +649,7 @@ fn conduit_product_option_delete(mut app App, mut ctx Context, product_id string
 	return success(mut ctx)
 }
 
+// TODO translations struct transformed the same was in conduit_product_option_value_update, maybe abstract
 fn conduit_product_option_value_create(mut app App, mut ctx Context, product_option_id_bin []u8, ph ProductOptionValueRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
@@ -687,10 +662,22 @@ fn conduit_product_option_value_create(mut app App, mut ctx Context, product_opt
 		return handle_error_500(mut ctx, 'Could not create product_option_value', err.msg())
 	}
 
-	model_product_option_value_update(mut tx, product_option_value_id_bin, ph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not insert product_option_value_translations',
-			err.msg())
+	if translations := ph.translations {
+		mut p := []ProductOptionValueTranslationUpdateParams{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			p[i] = ProductOptionValueTranslationUpdateParams{
+				locale_id_bin: translation.locale_id_bin
+				name:          translation.name
+			}
+		}
+
+		model_product_option_value_translations_update(mut tx, product_option_value_id_bin,
+			p) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update product_option_value_translations',
+				err.msg())
+		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
@@ -698,15 +685,38 @@ fn conduit_product_option_value_create(mut app App, mut ctx Context, product_opt
 	return success(mut ctx)
 }
 
-fn conduit_product_option_value_update(mut app App, mut ctx Context, product_option_value_id_bin []u8, ph ProductOptionValueRequestHygienised) veb.Result {
+fn conduit_product_option_value_update(mut app App, mut ctx Context, product_option_value_id_bin []u8, ph ProductOptionValueUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_option_value_update(mut tx, product_option_value_id_bin, ph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not update product_option_value_translations',
-			err.msg())
+	if name := ph.name {
+		p := ProductOptionValueUpdateParams{
+			name: name
+		}
+		model_product_option_value_update(mut tx, product_option_value_id_bin, p) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update product_option_value',
+				err.msg())
+		}
+	}
+
+	if translations := ph.translations {
+		mut p := []ProductOptionValueTranslationUpdateParams{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			p[i] = ProductOptionValueTranslationUpdateParams{
+				locale_id_bin: translation.locale_id_bin
+				name:          translation.name
+			}
+		}
+
+		model_product_option_value_translations_update(mut tx, product_option_value_id_bin,
+			p) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update product_option_value_translations',
+				err.msg())
+		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
@@ -722,6 +732,21 @@ fn conduit_product_option_value_delete(mut app App, mut ctx Context, product_opt
 	model_product_option_value_delete(mut tx, product_option_value_id_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not delete product_option_value', err.msg())
+	}
+
+	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+
+	return success(mut ctx)
+}
+
+fn conduit_product_seo_update(mut app App, mut ctx Context, seo_id_bin []u8, ph SEOUpdateRequestHygienised) veb.Result {
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	model_seo_update(mut tx, seo_id_bin, ph) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not update seo', err.msg())
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

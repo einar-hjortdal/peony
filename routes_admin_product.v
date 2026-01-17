@@ -18,7 +18,7 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 		return handle_fetch_zero(mut ctx)
 	}
 
-	return conduit_products_get(mut app, mut ctx, ph)
+	return conduit_products_list(mut app, mut ctx, ph)
 }
 
 // create a product
@@ -40,42 +40,26 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	}
+	// store := model_store_retrieve(mut tx) or {
+	// 	tx.rollback() or {}
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	// }
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	if translations := ph.translations {
-		if translations.len == 0 {
-			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is empty')
-		}
-
+		println(translations)
 		// TODO verify provided locale_id exist in database
-
-		mut found := false
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			if translation.locale_id_bin == store.default_locale_id_bin {
-				found = true
-			}
-		}
-		if found == false {
-			return handle_error_400(mut ctx, error_missing_default_translation, 'translations array does not contain default_locale_id translation')
-		}
-	} else {
-		return handle_error_400(mut ctx, error_missing_default_translation, 'translations array is not set')
 	}
 
-	// if seo_translations := ph.seo_translations {
-	// 	// TODO verify provided locale_id exist in database
+	// if seo := ph.seo {
+	// 	// TODO verify translations locale_id exist in database
 	// }
 
 	if options := ph.options {
 		for i := 0; i < options.len; i++ {
 			option := options[i]
-			option.verify(store.default_locale_id_bin) or {
+			option.verify() or {
 				if err is InternalError {
 					return handle_error_400(mut ctx, err.message, err.details)
 				}
@@ -172,7 +156,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of range')
 			}
 		} else {
-			product_images := model_product_image_retrieve(mut tx, []u8{}, [
+			product_images := model_product_image_retrieve(mut tx, [
 				product_id_bin,
 			]) or {
 				tx.rollback() or {}
@@ -482,14 +466,14 @@ pub fn (mut app App) admin_products_id_options_post(mut ctx Context, product_id 
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	}
+	// store := model_store_retrieve(mut tx) or {
+	// 	tx.rollback() or {}
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	// }
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	ph.verify(store.default_locale_id_bin) or {
+	ph.verify() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -517,10 +501,6 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			err.msg())
 	}
 
-	if p.translations.len == 0 {
-		return handle_error_400(mut ctx, 'product_option must have a title', 'No translations provided')
-	}
-
 	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
@@ -529,18 +509,7 @@ pub fn (mut app App) admin_update_product_option(mut ctx Context, product_id str
 			err.msg())
 	}
 
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	ph.verify(store.default_locale_id_bin) or {
+	ph.verify() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -569,14 +538,14 @@ pub fn (mut app App) admin_product_option_delete(mut ctx Context, product_id str
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
@@ -645,28 +614,28 @@ pub fn (mut app App) admin_product_option_value_create(mut ctx Context, product_
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	}
+	// store := model_store_retrieve(mut tx) or {
+	// 	tx.rollback() or {}
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	// }
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	ph.verify(store.default_locale_id_bin) or {
+	ph.verify() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -702,19 +671,19 @@ pub fn (mut app App) admin_product_option_value_create(mut ctx Context, product_
 @['/admin/products/:product_id/options/:product_option_id/values/:product_option_value_id'; post]
 pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_id string, product_option_id string, product_option_value_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
 	}
 
 	product_option_id_bin := id_string_to_bin(product_option_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'product_option_id')
 	}
 
 	product_option_value_id_bin := id_string_to_bin(product_option_value_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		return handle_error_400(mut ctx, error_id_invalid, 'product_option_value_id')
 	}
 
-	p := json.decode(ProductOptionValueRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductOptionValueRequest',
+	p := json.decode(ProductOptionValueUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode ProductOptionValueUpdateRequest',
 			err.msg())
 	}
 
@@ -730,28 +699,29 @@ pub fn (mut app App) admin_product_option_value_update(mut ctx Context, product_
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	}
+	// TODO locale ids exist
+	// store := model_store_retrieve(mut tx) or {
+	// 	tx.rollback() or {}
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	// }
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	ph.verify(store.default_locale_id_bin) or {
+	ph.verify() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
@@ -817,14 +787,14 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, [
 		product_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option', err.msg())
 	}
 
 	product_option_values := model_product_option_values_retrieve(mut tx, [
 		product_option_id_bin,
-	], []u8{}) or {
+	]) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_option_value', err.msg())
 	}
@@ -869,4 +839,41 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 	}
 
 	return conduit_product_option_value_delete(mut app, mut ctx, product_option_value_id_bin)
+}
+
+// updates the product's seo
+@['/admin/products/:product_id/seo/:seo_id'; post]
+pub fn (mut app App) admin_product_seo_update(mut ctx Context, product_id string, seo_id string) veb.Result {
+	_ := id_string_to_bin(product_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+	}
+
+	seo_id_bin := id_string_to_bin(seo_id) or {
+		return handle_error_400(mut ctx, error_id_invalid, 'seo_id')
+	}
+
+	p := json.decode(SEOUpdateRequest, ctx.req.data) or {
+		return handle_error_400(mut ctx, 'Could not decode SEOUpdateRequest', err.msg())
+	}
+
+	ph := p.hygienise() or {
+		if err is InternalError {
+			return handle_error_400(mut ctx, err.message, err.details)
+		}
+		return handle_error_500(mut ctx, 'Unhandled error at SEOUpdateRequest.hygienise',
+			err.msg())
+	}
+
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	// TODO verify product_id exists
+	// TODO verify seo_id exists
+	// TODO verify seo_id belongs to product_id
+	// TODO verify all locale_id exist
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	return conduit_product_seo_update(mut app, mut ctx, seo_id_bin, ph)
 }

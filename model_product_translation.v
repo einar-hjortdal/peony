@@ -54,7 +54,7 @@ fn model_product_translation_retrieve(mut tx firebird.Transaction, product_ids_b
 
 fn model_product_translation_update(mut tx firebird.Transaction, product_id_bin []u8, ph []ProductTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 5 + 1, init: firebird.Value(firebird.Null{})}
+	mut params := []firebird.Value{len: ph.len * 5 + 1, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
 		translation := ph[i]
 		src[i] = 'SELECT

@@ -33,7 +33,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		locale_id_bin: locale_id_bin
 	}
 
-	return conduit_products_get_store(mut app, mut ctx, ph)
+	return conduit_products_list_store(mut app, mut ctx, ph)
 }
 
 // get product by id
