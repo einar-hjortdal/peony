@@ -130,6 +130,9 @@ that modify or override their regional price and tax settings.
 `price_list` are used to set volume pricing: prices only valid when a specific number of variants is 
 placed in a cart.
 
+`price_list` are used to configure sales-channel pricing: set prices that override the base prices on 
+specific sales-channels.
+
 ### cart_rule (WIP)
 
 `cart_rule` are used to create behaviors for carts, such behaviors are discounts and gift products. 
