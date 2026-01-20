@@ -142,7 +142,7 @@ pub struct ProductOptionValueResponse {
 	id           string
 	option_id    string @[json: 'optionId']
 	name         string
-	translations []ProductOptionValueTranslationResponse
+	translations []ProductOptionValueTranslationResponse @[omitempty]
 }
 
 fn format_product_option_value_response(p ProductOptionValue) ProductOptionValueResponse {
@@ -178,7 +178,7 @@ pub struct ProductOptionResponse {
 	product_id   string @[json: 'productId']
 	title        string
 	values       []ProductOptionValueResponse
-	translations []ProductOptionTranslationResponse
+	translations []ProductOptionTranslationResponse @[omitempty]
 }
 
 fn format_product_option_response(p ProductOption) ProductOptionResponse {
