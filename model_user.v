@@ -115,17 +115,14 @@ fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 }
 
 fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
-	mut params := []firebird.Value{}
-	conditions, conditions_params := model_user_list_conditions(p)
-	params = arrays.append(params, conditions_params)
+	conditions, mut params := model_user_list_conditions(p)
 
 	mut order_direction := order_direction_default
 	if p.use_order_direction {
 		order_direction = p.order_direction
 	}
 
-	mut sorting := 'ORDER BY created_at ${order_direction},
-		category_rank ${order_direction}'
+	mut sorting := 'ORDER BY created_at ${order_direction}'
 
 	if p.use_offset {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
@@ -148,7 +145,7 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		first_name,
 		last_name,
 		metadata
-		FROM app_user ${conditions}',
+		FROM app_user ${conditions} ${sorting}',
 		...params)!
 
 	rows := data.rows()

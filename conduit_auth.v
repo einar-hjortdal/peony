@@ -7,6 +7,7 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	up := UserListParams{
 		filter_by_email: true
 		email:           p.email
+		fetch:           1
 	}
 
 	mut tx := app.start_transaction() or {

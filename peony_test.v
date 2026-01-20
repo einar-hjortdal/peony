@@ -19,7 +19,7 @@ const test_redict_container_name = 'test_redict_server'
 const test_redict_port = '6380'
 const test_redict_url = 'redict://@localhost:${test_redict_port}/0'
 const test_session_secret = 'testSessionSecret'
-const test_port = 8081
+const test_port = 12080
 const test_default_user_email = 'info@peony.com'
 const test_default_user_password = 'very-secret-password'
 
@@ -150,7 +150,7 @@ fn run_app() !chan bool {
 	for app_is_loading {
 		request := http.new_request(http.Method.get, 'http://localhost:${test_port}/admin/auth',
 			'')
-		if _ := request.do() {
+		if r := request.do() {
 			app_is_loading = false
 		}
 		time.sleep(1 * time.second)

@@ -109,6 +109,7 @@ fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Re
 	p := UserListParams{
 		filter_by_id: true
 		ids_bin:      [user_id_bin]
+		fetch:        1
 	}
 
 	mut tx := app.start_transaction() or {

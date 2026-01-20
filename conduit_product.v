@@ -31,7 +31,8 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 	}
 
-	regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
+	// TODO potentially loop fetch if there are more than max_fetch regions (unlikely)
+	regions := model_region_retrieve(mut tx, RegionRetriveParams{ fetch: max_fetch }) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
 	}

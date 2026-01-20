@@ -46,6 +46,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 	p := RegionRetriveParams{
 		filter_by_id: true
 		ids_bin:      [id_bin]
+		fetch:        1
 	}
 
 	mut tx := app.start_transaction() or {

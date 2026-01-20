@@ -1,5 +1,6 @@
 module peony
 
+import log
 import einar_hjortdal.firebird
 
 const default_moeny_amount = i32(0)
@@ -26,6 +27,7 @@ struct VariantMoneyAmountCreateDefaultParams {
 }
 
 fn model_product_variant_money_amount_create_default(mut tx firebird.Transaction, p VariantMoneyAmountCreateDefaultParams) ! {
+	log.debug('Creating default money_amount entries')
 	mut src := []string{len: p.region_ids_bin.len}
 	mut params := []firebird.Value{len: p.region_ids_bin.len * 3, init: firebird.Null{}}
 	for i := 0; i < p.region_ids_bin.len; i++ {
@@ -44,6 +46,7 @@ fn model_product_variant_money_amount_create_default(mut tx firebird.Transaction
 	tx.execute('INSERT INTO money_amount (id, region_id, amount) ${get_merge_source(src)}',
 		...params)!
 
+	log.debug('Creating relations in the product_variant_money_amount table')
 	params = []firebird.Value{len: p.money_amount_ids_bin.len * 2, init: firebird.Null{}}
 	for i := 0; i < p.money_amount_ids_bin.len; i++ {
 		money_amount_id_bin := p.money_amount_ids_bin[i]
