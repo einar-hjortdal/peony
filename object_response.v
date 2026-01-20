@@ -426,6 +426,7 @@ fn format_seo_translation_response(t SEOTranslation) SEOTranslationResponse {
 
 pub struct SEOResponse {
 pub:
+	id          string
 	title       string @[omitempty]
 	description string @[omitempty]
 pub mut:
@@ -483,6 +484,7 @@ fn format_category_response(p Category) CategoryResponse {
 	}
 
 	seo := SEOResponse{
+		id:           p.seo.id
 		title:        p.seo.title.value
 		description:  p.seo.description.value
 		translations: seo_translations
@@ -668,6 +670,7 @@ fn format_product_response(p Product) ProductResponse {
 	}
 
 	seo := SEOResponse{
+		id:           p.seo.id
 		title:        p.seo.title.value
 		description:  p.seo.description.value
 		translations: seo_translations
