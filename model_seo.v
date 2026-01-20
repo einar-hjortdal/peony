@@ -147,6 +147,12 @@ fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRe
 	}
 }
 
+// Does not delete the seo row: sets title and description to null, deletes all translations.
+fn model_seo_delete(mut tx firebird.Transaction, seo_id_bin []u8) ! {
+	tx.execute('UPDATE seo SET title = NULL, description = NULL WHERE seo_id = ?', seo_id_bin)!
+	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
+}
+
 struct CategorySEO {
 	id              string
 	id_bin          []u8
