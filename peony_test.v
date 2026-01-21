@@ -641,7 +641,7 @@ fn test_peony() ! {
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
 		admin_products_create_rejects_bad_requests,
-		// TODO test SEO. When update, delete all current data and insert new data.
+		// TODO test SEO create, delete and update.
 	])!
 
 	store_regions()!

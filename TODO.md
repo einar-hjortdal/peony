@@ -91,19 +91,15 @@
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
-- [ ] Reduce boilerplating
 
 ## Upstream
 
 - [ ] [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)
-- [ ] Firebird connection pooling
-- [ ] Firebird connection management
-- [ ] Firebird transaction attempts
+- [ ] [Firebird connection pooling with connection management and transaction attempts](https://github.com/einar-hjortdal/firebird/tree/feat_client)
 
 ## Considerations
 
 - Creating higher order functions to wrap conduit functions to provide tx.
-- Query builder to keep select columns together with their referenced table aliases.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 
 ## Documentation

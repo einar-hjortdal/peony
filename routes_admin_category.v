@@ -138,7 +138,7 @@ pub fn (mut app App) admin_category_seo_update(mut ctx Context, category_id stri
 	return conduit_product_seo_update(mut app, mut ctx, seo_id_bin, ph)
 }
 
-// deletes the product's seo
+// deletes the category's seo
 @['/admin/categories/:category_id/seo/:seo_id'; delete]
 pub fn (mut app App) admin_category_seo_delete(mut ctx Context, category_id string, seo_id string) veb.Result {
 	_ := id_string_to_bin(category_id) or {

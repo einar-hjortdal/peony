@@ -462,7 +462,7 @@ pub:
 	name               string @[omitempty]
 	description        string @[omitempty]
 	translations       []ProductCategoryTranslationResponse @[omitempty]
-	seo                SEOResponse @[omitempty]
+	seo                SEOResponse
 }
 
 fn format_category_response(p Category) CategoryResponse {
@@ -631,7 +631,7 @@ pub struct ProductResponse {
 	variants          []VariantResponse            @[omitempty]
 	sales_channel_ids []string                     @[json: 'salesChannels']
 	translations      []ProductTranslationResponse @[omitempty]
-	seo               SEOResponse                  @[omitempty]
+	seo               SEOResponse
 	// collections  []ProductCollectionResponse @[omitempty] // return ids only
 	// tags         []Tag                       @[omitempty] // return ids only
 }
