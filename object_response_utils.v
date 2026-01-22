@@ -126,23 +126,16 @@ fn format_store_response(s Store) StoreResponse {
 		locales[i] = format_locale_response(s.locales[i])
 	}
 
-	mut currencies := []CurrencyResponse{len: s.currencies.len}
-	for i := 0; i < s.currencies.len; i++ {
-		currencies[i] = format_currency_response(s.currencies[i])
-	}
-
 	return StoreResponse{
 		id:                        s.id
 		created_at:                s.created_at.Time
 		updated_at:                s.updated_at.Time
 		name:                      s.name
-		default_currency_code:     s.default_currency_code
 		default_locale_id:         s.default_locale_id
 		default_region_id:         s.default_region_id
 		default_stock_location_id: s.default_stock_location_id
 		default_sales_channel_id:  s.default_sales_channel_id
 		locales:                   locales
-		currencies:                currencies
 	}
 }
 

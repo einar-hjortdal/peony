@@ -11,14 +11,13 @@ fn conduit_store_get(mut app App, mut ctx Context) veb.Result {
 		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 	}
 
-	store_data := suite_store_data_get(mut tx) or {
-		return handle_error_500(mut ctx, 'Failed to retrieve store data', err.msg())
+	locales := model_store_locales_retrieve(mut tx) or {
+		return handle_error_500(mut ctx, 'Failed to retrieve store locales', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
 
-	store.currencies = store_data.currencies
-	store.locales = store_data.locales
+	store.locales = locales
 
 	r := StoreResponseEnvelope{
 		store: format_store_response(store)

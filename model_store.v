@@ -17,25 +17,21 @@ struct Store {
 	default_stock_location_id_bin []u8
 	default_sales_channel_id      string
 	default_sales_channel_id_bin  []u8
-	default_currency_code         string
 mut:
-	locales    []Locale
-	currencies []Currency
+	locales []Locale
 }
 
 fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	store_data := tx.execute('SELECT
-		s.id,
-		s.created_at,
-		s.updated_at,
-		s.name,
-		s.default_locale_id,
-		s.default_region_id,
-		s.default_stock_location_id,
-		s.default_sales_channel_id,
-		r.currency_code
-		FROM store s
-		LEFT JOIN region r ON r.id = s.default_region_id')!
+		id,
+		created_at,
+		updated_at,
+		name,
+		default_locale_id,
+		default_region_id,
+		default_stock_location_id,
+		default_sales_channel_id
+		FROM store')!
 
 	store_rows := store_data.rows()
 
@@ -53,7 +49,6 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	default_region_id_bin, _ := v[5].get_array_u8()!
 	default_stock_location_id_bin, _ := v[6].get_array_u8()!
 	default_sales_channel_id_bin, _ := v[7].get_array_u8()!
-	default_currency_code, _ := v[8].get_string()!
 
 	id := id_bin_to_string(id_bin)!
 	default_locale_id := id_bin_to_string(default_locale_id_bin)!
@@ -75,7 +70,6 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 		default_stock_location_id_bin: default_stock_location_id_bin
 		default_sales_channel_id:      default_sales_channel_id
 		default_sales_channel_id_bin:  default_sales_channel_id_bin
-		default_currency_code:         default_currency_code
 	}
 }
 
@@ -102,28 +96,6 @@ fn model_store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
 	}
 
 	return locales
-}
-
-fn model_store_currencies_retrieve(mut tx firebird.Transaction) ![]Currency {
-	data := tx.execute('SELECT code, decimal_digits from currency c WHERE EXISTS (
-	SELECT 1 from region r WHERE deleted_at IS NULL AND r.currency_code = c.code)')!
-
-	rows := data.rows()
-
-	mut currencies := []Currency{len: rows.len}
-	for i := 0; i < rows.len; i++ {
-		v := rows[i].values()
-
-		code, _ := v[0].get_string()!
-		decimal_digits := v[1].get_null_i32()!
-
-		currencies[i] = Currency{
-			code:           code
-			decimal_digits: decimal_digits
-		}
-	}
-
-	return currencies
 }
 
 fn model_store_locales_update(mut tx firebird.Transaction, id_bin []u8, locale_ids_bin [][]u8) ! {
