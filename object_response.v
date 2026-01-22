@@ -868,3 +868,7 @@ pub struct StockLocationResponseListEnvelope {
 	offset          i32
 	fetch           i32 @[omitempty]
 }
+
+pub struct StockLocationResponseEnvelope {
+	stock_location StockLocationResponse @[json: 'stockLocation']
+}

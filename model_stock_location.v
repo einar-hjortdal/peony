@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import einar_hjortdal.firebird
 
 struct StockLocation {
@@ -12,9 +13,38 @@ struct StockLocation {
 	// address Address
 }
 
-fn model_stock_location_get(mut tx firebird.Transaction) ![]StockLocation {
+struct StockLocationRetrieveParams {
+	filter_by_id bool
+	ids_bin      [][]u8
+}
+
+fn model_stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []firebird.Value) {
+	mut conditions := []string{}
+	mut params := []firebird.Value{}
+
+	if p.filter_by_id {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
+		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
+	}
+
+	return get_where_conditions(conditions), params
+}
+
+fn model_stock_location_retrieve_count(mut tx firebird.Transaction, p StockLocationRetrieveParams) !i64 {
+	conditions, params := model_stock_location_retrieve_conditions(p)
+	data := tx.execute('SELECT COUNT(*) FROM stock_location ${conditions}', ...params)!
+	rows := data.rows()
+	values := rows[0].values() // should always return one row
+	count, _ := values[0].get_i64()! // should always return one column
+	return count
+}
+
+fn model_stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRetrieveParams) ![]StockLocation {
+	conditions, mut params := model_stock_location_retrieve_conditions(p)
+
 	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, name, address_id 
-		FROM stock_location')!
+		FROM stock_location ${conditions}',
+		...params)!
 
 	rows := data.rows()
 
