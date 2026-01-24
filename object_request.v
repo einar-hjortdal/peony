@@ -567,7 +567,6 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	variant_rank     ?i32                               @[json: 'variantRank']
 	inventory_item   ?InventoryItemCreateRequest        @[json: 'inventoryItem']
 	option_value_ids ?[]string                          @[json: 'optionValueIds']
 	metadata         ?string                            @[raw]
@@ -579,7 +578,6 @@ struct ProductVariantCreateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
-	variant_rank         ?i32
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
@@ -603,7 +601,6 @@ fn (p VariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
 		ean:                  p.ean
 		upc:                  p.upc
 		barcode:              p.barcode
-		variant_rank:         p.variant_rank
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
 		metadata:             p.metadata
@@ -623,7 +620,6 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	variant_rank     ?i32                                @[json: 'variantRank']
 	inventory_item   ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
 	option_value_ids ?[]string                           @[json: 'optionValueIds']
 	metadata         ?string                             @[raw]
@@ -635,7 +631,6 @@ struct ProductVariantUpdateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
-	variant_rank         ?i32
 	inventory_item       ?InventoryItemUpdateRequest
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
@@ -654,7 +649,6 @@ fn (p VariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
 		ean:                  p.ean
 		upc:                  p.upc
 		barcode:              p.barcode
-		variant_rank:         p.variant_rank
 		inventory_item:       p.inventory_item
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
@@ -708,6 +702,8 @@ struct CategoryTranslationRequestHygienised {
 	description   ?string
 }
 
+// To delete title, provide an empty string
+// To delete description, provide an empty string
 pub struct SEOTranslationUpdateRequest {
 pub:
 	locale_id   string @[json: 'localeId']
@@ -735,7 +731,11 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
+// To delete a title, provide an empty string.
+// To delete a description, provide an empty string.
+// To delete translations, provide an empty array.
 pub struct SEOUpdateRequest {
+pub:
 	title        ?string
 	description  ?string
 	translations ?[]SEOTranslationUpdateRequest
@@ -980,6 +980,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // Images to associate with the product.
 //
 // TODO: Support creating variants on product creation (including variant stock, prices, etc.).
+// TODO: variant_rank is set using the variants array, to reorder variants, reorder array.
 pub struct ProductCreateRequest {
 pub:
 	title             string

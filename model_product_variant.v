@@ -371,11 +371,6 @@ fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8
 		params = arrays.concat(params, upc)
 	}
 
-	if variant_rank := ph.variant_rank {
-		columns = arrays.concat(columns, 'variant_rank')
-		params = arrays.concat(params, variant_rank)
-	}
-
 	if metadata := ph.metadata {
 		columns = arrays.concat(columns, 'metadata')
 		params = arrays.concat(params, metadata)
@@ -408,11 +403,6 @@ fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8
 	if upc := ph.upc {
 		columns = arrays.concat(columns, 'upc')
 		params = arrays.concat(params, upc)
-	}
-
-	if variant_rank := ph.variant_rank {
-		columns = arrays.concat(columns, 'variant_rank')
-		params = arrays.concat(params, variant_rank)
 	}
 
 	if metadata := ph.metadata {

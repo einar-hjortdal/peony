@@ -24,6 +24,12 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
+
+		model_seo_translations_update(mut tx, seo_id_bin, seo) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to insert seo_translations data',
+				err.msg())
+		}
 	}
 
 	store := model_store_retrieve(mut tx) or {
@@ -745,9 +751,18 @@ fn conduit_product_seo_update(mut app App, mut ctx Context, seo_id_bin []u8, ph 
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_seo_update(mut tx, seo_id_bin, ph) or {
-		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not update seo', err.msg())
+	if ph.title != none || ph.description != none {
+		model_seo_update(mut tx, seo_id_bin, ph) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update seo', err.msg())
+		}
+	}
+
+	if ph.translations != none {
+		model_seo_translations_update(mut tx, seo_id_bin, ph) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not update seo_translations', err.msg())
+		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

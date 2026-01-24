@@ -137,27 +137,3 @@ pub fn (mut app App) admin_category_seo_update(mut ctx Context, category_id stri
 
 	return conduit_product_seo_update(mut app, mut ctx, seo_id_bin, ph)
 }
-
-// deletes the category's seo
-@['/admin/categories/:category_id/seo/:seo_id'; delete]
-pub fn (mut app App) admin_category_seo_delete(mut ctx Context, category_id string, seo_id string) veb.Result {
-	_ := id_string_to_bin(category_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
-	}
-
-	seo_id_bin := id_string_to_bin(seo_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'seo_id')
-	}
-
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	// TODO verify product_id exists
-	// TODO verify seo_id exists
-	// TODO verify seo_id belongs to product_id
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	return conduit_seo_delete(mut app, mut ctx, seo_id_bin)
-}

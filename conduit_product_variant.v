@@ -102,8 +102,7 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	if ph.title != none || ph.ean != none || ph.upc != none || ph.barcode != none
-		|| ph.variant_rank != none {
+	if ph.title != none || ph.ean != none || ph.upc != none || ph.barcode != none {
 		model_product_variant_update(mut tx, variant_id_bin, ph) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Could not update product_variant', err.msg())

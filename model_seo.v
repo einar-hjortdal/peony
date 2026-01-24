@@ -92,30 +92,41 @@ fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_seo
 }
 
-// TODO split in 2: allow empty translations array. An empty translations array means delete all translations.
-// This means we can remove the seo delete endpoints
+// TODO use parameters?
 fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRequestHygienised) ! {
-	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
-
-	if ph.title != none || ph.description != none {
-		mut columns := []string{}
-		mut params := []firebird.Value{}
-		if title := ph.title {
-			columns = arrays.concat(columns, 'title')
+	mut columns := []string{}
+	mut params := []firebird.Value{}
+	if title := ph.title {
+		columns = arrays.concat(columns, 'title')
+		if title == '' {
+			params = arrays.concat(params, firebird.Null{})
+		} else {
 			params = arrays.concat(params, title)
 		}
-
-		if description := ph.description {
-			columns = arrays.concat(columns, 'description')
-			params = arrays.concat(params, description)
-		}
-
-		params = arrays.concat(params, seo_id_bin)
-
-		tx.execute('UPDATE seo SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 	}
 
+	if description := ph.description {
+		columns = arrays.concat(columns, 'description')
+		if description == '' {
+			params = arrays.concat(params, firebird.Null{})
+		} else {
+			params = arrays.concat(params, description)
+		}
+	}
+
+	params = arrays.concat(params, seo_id_bin)
+
+	tx.execute('UPDATE seo SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
+}
+
+// TODO use parameters?
+fn model_seo_translations_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRequestHygienised) ! {
+	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
 	if translations := ph.translations {
+		if translations.len == 0 {
+			return
+		}
+
 		mut src := []string{len: translations.len}
 		mut params := []firebird.Value{len: translations.len * 4, init: firebird.Null{}}
 		for i := 0; i < translations.len; i++ {
@@ -146,12 +157,6 @@ fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRe
 		tx.execute('INSERT INTO seo_translations (seo_id, locale_id, title, description) ${get_merge_source(src)}',
 			...params)!
 	}
-}
-
-// Does not delete the seo row: sets title and description to null, deletes all translations.
-fn model_seo_delete(mut tx firebird.Transaction, seo_id_bin []u8) ! {
-	tx.execute('UPDATE seo SET title = NULL, description = NULL WHERE id = ?', seo_id_bin)!
-	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
 }
 
 struct CategorySEO {
