@@ -749,6 +749,10 @@ mut:
 }
 
 fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
+	if p.title == none && p.description == none && p.translations == none {
+		return new_internal_error(error_empty_object, 'SEOUpdateRequest')
+	}
+
 	mut r := SEOUpdateRequestHygienised{
 		title:       p.title
 		description: p.description
@@ -1108,11 +1112,16 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	return ph
 }
 
-// If `thumbnail` is provided and `images` is empty, the image whose `rank` equals `thumbnail` is used
-// as the product thumbnail.
-// If both `thumbnail` and `images` are provided, the thumbnail is the image at index `thumbnail` in
-// the `images` array.
-struct ProductUpdateRequest {
+// title must not be empty.
+// If `thumbnail` is provided and `images` is empty, the image whose `rank` equals `thumbnail` is used as the product thumbnail.
+// If both `thumbnail` and `images` are provided, the thumbnail is the image at index `thumbnail` in the `images` array.
+// To remove all translations, submit an empty translations array.
+// To remove all images, submit an empty images array.
+// To remove the product from all tags, submit an empty tag_ids array.
+// To remove the product from all categories, submit an empty category_ids array.
+// To remove the product from all collection, submit an empty collection_ids array.
+pub struct ProductUpdateRequest {
+pub:
 	title             ?string
 	subtitle          ?string
 	description       ?string

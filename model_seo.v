@@ -92,7 +92,8 @@ fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_seo
 }
 
-// replaces all seo_translations with new ones
+// TODO split in 2: allow empty translations array. An empty translations array means delete all translations.
+// This means we can remove the seo delete endpoints
 fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRequestHygienised) ! {
 	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
 
@@ -142,7 +143,7 @@ fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRe
 			}
 		}
 
-		tx.execute('INSERT INTO seo_translations (id, locale_id, title, description) ${get_merge_source(src)}',
+		tx.execute('INSERT INTO seo_translations (seo_id, locale_id, title, description) ${get_merge_source(src)}',
 			...params)!
 	}
 }

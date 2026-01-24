@@ -136,11 +136,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
 	// }
 
-	if translations := ph.translations {
-		if translations.len == 0 {
-			tx.rollback() or {}
-			return handle_error_400(mut ctx, 'A product name is required', 'translations')
-		}
+	if _ := ph.translations {
 		// TODO verify provided locale_id exist in database
 	}
 
