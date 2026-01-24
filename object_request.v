@@ -1113,14 +1113,59 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	return ph
 }
 
-// title must not be empty.
-// If `thumbnail` is provided and `images` is empty, the image whose `rank` equals `thumbnail` is used as the product thumbnail.
-// If both `thumbnail` and `images` are provided, the thumbnail is the image at index `thumbnail` in the `images` array.
-// To remove all translations, submit an empty translations array.
-// To remove all images, submit an empty images array.
-// To remove the product from all tags, submit an empty tag_ids array.
-// To remove the product from all categories, submit an empty category_ids array.
-// To remove the product from all collection, submit an empty collection_ids array.
+// ProductUpdateRequest describes the body of the request to update an existing product.
+//
+// # Fields
+//
+// ## title
+// Product title. If provided, it must not be empty.
+//
+// ## subtitle
+// Product subtitle. If provided as an empty string, the existing subtitle is removed.
+//
+// ## description
+// Product description. If provided as an empty string, the existing description is removed.
+//
+// ## handle
+// Product handle. If provided as an empty string, a new handle will be derived from the title.
+//
+// ## is_giftcard
+// Whether the product is a gift card.
+//
+// ## status
+// See constants: `product_status_draft`, `product_status_proposed`, `product_status_published`, `product_status_rejected`.
+//
+// ## type_id
+// Product type identifier.
+//
+// ## discountable
+// Whether the product is eligible for discounts.
+//
+// ## metadata
+// Raw metadata stored as a string.
+//
+// ## tag_ids
+// Tags to associate with the product. To remove the product from all tags, submit an empty array.
+//
+// ## sales_channel_ids
+// Sales channels where the product will be available.
+//
+// ## category_ids
+// Categories the product belongs to. To remove the product from all categories, submit an empty array.
+//
+// ## collection_ids
+// Collections the product belongs to. To remove the product from all collections, submit an empty array.
+//
+// ## translations
+// Localized versions of product fields. To remove all translations, submit an empty array.
+//
+// ## thumbnail
+// Logic depends on the `images` field:
+// - If `thumbnail` is provided and `images` is empty, the image whose `rank` equals `thumbnail` is used.
+// - If both are provided, the thumbnail is the image at index `thumbnail` in the `images` array.
+//
+// ## images
+// Images to associate with the product. To remove all images, submit an empty array.
 pub struct ProductUpdateRequest {
 pub:
 	title             ?string
@@ -1142,8 +1187,10 @@ pub:
 }
 
 // TODO verify title != ''
+// TODO handle '' subtitle and description
 // TODO verify title.len <= 63
 // TODO verify subtitle.len <= 191
+// TODO handle '' handle
 struct ProductUpdateRequestHygienised {
 	title                 ?string
 	subtitle              ?string
