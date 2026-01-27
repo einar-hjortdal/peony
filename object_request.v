@@ -736,9 +736,7 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 // # Fields
 //
 // ## id
-// The unique identifier of the SEO record. This is required as an SEO object
-// may belong to a product, category, or collection. Within this API,
-// providing an ID signifies an update operation.
+// The unique identifier of the SEO record.
 //
 // ## title
 // The SEO title. If provided as an empty string, the existing title is removed.
@@ -875,6 +873,7 @@ pub:
 	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
 	translations       ?[]CategoryTranslationRequest
+	seo                ?SEOUpdateRequest
 }
 
 struct CategoryUpdateRequestHygienised {
@@ -888,6 +887,7 @@ struct CategoryUpdateRequestHygienised {
 	category_rank          ?i32
 	metadata               ?string
 mut:
+	seo          ?SEOUpdateRequestHygienised
 	translations ?[]CategoryTranslationRequestHygienised
 }
 
@@ -935,6 +935,10 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 			}
 		}
 		ph.translations = t
+	}
+
+	if seo := p.seo {
+		ph.seo = seo.hygienise()!
 	}
 
 	return ph
@@ -1191,8 +1195,24 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // ## seo
 // SEO metadata for the product.
 //
-// TODO support options and values updating
-// TODO support variant reordering and updating (variants field)
+// ## options
+// When provided, `options` is a replacement array for the product's options.
+// - Items with `id` update that option, items without `id` are created.
+// - Omitted existing options are removed. The last option cannot be removed by omission.
+// - The array index is the optionRank.
+// - Each option may include a `values` array. When `values` is provided it replaces that option's values:
+//   - Items with `id` update that value, items without `id` are created.
+//   - Omitted existing values are removed.
+//   - The index in the values array is the valueRank for that option.
+//
+// ## variants
+// When provided, `variants` is a replacement array for the product's variants.
+// - Items with `id` update that variant, items without `id` are created.
+// - Omitted existing variants are removed.
+// - The array order is the variantRank.
+// - Each variant must include an `optionValues` array:
+//   - The index refers to the `optionRank`.
+//   - Each entry refers to the `valueRank`.
 pub struct ProductUpdateRequest {
 pub:
 	title             ?string

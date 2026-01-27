@@ -199,13 +199,6 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	}
 }
 
-pub struct ProductOptionListEnvelope {
-	options []ProductOptionResponse
-	count   i64
-	offset  i32
-	fetch   i32 @[omitempty]
-}
-
 pub struct MoneyAmountResponse {
 	id            string
 	currency_code string @[json: 'currencyCode']

@@ -28,6 +28,8 @@
 ### Currently being implemented
 
 - [ ] Multi-warehouse
+- [ ] Product options
+- [ ] Product option values
 
 ### Soon to be implemented
 
@@ -78,12 +80,6 @@
 - [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Limit returned list items to 250 in all requests.
 - [ ] Return id of created objects on creation.
-- [ ] Consistent API routes behavior
-  - [ ] an explicit empty object means deletion of the related object
-  - [ ] an explicit empty object array means deletion of all related objects
-  - [ ] an array of objects, where objects have ids, means update
-  - [ ] an array of objects, where objects do not have ids, means creation of new objects
-  - [ ] an array with less objects than existing means deletion of missing objects
 
 ## Internals
 

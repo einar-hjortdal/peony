@@ -88,6 +88,12 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 		// TODO verify ids
 	}
 
+	if _ := ph.seo {
+		// TODO verify seo_id exists
+		// TODO verify seo_id belongs to category_id
+		// TODO verify all locale_id exist
+	}
+
 	return conduit_category_update(mut app, mut ctx, category_id_bin, ph)
 }
 

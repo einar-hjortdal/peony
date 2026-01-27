@@ -57,7 +57,7 @@ posts together, analogous to product collections.
 
 #### product_option, product_option_value and product_variant
 
-Each `product` must have at least one `product_variant`.
+Each `product` must have at least one `product_variant`. Each product variant must have at least one `product_option`. Each `product_option` must have at least one `product_option_value`.
 
 ### metadata
 

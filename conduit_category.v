@@ -258,6 +258,23 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, p
 		}
 	}
 
+	if seo := ph.seo {
+		if seo.title != none || seo.description != none {
+			model_seo_update(mut tx, seo) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Could not update seo', err.msg())
+			}
+		}
+
+		if ph.translations != none {
+			model_seo_translations_update(mut tx, seo) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Could not update seo_translations',
+					err.msg())
+			}
+		}
+	}
+
 	tx.commit() or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
