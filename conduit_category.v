@@ -220,12 +220,12 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 	}
 
 	if seo := ph.seo {
-		model_seo_update(mut tx, seo_id_bin, seo) or {
+		model_seo_update(mut tx, seo) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 
-		model_seo_translations_update(mut tx, seo_id_bin, seo) or {
+		model_seo_translations_update(mut tx, seo) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo_translations data',
 				err.msg())

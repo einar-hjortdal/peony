@@ -641,7 +641,12 @@ fn test_peony() ! {
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
 		admin_products_create_rejects_bad_requests,
-		// TODO test SEO create, delete and update.
+		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
+		// product SEO create, delete and update.
+		//
+		// TODO options and values
+		// /admin/variants create, update, delete
+		// TODO category
 	])!
 
 	store_regions()!

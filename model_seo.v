@@ -92,8 +92,7 @@ fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_seo
 }
 
-// TODO use parameters?
-fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRequestHygienised) ! {
+fn model_seo_update(mut tx firebird.Transaction, ph SEOUpdateRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 	if title := ph.title {
@@ -114,14 +113,14 @@ fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRe
 		}
 	}
 
-	params = arrays.concat(params, seo_id_bin)
+	params = arrays.concat(params, ph.id_bin)
 
 	tx.execute('UPDATE seo SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }
 
 // TODO use parameters?
-fn model_seo_translations_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEOUpdateRequestHygienised) ! {
-	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
+fn model_seo_translations_update(mut tx firebird.Transaction, ph SEOUpdateRequestHygienised) ! {
+	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', ph.id_bin)!
 	if translations := ph.translations {
 		if translations.len == 0 {
 			return
@@ -138,7 +137,7 @@ fn model_seo_translations_update(mut tx firebird.Transaction, seo_id_bin []u8, p
 				CAST(? AS VARCHAR(191)) AS description
 				FROM RDB\$DATABASE'
 
-			params[i * 4] = seo_id_bin
+			params[i * 4] = ph.id_bin
 			params[i * 4 + 1] = translation.locale_id_bin
 
 			if title := translation.title {

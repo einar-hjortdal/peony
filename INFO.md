@@ -124,14 +124,16 @@ property set on `region`.
 
 ### price_list (WIP)
 
-B2B customers may need custom prices: a `price_list` allows to assign prices and taxes to `product_variant` 
-that modify or override their regional price and tax settings.
+A `price_list` allows to assign prices and taxes to `product_variant` that modify or override their 
+regional price and tax settings.
 
 `price_list` are used to set volume pricing: prices only valid when a specific number of variants is 
 placed in a cart.
 
 `price_list` are used to configure sales-channel pricing: set prices that override the base prices on 
 specific sales-channels.
+
+A typical use of `price_list` is to create *catalogs* for B2B customers.
 
 ### cart_rule (WIP)
 

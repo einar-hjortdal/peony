@@ -20,12 +20,12 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	}
 
 	if seo := ph.seo {
-		model_seo_update(mut tx, seo_id_bin, seo) or {
+		model_seo_update(mut tx, seo) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 
-		model_seo_translations_update(mut tx, seo_id_bin, seo) or {
+		model_seo_translations_update(mut tx, seo) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to insert seo_translations data',
 				err.msg())
@@ -438,6 +438,8 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	})
 }
 
+// TODO handle options
+// TODO handle variants
 // TODO handle ph.thumbnail
 fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph ProductUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
@@ -528,6 +530,23 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product translations',
 				err.msg())
+		}
+	}
+
+	if seo := ph.seo {
+		if seo.title != none || seo.description != none {
+			model_seo_update(mut tx, seo) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Could not update seo', err.msg())
+			}
+		}
+
+		if ph.translations != none {
+			model_seo_translations_update(mut tx, seo) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Could not update seo_translations',
+					err.msg())
+			}
 		}
 	}
 
@@ -739,30 +758,6 @@ fn conduit_product_option_value_delete(mut app App, mut ctx Context, product_opt
 	model_product_option_value_delete(mut tx, product_option_value_id_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not delete product_option_value', err.msg())
-	}
-
-	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
-
-	return success(mut ctx)
-}
-
-fn conduit_product_seo_update(mut app App, mut ctx Context, seo_id_bin []u8, ph SEOUpdateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	if ph.title != none || ph.description != none {
-		model_seo_update(mut tx, seo_id_bin, ph) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not update seo', err.msg())
-		}
-	}
-
-	if ph.translations != none {
-		model_seo_translations_update(mut tx, seo_id_bin, ph) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not update seo_translations', err.msg())
-		}
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }

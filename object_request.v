@@ -731,17 +731,34 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
-// To delete a title, provide an empty string.
-// To delete a description, provide an empty string.
-// To delete translations, provide an empty array.
+// SEOUpdateRequest describes the body of the request to update SEO metadata.
+//
+// # Fields
+//
+// ## id
+// The unique identifier of the SEO record. This is required as an SEO object
+// may belong to a product, category, or collection. Within this API,
+// providing an ID signifies an update operation.
+//
+// ## title
+// The SEO title. If provided as an empty string, the existing title is removed.
+//
+// ## description
+// The SEO description. If provided as an empty string, the existing description is removed.
+//
+// ## translations
+// Localized versions of SEO fields. To remove all translations, submit an empty array.
 pub struct SEOUpdateRequest {
 pub:
+	id           string
 	title        ?string
 	description  ?string
 	translations ?[]SEOTranslationUpdateRequest
 }
 
 struct SEOUpdateRequestHygienised {
+	id          string
+	id_bin      []u8
 	title       ?string
 	description ?string
 mut:
@@ -749,11 +766,15 @@ mut:
 }
 
 fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
+	id_bin := id_string_to_bin(p.id)!
+
 	if p.title == none && p.description == none && p.translations == none {
 		return new_internal_error(error_empty_object, 'SEOUpdateRequest')
 	}
 
 	mut r := SEOUpdateRequestHygienised{
+		id:          p.id
+		id_bin:      id_bin
 		title:       p.title
 		description: p.description
 	}
@@ -1166,6 +1187,12 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 //
 // ## images
 // Images to associate with the product. To remove all images, submit an empty array.
+//
+// ## seo
+// SEO metadata for the product.
+//
+// TODO support options and values updating
+// TODO support variant reordering and updating (variants field)
 pub struct ProductUpdateRequest {
 pub:
 	title             ?string
@@ -1184,6 +1211,9 @@ pub:
 	translations      ?[]ProductTranslationRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
+	seo               ?SEOUpdateRequest
+	// options []OptionUpdateRequest
+	// variants []VariantUpdateRequest
 }
 
 // TODO verify title != ''
@@ -1214,6 +1244,7 @@ struct ProductUpdateRequestHygienised {
 mut:
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
+	seo          ?SEOUpdateRequestHygienised
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
@@ -1275,7 +1306,9 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		ph.images = h
 	}
 
-	// thumbnail:             p.thumbnail
+	if seo := p.seo {
+		ph.seo = seo.hygienise()!
+	}
 
 	return ph
 }

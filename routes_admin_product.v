@@ -166,6 +166,13 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		}
 	}
 
+	if _ := ph.seo {
+		// TODO verify product_id exists
+		// TODO verify seo_id exists
+		// TODO verify seo_id belongs to product_id
+		// TODO verify all locale_id exist
+	}
+
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
 	// if seo_translations := ph.seo_translations {
@@ -835,41 +842,4 @@ pub fn (mut app App) admin_product_option_value_delete(mut ctx Context, product_
 	}
 
 	return conduit_product_option_value_delete(mut app, mut ctx, product_option_value_id_bin)
-}
-
-// updates the product's seo
-@['/admin/products/:product_id/seo/:seo_id'; post]
-pub fn (mut app App) admin_product_seo_update(mut ctx Context, product_id string, seo_id string) veb.Result {
-	_ := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
-	}
-
-	seo_id_bin := id_string_to_bin(seo_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'seo_id')
-	}
-
-	p := json.decode(SEOUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode SEOUpdateRequest', err.msg())
-	}
-
-	ph := p.hygienise() or {
-		if err is InternalError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return handle_error_500(mut ctx, 'Unhandled error at SEOUpdateRequest.hygienise',
-			err.msg())
-	}
-
-	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
-	}
-
-	// TODO verify product_id exists
-	// TODO verify seo_id exists
-	// TODO verify seo_id belongs to product_id
-	// TODO verify all locale_id exist
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
-	return conduit_product_seo_update(mut app, mut ctx, seo_id_bin, ph)
 }
