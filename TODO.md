@@ -93,6 +93,7 @@
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
+- [ ] Attach function name to each error. Nested hygienise functions may return same error messages right now, making it difficult to identify which struct is malformed.
 
 ## Upstream
 

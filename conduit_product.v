@@ -14,21 +14,25 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	}
 
 	_, seo_id_bin := app.new_id()
-	model_product_seo_create(mut tx, seo_id_bin, product_id_bin) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
-	}
-
 	if seo := ph.seo {
-		model_seo_update(mut tx, seo) or {
+		model_product_seo_create(mut tx, seo_id_bin, product_id_bin, seo) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 
-		model_seo_translations_update(mut tx, seo) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to insert seo_translations data',
-				err.msg())
+		if translations := seo.translations {
+			if translations.len > 0 {
+				model_seo_translations_update(mut tx, seo_id_bin, translations) or {
+					tx.rollback() or {}
+					return handle_error_500(mut ctx, 'Failed to insert seo_translations',
+						err.msg())
+				}
+			}
+		}
+	} else {
+		model_product_seo_create_default(mut tx, seo_id_bin, product_id_bin) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
 		}
 	}
 
@@ -541,11 +545,19 @@ fn conduit_products_update(mut app App, mut ctx Context, product_id_bin []u8, ph
 			}
 		}
 
-		if ph.translations != none {
-			model_seo_translations_update(mut tx, seo) or {
+		if translations := seo.translations {
+			model_seo_translations_delete(mut tx, seo.id_bin) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Could not update seo_translations',
+				return handle_error_500(mut ctx, 'Could not delete seo_translations',
 					err.msg())
+			}
+
+			if translations.len > 0 {
+				model_seo_translations_update(mut tx, seo.id_bin, translations) or {
+					tx.rollback() or {}
+					return handle_error_500(mut ctx, 'Could not update seo_translations',
+						err.msg())
+				}
 			}
 		}
 	}

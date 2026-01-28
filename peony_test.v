@@ -267,6 +267,7 @@ fn auth_middleware_allows_logins_and_logouts() ! {
 }
 
 fn admin_auth_returns_user_data(cookie_value string) ! {
+	println('admin_auth_returns_user_data')
 	response := do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
 	response_is_ok(response)!
 
@@ -280,6 +281,7 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 }
 
 fn admin_users_list_users(cookie_value string) ! {
+	println('admin_users_list_users')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(UserListResponseEnvelope, response.body)!
@@ -310,6 +312,7 @@ fn admin_users_list_users(cookie_value string) ! {
 // Correctly lists new users
 // Correctly lists deleted users
 fn admin_users_create_and_delete_user(cookie_value string) ! {
+	println('admin_users_create_and_delete_user')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	mut r := json.decode(UserListResponseEnvelope, response.body)!
 	old_count := r.count
@@ -366,6 +369,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 // create a new stock location and get its id
 // create a new sales channel and get its id
 fn admin_store(cookie_value string) ! {
+	println('admin_store')
 	endpoint := '/admin/store'
 	mut response := do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
@@ -399,49 +403,57 @@ fn admin_store(cookie_value string) ! {
 }
 
 fn admin_categories_create_minimal_category(cookie_value string) ! {
+	println('admin_categories_create_minimal_category')
 	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(CategoryResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_categories_len := r.categories.len
 	expected_count := old_count + 1
-	expected_categoriess_len := old_categories_len + 1
+	expected_categories_len := old_categories_len + 1
 
-	name := luuid.v2()
-	new_category_data := CategoryCreateRequest{
-		name: name
-	}
+	new_category_name := luuid.v2()
+	new_category_data := json.encode(CategoryCreateRequest{
+		name: new_category_name
+	})
 	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
-		json.encode(new_category_data))!
+		new_category_data)!
 	response_is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	response_is_ok(response)!
 	r = json.decode(CategoryResponseListEnvelope, response.body)!
-
 	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == expected_categoriess_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
+	expect(r.categories.len == expected_categories_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
 
-	mut new_category := CategoryResponse{}
+	mut category_to_delete := CategoryResponse{}
 	mut found := false
 	for i := 0; i < r.categories.len; i++ {
 		category := r.categories[i]
-		if category.name == name {
-			new_category = category
+		if category.name == new_category_name {
+			category_to_delete = category
 			found = true
 			break
 		}
 	}
 	expect(found, 'Categories returned do not include newly created category')!
 
-	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
+	response = do_authenticated_delete_request('${endpoint_admin_categories}/${category_to_delete.id}',
 		cookie_value)!
 	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(CategoryResponseListEnvelope, response.body)!
+	expect(r.count == old_count, 'Count includes deleted category')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
 }
 
 fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
+	println('admin_categories_create_rejects_bad_requests')
 	new_category_data := CategoryCreateRequest{}
 	response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		json.encode(new_category_data))!
@@ -454,6 +466,7 @@ fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 // Correctly lists new product
 // Correctly lists deleted product
 fn admin_products_create_minimal_product(cookie_value string) ! {
+	println('admin_products_create_minimal_product')
 	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(ProductResponseListEnvelope, response.body)!
@@ -503,6 +516,7 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 }
 
 fn admin_products_create_complex_product(cookie_value string) ! {
+	println('admin_products_create_complex_product')
 	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
 	mut r := json.decode(ProductResponseListEnvelope, response.body)!
@@ -533,7 +547,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 		status:       status
 		discountable: discountable
 		metadata:     metadata
-		seo:          SEOUpdateRequest{
+		seo:          SEOCreateRequest{
 			title:       seo_title
 			description: seo_description
 		}
@@ -595,6 +609,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 }
 
 fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
+	println('admin_products_create_rejects_bad_requests')
 	mut new_product_data := ProductCreateRequest{}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(new_product_data))!
@@ -608,6 +623,7 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 }
 
 fn store_regions() ! {
+	println('store_regions')
 	// list regions
 	mut response := do_get_request('/store/regions')!
 	response_is_ok(response)!
@@ -646,7 +662,7 @@ fn test_peony() ! {
 		//
 		// TODO options and values
 		// /admin/variants create, update, delete
-		// TODO category
+		//
 	])!
 
 	store_regions()!

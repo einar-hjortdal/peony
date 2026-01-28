@@ -111,6 +111,7 @@ fn model_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph
 	mut columns := ['id', 'name', 'handle']
 	mut params := [firebird.Value(id_bin), ph.name]
 
+	// TODO just use handle (trust it is unique and safe in the params)
 	if handle := ph.handle {
 		params = arrays.concat(params, handle)
 	} else {

@@ -178,7 +178,7 @@ struct ProductTranslationRequestHygienised {
 	description   ?string
 }
 
-fn hygienise_product_translation_request(p ProductTranslationRequest) !ProductTranslationRequestHygienised {
+fn (p ProductTranslationRequest) hygienise() !ProductTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
@@ -731,6 +731,54 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
+// SEOCreateRequest describes the body of the request to create SEO metadata.
+//
+// # Fields
+//
+// ## title
+// The SEO title. If provided as an empty string, the existing title is removed.
+//
+// ## description
+// The SEO description. If provided as an empty string, the existing description is removed.
+//
+// ## translations
+// Localized versions of SEO fields. To remove all translations, submit an empty array.
+pub struct SEOCreateRequest {
+pub:
+	title        ?string
+	description  ?string
+	translations ?[]SEOTranslationUpdateRequest
+}
+
+struct SEOCreateRequestHygienised {
+	title       ?string
+	description ?string
+mut:
+	translations ?[]SEOTranslationUpdateRequestHygienised
+}
+
+fn (p SEOCreateRequest) hygienise() !SEOCreateRequestHygienised {
+	if p.title == none && p.description == none && p.translations == none {
+		return new_internal_error(error_empty_object, 'SEOUpdateRequest')
+	}
+
+	mut r := SEOCreateRequestHygienised{
+		title:       p.title
+		description: p.description
+	}
+
+	if translations := p.translations {
+		mut hygienised := []SEOTranslationUpdateRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			hygienised[i] = translation.hygienise()!
+		}
+		r.translations = hygienised
+	}
+
+	return r
+}
+
 // SEOUpdateRequest describes the body of the request to update SEO metadata.
 //
 // # Fields
@@ -764,7 +812,7 @@ mut:
 }
 
 fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
-	id_bin := id_string_to_bin(p.id)!
+	id_bin := id_string_to_bin(p.id) or { return new_internal_error(error_id_invalid, 'id') }
 
 	if p.title == none && p.description == none && p.translations == none {
 		return new_internal_error(error_empty_object, 'SEOUpdateRequest')
@@ -1022,7 +1070,7 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo               ?SEOUpdateRequest
+	seo               ?SEOCreateRequest
 	options           ?[]ProductOptionCreateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
@@ -1054,7 +1102,7 @@ struct ProductCreateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	seo          ?SEOUpdateRequestHygienised
+	seo          ?SEOCreateRequestHygienised
 	options      ?[]ProductOptionCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
@@ -1118,7 +1166,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if translations := p.translations {
 		mut h := []ProductTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
-			h[i] = hygienise_product_translation_request(translations[i])!
+			h[i] = translations[i].hygienise()!
 		}
 		ph.translations = h
 	}
@@ -1313,7 +1361,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if translations := p.translations {
 		mut h := []ProductTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
-			h[i] = hygienise_product_translation_request(translations[i])!
+			h[i] = translations[i].hygienise()!
 		}
 		ph.translations = h
 	}
