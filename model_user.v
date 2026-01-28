@@ -3,11 +3,11 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-const role_admin = 'admin'
-const role_member = 'member'
-const role_developer = 'developer'
-const role_author = 'author'
-const role_contributor = 'contributor'
+pub const role_admin = 'admin'
+pub const role_member = 'member'
+pub const role_developer = 'developer'
+pub const role_author = 'author'
+pub const role_contributor = 'contributor'
 
 struct User {
 	id            string

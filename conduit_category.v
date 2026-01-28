@@ -214,25 +214,25 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 	}
 
 	_, seo_id_bin := app.new_id()
-	model_category_seo_create(mut tx, seo_id_bin, category_id_bin) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
-	}
-
 	if seo := ph.seo {
-		model_seo_update(mut tx, seo) or {
+		model_category_seo_create(mut tx, seo_id_bin, category_id_bin, seo) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 
 		if translations := seo.translations {
 			if translations.len > 0 {
-				model_seo_translations_update(mut tx, seo.id_bin, translations) or {
+				model_seo_translations_update(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {} // ignore error
 					return handle_error_500(mut ctx, 'Failed to insert seo_translations data',
 						err.msg())
 				}
 			}
+		}
+	} else {
+		model_category_seo_create_default(mut tx, seo_id_bin, category_id_bin) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
 	}
 

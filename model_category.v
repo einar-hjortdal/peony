@@ -143,11 +143,6 @@ fn model_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph
 		params = arrays.concat(params, ph.parent_category_id_bin)
 	}
 
-	if category_rank := ph.category_rank {
-		columns = arrays.concat(columns, 'category_rank')
-		params = arrays.concat(params, category_rank)
-	}
-
 	tx.execute('INSERT INTO category (${get_columns(columns)}) 
 		VALUES (${get_placeholders(params)})',
 		...params)!

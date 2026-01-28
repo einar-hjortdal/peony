@@ -1,10 +1,11 @@
-module peony
+import peony
 
+// deps
 import os
 import net.http
 import time
-import einar_hjortdal.luuid
 import json
+import einar_hjortdal.luuid
 
 const test_fail_key = 'fail'
 const test_firebird_container_name = 'test_firebird_server'
@@ -35,13 +36,13 @@ fn new_provider_blob_dummy() &BlobProviderDummy {
 	return &BlobProviderDummy{}
 }
 
-fn (bp BlobProviderDummy) create(fd http.FileData) !ProviderBlobFileData {
+fn (bp BlobProviderDummy) create(fd http.FileData) !peony.ProviderBlobFileData {
 	if fd.filename == test_fail_key {
 		return error('failed to create file, filename == ${test_fail_key}')
 	}
 
 	id := luuid.v2()
-	return ProviderBlobFileData{
+	return peony.ProviderBlobFileData{
 		id:  id
 		url: 'https://BlobProvider.Dummy/${id}'
 	}
@@ -116,7 +117,7 @@ fn containers_are_ready() {
 // Note: veb cannot be stopped, it has no shutdown functions: https://github.com/vlang/v/issues/25655
 // Note: containers aren't stopped on panic
 fn app_routine(ch chan bool) {
-	config := Config{
+	config := peony.Config{
 		debug:                 true
 		firebird_url:          test_firebird_url
 		redict_url:            test_redict_url
@@ -126,11 +127,11 @@ fn app_routine(ch chan bool) {
 		session_secret:        test_session_secret
 	}
 
-	providers := Providers{
+	providers := peony.Providers{
 		blob: new_provider_blob_dummy()
 	}
 
-	mut app := new_peony_app(config, providers) or { panic(err) }
+	mut app := peony.new_peony_app(config, providers) or { panic(err) }
 	go app.run()
 	_ := <-ch
 
@@ -212,7 +213,7 @@ fn extract_cookie_from_set_cookie(r http.Response) !string {
 }
 
 fn user_login() !string {
-	response := do_post_request('/admin/auth', json.encode(AuthRequest{
+	response := do_post_request('/admin/auth', json.encode(peony.AuthRequest{
 		email:    test_default_user_email
 		password: test_default_user_password
 	}))!
@@ -247,7 +248,7 @@ fn auth_middleware_rejects_unauthorized() ! {
 }
 
 fn auth_middleware_allows_logins_and_logouts() ! {
-	body := json.encode(AuthRequest{
+	body := json.encode(peony.AuthRequest{
 		email:    test_default_user_email
 		password: test_default_user_password
 	})
@@ -271,12 +272,12 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 	response := do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
 	response_is_ok(response)!
 
-	r := json.decode(UserResponseEnvelope, response.body)!
+	r := json.decode(peony.UserResponseEnvelope, response.body)!
 	user := r.user
 	expect(user.id != '', 'Returned empty user id')!
 	expect(user.email == test_default_user_email, 'Unexpected user email: ${user.email}')!
 	expect(user.handle != '', 'Unexpected user handle: ${user.handle}')!
-	expect(user.role == role_admin, 'Unexpected user role: ${user.role}')!
+	expect(user.role == peony.role_admin, 'Unexpected user role: ${user.role}')!
 	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
 }
 
@@ -284,13 +285,13 @@ fn admin_users_list_users(cookie_value string) ! {
 	println('admin_users_list_users')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	response_is_ok(response)!
-	mut r := json.decode(UserListResponseEnvelope, response.body)!
+	mut r := json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count != 0, 'Unexpected count: ${r.count}')!
 	expect(r.users.len != 0, 'No users returned')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
 
-	mut default_user := UserResponse{}
+	mut default_user := peony.UserResponse{}
 	mut found := false
 	for i := 0; i < r.users.len; i++ {
 		user := r.users[i]
@@ -303,7 +304,7 @@ fn admin_users_list_users(cookie_value string) ! {
 	expect(found, 'Default user not found in response')!
 	expect(default_user.id != '', 'Unexpected user id: ${default_user.id}')!
 	expect(default_user.handle != '', 'Unexpected user handle: ${default_user.handle}')!
-	expect(default_user.role == role_admin, 'Unexpected user role: ${default_user.role}')!
+	expect(default_user.role == peony.role_admin, 'Unexpected user role: ${default_user.role}')!
 }
 
 // Verifies:
@@ -314,17 +315,17 @@ fn admin_users_list_users(cookie_value string) ! {
 fn admin_users_create_and_delete_user(cookie_value string) ! {
 	println('admin_users_create_and_delete_user')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
-	mut r := json.decode(UserListResponseEnvelope, response.body)!
+	mut r := json.decode(peony.UserListResponseEnvelope, response.body)!
 	old_count := r.count
 	old_users_len := r.users.len
 
-	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json.encode(UserCreateRequest{
+	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json.encode(peony.UserCreateRequest{
 		email: 'new_user@peony.com'
 	}))!
 	expect(response.status_code == 400, 'Invalid request was accepted.')!
 
 	// TODO add all fields
-	valid_new_user := UserCreateRequest{
+	valid_new_user := peony.UserCreateRequest{
 		email:    'new_user@peony.com'
 		password: 'new user password'
 	}
@@ -333,11 +334,11 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	response_is_ok(response)!
-	r = json.decode(UserListResponseEnvelope, response.body)!
+	r = json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count == old_count + 1, 'Unexpected count. Count does not include new user')!
 	expect(r.users.len == old_users_len + 1, 'Unexpected users.len. Count does not include new user')!
 
-	mut new_user := UserResponse{}
+	mut new_user := peony.UserResponse{}
 	mut found := false
 	for i := 0; i < r.users.len; i++ {
 		user := r.users[i]
@@ -356,7 +357,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	response_is_ok(response)!
-	r = json.decode(UserListResponseEnvelope, response.body)!
+	r = json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count == old_count, 'Unexpected count. Count includes deleted user')!
 	expect(r.users.len == old_users_len, 'Unexpected users.len. Response includes deleted user')!
 }
@@ -374,14 +375,14 @@ fn admin_store(cookie_value string) ! {
 	mut response := do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 
-	mut r := json.decode(StoreResponseEnvelope, response.body)!
+	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
 	mut store := r.store
 	// TODO check values
 
 	old_updated_at := store.updated_at
 
 	new_store_name := luuid.v2()
-	new_store_data := StoreUpdateRequest{
+	new_store_data := peony.StoreUpdateRequest{
 		name: new_store_name
 		// default_locale_id
 		// default_region_id
@@ -396,7 +397,7 @@ fn admin_store(cookie_value string) ! {
 	response = do_authenticated_get_request(endpoint, cookie_value)!
 	response_is_ok(response)!
 
-	r = json.decode(StoreResponseEnvelope, response.body)!
+	r = json.decode(peony.StoreResponseEnvelope, response.body)!
 	store = r.store
 	expect(store.name == new_store_name, 'Store name was not updated')!
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
@@ -406,14 +407,14 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 	println('admin_categories_create_minimal_category')
 	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	response_is_ok(response)!
-	mut r := json.decode(CategoryResponseListEnvelope, response.body)!
+	mut r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_categories_len := r.categories.len
 	expected_count := old_count + 1
 	expected_categories_len := old_categories_len + 1
 
 	new_category_name := luuid.v2()
-	new_category_data := json.encode(CategoryCreateRequest{
+	new_category_data := json.encode(peony.CategoryCreateRequest{
 		name: new_category_name
 	})
 	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
@@ -421,13 +422,13 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 	response_is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	r = json.decode(CategoryResponseListEnvelope, response.body)!
+	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
 	expect(r.categories.len == expected_categories_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
 
-	mut category_to_delete := CategoryResponse{}
+	mut category_to_delete := peony.CategoryResponse{}
 	mut found := false
 	for i := 0; i < r.categories.len; i++ {
 		category := r.categories[i]
@@ -445,7 +446,81 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	response_is_ok(response)!
-	r = json.decode(CategoryResponseListEnvelope, response.body)!
+	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
+	expect(r.count == old_count, 'Count includes deleted category')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
+}
+
+fn admin_categories_create_complex_category(cookie_value string) ! {
+	println('admin_categories_create_complex_category')
+	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	response_is_ok(response)!
+	mut r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
+	old_count := r.count
+	old_categories_len := r.categories.len
+	expected_count := old_count + 1
+	expected_categories_len := old_categories_len + 1
+
+	name := luuid.v2()
+	description := luuid.v2()
+	handle := luuid.v2()
+	is_internal := true
+	is_active := false
+	metadata := luuid.v2()
+	seo_title := luuid.v2()
+	seo_description := luuid.v2()
+	category_data := json.encode(peony.CategoryCreateRequest{
+		name:        name
+		description: description
+		handle:      handle
+		is_internal: is_internal
+		is_active:   is_active
+		metadata:    metadata
+		seo:         peony.SEOCreateRequest{
+			title:       seo_title
+			description: seo_description
+		}
+	})
+	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+		category_data)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
+	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
+	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
+	// expect(r.fetch == 0, 'TODO')
+	expect(r.categories.len == expected_categories_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
+
+	mut new_category := peony.CategoryResponse{}
+	mut found := false
+	for i := 0; i < r.categories.len; i++ {
+		c := r.categories[i]
+		if c.name == name {
+			new_category = c
+			found = true
+			break
+		}
+	}
+	expect(found, 'Categories returned do not include newly created category')!
+	expect(new_category.id != '', 'Category is missing id')!
+	expect(new_category.name == name, 'name does not match')!
+	expect(new_category.description == description, 'description does not match')!
+	expect(new_category.handle == handle, 'handle does not match')!
+	expect(new_category.is_internal == is_internal, 'is_internal does not match')!
+	expect(new_category.metadata == '"${metadata}"', 'metadata does not match')!
+	expect(new_category.seo.title == seo_title, 'seo_title does not match')!
+	expect(new_category.seo.description == seo_description, 'seo_description does not match')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
+		cookie_value)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	response_is_ok(response)!
+	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	expect(r.count == old_count, 'Count includes deleted category')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
@@ -454,7 +529,7 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 
 fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_categories_create_rejects_bad_requests')
-	new_category_data := CategoryCreateRequest{}
+	new_category_data := peony.CategoryCreateRequest{}
 	response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		json.encode(new_category_data))!
 	expect(response.status_code == 400, 'Category was created despite having no name')!
@@ -469,14 +544,14 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 	println('admin_products_create_minimal_product')
 	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
-	mut r := json.decode(ProductResponseListEnvelope, response.body)!
+	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_products_len := r.products.len
 	expected_count := old_count + 1
 	expected_products_len := old_products_len + 1
 
 	new_product_title := luuid.v2()
-	new_product_data := ProductCreateRequest{
+	new_product_data := peony.ProductCreateRequest{
 		title: new_product_title
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
@@ -484,13 +559,13 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
-	r = json.decode(ProductResponseListEnvelope, response.body)!
+	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
 	expect(r.count == expected_count, 'Count does not include newly created product: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
 	expect(r.products.len == expected_products_len, 'Products returned do not include newly created product: ${r.products.len}')!
 
-	mut product_to_delete := ProductResponse{}
+	mut product_to_delete := peony.ProductResponse{}
 	mut found := false
 	for i := 0; i < r.products.len; i++ {
 		product := r.products[i]
@@ -508,7 +583,7 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
-	r = json.decode(ProductResponseListEnvelope, response.body)!
+	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
 	expect(r.count == old_count, 'Count includes deleted product')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
@@ -519,7 +594,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	println('admin_products_create_complex_product')
 	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
-	mut r := json.decode(ProductResponseListEnvelope, response.body)!
+	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_products_len := r.products.len
 	expected_count := old_count + 1
@@ -529,7 +604,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	subtitle := luuid.v2()
 	description := luuid.v2()
 	handle := luuid.v2()
-	status := product_status_draft
+	status := peony.product_status_draft
 	discountable := true
 	metadata := luuid.v2()
 	seo_title := luuid.v2()
@@ -539,7 +614,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	image_0_alt := luuid.v2()
 	image_1_url := luuid.v2()
 	image_1_alt := luuid.v2()
-	new_product_data := ProductCreateRequest{
+	new_product_data := peony.ProductCreateRequest{
 		title:        title
 		subtitle:     subtitle
 		description:  description
@@ -547,17 +622,17 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 		status:       status
 		discountable: discountable
 		metadata:     metadata
-		seo:          SEOCreateRequest{
+		seo:          peony.SEOCreateRequest{
 			title:       seo_title
 			description: seo_description
 		}
 		thumbnail:    1
 		images:       [
-			ImageRequest{
+			peony.ImageRequest{
 				url: image_0_url
 				alt: image_0_alt
 			},
-			ImageRequest{
+			peony.ImageRequest{
 				url: image_1_url
 				alt: image_1_alt
 			},
@@ -568,11 +643,11 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
-	r = json.decode(ProductResponseListEnvelope, response.body)!
+	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
 	expect(r.count == expected_count, 'Count does not include the newly created product')!
 	expect(r.products.len == expected_products_len, 'Products returned do not include the newly created product: same length.')!
 
-	mut new_product := ProductResponse{}
+	mut new_product := peony.ProductResponse{}
 	mut found := false
 	for i := 0; i < r.products.len; i++ {
 		product := r.products[i]
@@ -610,12 +685,12 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 
 fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_products_create_rejects_bad_requests')
-	mut new_product_data := ProductCreateRequest{}
+	mut new_product_data := peony.ProductCreateRequest{}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(new_product_data))!
 	expect(response.status_code == 400, 'Product was created despite having no title')!
 
-	new_product_data = ProductCreateRequest{
+	new_product_data = peony.ProductCreateRequest{
 		title: ''
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
@@ -627,7 +702,7 @@ fn store_regions() ! {
 	// list regions
 	mut response := do_get_request('/store/regions')!
 	response_is_ok(response)!
-	regions := json.decode(RegionResponseListEnvelope, response.body)!
+	regions := json.decode(peony.RegionResponseListEnvelope, response.body)!
 	default_region := regions.regions[0]
 	default_region_id := default_region.id
 	// TODO check all expected fields are populated
@@ -636,6 +711,21 @@ fn store_regions() ! {
 	// get region by id
 	response = do_get_request('/store/regions/${default_region_id}')!
 	response_is_ok(response)!
+}
+
+fn testsuite_begin() ! {
+	// TODO make this start services and auth
+	// problem: need to share channel and cookie with rest of tests
+
+	// ch := run_app()!
+	// cookie_value := user_login()!
+}
+
+fn testsuite_end() ! {
+	// TODO make this stop services
+	// problem: need to have access to channel
+
+	// stop_app(ch)
 }
 
 fn test_peony() ! {
@@ -654,6 +744,7 @@ fn test_peony() ! {
 		admin_users_create_and_delete_user,
 		admin_store,
 		admin_categories_create_minimal_category,
+		admin_categories_create_complex_category,
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
 		admin_products_create_rejects_bad_requests,

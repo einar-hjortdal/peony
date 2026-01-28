@@ -3,10 +3,10 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-const product_status_draft = 'draft'
-const product_status_proposed = 'proposed'
-const product_status_published = 'published'
-const product_status_rejected = 'rejected'
+pub const product_status_draft = 'draft'
+pub const product_status_proposed = 'proposed'
+pub const product_status_published = 'published'
+pub const product_status_rejected = 'rejected'
 
 struct Product {
 	id               string

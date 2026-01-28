@@ -3,20 +3,24 @@ module peony
 import time
 
 pub struct PeonySuccess {
+pub:
 	success bool
 }
 
 pub struct PeonyError {
 	Error
+pub:
 	message string
 	details string
 }
 
 pub struct IDResponseEnvelope {
+pub:
 	id string
 }
 
 pub struct UserResponse {
+pub:
 	id         string
 	handle     string
 	email      string
@@ -30,10 +34,12 @@ pub struct UserResponse {
 }
 
 pub struct UserResponseEnvelope {
+pub:
 	user UserResponse
 }
 
 pub struct UserListResponseEnvelope {
+pub:
 	users  []UserResponse
 	count  i64
 	offset i32
@@ -41,15 +47,18 @@ pub struct UserListResponseEnvelope {
 }
 
 pub struct LocaleResponse {
+pub:
 	id   string
 	code string
 }
 
 pub struct LocaleResponseEnvelope {
+pub:
 	locale LocaleResponse
 }
 
 pub struct ListLocaleResponseEnvelope {
+pub:
 	locales []LocaleResponse
 	count   i64
 	offset  i32
@@ -57,15 +66,18 @@ pub struct ListLocaleResponseEnvelope {
 }
 
 pub struct CurrencyResponse {
+pub:
 	code           string
 	decimal_digits i32 @[json: 'decimalDigits'; omitempty]
 }
 
 pub struct CurrencyResponseEnvelope {
+pub:
 	currency CurrencyResponse
 }
 
 pub struct CurrencyResponseListEnvelope {
+pub:
 	currencies []CurrencyResponse
 	count      i64
 	offset     i32
@@ -73,11 +85,13 @@ pub struct CurrencyResponseListEnvelope {
 }
 
 pub struct CountryResponse {
+pub:
 	code      string
 	region_id string @[json: 'regionId'; omitempty]
 }
 
 pub struct CountryResponseListEnvelope {
+pub:
 	countries []CountryResponse
 	count     i64
 	offset    i32
@@ -85,6 +99,7 @@ pub struct CountryResponseListEnvelope {
 }
 
 pub struct StoreResponse {
+pub:
 	id                        string
 	created_at                time.Time @[json: 'createdAt']
 	updated_at                time.Time @[json: 'updatedAt']
@@ -97,16 +112,19 @@ pub struct StoreResponse {
 }
 
 pub struct StoreResponseEnvelope {
+pub:
 	store StoreResponse
 }
 
 pub struct ImageTranslationResponse {
+pub:
 	image_id  string @[json: 'imageId']
 	locale_id string @[json: 'localeId']
 	alt       string
 }
 
 pub struct ProductImageResponse {
+pub:
 	id           string
 	url          string
 	product_id   string                     @[json: 'productId']
@@ -115,6 +133,7 @@ pub struct ProductImageResponse {
 }
 
 pub struct ProductTranslationResponse {
+pub:
 	product_id  string @[json: 'productId']
 	locale_id   string @[json: 'localeId']
 	title       string @[omitempty]
@@ -123,6 +142,7 @@ pub struct ProductTranslationResponse {
 }
 
 pub struct ProductOptionValueTranslationResponse {
+pub:
 	option_value_id string @[json: 'optionValueId']
 	locale_id       string @[json: 'localeId']
 	name            string
@@ -137,6 +157,7 @@ fn format_product_option_value_translation_response(p ProductOptionValueTranslat
 }
 
 pub struct ProductOptionValueResponse {
+pub:
 	id           string
 	option_id    string @[json: 'optionId']
 	name         string
@@ -158,6 +179,7 @@ fn format_product_option_value_response(p ProductOptionValue) ProductOptionValue
 }
 
 pub struct ProductOptionTranslationResponse {
+pub:
 	product_option_id string @[json: 'productOptionId']
 	locale_id         string @[json: 'localeId']
 	title             string
@@ -172,6 +194,7 @@ fn format_product_option_translation_response(p ProductOptionTranslation) Produc
 }
 
 pub struct ProductOptionResponse {
+pub:
 	id           string
 	product_id   string @[json: 'productId']
 	title        string
@@ -200,6 +223,7 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 }
 
 pub struct MoneyAmountResponse {
+pub:
 	id            string
 	currency_code string @[json: 'currencyCode']
 	amount        i32
@@ -211,6 +235,7 @@ pub struct MoneyAmountResponse {
 }
 
 pub struct TaxRateResponse {
+pub:
 	id         string
 	created_at time.Time @[json: 'createdAt']
 	updated_at time.Time @[json: 'updatedAt']
@@ -222,6 +247,7 @@ pub struct TaxRateResponse {
 }
 
 pub struct ProductVariantPriceResponse {
+pub:
 	currency_code  string @[json: 'currencyCode']
 	includes_tax   bool   @[json: 'includesTax']
 	original_price i32    @[json: 'originalPrice'; omitempty]
@@ -238,6 +264,7 @@ fn format_price_response(p ProductVariantPrice) ProductVariantPriceResponse {
 }
 
 pub struct RegionResponse {
+pub:
 	id                 string
 	name               string
 	created_at         time.Time         @[json: 'createdAt']
@@ -251,10 +278,12 @@ pub struct RegionResponse {
 }
 
 pub struct RegionResponseEnvelope {
+pub:
 	region RegionResponse
 }
 
 pub struct RegionResponseListEnvelope {
+pub:
 	regions []RegionResponse
 	count   i64
 	offset  i32
@@ -262,6 +291,7 @@ pub struct RegionResponseListEnvelope {
 }
 
 pub struct InventoryLevelResponse {
+pub:
 	inventory_item_id string @[json: 'inventoryItemId']
 	stock_location_id string @[json: 'stockLocationId']
 	stocked_quantity  i32    @[json: 'stockedQuantity']
@@ -269,6 +299,7 @@ pub struct InventoryLevelResponse {
 }
 
 pub struct InventoryItemResponse {
+pub:
 	id                string
 	created_at        time.Time                @[json: 'createdAt']
 	updated_at        time.Time                @[json: 'updatedAt']
@@ -290,6 +321,7 @@ pub struct InventoryItemResponse {
 }
 
 pub struct VariantResponse {
+pub:
 	id                 string
 	created_at         time.Time                    @[json: 'createdAt']
 	updated_at         time.Time                    @[json: 'updatedAt']
@@ -340,6 +372,7 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 }
 
 pub struct VariantResponseStore {
+pub:
 	id                 string
 	created_at         time.Time                    @[json: 'createdAt']
 	updated_at         time.Time                    @[json: 'updatedAt']
@@ -570,10 +603,12 @@ fn format_category_response_store(p Category, locale_id string) CategoryResponse
 }
 
 pub struct CategoryResponseStoreEnvelope {
+pub:
 	category CategoryResponseStore
 }
 
 pub struct CategoryResponseStoreListEnvelope {
+pub:
 	categories []CategoryResponseStore
 	count      i64
 	offset     i32
@@ -581,10 +616,12 @@ pub struct CategoryResponseStoreListEnvelope {
 }
 
 pub struct VariantResponseEnvelope {
+pub:
 	variant VariantResponse
 }
 
 pub struct SalesChannelResponse {
+pub:
 	id          string
 	created_at  time.Time @[json: 'createdAt']
 	updated_at  time.Time @[json: 'updatedAt']
@@ -595,6 +632,7 @@ pub struct SalesChannelResponse {
 }
 
 pub struct SalesChannelResponseEnvelope {
+pub:
 	sales_channels []SalesChannelResponse @[json: 'salesChannels']
 	count          i64
 	offset         i32
@@ -602,6 +640,7 @@ pub struct SalesChannelResponseEnvelope {
 }
 
 pub struct ProductResponse {
+pub:
 	id                string
 	created_at        time.Time @[json: 'createdAt']
 	updated_at        time.Time @[json: 'updatedAt']
@@ -694,10 +733,12 @@ fn format_product_response(p Product) ProductResponse {
 }
 
 pub struct ProductResponseEnvelope {
+pub:
 	product ProductResponse
 }
 
 pub struct ProductResponseListEnvelope {
+pub:
 	products []ProductResponse
 	count    i64
 	offset   i32
@@ -705,6 +746,7 @@ pub struct ProductResponseListEnvelope {
 }
 
 pub struct ProductResponseStore {
+pub:
 	id           string
 	created_at   time.Time @[json: 'createdAt']
 	updated_at   time.Time @[json: 'updatedAt']

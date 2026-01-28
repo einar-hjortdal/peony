@@ -845,10 +845,9 @@ pub:
 	is_internal        ?bool   @[json: 'isInternal']
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
-	category_rank      ?i32    @[json: 'categoryRank']
 	metadata           ?string @[raw]
 	translations       ?[]CategoryTranslationRequest
-	seo                ?SEOUpdateRequest
+	seo                ?SEOCreateRequest
 }
 
 struct CategoryCreateRequestHygienised {
@@ -859,10 +858,9 @@ struct CategoryCreateRequestHygienised {
 	is_active              ?bool
 	parent_category_id     ?string
 	parent_category_id_bin []u8
-	category_rank          ?i32
 	metadata               ?string
 mut:
-	seo          ?SEOUpdateRequestHygienised
+	seo          ?SEOCreateRequestHygienised
 	translations ?[]CategoryTranslationRequestHygienised
 }
 
@@ -882,7 +880,6 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		is_active:              p.is_active
 		parent_category_id:     p.parent_category_id
 		parent_category_id_bin: parent_category_id_bin
-		category_rank:          p.category_rank
 		metadata:               p.metadata
 	}
 

@@ -190,8 +190,33 @@ mut:
 	translations []SEOTranslation
 }
 
-fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8) ! {
+fn model_category_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8) ! {
 	tx.execute('INSERT INTO seo (id, category_id) VALUES (?, ?)', seo_id_bin, category_id_bin)!
+}
+
+fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8, ph SEOCreateRequestHygienised) ! {
+	mut columns := ['id', 'category_id']
+	mut params := [firebird.Value(seo_id_bin), category_id_bin]
+	if title := ph.title {
+		columns = arrays.concat(columns, 'title')
+		if title == '' {
+			params = arrays.concat(params, firebird.Null{})
+		} else {
+			params = arrays.concat(params, title)
+		}
+	}
+
+	if description := ph.description {
+		columns = arrays.concat(columns, 'description')
+		if description == '' {
+			params = arrays.concat(params, firebird.Null{})
+		} else {
+			params = arrays.concat(params, description)
+		}
+	}
+
+	tx.execute('INSERT INTO seo (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
+		...params)!
 }
 
 fn model_category_seo_retrieve(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategorySEO {
