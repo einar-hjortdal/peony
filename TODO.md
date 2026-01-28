@@ -80,7 +80,6 @@
 - [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Limit returned list items to 250 in all requests.
 - [ ] Return id of created objects on creation.
-- [ ] Return all ranks.
 
 ## Internals
 

@@ -23,8 +23,7 @@ Note: A translation should never be set as an empty string. If a `_translations`
 
 ##### category
 
-A `category` allows to categorize `product`. A `product` can have many `category`. The 
-`category_rank` field allows sorting.
+A `category` allows to categorize `product`. A `product` can have many `category`. 
 
 A `category` may have 0 or 1 parent `category`. This allows to build hierarchical structures.
 
@@ -42,7 +41,7 @@ A `product_type` is a group of `product`. A `product` can be of one `product_typ
 A `product_type` is also used to control the tax rates for all `product` that share it. For example: 
 a shop may need to apply different taxes to all `product` of `product_type` with value `service`.
 
-#### Posts
+#### Posts (WIP)
 
 ##### type
 

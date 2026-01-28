@@ -267,7 +267,6 @@ CREATE TABLE category (
   is_active BOOLEAN DEFAULT true NOT NULL,
   is_internal BOOLEAN DEFAULT false NOT NULL,
   parent_category_id BINARY(16),
-  category_rank INTEGER DEFAULT 0 NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad83-1b65-8400-8c8e5989be1d" PRIMARY KEY (id),
   CONSTRAINT "0681493b-ad83-1bbc-c400-6c3ba906dfa8" FOREIGN KEY (parent_category_id) REFERENCES category (id)

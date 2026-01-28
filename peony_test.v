@@ -745,6 +745,7 @@ fn test_peony() ! {
 		admin_store,
 		admin_categories_create_minimal_category,
 		admin_categories_create_complex_category,
+		// TODO test category rank, seo, translations, parent
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
 		admin_products_create_rejects_bad_requests,

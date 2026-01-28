@@ -98,7 +98,6 @@ struct Category {
 	handle                 string
 	is_active              bool
 	is_internal            bool
-	category_rank          i32
 	parent_category_id     string
 	parent_category_id_bin []u8
 	metadata               firebird.NullString
@@ -175,11 +174,6 @@ fn model_category_update(mut tx firebird.Transaction, category_id_bin []u8, ph C
 	if _ := ph.parent_category_id {
 		columns = arrays.concat(columns, 'parent_category_id')
 		params = arrays.concat(params, ph.parent_category_id_bin)
-	}
-
-	if category_rank := ph.category_rank {
-		columns = arrays.concat(columns, 'category_rank')
-		params = arrays.concat(params, category_rank)
 	}
 
 	params = arrays.concat(params, category_id_bin)
@@ -268,8 +262,7 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		order_direction = p.order_direction
 	}
 
-	mut sorting := 'ORDER BY c.created_at ${order_direction},
-		c.category_rank ${order_direction}'
+	mut sorting := 'ORDER BY c.created_at ${order_direction}'
 
 	if p.use_offset {
 		sorting = appendln(sorting, 'OFFSET ? ROWS')
@@ -290,7 +283,6 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		c.is_active,
 		c.is_internal,
 		c.parent_category_id,
-		c.category_rank,
 		c.metadata
 		FROM category c
 		${conditions}
@@ -313,8 +305,7 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		is_active, _ := v[7].get_bool()!
 		is_internal, _ := v[8].get_bool()!
 		parent_category_id_bin, _ := v[9].get_array_u8()!
-		category_rank, _ := v[10].get_i32()!
-		metadata := v[11].get_null_string()!
+		metadata := v[10].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 
@@ -332,7 +323,6 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 			handle:                 handle
 			is_active:              is_active
 			is_internal:            is_internal
-			category_rank:          category_rank
 			parent_category_id:     parent_category_id
 			parent_category_id_bin: parent_category_id_bin
 			metadata:               metadata

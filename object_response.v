@@ -481,7 +481,6 @@ pub:
 	parent_category_id string @[json: 'parentCategoryId'; omitempty]
 	is_active          bool   @[json: 'isActive']
 	is_internal        bool   @[json: 'isInternal']
-	category_rank      i32    @[json: 'categoryRank']
 	metadata           string @[omitempty]
 	name               string @[omitempty]
 	description        string @[omitempty]
@@ -523,7 +522,6 @@ fn format_category_response(p Category) CategoryResponse {
 		parent_category_id: p.parent_category_id
 		is_active:          p.is_active
 		is_internal:        p.is_internal
-		category_rank:      p.category_rank
 		metadata:           p.metadata.value
 		name:               p.name
 		description:        p.description.value
@@ -552,7 +550,6 @@ pub:
 	updated_at         time.Time @[json: 'updatedAt']
 	handle             string
 	parent_category_id string           @[json: 'parentCategoryId'; omitempty]
-	category_rank      i32              @[json: 'categoryRank']
 	metadata           string           @[omitempty]
 	name               string           @[omitempty]
 	description        string           @[omitempty]
@@ -594,7 +591,6 @@ fn format_category_response_store(p Category, locale_id string) CategoryResponse
 		updated_at:         p.updated_at.Time
 		handle:             p.handle
 		parent_category_id: p.parent_category_id
-		category_rank:      p.category_rank
 		metadata:           p.metadata.value
 		name:               p.name
 		description:        p.description.value
