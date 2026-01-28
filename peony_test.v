@@ -7,22 +7,22 @@ import time
 import json
 import einar_hjortdal.luuid
 
-const test_fail_key = 'fail'
-const test_firebird_container_name = 'test_firebird_server'
-const test_firebird_port = '3051'
-const test_firebird_user = 'test_user'
-const test_firebird_root_password = 'test_root_password'
-const test_firebird_password = 'test_password'
-const test_firebird_database = 'test_database.fdb'
-const test_firebird_database_path = '/var/lib/firebird/data/${test_firebird_database}'
-const test_firebird_url = 'firebird://${test_firebird_user}:${test_firebird_password}@localhost:${test_firebird_port}${test_firebird_database_path}'
-const test_redict_container_name = 'test_redict_server'
-const test_redict_port = '6380'
-const test_redict_url = 'redict://@localhost:${test_redict_port}/0'
-const test_session_secret = 'testSessionSecret'
-const test_port = 12080
-const test_default_user_email = 'info@peony.com'
-const test_default_user_password = 'very-secret-password'
+const fail_key = 'fail'
+const firebird_container_name = 'test_firebird_server'
+const firebird_port = '3051'
+const firebird_user = 'test_user'
+const firebird_root_password = 'test_root_password'
+const firebird_password = 'test_password'
+const firebird_database = 'test_database.fdb'
+const firebird_database_path = '/var/lib/firebird/data/${firebird_database}'
+const firebird_url = 'firebird://${firebird_user}:${firebird_password}@localhost:${firebird_port}${firebird_database_path}'
+const redict_container_name = 'test_redict_server'
+const redict_port = '6380'
+const redict_url = 'redict://@localhost:${redict_port}/0'
+const session_secret = 'testSessionSecret'
+const port = 12080
+const default_user_email = 'info@peony.com'
+const default_user_password = 'very-secret-password'
 
 const endpoint_admin_auth = '/admin/auth'
 const endpoint_admin_users = '/admin/users'
@@ -37,8 +37,8 @@ fn new_provider_blob_dummy() &BlobProviderDummy {
 }
 
 fn (bp BlobProviderDummy) create(fd http.FileData) !peony.ProviderBlobFileData {
-	if fd.filename == test_fail_key {
-		return error('failed to create file, filename == ${test_fail_key}')
+	if fd.filename == fail_key {
+		return error('failed to create file, filename == ${fail_key}')
 	}
 
 	id := luuid.v2()
@@ -49,13 +49,13 @@ fn (bp BlobProviderDummy) create(fd http.FileData) !peony.ProviderBlobFileData {
 }
 
 fn (bp BlobProviderDummy) delete(id string) ! {
-	if id == test_fail_key {
-		return error('failed to delete file, filename == ${test_fail_key}')
+	if id == fail_key {
+		return error('failed to delete file, filename == ${fail_key}')
 	}
 }
 
 fn container_firebird_clean() {
-	result := os.execute('docker stop ${test_firebird_container_name}')
+	result := os.execute('docker stop ${firebird_container_name}')
 	if result.exit_code != 0 {
 		if result.output.contains('No such container') {
 			return
@@ -67,14 +67,14 @@ fn container_firebird_clean() {
 // Remember to `sudo usermod -aG docker $USER`
 fn container_firebird_start() ! {
 	container_firebird_clean() // kill container if already running
-	result := os.execute('docker run --rm --detach --name=${test_firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${test_firebird_root_password} --env=FIREBIRD_USER=${test_firebird_user} --env=FIREBIRD_PASSWORD=${test_firebird_password} --env=FIREBIRD_DATABASE=${test_firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${test_firebird_port}:3050 firebirdsql/firebird')
+	result := os.execute('docker run --rm --detach --name=${firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${firebird_root_password} --env=FIREBIRD_USER=${firebird_user} --env=FIREBIRD_PASSWORD=${firebird_password} --env=FIREBIRD_DATABASE=${firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${firebird_port}:3050 firebirdsql/firebird')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
 }
 
 fn container_redict_clean() {
-	result := os.execute('docker stop ${test_redict_container_name}')
+	result := os.execute('docker stop ${redict_container_name}')
 	if result.exit_code != 0 {
 		if result.output.contains('No such container') {
 			return
@@ -85,7 +85,7 @@ fn container_redict_clean() {
 
 fn container_redict_start() ! {
 	container_redict_clean() // kill container if already running
-	result := os.execute('docker run --rm --detach --name=${test_redict_container_name} --publish=${test_redict_port}:6379 registry.redict.io/redict')
+	result := os.execute('docker run --rm --detach --name=${redict_container_name} --publish=${redict_port}:6379 registry.redict.io/redict')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -96,14 +96,14 @@ fn containers_are_ready() {
 	mut redict_is_loading := true
 	for firebird_is_loading || redict_is_loading {
 		if firebird_is_loading {
-			check := os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${test_firebird_container_name} isql localhost:${test_firebird_database_path} -user ${test_firebird_user} -password ${test_firebird_password} -q')
+			check := os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${firebird_container_name} isql localhost:${firebird_database_path} -user ${firebird_user} -password ${firebird_password} -q')
 			if check.output.contains('ALIVE') {
 				firebird_is_loading = false
 			}
 		}
 
 		if redict_is_loading {
-			ping := os.execute('docker exec ${test_redict_container_name} redict-cli ping')
+			ping := os.execute('docker exec ${redict_container_name} redict-cli ping')
 			if ping.output.contains('PONG') {
 				redict_is_loading = false
 			}
@@ -119,12 +119,12 @@ fn containers_are_ready() {
 fn app_routine(ch chan bool) {
 	config := peony.Config{
 		debug:                 true
-		firebird_url:          test_firebird_url
-		redict_url:            test_redict_url
-		port:                  test_port
-		default_user_email:    test_default_user_email
-		default_user_password: test_default_user_password
-		session_secret:        test_session_secret
+		firebird_url:          firebird_url
+		redict_url:            redict_url
+		port:                  port
+		default_user_email:    default_user_email
+		default_user_password: default_user_password
+		session_secret:        session_secret
 	}
 
 	providers := peony.Providers{
@@ -149,7 +149,7 @@ fn run_app() !chan bool {
 	go app_routine(ch)
 	mut app_is_loading := true
 	for app_is_loading {
-		request := http.new_request(http.Method.get, 'http://localhost:${test_port}/admin/auth',
+		request := http.new_request(http.Method.get, 'http://localhost:${port}/admin/auth',
 			'')
 		if r := request.do() {
 			app_is_loading = false
@@ -164,7 +164,7 @@ fn stop_app(ch chan bool) {
 }
 
 fn build_url(s string) string {
-	return 'http://localhost:${test_port}${s}'
+	return 'http://localhost:${port}${s}'
 }
 
 // TODO handle params
@@ -214,8 +214,8 @@ fn extract_cookie_from_set_cookie(r http.Response) !string {
 
 fn user_login() !string {
 	response := do_post_request('/admin/auth', json.encode(peony.AuthRequest{
-		email:    test_default_user_email
-		password: test_default_user_password
+		email:    default_user_email
+		password: default_user_password
 	}))!
 	return extract_cookie_from_set_cookie(response)
 }
@@ -249,8 +249,8 @@ fn auth_middleware_rejects_unauthorized() ! {
 
 fn auth_middleware_allows_logins_and_logouts() ! {
 	body := json.encode(peony.AuthRequest{
-		email:    test_default_user_email
-		password: test_default_user_password
+		email:    default_user_email
+		password: default_user_password
 	})
 	mut response := do_post_request(endpoint_admin_auth, body)!
 	response_is_ok(response)!
@@ -275,7 +275,7 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 	r := json.decode(peony.UserResponseEnvelope, response.body)!
 	user := r.user
 	expect(user.id != '', 'Returned empty user id')!
-	expect(user.email == test_default_user_email, 'Unexpected user email: ${user.email}')!
+	expect(user.email == default_user_email, 'Unexpected user email: ${user.email}')!
 	expect(user.handle != '', 'Unexpected user handle: ${user.handle}')!
 	expect(user.role == peony.role_admin, 'Unexpected user role: ${user.role}')!
 	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
@@ -295,7 +295,7 @@ fn admin_users_list_users(cookie_value string) ! {
 	mut found := false
 	for i := 0; i < r.users.len; i++ {
 		user := r.users[i]
-		if user.email == test_default_user_email {
+		if user.email == default_user_email {
 			default_user = user
 			found = true
 			break
