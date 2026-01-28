@@ -683,6 +683,76 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
+fn admin_products_updates_product(cookie_value string) ! {
+	println('admin_products_updates_product')
+	title := luuid.v2()
+	original_product_data := peony.ProductCreateRequest{
+		title: title
+	}
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(original_product_data))!
+
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
+
+	mut new_product := peony.ProductResponse{}
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.title == title {
+			new_product = product
+			break
+		}
+	}
+
+	new_title := luuid.v2()
+	new_subtitle := luuid.v2()
+	new_description := luuid.v2()
+	new_handle := luuid.v2()
+	new_is_giftcard := true
+	new_status := peony.product_status_published
+	new_discountable := false
+	new_metadata := luuid.v2()
+	new_seo_title := luuid.v2()
+	new_seo_description := luuid.v2()
+	updated_product_data := json.encode(peony.ProductUpdateRequest{
+		title:        new_title
+		subtitle:     new_subtitle
+		description:  new_description
+		handle:       new_handle
+		is_giftcard:  new_is_giftcard
+		status:       new_status
+		discountable: new_discountable
+		metadata:     new_metadata
+		seo:          peony.SEOUpdateRequest{
+			title:       new_seo_title
+			description: new_seo_description
+		}
+	})
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, updated_product_data)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
+	mut updated_product := peony.ProductResponse{}
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.id == new_product.id {
+			updated_product = product
+			break
+		}
+	}
+
+	expect(updated_product.id != '', 'Product is missing id')!
+	expect(updated_product.title == new_title, 'title does not match')!
+	expect(updated_product.subtitle == new_subtitle, 'subtitle does not match')!
+	expect(updated_product.description == new_description, 'description does not match')!
+	expect(updated_product.status == new_status, 'status does not match')!
+	expect(updated_product.discountable == new_discountable, 'discountable does not match')!
+	expect(updated_product.metadata == '"${new_metadata}"', 'metadata does not match')!
+	expect(updated_product.seo.title == new_seo_title, 'seo_title does not match')!
+	expect(updated_product.seo.description == new_seo_description, 'seo_description does not match')!
+}
+
 fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_products_create_rejects_bad_requests')
 	mut new_product_data := peony.ProductCreateRequest{}
@@ -748,8 +818,11 @@ fn test_peony() ! {
 		// TODO test category update, seo, translations, parent
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
+		admin_products_updates_product,
 		admin_products_create_rejects_bad_requests,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
+		// /admin/product/:product_id translations update
+		// /admin/product/:product_id seo translations update
 		// /admin/product/:product_id variants create, update (ranking too)
 		//
 		// TODO options and values
