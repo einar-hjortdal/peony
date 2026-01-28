@@ -177,12 +177,13 @@ A `reservation_item` is one `inventory_item` that is part of a `reserved_quantit
 
 Each `product_variant` has exactly one `inventory_item`.
 
-### Posts (WIP)
+### Blogging (WIP)
 
-A `post` is typically a blog entry, an article, etc.
+#### Blog
 
-A `page` is a `post` that is independent. Typically a `page` is an about page, a landing page, a terms 
-of service page, etc.
+#### Post
+
+#### Page
 
 ## Schema
 

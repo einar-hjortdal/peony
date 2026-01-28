@@ -45,7 +45,9 @@
 - [ ] Product types
 - [ ] Product collections
 - [ ] Product bundles
-- [ ] Posts
+- [ ] Blog
+- [ ] Post
+- [ ] Page
 - [ ] Topics
 - [ ] Customer
 - [ ] Cart
@@ -59,6 +61,7 @@
 ### Low-priority
 
 - [ ] Sub-divisions of country
+- [ ] Comment
 
 ### Not planned
 

@@ -745,15 +745,18 @@ fn test_peony() ! {
 		admin_store,
 		admin_categories_create_minimal_category,
 		admin_categories_create_complex_category,
-		// TODO test category rank, seo, translations, parent
+		// TODO test category update, seo, translations, parent
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
 		admin_products_create_rejects_bad_requests,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
-		// product SEO create, delete and update.
+		// /admin/product/:product_id variants create, update (ranking too)
 		//
 		// TODO options and values
-		// /admin/variants create, update, delete
+		// TODO variants endpoints
+		// TODO inventory item endpoints
+		// TODO stock location endpoints
+		// TODO inventory level endpoints
 		//
 	])!
 
