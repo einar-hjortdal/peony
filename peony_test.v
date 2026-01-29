@@ -432,6 +432,7 @@ fn admin_store(cookie_value string) ! {
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
 }
 
+// TODO test refuse to remove default locale
 fn admin_store_updates_store_locales(cookie_value string) ! {
 	println('admin_store_updates_store_locales')
 	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
@@ -461,8 +462,14 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
 	r = json.decode(peony.StoreResponseEnvelope, response.body)!
 	new_store := r.store
-	println(new_store)
 	expect(new_store.locales.len == new_locale_ids.len, 'Locales array length does not match expectations')!
+
+	restore_old_data := json.encode(peony.StoreUpdateRequest{
+		locale_ids: [old_store.default_locale_id]
+	})
+	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
+		cookie_value, restore_old_data)!
+	response_is_ok(response)!
 }
 
 fn admin_categories_create_minimal_category(cookie_value string) ! {
@@ -587,6 +594,50 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
 	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
+}
+
+fn admin_categories_updates_translations(cookie_value string) ! {
+	println('admin_categories_updates_translations')
+	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
+	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
+	old_store := r.store
+
+	response = do_authenticated_get_request(endpoint_admin_locales, cookie_value)!
+	r_2 := json.decode(peony.LocaleResponseListEnvelope, response.body)!
+	locales := r_2.locales
+
+	// get a random locale
+	// TODO add 2 locales
+	safe_max := peony.max_fetch - 1 // reserve 1
+	random_index := rand.int_in_range(0, safe_max)!
+	mut random_locale := locales[random_index]
+	if random_locale.id == old_store.default_locale_id {
+		random_locale = locales[random_index + 1] // safely add 1
+	}
+
+	new_locale_ids := [old_store.default_locale_id, random_locale.id]
+	new_store_data := json.encode(peony.StoreUpdateRequest{
+		locale_ids: new_locale_ids
+	})
+	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
+		cookie_value, new_store_data)!
+
+	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
+	r = json.decode(peony.StoreResponseEnvelope, response.body)!
+	new_store := r.store
+
+	// TODO noew create a category and update its translations and seo translations
+	// First add one translation
+	// Then add another one and delete the first
+	// Then add the first again, keeping the second
+	// Then submit an empty array
+
+	restore_old_store_data := json.encode(peony.StoreUpdateRequest{
+		locale_ids: [old_store.default_locale_id]
+	})
+	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
+		cookie_value, restore_old_store_data)!
+	response_is_ok(response)!
 }
 
 fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
@@ -880,10 +931,9 @@ fn test_peony() ! {
 		admin_users_list_users,
 		admin_users_create_and_delete_user,
 		admin_locales_lists_locales,
-		// admin,regions,
+		// admin_regions,
 		admin_store,
 		admin_store_updates_store_locales,
-		// TODO store update, needed for further tests
 		admin_categories_create_minimal_category,
 		admin_categories_create_complex_category,
 		// TODO test category update, seo, translations, parent
