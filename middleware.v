@@ -13,12 +13,12 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 	session_name := '${app.config.session_admin_prefix}-${app.config.session_name}'
 	ctx.user_session = app.session_store.new(ctx.req, session_name)
 
-	// [/admin/auth; post] must accept unauthorized request to allow logins
-	if ctx.req.url == '/admin/auth' && ctx.req.method == http.Method.post {
-		return true
-	}
-
 	ctx.user_session_values = json.decode(UserSessionValues, ctx.user_session.values) or {
+		// [/admin/auth; post] must accept unauthorized request to allow logins
+		if ctx.req.url == '/admin/auth' && ctx.req.method == http.Method.post {
+			return true
+		}
+
 		ctx.res.set_status(http.Status.unauthorized)
 		ctx.json(new_peony_error('Invalid session', err.msg()))
 		return false

@@ -12,11 +12,14 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 // logs in user
 @['/admin/auth'; post]
 pub fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
+	if ctx.user_session_values.id != '' {
+		return handle_error_400(mut ctx, 'Already logged in', 'user session exists')
+	}
+
 	p := json.decode(AuthRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode AuthRequest', err.msg())
 	}
 
-	// return error 400 if bad email
 	if p.email == '' {
 		return handle_error_400(mut ctx, error_empty_field, 'email')
 	}

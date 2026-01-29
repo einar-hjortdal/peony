@@ -281,6 +281,15 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
 }
 
+fn admin_auth_rejects_login_when_already_logged_in(cookie_value string) ! {
+	println('admin_auth_rejects_login_when_already_logged_in')
+	response := do_authenticated_post_request('/admin/auth', cookie_value, json.encode(peony.AuthRequest{
+		email:    default_user_email
+		password: default_user_password
+	}))!
+	expect(response.status_code == 400, 'Logged in user was allowed to log in again')!
+}
+
 fn admin_users_list_users(cookie_value string) ! {
 	println('admin_users_list_users')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
@@ -814,6 +823,7 @@ fn test_peony() ! {
 
 	admin_auth_wrapper([
 		admin_auth_returns_user_data,
+		admin_auth_rejects_login_when_already_logged_in,
 		admin_users_list_users,
 		admin_users_create_and_delete_user,
 		admin_store,
