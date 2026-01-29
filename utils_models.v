@@ -3,11 +3,8 @@ module peony
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
-// TODO deprecate
-const order_asc = 'ASC'
-const order_desc = 'DESC'
-
-const default_offset = 0
+pub const order_asc = 'ASC'
+pub const order_desc = 'DESC'
 
 fn newln(ln string) string {
 	return '\n${ln}'
@@ -116,11 +113,11 @@ fn get_offset_amount(zi32 ZeroI32) i32 {
 	return default_offset
 }
 
-fn get_default_fetch_amount(zi32 ZeroI32, default i32) i32 {
+fn get_fetch_amount(zi32 ZeroI32) i32 {
 	if zi32.is_set {
 		return zi32.v
 	}
-	return default
+	return max_fetch
 }
 
 fn (mut app App) start_transaction() !&firebird.Transaction {

@@ -39,9 +39,11 @@ fn model_locale_retrieve(mut tx firebird.Transaction, ph LocaleRetrieveParamsHyg
 		params = arrays.concat(params, ph.offset.v)
 	}
 
+	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 	if ph.fetch.is_set {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
 		params = arrays.concat(params, ph.fetch.v)
+	} else {
+		params = arrays.concat(params, max_fetch)
 	}
 
 	data := tx.execute('SELECT id, code FROM locale ${conditions} ${sorting}', ...params)!

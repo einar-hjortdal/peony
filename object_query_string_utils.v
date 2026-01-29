@@ -2,6 +2,7 @@ module peony
 
 pub const min_fetch = i32(1)
 pub const max_fetch = i32(250)
+pub const default_offset = i32(0)
 
 struct ZeroString {
 	v      string

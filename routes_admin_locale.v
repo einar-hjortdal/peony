@@ -16,7 +16,7 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 		return handle_fetch_zero(mut ctx)
 	}
 
-	return conduit_locale_get(mut app, mut ctx, ph)
+	return conduit_locale_list(mut app, mut ctx, ph)
 }
 
 // get locale by id
@@ -33,5 +33,5 @@ pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) 
 		ids_bin: [locale_id_bin]
 	}
 
-	return conduit_locale_get_by_id(mut app, mut ctx, ph)
+	return conduit_locale_get(mut app, mut ctx, ph)
 }

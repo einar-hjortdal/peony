@@ -1,10 +1,11 @@
 import peony
 
 // deps
-import os
-import net.http
-import time
 import json
+import net.http
+import os
+import rand
+import time
 import einar_hjortdal.luuid
 
 const fail_key = 'fail'
@@ -26,6 +27,9 @@ const default_user_password = 'very-secret-password'
 
 const endpoint_admin_auth = '/admin/auth'
 const endpoint_admin_users = '/admin/users'
+const endpoint_admin_locales = '/admin/locales'
+const endpoint_admin_regions = '/admin/regions'
+const endpoint_admin_store = '/admin/store'
 const endpoint_admin_categories = '/admin/categories'
 const endpoint_admin_products = '/admin/products'
 
@@ -191,6 +195,10 @@ fn do_authenticated_request(path string, cookie_value string, body string, metho
 
 fn do_authenticated_get_request(path string, cookie_value string) !http.Response {
 	return do_authenticated_request(path, cookie_value, '', http.Method.get)
+}
+
+fn do_authenticated_get_request_with_params(path string, cookie_value string, params string) !http.Response {
+	return do_authenticated_request(path, cookie_value, params, http.Method.get)
 }
 
 fn do_authenticated_post_request(path string, cookie_value string, body string) !http.Response {
@@ -373,6 +381,20 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 // TODO /admin/users/:user_id get, post, delete
 
+// TODO offset and params
+fn admin_locales_lists_locales(cookie_value string) ! {
+	println('admin_locales')
+	mut response := do_authenticated_get_request(endpoint_admin_locales, cookie_value)!
+	response_is_ok(response)!
+	r := json.decode(peony.LocaleResponseListEnvelope, response.body)!
+	locale_codes_file := os.read_file('${os.getwd()}/migrations/seed-locale-codes.txt')!
+	lines := locale_codes_file.split('\n')
+	locale_codes := lines[..lines.len - 1] // remove last character \n (posix)
+	expect(r.count == locale_codes.len, 'Count does not match amount of locales that should be in the db')!
+	expect(r.offset == 0, 'Wrong page')!
+	expect(r.fetch == peony.max_fetch, 'Maximum number of items fetched does not match max_fetch')!
+}
+
 // TODO create helper functions to:
 // get a valid locale_id
 // create a new region and get its id
@@ -380,8 +402,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 // create a new sales channel and get its id
 fn admin_store(cookie_value string) ! {
 	println('admin_store')
-	endpoint := '/admin/store'
-	mut response := do_authenticated_get_request(endpoint, cookie_value)!
+	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
 	response_is_ok(response)!
 
 	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
@@ -397,19 +418,51 @@ fn admin_store(cookie_value string) ! {
 		// default_region_id
 		// default_stock_location_id
 		// default_sales_channel_id
-		// locale_ids
 	}
-	response = do_authenticated_post_request('${endpoint}/${r.store.id}', cookie_value,
-		json.encode(new_store_data))!
+	response = do_authenticated_post_request('${endpoint_admin_store}/${r.store.id}',
+		cookie_value, json.encode(new_store_data))!
 	response_is_ok(response)!
 
-	response = do_authenticated_get_request(endpoint, cookie_value)!
+	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
 	response_is_ok(response)!
 
 	r = json.decode(peony.StoreResponseEnvelope, response.body)!
 	store = r.store
 	expect(store.name == new_store_name, 'Store name was not updated')!
 	expect(store.updated_at != old_updated_at, 'store.updated_at was not updated')!
+}
+
+fn admin_store_updates_store_locales(cookie_value string) ! {
+	println('admin_store_updates_store_locales')
+	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
+	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
+	old_store := r.store
+
+	response = do_authenticated_get_request(endpoint_admin_locales, cookie_value)!
+	r_2 := json.decode(peony.LocaleResponseListEnvelope, response.body)!
+	locales := r_2.locales
+
+	// get a random locale
+	safe_max := peony.max_fetch - 1 // reserve 1
+	random_index := rand.int_in_range(0, safe_max)!
+	mut random_locale := locales[random_index]
+	if random_locale.id == old_store.default_locale_id {
+		random_locale = locales[random_index + 1] // safely add 1
+	}
+
+	new_locale_ids := [old_store.default_locale_id, random_locale.id]
+	new_store_data := json.encode(peony.StoreUpdateRequest{
+		locale_ids: new_locale_ids
+	})
+	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
+		cookie_value, new_store_data)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
+	r = json.decode(peony.StoreResponseEnvelope, response.body)!
+	new_store := r.store
+	println(new_store)
+	expect(new_store.locales.len == new_locale_ids.len, 'Locales array length does not match expectations')!
 }
 
 fn admin_categories_create_minimal_category(cookie_value string) ! {
@@ -826,7 +879,11 @@ fn test_peony() ! {
 		admin_auth_rejects_login_when_already_logged_in,
 		admin_users_list_users,
 		admin_users_create_and_delete_user,
+		admin_locales_lists_locales,
+		// admin,regions,
 		admin_store,
+		admin_store_updates_store_locales,
+		// TODO store update, needed for further tests
 		admin_categories_create_minimal_category,
 		admin_categories_create_complex_category,
 		// TODO test category update, seo, translations, parent

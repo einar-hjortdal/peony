@@ -9,6 +9,8 @@ const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
 const country_codes_file = $embed_file('migrations/seed-country-codes.txt')
 const currency_file = $embed_file('migrations/seed-currency.txt')
 const locale_codes_file = $embed_file('migrations/seed-locale-codes.txt')
+const seed_migration_name = 'seed'
+
 const seed_default_region_name = 'default region'
 const seed_default_stock_location_name = 'default stock location'
 const seed_default_sales_channel_name = 'default sales channel'
@@ -16,7 +18,6 @@ const seed_default_store_name = 'peony store'
 const seed_default_locale_code = 'en'
 const seed_default_region_country = 'NL'
 const seed_default_currency_code = 'EUR'
-const seed_migration_name = 'seed'
 
 fn firebird_get_schema_queries() []string {
 	queries := schema_file.to_string().split(';')

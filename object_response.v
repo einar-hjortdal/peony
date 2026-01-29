@@ -38,6 +38,10 @@ pub:
 	user UserResponse
 }
 
+// users: the list of users
+// count: the total count of items.
+// offset: the number of items skipped before retrieving the returned items.
+// fetch: the maximum number of items returned.
 pub struct UserListResponseEnvelope {
 pub:
 	users  []UserResponse
@@ -57,7 +61,7 @@ pub:
 	locale LocaleResponse
 }
 
-pub struct ListLocaleResponseEnvelope {
+pub struct LocaleResponseListEnvelope {
 pub:
 	locales []LocaleResponse
 	count   i64
