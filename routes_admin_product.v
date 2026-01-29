@@ -85,16 +85,10 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	return conduit_product_create(mut app, mut ctx, ph)
 }
 
-// retrieves a list of tags and the amount of times each tag is being used by products
-@['/admin/products/tag-usage'; get]
-pub fn (app &App) admin_products_tag_usage_get(mut ctx Context) veb.Result {
-	return ctx.json('TODO')
-}
-
 // get a product by id
-@['/admin/products/:id'; get]
-pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Result {
-	id_bin := id_string_to_bin(id) or {
+@['/admin/products/:product_id'; get]
+pub fn (mut app App) admin_products_id_get(mut ctx Context, product_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
 
@@ -102,7 +96,7 @@ pub fn (mut app App) admin_products_id_get(mut ctx Context, id string) veb.Resul
 		ids:     ZeroArrayString{
 			is_set: true
 		}
-		ids_bin: [id_bin]
+		ids_bin: [product_id_bin]
 	}
 
 	return conduit_products_get_by_id(mut app, mut ctx, ph)

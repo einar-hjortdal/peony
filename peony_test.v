@@ -703,6 +703,8 @@ fn admin_products_updates_product(cookie_value string) ! {
 			break
 		}
 	}
+	new_product_id := new_product.id
+	new_seo_id := new_product.seo.id
 
 	new_title := luuid.v2()
 	new_subtitle := luuid.v2()
@@ -724,11 +726,13 @@ fn admin_products_updates_product(cookie_value string) ! {
 		discountable: new_discountable
 		metadata:     new_metadata
 		seo:          peony.SEOUpdateRequest{
+			id:          new_seo_id
 			title:       new_seo_title
 			description: new_seo_description
 		}
 	})
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, updated_product_data)!
+	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
+		cookie_value, updated_product_data)!
 	response_is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
