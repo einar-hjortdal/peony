@@ -153,11 +153,11 @@ fn model_seo_translations_update(mut tx firebird.Transaction, seo_id_bin []u8, t
 	for i := 0; i < translations.len; i++ {
 		translation := translations[i]
 		src[i] = 'SELECT
-				CAST(? AS BINARY(16)) AS seo_id,
-				CAST(? AS BINARY(16)) AS locale_id,
-				CAST(? AS VARCHAR(63)) AS title,
-				CAST(? AS VARCHAR(191)) AS description
-				FROM RDB\$DATABASE'
+			CAST(? AS BINARY(16)) AS seo_id,
+			CAST(? AS BINARY(16)) AS locale_id,
+			CAST(? AS VARCHAR(63)) AS title,
+			CAST(? AS VARCHAR(191)) AS description
+			FROM RDB\$DATABASE'
 
 		params[i * 4] = seo_id_bin
 		params[i * 4 + 1] = translation.locale_id_bin

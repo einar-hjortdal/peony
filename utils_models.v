@@ -34,7 +34,11 @@ fn get_set_columns(c []string) string {
 }
 
 fn get_set_columns_with_updated_at(c []string) string {
-	return 'updated_at = CURRENT_TIMESTAMP, ${get_set_columns(c)}'
+	res := 'updated_at = CURRENT_TIMESTAMP'
+	if c.len == 0 {
+		return res
+	}
+	return '${res}, ${get_set_columns(c)}'
 }
 
 fn get_n_placeholders(n i32) string {

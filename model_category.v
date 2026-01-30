@@ -12,15 +12,19 @@ struct CategoryTranslation {
 	description     firebird.NullString
 }
 
+fn model_category_translations_delete(mut tx firebird.Transaction, category_id_bin []u8) ! {
+	tx.execute('DELETE FROM category_translations WHERE category_id = ?', category_id_bin)!
+}
+
 fn model_category_translations_update(mut tx firebird.Transaction, category_id_bin []u8, ph []CategoryTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 4 + 1, init: firebird.Null{}}
+	mut params := []firebird.Value{len: ph.len * 4, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS category_id,
 			CAST(? AS BINARY(16)) AS locale_id,
 			CAST(? AS VARCHAR(63)) AS name,
-			CAST(? as BLOB SUB_TYPE TEXT) AS description
+			CAST(? AS BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE'
 
 		params[i * 4] = category_id_bin
@@ -39,20 +43,8 @@ fn model_category_translations_update(mut tx firebird.Transaction, category_id_b
 		}
 	}
 
-	params[ph.len * 4] = category_id_bin
-
-	tx.execute('MERGE INTO category_translations t
-		USING (${get_merge_source(src)}) s
-		ON (t.category_id = s.category_id AND t.locale_id = s.locale_id)
-		WHEN MATCHED THEN
-			UPDATE SET 
-				name = s.name,
-				description = s.description
-		WHEN NOT MATCHED THEN
-			INSERT (category_id, locale_id, name)
-			VALUES (s.category_id, s.locale_id, s.name)
-		WHEN NOT MATCHED BY SOURCE AND t.category_id = ? THEN
-			DELETE',
+	tx.execute('INSERT INTO category_translations (category_id, locale_id, name, description)
+		${get_merge_source(src)}',
 		...params)!
 }
 

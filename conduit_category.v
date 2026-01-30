@@ -206,10 +206,12 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 	}
 
 	if translations := ph.translations {
-		model_category_translations_update(mut tx, category_id_bin, translations) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not create category_translations',
-				err.msg())
+		if translations.len > 0 {
+			model_category_translations_update(mut tx, category_id_bin, translations) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Could not create category_translations',
+					err.msg())
+			}
 		}
 	}
 
@@ -255,10 +257,18 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, p
 	}
 
 	if translations := ph.translations {
-		model_category_translations_update(mut tx, category_id_bin, translations) or {
+		model_category_translations_delete(mut tx, category_id_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Could not update category_translations',
+			return handle_error_500(mut ctx, 'Could not delete category_translations',
 				err.msg())
+		}
+
+		if translations.len > 0 {
+			model_category_translations_update(mut tx, category_id_bin, translations) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Could not update category_translations',
+					err.msg())
+			}
 		}
 	}
 
@@ -273,14 +283,16 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, p
 		if translations := seo.translations {
 			model_seo_translations_delete(mut tx, seo.id_bin) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Could not update seo_translations',
+				return handle_error_500(mut ctx, 'Could not delete seo_translations',
 					err.msg())
 			}
 
-			model_seo_translations_update(mut tx, seo.id_bin, translations) or {
-				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Could not update seo_translations',
-					err.msg())
+			if translations.len > 0 {
+				model_seo_translations_update(mut tx, seo.id_bin, translations) or {
+					tx.rollback() or {}
+					return handle_error_500(mut ctx, 'Could not update seo_translations',
+						err.msg())
+				}
 			}
 		}
 	}

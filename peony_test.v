@@ -931,8 +931,31 @@ fn admin_handles_translations(cookie_value string) ! {
 	response_is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	category_r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
-	println(category_r)
+	mut category_r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
+	categories := category_r.categories
+	mut created_category := peony.CategoryResponse{}
+	for i := 0; i < categories.len; i++ {
+		category := categories[i]
+		if category.name == category_name {
+			created_category = category
+		}
+	}
+
+	new_category_data := json.encode(peony.CategoryUpdateRequest{
+		translations: []
+		seo:          peony.SEOUpdateRequest{
+			id:           created_category.seo.id
+			title:        category_seo_title
+			description:  category_seo_description
+			translations: []
+		}
+	})
+	response = do_authenticated_post_request('${endpoint_admin_categories}/${created_category.id}',
+		cookie_value, new_category_data)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	category_r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 
 	// Product
 

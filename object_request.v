@@ -907,6 +907,24 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 	return ph
 }
 
+// CategoryUpdateRequest describes the body of the request to update an existing category.
+//
+// # Fields
+//
+// ## name
+// Category name. If provided, it must not be empty.
+//
+// ## description
+// Category description. If provided as an empty string, the existing description is removed.
+//
+// ## handle
+// Category handle. If provided as an empty string, a new handle will be derived from the name.
+//
+// ## translations
+// Localized versions of category fields. To remove all translations, submit an empty array.
+//
+// ## seo
+// SEO metadata.
 pub struct CategoryUpdateRequest {
 pub:
 	name               ?string
@@ -959,10 +977,6 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		if translations.len == 0 {
-			return new_internal_error(error_empty_object, 'translations')
-		}
-
 		mut t := []CategoryTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
