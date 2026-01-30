@@ -596,50 +596,6 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
 }
 
-fn admin_categories_updates_translations(cookie_value string) ! {
-	println('admin_categories_updates_translations')
-	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
-	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
-	old_store := r.store
-
-	response = do_authenticated_get_request(endpoint_admin_locales, cookie_value)!
-	r_2 := json.decode(peony.LocaleResponseListEnvelope, response.body)!
-	locales := r_2.locales
-
-	// get a random locale
-	// TODO add 2 locales
-	safe_max := peony.max_fetch - 1 // reserve 1
-	random_index := rand.int_in_range(0, safe_max)!
-	mut random_locale := locales[random_index]
-	if random_locale.id == old_store.default_locale_id {
-		random_locale = locales[random_index + 1] // safely add 1
-	}
-
-	new_locale_ids := [old_store.default_locale_id, random_locale.id]
-	new_store_data := json.encode(peony.StoreUpdateRequest{
-		locale_ids: new_locale_ids
-	})
-	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
-		cookie_value, new_store_data)!
-
-	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
-	r = json.decode(peony.StoreResponseEnvelope, response.body)!
-	new_store := r.store
-
-	// TODO noew create a category and update its translations and seo translations
-	// First add one translation
-	// Then add another one and delete the first
-	// Then add the first again, keeping the second
-	// Then submit an empty array
-
-	restore_old_store_data := json.encode(peony.StoreUpdateRequest{
-		locale_ids: [old_store.default_locale_id]
-	})
-	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
-		cookie_value, restore_old_store_data)!
-	response_is_ok(response)!
-}
-
 fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_categories_create_rejects_bad_requests')
 	new_category_data := peony.CategoryCreateRequest{}
@@ -884,6 +840,110 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	expect(response.status_code == 400, 'Product was created despite request having empty title')!
 }
 
+fn admin_handles_translations(cookie_value string) ! {
+	println('admin_handles_translations')
+	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
+	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
+	old_store := r.store
+
+	response = do_authenticated_get_request(endpoint_admin_locales, cookie_value)!
+	r_2 := json.decode(peony.LocaleResponseListEnvelope, response.body)!
+	locales := r_2.locales
+
+	// get 2 random locales
+	safe_max := peony.max_fetch - 2 // reserve 2
+	random_index := rand.int_in_range(0, safe_max)!
+	mut random_locale_1 := locales[random_index]
+	mut random_locale_2 := locales[random_index + 1]
+	if random_locale_1.id == old_store.default_locale_id {
+		random_locale_1 = locales[random_index + 1]
+		random_locale_2 = locales[random_index + 2]
+	}
+
+	new_store_data := json.encode(peony.StoreUpdateRequest{
+		locale_ids: [
+			old_store.default_locale_id,
+			random_locale_1.id,
+			random_locale_2.id,
+		]
+	})
+	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
+		cookie_value, new_store_data)!
+
+	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
+	r = json.decode(peony.StoreResponseEnvelope, response.body)!
+	new_store := r.store
+
+	// Category
+	// create a category with translations and seo translations
+	// update its translations and seo translations
+	// First add one translation
+	// Then add another one and delete the first
+	// Then add the first again, keeping the second
+	// Then submit an empty array
+
+	category_name := luuid.v2()
+	category_description := luuid.v2()
+	category_translation_1_name := luuid.v2()
+	category_translation_1_description := luuid.v2()
+	category_translation_2_name := luuid.v2()
+	category_translation_2_description := luuid.v2()
+	category_seo_title := luuid.v2()
+	category_seo_description := luuid.v2()
+	category_seo_translation_1_title := luuid.v2()
+	category_seo_translation_1_description := luuid.v2()
+	category_seo_translation_2_title := luuid.v2()
+	category_seo_translation_2_description := luuid.v2()
+	category_data := json.encode(peony.CategoryCreateRequest{
+		name:         category_name
+		description:  category_description
+		translations: [
+			peony.CategoryTranslationRequest{
+				locale_id:   random_locale_1.id
+				name:        category_translation_1_name
+				description: category_translation_1_description
+			},
+			peony.CategoryTranslationRequest{
+				locale_id:   random_locale_2.id
+				name:        category_translation_2_name
+				description: category_translation_2_description
+			},
+		]
+		seo:          peony.SEOCreateRequest{
+			title:        category_seo_title
+			description:  category_seo_description
+			translations: [
+				peony.SEOTranslationUpdateRequest{
+					locale_id:   random_locale_1.id
+					title:       category_seo_translation_1_title
+					description: category_seo_translation_1_description
+				},
+				peony.SEOTranslationUpdateRequest{
+					locale_id:   random_locale_2.id
+					title:       category_seo_translation_2_title
+					description: category_seo_translation_2_description
+				},
+			]
+		}
+	})
+	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+		category_data)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	category_r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
+	println(category_r)
+
+	// Product
+
+	restore_old_store_data := json.encode(peony.StoreUpdateRequest{
+		locale_ids: [old_store.default_locale_id]
+	})
+	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
+		cookie_value, restore_old_store_data)!
+	response_is_ok(response)!
+}
+
 fn store_regions() ! {
 	println('store_regions')
 	// list regions
@@ -952,6 +1012,7 @@ fn test_peony() ! {
 		// TODO stock location endpoints
 		// TODO inventory level endpoints
 		//
+		admin_handles_translations,
 	])!
 
 	store_regions()!

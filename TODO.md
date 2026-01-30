@@ -82,7 +82,8 @@
 - [ ] Separate sales from price_list.
 - [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Limit returned list items to 250 in all requests.
-- [ ] Return id of created objects on creation.
+- [ ] Return created resources on creation.
+- [ ] Return updated resources on update.
 
 ## Internals
 
