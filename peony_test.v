@@ -547,7 +547,7 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 		is_internal: is_internal
 		is_active:   is_active
 		metadata:    metadata
-		seo:         peony.SEOCreateRequest{
+		seo:         peony.SEORequest{
 			title:       seo_title
 			description: seo_description
 		}
@@ -691,7 +691,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 		status:       status
 		discountable: discountable
 		metadata:     metadata
-		seo:          peony.SEOCreateRequest{
+		seo:          peony.SEORequest{
 			title:       seo_title
 			description: seo_description
 		}
@@ -773,7 +773,6 @@ fn admin_products_updates_product(cookie_value string) ! {
 		}
 	}
 	new_product_id := new_product.id
-	new_seo_id := new_product.seo.id
 
 	new_title := luuid.v2()
 	new_subtitle := luuid.v2()
@@ -794,8 +793,7 @@ fn admin_products_updates_product(cookie_value string) ! {
 		status:       new_status
 		discountable: new_discountable
 		metadata:     new_metadata
-		seo:          peony.SEOUpdateRequest{
-			id:          new_seo_id
+		seo:          peony.SEORequest{
 			title:       new_seo_title
 			description: new_seo_description
 		}
@@ -909,7 +907,7 @@ fn admin_handles_translations(cookie_value string) ! {
 				description: category_translation_2_description
 			},
 		]
-		seo:          peony.SEOCreateRequest{
+		seo:          peony.SEORequest{
 			title:        category_seo_title
 			description:  category_seo_description
 			translations: [
@@ -943,8 +941,7 @@ fn admin_handles_translations(cookie_value string) ! {
 
 	new_category_data := json.encode(peony.CategoryUpdateRequest{
 		translations: []
-		seo:          peony.SEOUpdateRequest{
-			id:           created_category.seo.id
+		seo:          peony.SEORequest{
 			title:        category_seo_title
 			description:  category_seo_description
 			translations: []

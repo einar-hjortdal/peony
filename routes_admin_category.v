@@ -80,6 +80,15 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 		return handle_error_unhandled(mut ctx, err.msg(), 'CategoryUpdateRequest.hygienise')
 	}
 
+	mut tx := app.start_transaction() or {
+		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	seo := model_category_seo_retrieve(mut tx, [category_id_bin]) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve seo', err.msg())
+	}
+
 	if _ := ph.parent_category_id {
 		// TODO verify ph.parent_category_id exists
 	}
@@ -94,7 +103,16 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 		// TODO verify all locale_id exist
 	}
 
-	return conduit_category_update(mut app, mut ctx, category_id_bin, ph)
+	if seo.len == 0 {
+		return handle_error_500(mut ctx, error_database_data_malformed, 'Missing category seo for category with id ${category_id}')
+	}
+
+	category_seo := seo[0]
+
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	return conduit_category_update(mut app, mut ctx, category_id_bin, category_seo.id_bin,
+		ph)
 }
 
 // deletes a category

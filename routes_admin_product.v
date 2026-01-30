@@ -125,6 +125,11 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
+	seo := model_product_seo_retrieve(mut tx, [product_id_bin]) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not retrieve seo', err.msg())
+	}
+
 	// store := model_store_retrieve(mut tx) or {
 	// 	tx.rollback() or {}
 	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
@@ -161,18 +166,22 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 	}
 
 	if _ := ph.seo {
-		// TODO verify seo_id exists
-		// TODO verify seo_id belongs to product_id
 		// TODO verify all locale_id exist
 	}
-
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-
 	// if seo_translations := ph.seo_translations {
 	// 	// TODO verify provided locale_id exist in database
 	// }
 
-	return conduit_products_update(mut app, mut ctx, product_id_bin, ph)
+	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+
+	if seo.len == 0 {
+		return handle_error_500(mut ctx, error_database_data_malformed, 'Missing product seo for product with id ${product_id}')
+	}
+
+	product_seo := seo[0]
+
+	return conduit_product_update(mut app, mut ctx, product_id_bin, product_seo.id_bin,
+		ph)
 }
 
 // deletes a product

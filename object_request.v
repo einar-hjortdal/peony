@@ -731,7 +731,7 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 	}
 }
 
-// SEOCreateRequest describes the body of the request to create SEO metadata.
+// SEORequest describes the body of the request to create SEO metadata.
 //
 // # Fields
 //
@@ -743,84 +743,26 @@ fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygie
 //
 // ## translations
 // Localized versions of SEO fields. To remove all translations, submit an empty array.
-pub struct SEOCreateRequest {
+pub struct SEORequest {
 pub:
 	title        ?string
 	description  ?string
 	translations ?[]SEOTranslationUpdateRequest
 }
 
-struct SEOCreateRequestHygienised {
+struct SEORequestHygienised {
 	title       ?string
 	description ?string
 mut:
 	translations ?[]SEOTranslationUpdateRequestHygienised
 }
 
-fn (p SEOCreateRequest) hygienise() !SEOCreateRequestHygienised {
+fn (p SEORequest) hygienise() !SEORequestHygienised {
 	if p.title == none && p.description == none && p.translations == none {
-		return new_internal_error(error_empty_object, 'SEOUpdateRequest')
+		return new_internal_error(error_empty_object, 'SEORequest')
 	}
 
-	mut r := SEOCreateRequestHygienised{
-		title:       p.title
-		description: p.description
-	}
-
-	if translations := p.translations {
-		mut hygienised := []SEOTranslationUpdateRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			hygienised[i] = translation.hygienise()!
-		}
-		r.translations = hygienised
-	}
-
-	return r
-}
-
-// SEOUpdateRequest describes the body of the request to update SEO metadata.
-//
-// # Fields
-//
-// ## id
-// The unique identifier of the SEO record.
-//
-// ## title
-// The SEO title. If provided as an empty string, the existing title is removed.
-//
-// ## description
-// The SEO description. If provided as an empty string, the existing description is removed.
-//
-// ## translations
-// Localized versions of SEO fields. To remove all translations, submit an empty array.
-pub struct SEOUpdateRequest {
-pub:
-	id           string
-	title        ?string
-	description  ?string
-	translations ?[]SEOTranslationUpdateRequest
-}
-
-struct SEOUpdateRequestHygienised {
-	id          string
-	id_bin      []u8
-	title       ?string
-	description ?string
-mut:
-	translations ?[]SEOTranslationUpdateRequestHygienised
-}
-
-fn (p SEOUpdateRequest) hygienise() !SEOUpdateRequestHygienised {
-	id_bin := id_string_to_bin(p.id) or { return new_internal_error(error_id_invalid, 'id') }
-
-	if p.title == none && p.description == none && p.translations == none {
-		return new_internal_error(error_empty_object, 'SEOUpdateRequest')
-	}
-
-	mut r := SEOUpdateRequestHygienised{
-		id:          p.id
-		id_bin:      id_bin
+	mut r := SEORequestHygienised{
 		title:       p.title
 		description: p.description
 	}
@@ -847,7 +789,7 @@ pub:
 	parent_category_id ?string @[json: 'parentCategoryId']
 	metadata           ?string @[raw]
 	translations       ?[]CategoryTranslationRequest
-	seo                ?SEOCreateRequest
+	seo                ?SEORequest
 }
 
 struct CategoryCreateRequestHygienised {
@@ -860,7 +802,7 @@ struct CategoryCreateRequestHygienised {
 	parent_category_id_bin []u8
 	metadata               ?string
 mut:
-	seo          ?SEOCreateRequestHygienised
+	seo          ?SEORequestHygienised
 	translations ?[]CategoryTranslationRequestHygienised
 }
 
@@ -935,7 +877,7 @@ pub:
 	parent_category_id ?string @[json: 'parentCategoryId']
 	metadata           ?string @[raw]
 	translations       ?[]CategoryTranslationRequest
-	seo                ?SEOUpdateRequest
+	seo                ?SEORequest
 }
 
 struct CategoryUpdateRequestHygienised {
@@ -948,7 +890,7 @@ struct CategoryUpdateRequestHygienised {
 	parent_category_id_bin []u8
 	metadata               ?string
 mut:
-	seo          ?SEOUpdateRequestHygienised
+	seo          ?SEORequestHygienised
 	translations ?[]CategoryTranslationRequestHygienised
 }
 
@@ -1078,7 +1020,7 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
-	seo               ?SEOCreateRequest
+	seo               ?SEORequest
 	options           ?[]ProductOptionCreateRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
@@ -1110,7 +1052,7 @@ struct ProductCreateRequestHygienised {
 	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
-	seo          ?SEOCreateRequestHygienised
+	seo          ?SEORequestHygienised
 	options      ?[]ProductOptionCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
@@ -1287,7 +1229,7 @@ pub:
 	translations      ?[]ProductTranslationRequest
 	thumbnail         ?i32
 	images            ?[]ImageRequest
-	seo               ?SEOUpdateRequest
+	seo               ?SEORequest
 	// options []OptionUpdateRequest
 	// variants []VariantUpdateRequest
 }
@@ -1320,7 +1262,7 @@ struct ProductUpdateRequestHygienised {
 mut:
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageRequestHygienised
-	seo          ?SEOUpdateRequestHygienised
+	seo          ?SEORequestHygienised
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {

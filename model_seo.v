@@ -60,7 +60,7 @@ fn model_product_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u8
 	tx.execute('INSERT INTO seo (id, product_id) VALUES (?, ?)', seo_id_bin, product_id_bin)!
 }
 
-fn model_product_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8, ph SEOCreateRequestHygienised) ! {
+fn model_product_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8, ph SEORequestHygienised) ! {
 	mut columns := ['id', 'product_id']
 	mut params := [firebird.Value(seo_id_bin), product_id_bin]
 	if title := ph.title {
@@ -117,7 +117,7 @@ fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u
 	return product_seo
 }
 
-fn model_seo_update(mut tx firebird.Transaction, ph SEOUpdateRequestHygienised) ! {
+fn model_seo_update(mut tx firebird.Transaction, seo_id_bin []u8, ph SEORequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 	if title := ph.title {
@@ -138,7 +138,7 @@ fn model_seo_update(mut tx firebird.Transaction, ph SEOUpdateRequestHygienised) 
 		}
 	}
 
-	params = arrays.concat(params, ph.id_bin)
+	params = arrays.concat(params, seo_id_bin)
 
 	tx.execute('UPDATE seo SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }
@@ -147,7 +147,7 @@ fn model_seo_translations_delete(mut tx firebird.Transaction, seo_id_bin []u8) !
 	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
 }
 
-fn model_seo_translations_update(mut tx firebird.Transaction, seo_id_bin []u8, translations []SEOTranslationUpdateRequestHygienised) ! {
+fn model_seo_translations_create(mut tx firebird.Transaction, seo_id_bin []u8, translations []SEOTranslationUpdateRequestHygienised) ! {
 	mut src := []string{len: translations.len}
 	mut params := []firebird.Value{len: translations.len * 4, init: firebird.Null{}}
 	for i := 0; i < translations.len; i++ {
@@ -194,7 +194,7 @@ fn model_category_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u
 	tx.execute('INSERT INTO seo (id, category_id) VALUES (?, ?)', seo_id_bin, category_id_bin)!
 }
 
-fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8, ph SEOCreateRequestHygienised) ! {
+fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8, ph SEORequestHygienised) ! {
 	mut columns := ['id', 'category_id']
 	mut params := [firebird.Value(seo_id_bin), category_id_bin]
 	if title := ph.title {

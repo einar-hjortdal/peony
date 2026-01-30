@@ -224,7 +224,7 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 
 		if translations := seo.translations {
 			if translations.len > 0 {
-				model_seo_translations_update(mut tx, seo_id_bin, translations) or {
+				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {} // ignore error
 					return handle_error_500(mut ctx, 'Failed to insert seo_translations data',
 						err.msg())
@@ -246,7 +246,7 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 	return success(mut ctx)
 }
 
-fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
+fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, seo_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -274,21 +274,21 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, p
 
 	if seo := ph.seo {
 		if seo.title != none || seo.description != none {
-			model_seo_update(mut tx, seo) or {
+			model_seo_update(mut tx, seo_id_bin, seo) or {
 				tx.rollback() or {}
 				return handle_error_500(mut ctx, 'Could not update seo', err.msg())
 			}
 		}
 
 		if translations := seo.translations {
-			model_seo_translations_delete(mut tx, seo.id_bin) or {
+			model_seo_translations_delete(mut tx, seo_id_bin) or {
 				tx.rollback() or {}
 				return handle_error_500(mut ctx, 'Could not delete seo_translations',
 					err.msg())
 			}
 
 			if translations.len > 0 {
-				model_seo_translations_update(mut tx, seo.id_bin, translations) or {
+				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {}
 					return handle_error_500(mut ctx, 'Could not update seo_translations',
 						err.msg())
