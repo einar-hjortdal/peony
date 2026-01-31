@@ -29,8 +29,6 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
 
-	println(p)
-
 	ph := p.hygienise() or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
@@ -49,8 +47,7 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	if translations := ph.translations {
-		println(translations)
+	if _ := ph.translations {
 		// TODO verify provided locale_id exist in database
 	}
 

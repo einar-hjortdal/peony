@@ -1019,31 +1019,62 @@ fn admin_handles_translations(cookie_value string) ! {
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	category_r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 
-	// TODO cleanup: delete category
+	response = do_authenticated_delete_request('${endpoint_admin_categories}/${created_category.id}',
+		cookie_value)!
 
 	// Product
 	product_title := luuid.v2()
 	product_subtitle := luuid.v2()
 	product_description := luuid.v2()
+	product_translation_1_title := luuid.v2()
+	product_translation_1_subtitle := luuid.v2()
+	product_translation_1_description := luuid.v2()
+	product_translation_2_title := luuid.v2()
+	product_translation_2_subtitle := luuid.v2()
+	product_translation_2_description := luuid.v2()
 	product_seo_title := luuid.v2()
 	product_seo_description := luuid.v2()
 	product_seo_translation_1_title := luuid.v2()
 	product_seo_translation_1_description := luuid.v2()
 	product_seo_translation_2_title := luuid.v2()
 	product_seo_translation_2_description := luuid.v2()
-	new_product_data := peony.ProductCreateRequest{
+	product_data := peony.ProductCreateRequest{
 		title:        product_title
 		subtitle:     product_subtitle
 		description:  product_description
-		translations: []
+		translations: [
+			peony.ProductTranslationRequest{
+				locale_id:   random_locale_1.id
+				title:       product_translation_1_title
+				subtitle:    product_translation_1_subtitle
+				description: product_translation_1_description
+			},
+			peony.ProductTranslationRequest{
+				locale_id:   random_locale_2.id
+				title:       product_translation_2_title
+				subtitle:    product_translation_2_subtitle
+				description: product_translation_2_description
+			},
+		]
 		seo:          peony.SEORequest{
 			title:        product_seo_title
 			description:  product_seo_description
-			translations: []
+			translations: [
+				peony.SEOTranslationRequest{
+					locale_id:   random_locale_1.id
+					title:       product_seo_translation_1_title
+					description: product_seo_translation_1_description
+				},
+				peony.SEOTranslationRequest{
+					locale_id:   random_locale_2.id
+					title:       product_seo_translation_2_title
+					description: product_seo_translation_2_description
+				},
+			]
 		}
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(product_data))!
 	response_is_ok(response)!
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	product_r := json.decode(peony.ProductResponseListEnvelope, response.body)!
@@ -1055,7 +1086,17 @@ fn admin_handles_translations(cookie_value string) ! {
 			break
 		}
 	}
-	println(new_product)
+
+	// product_data = peony.ProductCreateRequest{
+	// 	translations: [
+	// 		peony.ProductTranslationRequest{
+
+	// 		}
+	// 	]
+	// 	seo:          peony.SEORequest{
+	// 		translations: []
+	// 	}
+	// }
 
 	// TODO cleanup: delete product
 
