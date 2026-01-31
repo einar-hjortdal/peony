@@ -1000,6 +1000,7 @@ fn admin_handles_translations(cookie_value string) ! {
 		category := categories[i]
 		if category.name == category_name {
 			created_category = category
+			break
 		}
 	}
 
@@ -1018,7 +1019,45 @@ fn admin_handles_translations(cookie_value string) ! {
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	category_r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 
+	// TODO cleanup: delete category
+
 	// Product
+	product_title := luuid.v2()
+	product_subtitle := luuid.v2()
+	product_description := luuid.v2()
+	product_seo_title := luuid.v2()
+	product_seo_description := luuid.v2()
+	product_seo_translation_1_title := luuid.v2()
+	product_seo_translation_1_description := luuid.v2()
+	product_seo_translation_2_title := luuid.v2()
+	product_seo_translation_2_description := luuid.v2()
+	new_product_data := peony.ProductCreateRequest{
+		title:        product_title
+		subtitle:     product_subtitle
+		description:  product_description
+		translations: []
+		seo:          peony.SEORequest{
+			title:        product_seo_title
+			description:  product_seo_description
+			translations: []
+		}
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response_is_ok(response)!
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	product_r := json.decode(peony.ProductResponseListEnvelope, response.body)!
+	mut new_product := peony.ProductResponse{}
+	for i := 0; i < product_r.products.len; i++ {
+		product := product_r.products[i]
+		if product.title == product_title {
+			new_product = product
+			break
+		}
+	}
+	println(new_product)
+
+	// TODO cleanup: delete product
 
 	restore_old_store_data := json.encode(peony.StoreUpdateRequest{
 		locale_ids: [old_store.default_locale_id]
@@ -1088,8 +1127,6 @@ fn test_peony() ! {
 		admin_products_updates_product,
 		admin_products_create_rejects_bad_requests,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
-		// /admin/product/:product_id translations update
-		// /admin/product/:product_id seo translations update
 		// /admin/product/:product_id variants create, update (ranking too)
 		//
 		// TODO options and values

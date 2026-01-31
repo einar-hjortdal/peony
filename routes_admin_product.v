@@ -22,12 +22,14 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 }
 
 // create a product
-// TODO create variants, inventory_items and inventory_levels
+// TODO create options, values, variants, inventory_items and inventory_levels
 @['/admin/products'; post]
 pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
+
+	println(p)
 
 	ph := p.hygienise() or {
 		if err is InternalError {

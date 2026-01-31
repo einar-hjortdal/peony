@@ -8,6 +8,100 @@ pub const product_status_proposed = 'proposed'
 pub const product_status_published = 'published'
 pub const product_status_rejected = 'rejected'
 
+struct ProductTranslation {
+	product_id     string
+	product_id_bin []u8
+	locale_id      string
+	locale_id_bin  []u8
+	title          string
+	subtitle       string
+	description    string
+}
+
+fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslation {
+	data := tx.execute('SELECT
+		product_id,
+		locale_id,
+		title,
+		subtitle,
+		description
+		FROM product_translations
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
+		...workaround_24757(product_ids_bin))!
+
+	rows := data.rows()
+
+	mut translations := []ProductTranslation{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+
+		product_id_bin, _ := v[0].get_array_u8()!
+		locale_id_bin, _ := v[1].get_array_u8()!
+		title, _ := v[2].get_string()!
+		subtitle, _ := v[3].get_string()!
+		description, _ := v[4].get_string()!
+
+		product_id := id_bin_to_string(product_id_bin)!
+		locale_id := id_bin_to_string(locale_id_bin)!
+
+		translations[i] = ProductTranslation{
+			product_id:     product_id
+			product_id_bin: product_id_bin
+			locale_id:      locale_id
+			locale_id_bin:  locale_id_bin
+			title:          title
+			subtitle:       subtitle
+			description:    description
+		}
+	}
+
+	return translations
+}
+
+fn model_product_translations_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
+	tx.execute('DELETE FROM product_translations WHERE product_id = ?', product_id_bin)!
+}
+
+fn model_product_translations_create(mut tx firebird.Transaction, product_id_bin []u8, ph []ProductTranslationRequestHygienised) ! {
+	mut src := []string{len: ph.len}
+	mut params := []firebird.Value{len: ph.len * 5, init: firebird.Null{}}
+	for i := 0; i < ph.len; i++ {
+		t := ph[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS locale_id,
+			CAST(? AS VARCHAR(63)) AS title,
+			CAST(? AS VARCHAR(191)) AS subtitle,
+			CAST(? AS BLOB SUB_TYPE TEXT) AS description
+			FROM RDB\$DATABASE'
+
+		params[i * 5] = product_id_bin
+		params[i * 5 + 1] = t.locale_id_bin
+
+		if title := t.title {
+			params[i * 5 + 2] = title
+		} else {
+			params[i * 5 + 2] = firebird.Null{}
+		}
+
+		if subtitle := t.subtitle {
+			params[i * 5 + 3] = subtitle
+		} else {
+			params[i * 5 + 3] = firebird.Null{}
+		}
+
+		if description := t.description {
+			params[i * 5 + 4] = description
+		} else {
+			params[i * 5 + 4] = firebird.Null{}
+		}
+	}
+
+	tx.execute('INSERT INTO product_translations (product_id, locale_id, title, subtitle, description)
+		${get_merge_source(src)}',
+		...params)!
+}
+
 struct Product {
 	id               string
 	id_bin           []u8

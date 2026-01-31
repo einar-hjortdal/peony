@@ -99,10 +99,12 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	}
 
 	if translations := ph.translations {
-		model_product_translation_update(mut tx, product_id_bin, translations) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product translations',
-				err.msg())
+		if translations.len > 0 {
+			model_product_translations_create(mut tx, product_id_bin, translations) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to update product translations',
+					err.msg())
+			}
 		}
 	}
 
@@ -527,10 +529,18 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 	}
 
 	if translations := ph.translations {
-		model_product_translation_update(mut tx, product_id_bin, translations) or {
+		model_product_translations_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product translations',
+			return handle_error_500(mut ctx, 'Failed to delete from product_translations',
 				err.msg())
+		}
+
+		if translations.len > 0 {
+			model_product_translations_create(mut tx, product_id_bin, translations) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to create product_translations',
+					err.msg())
+			}
 		}
 	}
 
