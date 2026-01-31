@@ -902,6 +902,36 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	expect(response.status_code == 400, 'Product was created despite request having empty title')!
 }
 
+fn get_category_translation(locale_id string, r peony.CategoryResponse) !peony.CategoryTranslationResponse {
+	for i := 0; i < r.translations.len; i++ {
+		t := r.translations[i]
+		if t.locale_id == locale_id {
+			return t
+		}
+	}
+	return error('seo translation not found')
+}
+
+fn get_product_translation(locale_id string, r peony.ProductResponse) !peony.ProductTranslationResponse {
+	for i := 0; i < r.translations.len; i++ {
+		t := r.translations[i]
+		if t.locale_id == locale_id {
+			return t
+		}
+	}
+	return error('seo translation not found')
+}
+
+fn get_seo_translation(locale_id string, r peony.SEOResponse) !peony.SEOTranslationResponse {
+	for i := 0; i < r.translations.len; i++ {
+		t := r.translations[i]
+		if t.locale_id == locale_id {
+			return t
+		}
+	}
+	return error('seo translation not found')
+}
+
 fn admin_handles_translations(cookie_value string) ! {
 	println('admin_handles_translations')
 	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
@@ -1086,6 +1116,21 @@ fn admin_handles_translations(cookie_value string) ! {
 			break
 		}
 	}
+
+	translation_1 := get_product_translation(random_locale_1.id, new_product)!
+	translation_2 := get_product_translation(random_locale_2.id, new_product)!
+	seo_translation_1 := get_seo_translation(random_locale_1.id, new_product.seo)!
+	seo_translation_2 := get_seo_translation(random_locale_2.id, new_product.seo)!
+	expect(translation_1.title == product_translation_1_title, 'translation 1 title does not match')!
+	expect(translation_1.subtitle == product_translation_1_subtitle, 'translation 1 subtitle does not match')!
+	expect(translation_1.description == product_translation_1_description, 'translation 1 description does not match')!
+	expect(translation_2.title == product_translation_2_title, 'translation 2 title does not match')!
+	expect(translation_2.subtitle == product_translation_2_subtitle, 'translation 2 subtitle does not match')!
+	expect(translation_2.description == product_translation_2_description, 'translation 2 description does not match')!
+	expect(seo_translation_1.title == product_seo_translation_1_title, 'seo translation 1 title does not match')!
+	expect(seo_translation_1.description == product_seo_translation_1_description, 'seo translation 1 description does not match')!
+	expect(seo_translation_2.title == product_seo_translation_2_title, 'seo translation 2 title does not match')!
+	expect(seo_translation_2.description == product_seo_translation_2_description, 'seo translation 2 description does not match')!
 
 	// product_data = peony.ProductCreateRequest{
 	// 	translations: [

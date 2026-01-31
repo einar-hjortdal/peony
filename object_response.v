@@ -466,7 +466,7 @@ pub:
 	description string @[omitempty]
 }
 
-pub struct ProductCategoryTranslationResponse {
+pub struct CategoryTranslationResponse {
 pub:
 	category_id string @[json: 'productCategoryId']
 	locale_id   string @[json: 'localeId']
@@ -481,21 +481,21 @@ pub:
 	updated_at         time.Time @[json: 'updatedAt']
 	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
 	handle             string
-	parent_category_id string @[json: 'parentCategoryId'; omitempty]
-	is_active          bool   @[json: 'isActive']
-	is_internal        bool   @[json: 'isInternal']
-	metadata           string @[omitempty]
-	name               string @[omitempty]
-	description        string @[omitempty]
-	translations       []ProductCategoryTranslationResponse @[omitempty]
-	seo                SEOResponse @[omitempty]
+	parent_category_id string                        @[json: 'parentCategoryId'; omitempty]
+	is_active          bool                          @[json: 'isActive']
+	is_internal        bool                          @[json: 'isInternal']
+	metadata           string                        @[omitempty]
+	name               string                        @[omitempty]
+	description        string                        @[omitempty]
+	translations       []CategoryTranslationResponse @[omitempty]
+	seo                SEOResponse                   @[omitempty]
 }
 
 fn format_category_response(p Category) CategoryResponse {
-	mut tr := []ProductCategoryTranslationResponse{len: p.translations.len}
+	mut tr := []CategoryTranslationResponse{len: p.translations.len}
 	for i := 0; i < p.translations.len; i++ {
 		translation := p.translations[i]
-		tr[i] = ProductCategoryTranslationResponse{
+		tr[i] = CategoryTranslationResponse{
 			category_id: translation.category_id
 			locale_id:   translation.locale_id
 			name:        translation.name.value
