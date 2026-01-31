@@ -450,12 +450,9 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	if ph.handle != none || ph.is_giftcard != none || ph.status != none || ph.type_id != none
-		|| ph.discountable != none || ph.metadata != none {
-		model_product_update(mut tx, product_id_bin, ph) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to update product', err.msg())
-		}
+	model_product_update(mut tx, product_id_bin, ph) or {
+		tx.rollback() or {} // ignore error
+		return handle_error_500(mut ctx, 'Failed to update product', err.msg())
 	}
 
 	if _ := ph.tag_ids {

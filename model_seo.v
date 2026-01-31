@@ -147,7 +147,7 @@ fn model_seo_translations_delete(mut tx firebird.Transaction, seo_id_bin []u8) !
 	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id_bin)!
 }
 
-fn model_seo_translations_create(mut tx firebird.Transaction, seo_id_bin []u8, translations []SEOTranslationUpdateRequestHygienised) ! {
+fn model_seo_translations_create(mut tx firebird.Transaction, seo_id_bin []u8, translations []SEOTranslationRequestHygienised) ! {
 	mut src := []string{len: translations.len}
 	mut params := []firebird.Value{len: translations.len * 4, init: firebird.Null{}}
 	for i := 0; i < translations.len; i++ {

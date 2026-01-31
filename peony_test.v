@@ -911,12 +911,12 @@ fn admin_handles_translations(cookie_value string) ! {
 			title:        category_seo_title
 			description:  category_seo_description
 			translations: [
-				peony.SEOTranslationUpdateRequest{
+				peony.SEOTranslationRequest{
 					locale_id:   random_locale_1.id
 					title:       category_seo_translation_1_title
 					description: category_seo_translation_1_description
 				},
-				peony.SEOTranslationUpdateRequest{
+				peony.SEOTranslationRequest{
 					locale_id:   random_locale_2.id
 					title:       category_seo_translation_2_title
 					description: category_seo_translation_2_description
@@ -940,11 +940,11 @@ fn admin_handles_translations(cookie_value string) ! {
 	}
 
 	new_category_data := json.encode(peony.CategoryUpdateRequest{
-		translations: []
+		translations: []peony.CategoryTranslationRequest{}
 		seo:          peony.SEORequest{
 			title:        category_seo_title
 			description:  category_seo_description
-			translations: []
+			translations: []peony.SEOTranslationRequest{}
 		}
 	})
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${created_category.id}',

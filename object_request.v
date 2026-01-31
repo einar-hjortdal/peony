@@ -702,28 +702,26 @@ struct CategoryTranslationRequestHygienised {
 	description   ?string
 }
 
-// To delete title, provide an empty string
-// To delete description, provide an empty string
-pub struct SEOTranslationUpdateRequest {
+pub struct SEOTranslationRequest {
 pub:
 	locale_id   string @[json: 'localeId']
 	title       ?string
 	description ?string
 }
 
-struct SEOTranslationUpdateRequestHygienised {
+struct SEOTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8
 	title         ?string
 	description   ?string
 }
 
-fn (p SEOTranslationUpdateRequest) hygienise() !SEOTranslationUpdateRequestHygienised {
+fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
 		return new_internal_error(error_id_invalid, 'locale_id')
 	}
 
-	return SEOTranslationUpdateRequestHygienised{
+	return SEOTranslationRequestHygienised{
 		locale_id:     p.locale_id
 		locale_id_bin: locale_id_bin
 		title:         p.title
@@ -747,14 +745,14 @@ pub struct SEORequest {
 pub:
 	title        ?string
 	description  ?string
-	translations ?[]SEOTranslationUpdateRequest
+	translations ?[]SEOTranslationRequest
 }
 
 struct SEORequestHygienised {
 	title       ?string
 	description ?string
 mut:
-	translations ?[]SEOTranslationUpdateRequestHygienised
+	translations ?[]SEOTranslationRequestHygienised
 }
 
 fn (p SEORequest) hygienise() !SEORequestHygienised {
@@ -768,7 +766,7 @@ fn (p SEORequest) hygienise() !SEORequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut hygienised := []SEOTranslationUpdateRequestHygienised{len: translations.len}
+		mut hygienised := []SEOTranslationRequestHygienised{len: translations.len}
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			hygienised[i] = translation.hygienise()!
