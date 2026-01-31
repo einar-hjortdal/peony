@@ -596,6 +596,68 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
 }
 
+fn admin_categories_updates_category(cookie_value string) ! {
+	println('admin_categories_updates_category')
+	new_category_name := luuid.v2()
+	new_category_data := json.encode(peony.CategoryCreateRequest{
+		name: new_category_name
+	})
+	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+		new_category_data)!
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	mut r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
+
+	mut new_category := peony.CategoryResponse{}
+	for i := 0; i < r.categories.len; i++ {
+		category := r.categories[i]
+		if category.name == new_category_name {
+			new_category = category
+			break
+		}
+	}
+
+	new_name := luuid.v2()
+	new_description := luuid.v2()
+	new_handle := luuid.v2()
+	new_is_internal := !new_category.is_internal
+	new_is_active := !new_category.is_active
+	new_metadata := luuid.v2()
+	updated_category_data := json.encode(peony.CategoryUpdateRequest{
+		name:        new_name
+		description: new_description
+		handle:      new_handle
+		is_internal: new_is_internal
+		is_active:   new_is_active
+		metadata:    new_metadata
+	})
+	time.sleep(1 * time.second) // needed to check updated_at
+	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
+		cookie_value, updated_category_data)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
+	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
+	mut updated_category := peony.CategoryResponse{}
+	for i := 0; i < r.categories.len; i++ {
+		category := r.categories[i]
+		if category.id == new_category.id {
+			updated_category = category
+			break
+		}
+	}
+
+	expect(updated_category.updated_at > new_category.updated_at, 'updated_at field was not updated')!
+	expect(updated_category.name == new_name, 'name does not match')!
+	expect(updated_category.description == new_description, 'description does not match')!
+	expect(updated_category.handle == new_handle, 'handle does not match')!
+	expect(updated_category.is_internal == new_is_internal, 'is_internal does not match')!
+	expect(updated_category.is_active == new_is_active, 'is_internal does not match')!
+	expect(updated_category.metadata == '"${new_metadata}"', 'metadata does not match')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
+		cookie_value)!
+}
+
 fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_categories_create_rejects_bad_requests')
 	new_category_data := peony.CategoryCreateRequest{}
@@ -798,6 +860,7 @@ fn admin_products_updates_product(cookie_value string) ! {
 			description: new_seo_description
 		}
 	})
+	time.sleep(1 * time.second) // needed to check updated_at
 	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, updated_product_data)!
 	response_is_ok(response)!
@@ -814,6 +877,7 @@ fn admin_products_updates_product(cookie_value string) ! {
 	}
 
 	expect(updated_product.id != '', 'Product is missing id')!
+	expect(updated_product.updated_at > new_product.updated_at, 'updated_at field was not updated')!
 	expect(updated_product.title == new_title, 'title does not match')!
 	expect(updated_product.subtitle == new_subtitle, 'subtitle does not match')!
 	expect(updated_product.description == new_description, 'description does not match')!
@@ -1014,9 +1078,11 @@ fn test_peony() ! {
 		// admin_regions,
 		admin_store,
 		admin_store_updates_store_locales,
+		// TODO test store update updated_at
 		admin_categories_create_minimal_category,
 		admin_categories_create_complex_category,
-		// TODO test category update, seo, translations, parent
+		admin_categories_updates_category,
+		// TODO test category parent
 		admin_products_create_minimal_product,
 		admin_products_create_complex_product,
 		admin_products_updates_product,

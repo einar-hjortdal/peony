@@ -143,6 +143,16 @@ fn model_category_update(mut tx firebird.Transaction, category_id_bin []u8, ph C
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
+	if name := ph.name {
+		columns = arrays.concat(columns, 'name')
+		params = arrays.concat(params, name)
+	}
+
+	if description := ph.description {
+		columns = arrays.concat(columns, 'description')
+		params = arrays.concat(params, description)
+	}
+
 	if handle := ph.handle {
 		columns = arrays.concat(columns, 'handle')
 		params = arrays.concat(params, handle)
