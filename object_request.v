@@ -99,7 +99,7 @@ fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	}
 
 	if i.alt == '' {
-		return new_internal_error(error_empty_field, 'alt')
+		return new_internal_error(error_field_empty, 'alt')
 	}
 
 	return ImageTranslationRequestHygienised{
@@ -248,12 +248,12 @@ fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienise
 // TODO all locale_id exist
 fn (p ProductOptionValueRequestHygienised) verify() ! {
 	if p.name == '' {
-		return new_internal_error(error_empty_field, 'name')
+		return new_internal_error(error_field_empty, 'name')
 	}
 
 	if translations := p.translations {
 		if translations.len == 0 {
-			return new_internal_error(error_empty_field, 'translations')
+			return new_internal_error(error_field_empty, 'translations')
 		}
 	}
 }
@@ -292,13 +292,13 @@ fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequ
 fn (p ProductOptionValueUpdateRequestHygienised) verify() ! {
 	if name := p.name {
 		if name == '' {
-			return new_internal_error(error_empty_field, 'name')
+			return new_internal_error(error_field_empty, 'name')
 		}
 	}
 
 	if translations := p.translations {
 		if translations.len == 0 {
-			return new_internal_error(error_empty_field, 'translations')
+			return new_internal_error(error_field_empty, 'translations')
 		}
 	}
 }
@@ -367,19 +367,19 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 // The product_option has at least one value
 fn (p ProductOptionCreateRequestHygienised) verify() ! {
 	if p.title == '' {
-		return new_internal_error(error_empty_field, 'title')
+		return new_internal_error(error_field_empty, 'title')
 	}
 
 	option_values := p.values
 
 	if translations := p.translations {
 		if translations.len == 0 {
-			return new_internal_error(error_empty_field, 'translations')
+			return new_internal_error(error_field_empty, 'translations')
 		}
 	}
 
 	if option_values.len == 0 {
-		return new_internal_error(error_empty_field, 'The product_option lacks values, at least one value must be provided.')
+		return new_internal_error(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
 	}
 
 	for i := 0; i < option_values.len; i++ {
@@ -421,7 +421,7 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 fn (ph ProductOptionUpdateRequestHygienised) verify() ! {
 	if title := ph.title {
 		if title == '' {
-			return new_internal_error(error_empty_field, 'The product_option lacks a title')
+			return new_internal_error(error_field_empty, 'The product_option lacks a title')
 		}
 	}
 
@@ -1058,7 +1058,17 @@ mut:
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if p.title == '' {
-		return new_internal_error(error_empty_field, 'title')
+		return new_internal_error(error_field_empty, 'title')
+	}
+
+	if utf8_str_visible_length(p.title) > max_length_product_title {
+		return new_internal_error(error_field_too_long, 'title')
+	}
+
+	if subtitle := p.subtitle {
+		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
+			return new_internal_error(error_field_too_long, 'subtitle')
+		}
 	}
 
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
@@ -1264,6 +1274,22 @@ mut:
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
+	if title := p.title {
+		if title == '' {
+			return new_internal_error(error_field_empty, 'title')
+		}
+
+		if utf8_str_visible_length(title) > max_length_product_title {
+			return new_internal_error(error_field_too_long, 'title')
+		}
+	}
+
+	if subtitle := p.subtitle {
+		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
+			return new_internal_error(error_field_too_long, 'subtitle')
+		}
+	}
+
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
 		return new_internal_error(error_id_invalid, 'type_id')
 	}

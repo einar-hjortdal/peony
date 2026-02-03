@@ -24,14 +24,36 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	}
 
 	if p.email == '' {
-		return handle_error_400(mut ctx, error_empty_field, 'email')
+		return handle_error_400(mut ctx, error_field_empty, 'email')
 	}
 
 	if p.password == '' {
-		return handle_error_400(mut ctx, error_empty_field, 'password')
+		return handle_error_400(mut ctx, error_field_empty, 'password')
 	}
 
-	// TODO validate email, error if email obviously bad
+	email_is_valid(p.email) or { return handle_error_400(mut ctx, 'invalid email', err.msg()) }
+
+	// TODO role
+
+	if first_name := p.first_name {
+		if utf8_str_visible_length(first_name) > max_length_first_name {
+			return handle_error_400(mut ctx, 'first_name too long', 'first_name can be at most ${max_length_first_name} UTF8 characters long')
+		}
+	}
+
+	if last_name := p.last_name {
+		if utf8_str_visible_length(last_name) > max_length_last_name {
+			return handle_error_400(mut ctx, 'last_name too long', 'last_name can be at most ${max_length_last_name} UTF8 characters long')
+		}
+	}
+
+	if image := p.image {
+		if alt := image.alt {
+			if utf8_str_visible_length(alt) > max_length_alt {
+				return handle_error_400(mut ctx, 'alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+			}
+		}
+	}
 
 	return conduit_user_create(mut app, mut ctx, p)
 }
@@ -66,6 +88,32 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 
 	p := json.decode(UserUpdateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode UserUpdateRequest', err.msg())
+	}
+
+	if email := p.email {
+		email_is_valid(email) or { return handle_error_400(mut ctx, 'invalid email', err.msg()) }
+	}
+
+	// TODO role
+
+	if first_name := p.first_name {
+		if utf8_str_visible_length(first_name) > max_length_first_name {
+			return handle_error_400(mut ctx, 'first_name too long', 'first_name can be at most ${max_length_first_name} UTF8 characters long')
+		}
+	}
+
+	if last_name := p.last_name {
+		if utf8_str_visible_length(last_name) > max_length_last_name {
+			return handle_error_400(mut ctx, 'last_name too long', 'last_name can be at most ${max_length_last_name} UTF8 characters long')
+		}
+	}
+
+	if image := p.image {
+		if alt := image.alt {
+			if utf8_str_visible_length(alt) > max_length_alt {
+				return handle_error_400(mut ctx, 'alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+			}
+		}
 	}
 
 	return conduit_user_update(mut app, mut ctx, user_id_bin, p)

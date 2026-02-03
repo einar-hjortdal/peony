@@ -21,13 +21,14 @@ pub fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 	}
 
 	if p.email == '' {
-		return handle_error_400(mut ctx, error_empty_field, 'email')
+		return handle_error_400(mut ctx, error_field_empty, 'email')
 	}
 
 	if p.password == '' {
-		return handle_error_400(mut ctx, error_empty_field, 'password')
+		return handle_error_400(mut ctx, error_field_empty, 'password')
 	}
 
+	email_is_valid(p.email) or { return handle_error_400(mut ctx, 'invalid email', err.msg()) }
 	// TODO quick validate email: min/max char length, shape and presence of @ and .
 	// return error if user already logged in
 

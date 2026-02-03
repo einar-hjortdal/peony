@@ -6,6 +6,34 @@ pub const order_direction_asc = 'ASC'
 pub const order_direction_desc = 'DESC'
 pub const order_direction_default = order_direction_asc
 
+pub const max_length_first_name = 63
+pub const max_length_last_name = 63
+pub const max_length_alt = 191
+pub const max_length_product_title = 63
+pub const max_length_product_subtitle = 191
+pub const max_length_option_title = 63
+pub const max_length_option_value_name = 63
+pub const max_length_variant_title = 63
+pub const max_length_seo_title = 63
+pub const max_length_seo_description = 191
+pub const max_length_category_name = 63
+pub const max_length_category_description = 191
+pub const max_length_region_name = 63
+
+fn email_is_valid(e string) ! {
+	if e.len > 254 {
+		return error('email too long')
+	}
+
+	// a@b.cd
+	if e.len < 6 {
+		return error('email too short')
+	}
+
+	// TODO contains @
+	// TODO illegal characters
+}
+
 fn option_id_string_to_id_bin(option_id_string ?string) ![]u8 {
 	if id_string := option_id_string {
 		return id_string_to_bin(id_string)!
