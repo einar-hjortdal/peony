@@ -1,5 +1,51 @@
 module peony
 
+import einar_hjortdal.luuid
+
+interface Identifiable {
+	id_string() string
+	id_bytes() []u8
+}
+
+struct ID {
+	s string
+	b []u8
+}
+
+fn new_id(mut g luuid.Generator) ID {
+	s := g.v1().to_upper()
+	return ID{
+		s: s
+		b: luuid.to_bytes(s) or { panic(err) } // should never panic
+	}
+}
+
+fn (id ID) id_string() string {
+	return id.s
+}
+
+fn (id ID) id_bytes() []u8 {
+	return id.b
+}
+
+fn id_from_string(s string) !ID {
+	return ID{
+		s: s
+		b: luuid.to_bytes(s)!
+	}
+}
+
+fn id_from_bytes(b []u8) !ID {
+	return ID{
+		s: luuid.from_bytes(b)!
+		b: b
+	}
+}
+
+fn (mut app App) gen_id() ID {
+	return new_id(mut app.luuid_generator)
+}
+
 struct InternalError {
 	Error
 	message string

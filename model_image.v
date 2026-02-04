@@ -105,23 +105,21 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 	return product_images
 }
 
-fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ImageRequestHygienised, image_ids_bin [][]u8) ! {
-	// always delete all images
-	tx.execute('DELETE FROM image i
+// deletes all images related to a product
+// What if instead we take an array of image ids, and delete all images by those ids?
+// That would make the function more reusable and fit more purposes.
+fn model_product_images_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
+	tx.execute('DELETE FROM image
 		WHERE EXISTS (
 			SELECT 1
-				FROM product_image pi
-				WHERE pi.product_id = ?
-				AND pi.image_id = i.id
+				FROM product_image
+				WHERE product_image.product_id = ?
+				AND product_image.image_id = image.id
 		)',
 		product_id_bin)!
+}
 
-	// early return when nothing else to do
-	if images.len == 0 {
-		return
-	}
-
-	// insert new images
+fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ImageRequestHygienised, image_ids_bin [][]u8) ! {
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	mut translation_n := i32(0)
@@ -146,7 +144,8 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		}
 	}
 
-	tx.execute('INSERT INTO image (id, url, alt) ${get_merge_source(src)}', ...params)!
+	mut query := 'INSERT INTO image (id, url, alt) ${get_merge_source(src)}'
+	tx.execute(query, ...params)!
 
 	// insert translations if any
 	if translation_n > 0 {
@@ -154,29 +153,26 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		params = []firebird.Value{len: translation_n * 3, init: firebird.Null{}}
 		mut current_translation_i := i32(0)
 		for i := 0; i < images.len; i++ {
-			image_id := image_ids_bin[i]
+			image_id_bin := image_ids_bin[i]
 			if translations := images[i].translations {
 				for k := 0; k < translations.len; k++ {
 					translation := translations[k]
-					locale_id := translation.locale_id
-					alt := translation.alt
 					src[current_translation_i] = 'SELECT
 						CAST(? AS BINARY(16)),
 						CAST(? AS BINARY(16)),
 						CAST(? AS VARCHAR(191))
 						FROM RDB\$DATABASE'
 
-					params[current_translation_i * 3] = image_id
-					params[current_translation_i * 3 + 1] = locale_id
-					params[current_translation_i * 3 + 2] = alt
+					params[current_translation_i * 3] = image_id_bin
+					params[current_translation_i * 3 + 1] = translation.locale_id_bin
+					params[current_translation_i * 3 + 2] = translation.alt
+					current_translation_i++
 				}
-
-				current_translation_i++
 			}
 		}
 
-		tx.execute('INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}',
-			...params)!
+		query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
+		tx.execute(query, ...params)!
 	}
 
 	// insert product_image relation
@@ -194,6 +190,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		params[i * 3 + 2] = i32(i)
 	}
 
-	tx.execute('INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}',
-		...params)!
+	query = 'INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}'
+	println(query)
+	tx.execute(query, ...params)!
 }

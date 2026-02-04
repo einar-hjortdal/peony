@@ -993,19 +993,59 @@ fn remove_secondary_locales(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
+fn get_random_image_request(secondary_locales []peony.LocaleResponse) peony.ImageRequest {
+	mut translations := []peony.ImageTranslationRequest{len: secondary_locales.len}
+	if secondary_locales.len > 0 {
+		for i := 0; i < secondary_locales.len; i++ {
+			l := secondary_locales[i]
+			translations[i] = peony.ImageTranslationRequest{
+				locale_id: l.id
+				alt:       luuid.v2()
+			}
+		}
+	}
+
+	return peony.ImageRequest{
+		url:          luuid.v2()
+		alt:          luuid.v2()
+		translations: translations
+	}
+}
+
+fn admin_products_handles_product_images(cookie_value string) ! {
+	println('admin_products_updates_product_images')
+	title := luuid.v2()
+	secondary_locales := add_random_locales(cookie_value, 2)!
+	image_1 := get_random_image_request(secondary_locales)
+	image_2 := get_random_image_request(secondary_locales)
+	image_3 := get_random_image_request(secondary_locales)
+	original_product_data := peony.ProductCreateRequest{
+		title:  title
+		images: [image_1, image_2, image_3]
+	}
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(original_product_data))!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
+
+	mut new_product := peony.ProductResponse{}
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.title == title {
+			new_product = product
+			break
+		}
+	}
+	println(new_product)
+}
+
 fn admin_handles_category_translations(cookie_value string) ! {
 	println('admin_handles_category_translations')
 	secondary_locales := add_random_locales(cookie_value, 2)!
 	secondary_locale_1 := secondary_locales[0]
 	secondary_locale_2 := secondary_locales[1]
-
-	// Category
-	// create a category with translations and seo translations
-	// update its translations and seo translations
-	// First add one translation
-	// Then add another one and delete the first
-	// Then add the first again, keeping the second
-	// Then submit an empty array
 
 	category_name := luuid.v2()
 	category_description := luuid.v2()
@@ -1199,7 +1239,8 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	// 	}
 	// }
 
-	// TODO cleanup: delete product
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${new_product.id}',
+		cookie_value)!
 	remove_secondary_locales(cookie_value)!
 }
 
@@ -1263,6 +1304,7 @@ fn test_peony() ! {
 		admin_products_create_complex_product,
 		admin_products_updates_product,
 		admin_products_create_rejects_bad_requests,
+		admin_products_handles_product_images,
 		admin_handles_product_translations,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)

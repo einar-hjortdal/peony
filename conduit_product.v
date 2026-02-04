@@ -52,25 +52,28 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 	}
 
 	if images := ph.images {
-		mut image_ids_bin := [][]u8{len: images.len}
-		for i := 0; i < images.len; i++ {
-			_, id_bin := app.new_id()
-			image_ids_bin[i] = id_bin
-		}
+		if images.len > 0 {
+			mut image_ids_bin := [][]u8{len: images.len}
+			for i := 0; i < images.len; i++ {
+				_, id_bin := app.new_id()
+				image_ids_bin[i] = id_bin
+			}
 
-		model_product_images_update(mut tx, product_id_bin, images, image_ids_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
-		}
+			model_product_images_update(mut tx, product_id_bin, images, image_ids_bin) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
+			}
 
-		mut thumbnail_id_bin := image_ids_bin[0]
-		if thumbnail := ph.thumbnail {
-			thumbnail_id_bin = image_ids_bin[thumbnail]
-		}
+			mut thumbnail_id_bin := image_ids_bin[0]
+			if thumbnail := ph.thumbnail {
+				thumbnail_id_bin = image_ids_bin[thumbnail]
+			}
 
-		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
+			model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to update product thumbnail',
+					err.msg())
+			}
 		}
 	}
 
@@ -465,6 +468,13 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 		model_product_thumbnail_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to delete product thumbnail', err.msg())
+		}
+
+		// TODO this should be a more complex operation:
+		// update images if id provided, delete missing, reorder according to array index.
+		// create a struct with parameters for what to do?
+		model_product_images_delete(mut tx, product_id_bin) or {
+			return handle_error_500(mut ctx, 'Failed to delete product images', err.msg())
 		}
 
 		mut image_ids_bin := [][]u8{len: images.len}
