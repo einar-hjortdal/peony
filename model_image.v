@@ -265,9 +265,35 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		AND i.id NOT IN (${get_placeholders(image_ids_bin)})'
 	tx.execute(query, ...params)!
 
+	// handle relations
+	query = 'DELETE FROM product_image WHERE product_id = ?'
+	tx.execute(query, product_id_bin)!
+
+	src = []string{len: images.len}
+	params = []firebird.Value{len: images.len * 3, init: firebird.Null{}}
+	for i := 0; i < images.len; i++ {
+		image := images[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS image_id,
+			CAST(? AS INTEGER) AS image_rank
+			FROM RDB\$DATABASE'
+
+		params[i * 3] = product_id_bin
+		params[i * 3 + 1] = image.id_bin
+		params[i * 3 + 2] = i32(i)
+	}
+
+	query = 'INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}'
+	tx.execute(query, ...params)!
+
 	// handle translations
 	query = 'DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids_bin)})'
 	tx.execute(query, ...workaround_24757(image_ids_bin))!
+
+	if n_translations == 0 {
+		return
+	}
 
 	src = []string{len: n_translations}
 	params = []firebird.Value{len: n_translations * 3, init: firebird.Null{}}
@@ -291,27 +317,5 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 	}
 
 	query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
-	tx.execute(query, ...params)!
-
-	// handle relations
-	query = 'DELETE FROM product_image WHERE product_id = ?'
-	tx.execute(query, product_id_bin)!
-
-	src = []string{len: images.len}
-	params = []firebird.Value{len: images.len * 3, init: firebird.Null{}}
-	for i := 0; i < images.len; i++ {
-		image := images[i]
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS product_id,
-			CAST(? AS BINARY(16)) AS image_id,
-			CAST(? AS INTEGER) AS image_rank
-			FROM RDB\$DATABASE'
-
-		params[i * 3] = product_id_bin
-		params[i * 3 + 1] = image.id_bin
-		params[i * 3 + 2] = i32(i)
-	}
-
-	query = 'INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}'
 	tx.execute(query, ...params)!
 }

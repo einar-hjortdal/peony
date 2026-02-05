@@ -1038,7 +1038,29 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 			break
 		}
 	}
-	println(new_product)
+
+	product_id := new_product.id
+	expect(new_product.images.len == 3, 'number of images created does not match')!
+	new_thumbnail := new_product.thumbnail
+	new_image_1 := new_product.images[0]
+	new_image_2 := new_product.images[1]
+	new_image_3 := new_product.images[2]
+	expect(new_thumbnail.id == new_image_1.id, 'thumbnail is the wrong image')!
+	expect(new_image_1.url == image_1.url, 'image_1 url does not match')!
+
+	if alt := image_1.alt {
+		expect(new_image_1.alt == alt, 'image_1 alt does not match')!
+	}
+
+	if image_1_translations := image_1.translations {
+		expect(new_image_1.translations.len == image_1_translations.len, 'image_1 translations differ in number')!
+	}
+
+	// update image alt and translations
+	// update sorting order
+	// update sorting order and remove one image
+	// update sorting order and add one image
+	// update sorting order plus one alt and translation
 }
 
 fn admin_handles_category_translations(cookie_value string) ! {
