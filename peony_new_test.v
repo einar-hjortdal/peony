@@ -234,7 +234,7 @@ fn get_routine_data() !RoutineData {
 	}
 }
 
-const routine_data = get_routine_data()!
+const routine_data = get_routine_data()! // runtime mem access error, doesn't happen in other setup
 
 fn testsuite_begin() ! {
 	// not needed for now, get_routine_data starts everything

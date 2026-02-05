@@ -1016,12 +1016,14 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 	println('admin_products_updates_product_images')
 	title := luuid.v2()
 	secondary_locales := add_random_locales(cookie_value, 2)!
-	image_1 := get_random_image_create_request(secondary_locales)
-	image_2 := get_random_image_create_request(secondary_locales)
-	image_3 := get_random_image_create_request(secondary_locales)
+	n_images := 3
+	mut images := []peony.ImageCreateRequest{len: n_images}
+	for i := 0; i < n_images; i++ {
+		images[i] = get_random_image_create_request(secondary_locales)
+	}
 	original_product_data := peony.ProductCreateRequest{
 		title:  title
-		images: [image_1, image_2, image_3]
+		images: images
 	}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(original_product_data))!
@@ -1040,24 +1042,72 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 	}
 
 	product_id := new_product.id
-	expect(new_product.images.len == 3, 'number of images created does not match')!
+	expect(new_product.images.len == n_images, 'number of images created does not match')!
 	new_thumbnail := new_product.thumbnail
-	new_image_1 := new_product.images[0]
-	new_image_2 := new_product.images[1]
-	new_image_3 := new_product.images[2]
-	expect(new_thumbnail.id == new_image_1.id, 'thumbnail is the wrong image')!
-	expect(new_image_1.url == image_1.url, 'image_1 url does not match')!
+	expect(new_thumbnail.id == new_product.images[0].id, 'thumbnail is the wrong image')!
 
-	if alt := image_1.alt {
-		expect(new_image_1.alt == alt, 'image_1 alt does not match')!
+	for i := 0; i < new_product.images.len; i++ {
+		requested_image := images[i]
+		new_image := new_product.images[i]
+
+		expect(new_image.id != '', 'image id is missing')!
+		expect(new_image.url == requested_image.url, 'image_1 url does not match')!
+
+		if alt := requested_image.alt {
+			expect(new_image.alt == alt, 'image_1 alt does not match')!
+		}
+
+		// verify all requested translations were created
+		if requested_image_translations := requested_image.translations {
+			expect(new_image.translations.len == requested_image_translations.len, 'image ${i} translations differ in number')!
+			for j := 0; j < secondary_locales.len; j++ {
+				locale := secondary_locales[j]
+				mut found := false
+				for k := 0; k < new_image.translations.len; k++ {
+					translation := new_image.translations[k]
+					if translation.locale_id == locale.id {
+						found = true
+						break
+					}
+				}
+				expect(found, 'secondary locale not found in image ${i} translations')!
+			}
+		}
 	}
 
-	if image_1_translations := image_1.translations {
-		expect(new_image_1.translations.len == image_1_translations.len, 'image_1 translations differ in number')!
+	// update sorting order
+	mut images_update := [
+		peony.ImageUpdateRequest{
+			id: new_product.images[2].id
+		},
+		peony.ImageUpdateRequest{
+			id: new_product.images[0].id
+		},
+		peony.ImageUpdateRequest{
+			id: new_product.images[1].id
+		},
+	]
+	mut product_update := peony.ProductUpdateRequest{
+		images: images_update
+	}
+
+	response = do_authenticated_post_request('${endpoint_admin_products}/${product_id}',
+		cookie_value, json.encode(product_update))!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request('${endpoint_admin_products}/${product_id}',
+		cookie_value)!
+	mut r_by_id := json.decode(peony.ProductResponseEnvelope, response.body)!
+	updated_product := r_by_id.product
+	updated_images := updated_product.images
+	expect(updated_images.len == images_update.len, 'images are an unexpected number')!
+	for i := 0; i < images_update.len; i++ {
+		if expected_id := images_update[i].id {
+			expect(updated_images[i].id == expected_id, 'image sorting order is wrong')!
+		}
 	}
 
 	// update image alt and translations
-	// update sorting order
 	// update sorting order and remove one image
 	// update sorting order and add one image
 	// update sorting order plus one alt and translation
