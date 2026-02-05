@@ -136,7 +136,6 @@ pub:
 	handle            ZeroString
 	is_giftcard       ZeroBool
 	status            ZeroString
-	collection_ids    ZeroArrayString
 	type_ids          ZeroArrayString
 	tag_ids           ZeroArrayString
 	title             ZeroString
@@ -157,7 +156,6 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 	return ProductListRequestQuery{
 		cart_id:           zero_string(m, 'cart_id')
 		category_ids:      zero_array_string(m, 'category_ids')
-		collection_ids:    zero_array_string(m, 'collection_id')
 		fetch:             zero_i32(m, 'fetch')
 		handle:            zero_string(m, 'handle')
 		ids:               zero_array_string(m, 'id')
@@ -186,9 +184,6 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 //
 // ## is_giftcard
 // Filters by gift card status. (TODO)
-//
-// ## collection_ids
-// Products belonging to any of the given collections. (TODO)
 //
 // ## type_ids
 // Exact match on product type IDs. (TODO)
@@ -229,7 +224,6 @@ pub:
 	ids               ZeroArrayString
 	handle            ZeroString
 	is_giftcard       ZeroBool
-	collection_ids    ZeroArrayString
 	type_ids          ZeroArrayString
 	tag_ids           ZeroArrayString
 	category_ids      ZeroArrayString
@@ -247,7 +241,6 @@ fn extract_product_list_request_query_store(m map[string]string) ProductListRequ
 	return ProductListRequestQueryStore{
 		cart_id:           zero_string(m, 'cart_id')
 		category_ids:      zero_array_string(m, 'category_ids')
-		collection_ids:    zero_array_string(m, 'collection_id')
 		fetch:             zero_i32(m, 'fetch')
 		handle:            zero_string(m, 'handle')
 		ids:               zero_array_string(m, 'id')
@@ -367,8 +360,6 @@ struct RetrieveProductParamsHygienised {
 	handle                ZeroString
 	is_giftcard           ZeroBool
 	status                ZeroString
-	collection_ids        ZeroArrayString
-	collection_ids_bin    [][]u8
 	type_ids              ZeroArrayString
 	type_ids_bin          [][]u8
 	tag_ids               ZeroArrayString
@@ -395,11 +386,6 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 	ids := zero_array_string(m, 'ids')
 	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
 		return new_internal_error(error_id_invalid, 'product_id')
-	}
-
-	collection_ids := zero_array_string(m, 'collection_ids')
-	collection_ids_bin := zero_array_id_string_to_array_id_bin(collection_ids) or {
-		return new_internal_error(error_id_invalid, 'collection_id')
 	}
 
 	price_list_ids := zero_array_string(m, 'price_list_ids')
@@ -448,8 +434,6 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 		handle:                zero_string(m, 'handle')
 		is_giftcard:           zero_bool(m, 'is_giftcard')
 		status:                zero_string(m, 'status')
-		collection_ids:        collection_ids
-		collection_ids_bin:    collection_ids_bin
 		type_ids:              type_ids
 		type_ids_bin:          type_ids_bin
 		tag_ids:               tag_ids

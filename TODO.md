@@ -34,6 +34,7 @@
 ### Soon to be implemented
 
 - [ ] Cache
+- [ ] Variant image
 
 ### To be implement
 
@@ -43,7 +44,6 @@
 - [ ] Unit pricing
 - [ ] Product tags
 - [ ] Product types
-- [ ] Product collections
 - [ ] Product bundles
 - [ ] Blog
 - [ ] Post
@@ -54,7 +54,6 @@
 - [ ] Orders
 - [ ] Payments
 - [ ] User permissions
-- [ ] Variant image
 - [ ] API keys
 - [ ] Taxes
 

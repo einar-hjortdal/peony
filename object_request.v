@@ -1066,9 +1066,6 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // ## category_ids
 // Categories the product belongs to.
 //
-// ## collection_ids
-// Collections the product belongs to.
-//
 // ## translations
 // Localized versions of product fields.
 //
@@ -1103,7 +1100,6 @@ pub:
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
-	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
 	seo               ?SEORequest
 	options           ?[]ProductOptionCreateRequest
@@ -1133,8 +1129,6 @@ struct ProductCreateRequestHygienised {
 	sales_channel_ids_bin [][]u8
 	category_ids          ?[]string
 	category_ids_bin      [][]u8
-	collection_ids        ?[]string
-	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
 	seo          ?SEORequestHygienised
@@ -1188,10 +1182,6 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		return new_internal_error(error_id_invalid, 'category_id')
 	}
 
-	collection_id_bin := option_array_id_string_to_array_id_bin(p.collection_ids) or {
-		return new_internal_error(error_id_invalid, 'collection_id')
-	}
-
 	mut ph := ProductCreateRequestHygienised{
 		title:                 p.title
 		subtitle:              p.subtitle
@@ -1210,8 +1200,6 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		sales_channel_ids_bin: sales_channel_ids_bin
 		category_ids:          p.category_ids
 		category_ids_bin:      category_ids_bin
-		collection_ids:        p.collection_ids
-		collection_ids_bin:    collection_id_bin
 	}
 
 	if options := p.options {
@@ -1285,9 +1273,6 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // ## category_ids
 // Categories the product belongs to. To remove the product from all categories, submit an empty array.
 //
-// ## collection_ids
-// Collections the product belongs to. To remove the product from all collections, submit an empty array.
-//
 // ## translations
 // Localized versions of product fields. To remove all translations, submit an empty array.
 //
@@ -1339,7 +1324,6 @@ pub:
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
-	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
 	thumbnail         ?i32
 	images            ?[]ImageUpdateRequest
@@ -1370,8 +1354,6 @@ struct ProductUpdateRequestHygienised {
 	sales_channel_ids_bin [][]u8
 	category_ids          ?[]string
 	category_ids_bin      [][]u8
-	collection_ids        ?[]string
-	collection_ids_bin    [][]u8
 	thumbnail             ?i32
 mut:
 	translations ?[]ProductTranslationRequestHygienised
@@ -1426,10 +1408,6 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		return new_internal_error(error_id_invalid, 'category_id')
 	}
 
-	collection_id_bin := option_array_id_string_to_array_id_bin(p.collection_ids) or {
-		return new_internal_error(error_id_invalid, 'collection_id')
-	}
-
 	mut ph := ProductUpdateRequestHygienised{
 		title:                 p.title
 		subtitle:              p.subtitle
@@ -1447,8 +1425,6 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		sales_channel_ids_bin: sales_channel_ids_bin
 		category_ids:          p.category_ids
 		category_ids_bin:      category_ids_bin
-		collection_ids:        p.collection_ids
-		collection_ids_bin:    collection_id_bin
 		thumbnail:             p.thumbnail
 	}
 

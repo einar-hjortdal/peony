@@ -660,7 +660,6 @@ pub:
 	sales_channel_ids []string                     @[json: 'salesChannels']
 	translations      []ProductTranslationResponse @[omitempty]
 	seo               SEOResponse                  @[omitempty]
-	// collections  []ProductCollectionResponse @[omitempty] // return ids only
 	// tags         []Tag                       @[omitempty] // return ids only
 }
 
@@ -763,7 +762,6 @@ pub:
 	options      []ProductOptionResponse @[omitempty]
 	variants     []VariantResponseStore  @[omitempty]
 	seo          SEOResponseStore        @[omitempty]
-	// collections  []ProductCollectionResponse @[omitempty]
 	// tags         []Tag                       @[omitempty]
 }
 
@@ -820,11 +818,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		}
 	}
 
-	// mut collections := []ProductCollectionResponse{len: p.collections.len}
-	// for i := 0; i < p.collections.len; i++ {
-	// 	collections[i] = format_product_collection_response(p.collections[i])
-	// }
-
 	// TODO tags
 
 	return ProductResponseStore{
@@ -847,7 +840,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		variants:     variants
 		category_ids: p.category_ids
 		seo:          seo
-		// collections:    collections
 		// tags:          tags
 	}
 }

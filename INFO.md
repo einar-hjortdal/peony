@@ -27,30 +27,25 @@ A `category` allows to categorize `product`. A `product` can have many `category
 
 A `category` may have 0 or 1 parent `category`. This allows to build hierarchical structures.
 
-##### product_collection (WIP)
+##### product_type
 
-A `product_collection` is a group of `product`. A `product` can be part of many `product_collection`. 
-Unlike `category`, a `product_collection` is not hierarchical. These are useful to group together 
-products for the purpose of a marketing campaign.
+A `product_type` is a categorization of `product`. A `product` can be of one `product_type`. For example: `physical`, `digital`, `service`. 
 
-##### product_type (WIP)
+A `product_type` is used to control the tax rates for all `product` that share it. For example: a shop may need to apply different taxes to all `product` of `product_type` with value `service`.
 
-A `product_type` is a group of `product`. A `product` can be of one `product_type`. For example: `physical`,
-`digital`, `service`. 
+##### product_tag
 
-A `product_type` is also used to control the tax rates for all `product` that share it. For example: 
-a shop may need to apply different taxes to all `product` of `product_type` with value `service`.
+A `product_tag` is a categorization of `product` used for filtering and search. A product may have 0 or more tags.
 
-#### Posts (WIP)
+#### Content Management System
 
-##### type
+##### Blog
 
-A post may be of type `post` or `page`.
+A `blog` is a collection of posts. A store may have 0 or more blogs.
 
 ##### topic
 
-A post may have 0 or more `topic`. This is not a hierarchical classification, it is meant to group related 
-posts together, analogous to product collections.
+A `topic` groups posts that have content related to the same subject. A post may have 0 or more `topic`.
 
 ### product
 
@@ -143,9 +138,7 @@ A discount may be a percentage, a fixed amount or applied on shipping. A gift pr
 with price of 0, added to the cart when conditions are met: when a total threshold is passed, or when 
 a certain number of products or variants are added to the cart (buy X get Y).
 
-Other `cart_rule` conditions: they may only be applied on some products, variants, collections, require 
-minimum amount of one item in the cart, have a per-customer usage limit, have a time-window, or reserved 
-only to some channel and/or customers.
+Other `cart_rule` conditions: they may only be applied on some products, variants, require minimum amount of one item in the cart, have a per-customer usage limit, have a time-window, or reserved only to some channel and/or customers.
 
 ### `product`, `product_variant`, `inventory_item` and `inventory_level`
 
@@ -177,13 +170,15 @@ A `reservation_item` is one `inventory_item` that is part of a `reserved_quantit
 
 Each `product_variant` has exactly one `inventory_item`.
 
-### Blogging (WIP)
+### Content Management System (WIP)
 
-#### Blog
+##### Post
 
-#### Post
+A `post` is content that belongs to one `blog`.
 
 #### Page
+
+A `page` is long-term static content that rarely changes.
 
 ## Schema
 

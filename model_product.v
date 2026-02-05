@@ -161,12 +161,6 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 		params = arrays.concat(params, ph.status.v)
 	}
 
-	if ph.collection_ids.is_set {
-		// TODO
-		// conditions = arrays.concat(conditions, 'p.collection_id IN (${get_placeholders(ph.collection_ids_bin)})')
-		// params = arrays.concat(params, ...workaround_24757(ph.collection_ids_bin))
-	}
-
 	if ph.type_ids.is_set {
 		conditions = arrays.concat(conditions, 'p.type_id IN ${get_placeholders(ph.type_ids_bin)}')
 		params = arrays.concat(params, ...workaround_24757(ph.type_ids_bin))

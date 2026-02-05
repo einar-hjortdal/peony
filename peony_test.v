@@ -1106,6 +1106,7 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 			expect(updated_images[i].id == expected_id, 'image sorting order is wrong')!
 		}
 	}
+	// TODO check no data is lost
 
 	// update image alt and translations
 	// update sorting order and remove one image

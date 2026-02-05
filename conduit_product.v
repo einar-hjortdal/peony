@@ -506,10 +506,6 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 		}
 	}
 
-	if _ := ph.collection_ids {
-		// TODO
-	}
-
 	if translations := ph.translations {
 		model_product_translations_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
