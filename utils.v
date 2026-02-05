@@ -5,6 +5,7 @@ import einar_hjortdal.luuid
 interface Identifiable {
 	id_string() string
 	id_bytes() []u8
+	has_id() bool
 }
 
 struct ID {
@@ -26,6 +27,13 @@ fn (id ID) id_string() string {
 
 fn (id ID) id_bytes() []u8 {
 	return id.b
+}
+
+fn (id ID) has_id() bool {
+	if id.s != '' && id.b.len > 0 {
+		return true
+	}
+	return false
 }
 
 fn id_from_string(s string) !ID {

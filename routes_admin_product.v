@@ -5,7 +5,7 @@ import veb
 
 // lists products
 @['/admin/products'; get]
-pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 	ph := hygienise_retrieve_product_params(ctx.query) or {
 		if err is InternalError {
 			return handle_error_400(mut ctx, err.message, err.details)
@@ -24,7 +24,7 @@ pub fn (mut app App) admin_products_get(mut ctx Context) veb.Result {
 // create a product
 // TODO create options, values, variants, inventory_items and inventory_levels
 @['/admin/products'; post]
-pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
+pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
 		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
 	}
@@ -55,6 +55,23 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 	// 	// TODO verify translations locale_id exist in database
 	// }
 
+	mut images_to_create := []ProductImageCreateParams{}
+	if images := ph.images {
+		images_to_create = []ProductImageCreateParams{len: images.len}
+		for i := 0; i < images.len; i++ {
+			image := images[i]
+			id, id_bin := app.new_id()
+			images_to_create[i] = ProductImageCreateParams{
+				id:           id
+				id_bin:       id_bin
+				url:          image.url
+				alt:          image.alt
+				image_rank:   i32(i)
+				translations: image.translations
+			}
+		}
+	}
+
 	if options := ph.options {
 		for i := 0; i < options.len; i++ {
 			option := options[i]
@@ -67,26 +84,12 @@ pub fn (mut app App) admin_products_post(mut ctx Context) veb.Result {
 		}
 	}
 
-	if thumbnail := ph.thumbnail {
-		if thumbnail < 0 {
-			return handle_error_400(mut ctx, 'thumbnail invalid', 'negative value')
-		}
-
-		if images := ph.images {
-			if !(thumbnail < images.len) {
-				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of range')
-			}
-		} else {
-			return handle_error_400(mut ctx, 'thumbnail invalid', 'images array not provided')
-		}
-	}
-
-	return conduit_product_create(mut app, mut ctx, ph)
+	return conduit_product_create(mut app, mut ctx, images_to_create, ph)
 }
 
 // get a product by id
 @['/admin/products/:product_id'; get]
-pub fn (mut app App) admin_products_id_get(mut ctx Context, product_id string) veb.Result {
+pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, err.msg())
 	}
@@ -103,7 +106,7 @@ pub fn (mut app App) admin_products_id_get(mut ctx Context, product_id string) v
 
 // updates a product
 @['/admin/products/:product_id'; post]
-pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) veb.Result {
+pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
 	}
@@ -129,28 +132,13 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 		return handle_error_500(mut ctx, 'Could not retrieve seo', err.msg())
 	}
 
-	// store := model_store_retrieve(mut tx) or {
-	// 	tx.rollback() or {}
-	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	// }
+	mut images_diff := []ProductImageUpdateParams{}
+	if images := ph.images {
+		if images.len > 0 {
+			images_diff = []ProductImageUpdateParams{len: images.len}
 
-	if _ := ph.translations {
-		// TODO verify provided locale_id exist in database
-	}
-
-	if thumbnail := ph.thumbnail {
-		if thumbnail < 0 {
-			tx.rollback() or {}
-			return handle_error_400(mut ctx, 'thumbnail invalid', 'negative value')
-		}
-
-		if images := ph.images {
-			if !(thumbnail < images.len) {
-				tx.rollback() or {}
-				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of range')
-			}
-		} else {
-			product_images := model_product_image_retrieve(mut tx, [
+			// gather existing images from database
+			existing_images := model_product_image_retrieve(mut tx, [
 				product_id_bin,
 			]) or {
 				tx.rollback() or {}
@@ -158,10 +146,59 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 					err.msg())
 			}
 
-			if !(thumbnail < product_images.len) {
-				return handle_error_400(mut ctx, 'thumbnail invalid', 'index out of image_rank range')
+			// build map for fast lookup
+			mut existing_images_map := map[string]ProductImage{}
+			for i := 0; i < existing_images.len; i++ {
+				image := existing_images[i]
+				id := image.id
+				existing_images_map[id] = image
+			}
+
+			for i := 0; i < images.len; i++ {
+				image := images[i]
+				if id := image.id {
+					// handle update existing
+					// if id in images does not exist return bad request
+					if id !in existing_images_map {
+						tx.rollback() or {}
+						return handle_error_400(mut ctx, error_id_invalid, 'image with id ${id} does not exist')
+					}
+
+					existing_image := existing_images_map[id]
+					images_diff[i] = ProductImageUpdateParams{
+						id:           id
+						id_bin:       image.id_bin
+						url:          existing_image.url
+						alt:          image.alt
+						translations: image.translations
+					}
+				} else {
+					// handle new image
+					id, id_bin := app.new_id()
+					url := image.url or {
+						tx.rollback() or {}
+						return handle_error_500(mut ctx, error_field_empty, 'A new image must have a url')
+					}
+
+					images_diff[i] = ProductImageUpdateParams{
+						id:           id
+						id_bin:       id_bin
+						url:          url
+						alt:          image.alt
+						translations: image.translations
+					}
+				}
 			}
 		}
+	}
+
+	// store := model_store_retrieve(mut tx) or {
+	// 	tx.rollback() or {}
+	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	// }
+
+	if _ := ph.translations {
+		// TODO verify provided locale_id exist in database
 	}
 
 	if _ := ph.seo {
@@ -180,7 +217,7 @@ pub fn (mut app App) admin_products_id_post(mut ctx Context, product_id string) 
 	product_seo := seo[0]
 
 	return conduit_product_update(mut app, mut ctx, product_id_bin, product_seo.id_bin,
-		ph)
+		images_diff, ph)
 }
 
 // deletes a product

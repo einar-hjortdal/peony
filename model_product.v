@@ -418,8 +418,16 @@ fn model_product_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
 	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', product_id_bin)!
 }
 
-fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []u8, thumbnail_id_bin []u8) ! {
-	tx.execute('UPDATE product SET thumbnail_id = ? WHERE id = ?', thumbnail_id_bin, product_id_bin)!
+fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []u8, image_rank i32) ! {
+	tx.execute('UPDATE product p
+		SET p.thumbnail_id = (
+			SELECT pi.image_id
+			FROM product_image pi
+			WHERE pi.product_id = p.id
+			AND pi.image_rank = ?
+		)
+		WHERE p.id = ?',
+		image_rank, product_id_bin)!
 }
 
 fn model_product_thumbnail_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {

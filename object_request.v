@@ -102,6 +102,10 @@ fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 		return new_internal_error(error_field_empty, 'alt')
 	}
 
+	if utf8_str_visible_length(i.alt) > max_length_alt {
+		return new_internal_error('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+	}
+
 	return ImageTranslationRequestHygienised{
 		locale_id:     i.locale_id
 		locale_id_bin: locale_id_bin
@@ -109,26 +113,108 @@ fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	}
 }
 
-pub struct ImageRequest {
+// ImageCreateRequest describes the body of the request to create a new product image.
+//
+// # Fields
+//
+// ## url
+// Image source URL. This field is required.
+//
+// ## alt
+// Alternative text for the image. If omitted, no alt text is set.
+//
+// ## translations
+// Localized versions of image fields. To remove all translations, submit an empty array.
+pub struct ImageCreateRequest {
 pub:
 	url          string
 	alt          ?string
 	translations ?[]ImageTranslationRequest
 }
 
-struct ImageRequestHygienised {
+struct ImageCreateRequestHygienised {
 	url string
 	alt ?string
 mut:
 	translations ?[]ImageTranslationRequestHygienised
 }
 
-// TODO check alt.len <= 191
-// TODO if default alt is missing, do not accept translations. (require default alt if want translations)
-fn (p ImageRequest) hygienise() !ImageRequestHygienised {
-	mut image := ImageRequestHygienised{
+fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
+	if alt := p.alt {
+		if utf8_str_visible_length(alt) > max_length_alt {
+			return new_internal_error('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+		}
+	}
+
+	mut image := ImageCreateRequestHygienised{
 		url: p.url
 		alt: p.alt
+	}
+
+	if translations := p.translations {
+		mut itrh := []ImageTranslationRequestHygienised{len: translations.len}
+		for i := 0; i < translations.len; i++ {
+			itrh[i] = translations[i].hygienise()!
+		}
+		image.translations = itrh
+	}
+	return image
+}
+
+// ImageUpdateRequest describes the body of the request to create or update a product image.
+//
+// # Fields
+//
+// ## id
+// Image identifier. If provided, the existing image with this id is updated.
+//
+// ## url
+// Image source URL. Only allowed when creating a new image.
+// If `id` is provided, this field must not be set.
+//
+// ## alt
+// Alternative text for the image. If omitted during update, the existing alt text is preserved.
+//
+// ## translations
+// Localized versions of image fields. If omitted during update, existing translations are preserved.
+// To remove all translations, submit an empty array.
+pub struct ImageUpdateRequest {
+pub:
+	id           ?string
+	url          ?string
+	alt          ?string
+	translations ?[]ImageTranslationRequest
+}
+
+struct ImageUpdateRequestHygienised {
+	id     ?string
+	id_bin []u8
+	url    ?string
+	alt    ?string
+mut:
+	translations ?[]ImageTranslationRequestHygienised
+}
+
+fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
+	if p.id != none && p.url != none {
+		return new_internal_error('unable to update image url', 'both id and url are set')
+	}
+
+	if p.id == none && p.url == none {
+		return new_internal_error('unable to create image without url', 'both id and url are unset')
+	}
+
+	if alt := p.alt {
+		if utf8_str_visible_length(alt) > max_length_alt {
+			return new_internal_error('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+		}
+	}
+
+	mut image := ImageUpdateRequestHygienised{
+		id:     p.id
+		id_bin: option_id_string_to_id_bin(p.id)!
+		url:    p.url
+		alt:    p.alt
 	}
 
 	if translations := p.translations {
@@ -148,7 +234,7 @@ pub:
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
-	image      ?ImageRequest
+	image      ?ImageCreateRequest
 	metadata   ?string @[raw]
 }
 
@@ -158,7 +244,7 @@ pub:
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
-	image      ?ImageRequest
+	image      ?ImageUpdateRequest
 	metadata   ?string @[raw]
 }
 
@@ -999,6 +1085,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 //
 // ## images
 // Images to associate with the product.
+// Images preserve sorting order.
 //
 // TODO: Support creating variants on product creation (including variant stock, prices, etc.).
 // TODO: variant_rank is set using the variants array, to reorder variants, reorder array.
@@ -1021,7 +1108,7 @@ pub:
 	seo               ?SEORequest
 	options           ?[]ProductOptionCreateRequest
 	thumbnail         ?i32
-	images            ?[]ImageRequest
+	images            ?[]ImageCreateRequest
 }
 
 // TODO derive handle from title using slugify
@@ -1053,7 +1140,7 @@ mut:
 	seo          ?SEORequestHygienised
 	options      ?[]ProductOptionCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
-	images       ?[]ImageRequestHygienised
+	images       ?[]ImageCreateRequestHygienised
 }
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
@@ -1068,6 +1155,20 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
 			return new_internal_error(error_field_too_long, 'subtitle')
+		}
+	}
+
+	if thumbnail := p.thumbnail {
+		if thumbnail < 0 {
+			return new_internal_error('thumbnail invalid', 'negative value')
+		}
+
+		if images := p.images {
+			if !(thumbnail < images.len) {
+				return new_internal_error('thumbnail invalid', 'index out of range')
+			}
+		} else {
+			return new_internal_error('thumbnail invalid', 'images array not provided')
 		}
 	}
 
@@ -1134,7 +1235,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	if images := p.images {
-		mut h := []ImageRequestHygienised{len: images.len}
+		mut h := []ImageCreateRequestHygienised{len: images.len}
 		for i := 0; i < images.len; i++ {
 			h[i] = images[i].hygienise()!
 		}
@@ -1196,7 +1297,12 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // - If both are provided, the thumbnail is the image at index `thumbnail` in the `images` array.
 //
 // ## images
-// Images to associate with the product. To remove all images, submit an empty array.
+// When provided, `images` is a replacement array for the product's images.
+// - Items with an `id` are kept or updated.
+// - Items without an `id` are created as new images.
+// - Existing images omitted from this array are deleted.
+// - The array order is preserved.
+// - To remove all images, submit an empty array.
 //
 // ## seo
 // SEO metadata for the product.
@@ -1236,7 +1342,7 @@ pub:
 	collection_ids    ?[]string @[json: 'collectionIds']
 	translations      ?[]ProductTranslationRequest
 	thumbnail         ?i32
-	images            ?[]ImageRequest
+	images            ?[]ImageUpdateRequest
 	seo               ?SEORequest
 	// options []OptionUpdateRequest
 	// variants []VariantUpdateRequest
@@ -1269,7 +1375,7 @@ struct ProductUpdateRequestHygienised {
 	thumbnail             ?i32
 mut:
 	translations ?[]ProductTranslationRequestHygienised
-	images       ?[]ImageRequestHygienised
+	images       ?[]ImageUpdateRequestHygienised
 	seo          ?SEORequestHygienised
 }
 
@@ -1287,6 +1393,20 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
 			return new_internal_error(error_field_too_long, 'subtitle')
+		}
+	}
+
+	if thumbnail := p.thumbnail {
+		if thumbnail < 0 {
+			return new_internal_error('thumbnail invalid', 'negative value')
+		}
+
+		if images := p.images {
+			if !(thumbnail < images.len) {
+				return new_internal_error('thumbnail invalid', 'index out of range')
+			}
+		} else {
+			return new_internal_error('thumbnail invalid', 'images array not provided')
 		}
 	}
 
@@ -1341,7 +1461,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	}
 
 	if images := p.images {
-		mut h := []ImageRequestHygienised{len: images.len}
+		mut h := []ImageUpdateRequestHygienised{len: images.len}
 		for i := 0; i < images.len; i++ {
 			h[i] = images[i].hygienise()!
 		}

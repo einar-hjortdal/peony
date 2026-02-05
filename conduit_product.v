@@ -2,7 +2,7 @@ module peony
 
 import veb
 
-fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestHygienised) veb.Result {
+fn conduit_product_create(mut app App, mut ctx Context, images_to_create []ProductImageCreateParams, ph ProductCreateRequestHygienised) veb.Result {
 	product_id, product_id_bin := app.new_id()
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
@@ -51,29 +51,22 @@ fn conduit_product_create(mut app App, mut ctx Context, ph ProductCreateRequestH
 		// TODO
 	}
 
-	if images := ph.images {
-		if images.len > 0 {
-			mut image_ids_bin := [][]u8{len: images.len}
-			for i := 0; i < images.len; i++ {
-				_, id_bin := app.new_id()
-				image_ids_bin[i] = id_bin
-			}
+	if images_to_create.len > 0 {
+		model_product_images_create(mut tx, product_id_bin, images_to_create) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to create product images', err.msg())
+		}
+	}
 
-			model_product_images_update(mut tx, product_id_bin, images, image_ids_bin) or {
-				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
-			}
-
-			mut thumbnail_id_bin := image_ids_bin[0]
-			if thumbnail := ph.thumbnail {
-				thumbnail_id_bin = image_ids_bin[thumbnail]
-			}
-
-			model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
-				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Failed to update product thumbnail',
-					err.msg())
-			}
+	if thumbnail := ph.thumbnail {
+		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
+		}
+	} else {
+		model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	}
 
@@ -449,8 +442,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 
 // TODO handle options
 // TODO handle variants
-// TODO handle ph.thumbnail
-fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, ph ProductUpdateRequestHygienised) veb.Result {
+fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
@@ -464,57 +456,37 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 		// TODO
 	}
 
-	if images := ph.images {
+	if _ := ph.images {
 		model_product_thumbnail_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to delete product thumbnail', err.msg())
 		}
 
-		// TODO this should be a more complex operation:
-		// update images if id provided, delete missing, reorder according to array index.
-		// create a struct with parameters for what to do?
-		model_product_images_delete(mut tx, product_id_bin) or {
-			return handle_error_500(mut ctx, 'Failed to delete product images', err.msg())
-		}
+		if images_diff.len == 0 {
+			model_product_images_delete(mut tx, product_id_bin) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to delete product images', err.msg())
+			}
+		} else {
+			model_product_images_update(mut tx, product_id_bin, images_diff) or {
+				tx.rollback() or {}
+				return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
+			}
 
-		mut image_ids_bin := [][]u8{len: images.len}
-		for i := 0; i < images.len; i++ {
-			_, id_bin := app.new_id()
-			image_ids_bin[i] = id_bin
-		}
-
-		model_product_images_update(mut tx, product_id_bin, images, image_ids_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
-		}
-
-		mut thumbnail_id_bin := image_ids_bin[0]
-		if thumbnail := ph.thumbnail {
-			thumbnail_id_bin = image_ids_bin[thumbnail]
-		}
-
-		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail_id_bin) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
-		}
-	} else if thumbnail := ph.thumbnail {
-		product_images := model_product_image_retrieve(mut tx, [
-			product_id_bin,
-		]) or {
-			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to retrieve product_image', err.msg())
-		}
-
-		for i := 0; i < product_images.len; i++ {
-			image := product_images[i]
-			if image.image_rank == thumbnail {
-				model_product_thumbnail_update(mut tx, product_id_bin, image.id_bin) or {
+			if ph.thumbnail == none {
+				model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
 					tx.rollback() or {}
 					return handle_error_500(mut ctx, 'Failed to update product thumbnail',
 						err.msg())
 				}
-				break
 			}
+		}
+	}
+
+	if thumbnail := ph.thumbnail {
+		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	}
 

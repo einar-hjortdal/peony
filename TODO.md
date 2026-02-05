@@ -54,7 +54,7 @@
 - [ ] Orders
 - [ ] Payments
 - [ ] User permissions
-- [ ] Variant images
+- [ ] Variant image
 - [ ] API keys
 - [ ] Taxes
 

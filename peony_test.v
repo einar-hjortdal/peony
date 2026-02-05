@@ -759,11 +759,11 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 		}
 		thumbnail:    1
 		images:       [
-			peony.ImageRequest{
+			peony.ImageCreateRequest{
 				url: image_0_url
 				alt: image_0_alt
 			},
-			peony.ImageRequest{
+			peony.ImageCreateRequest{
 				url: image_1_url
 				alt: image_1_alt
 			},
@@ -993,7 +993,7 @@ fn remove_secondary_locales(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
-fn get_random_image_request(secondary_locales []peony.LocaleResponse) peony.ImageRequest {
+fn get_random_image_create_request(secondary_locales []peony.LocaleResponse) peony.ImageCreateRequest {
 	mut translations := []peony.ImageTranslationRequest{len: secondary_locales.len}
 	if secondary_locales.len > 0 {
 		for i := 0; i < secondary_locales.len; i++ {
@@ -1005,7 +1005,7 @@ fn get_random_image_request(secondary_locales []peony.LocaleResponse) peony.Imag
 		}
 	}
 
-	return peony.ImageRequest{
+	return peony.ImageCreateRequest{
 		url:          luuid.v2()
 		alt:          luuid.v2()
 		translations: translations
@@ -1016,9 +1016,9 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 	println('admin_products_updates_product_images')
 	title := luuid.v2()
 	secondary_locales := add_random_locales(cookie_value, 2)!
-	image_1 := get_random_image_request(secondary_locales)
-	image_2 := get_random_image_request(secondary_locales)
-	image_3 := get_random_image_request(secondary_locales)
+	image_1 := get_random_image_create_request(secondary_locales)
+	image_2 := get_random_image_create_request(secondary_locales)
+	image_3 := get_random_image_create_request(secondary_locales)
 	original_product_data := peony.ProductCreateRequest{
 		title:  title
 		images: [image_1, image_2, image_3]

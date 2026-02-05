@@ -20,6 +20,8 @@ pub const max_length_category_name = 63
 pub const max_length_category_description = 191
 pub const max_length_region_name = 63
 
+pub const default_thumbnail = 0
+
 fn email_is_valid(e string) ! {
 	if e.len > 254 {
 		return error('email too long')

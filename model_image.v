@@ -105,21 +105,27 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 	return product_images
 }
 
-// deletes all images related to a product
-// What if instead we take an array of image ids, and delete all images by those ids?
-// That would make the function more reusable and fit more purposes.
+// delete all product images belonging to one product
 fn model_product_images_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('DELETE FROM image
+	tx.execute('DELETE FROM image i
 		WHERE EXISTS (
-			SELECT 1
-				FROM product_image
-				WHERE product_image.product_id = ?
-				AND product_image.image_id = image.id
+			SELECT 1 FROM product_image pi
+			WHERE pi.product_id = ?
+			AND pi.image_id = i.id
 		)',
 		product_id_bin)!
 }
 
-fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ImageRequestHygienised, image_ids_bin [][]u8) ! {
+struct ProductImageCreateParams {
+	id           string
+	id_bin       []u8
+	url          string
+	alt          ?string
+	image_rank   i32
+	translations ?[]ImageTranslationRequestHygienised
+}
+
+fn model_product_images_create(mut tx firebird.Transaction, product_id_bin []u8, images []ProductImageCreateParams) ! {
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	mut translation_n := i32(0)
@@ -130,7 +136,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 			CAST(? AS BLOB SUB_TYPE TEXT),
 			CAST(? AS VARCHAR(191))
 			FROM RDB\$DATABASE'
-		params[i * 3] = image_ids_bin[i]
+		params[i * 3] = image.id_bin
 		params[i * 3 + 1] = image.url
 		if alt := image.alt {
 			params[i * 3 + 2] = alt
@@ -153,7 +159,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		params = []firebird.Value{len: translation_n * 3, init: firebird.Null{}}
 		mut current_translation_i := i32(0)
 		for i := 0; i < images.len; i++ {
-			image_id_bin := image_ids_bin[i]
+			image := images[i]
 			if translations := images[i].translations {
 				for k := 0; k < translations.len; k++ {
 					translation := translations[k]
@@ -163,7 +169,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 						CAST(? AS VARCHAR(191))
 						FROM RDB\$DATABASE'
 
-					params[current_translation_i * 3] = image_id_bin
+					params[current_translation_i * 3] = image.id_bin
 					params[current_translation_i * 3 + 1] = translation.locale_id_bin
 					params[current_translation_i * 3 + 2] = translation.alt
 					current_translation_i++
@@ -179,6 +185,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 	src = []string{len: images.len}
 	params = []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	for i := 0; i < images.len; i++ {
+		image := images[i]
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)),
 			CAST(? AS BINARY(16)),
@@ -186,11 +193,125 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 			FROM RDB\$DATABASE'
 
 		params[i * 3] = product_id_bin
-		params[i * 3 + 1] = image_ids_bin[i]
+		params[i * 3 + 1] = image.id_bin
+		params[i * 3 + 2] = image.image_rank
+	}
+
+	query = 'INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}'
+	tx.execute(query, ...params)!
+}
+
+struct ProductImageUpdateParams {
+	id           string
+	id_bin       []u8
+	url          string
+	alt          ?string
+	translations ?[]ImageTranslationRequestHygienised
+}
+
+fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ProductImageUpdateParams) ! {
+	mut image_ids_bin := [][]u8{len: images.len}
+	mut n_translations := 0
+	mut src := []string{len: images.len}
+	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
+
+	for i := 0; i < images.len; i++ {
+		image := images[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BLOB SUB_TYPE TEXT) AS url,
+			CAST(? AS VARCHAR(191)) AS alt
+			FROM RDB\$DATABASE'
+
+		params[i * 3] = image.id_bin
+		params[i * 3 + 1] = image.url
+
+		if alt := image.alt {
+			params[i * 3 + 2] = alt
+		} else {
+			params[i * 3 + 2] = firebird.Null{}
+		}
+
+		image_ids_bin[i] = image.id_bin
+		if translations := image.translations {
+			n_translations += translations.len
+		}
+	}
+
+	mut query := 'MERGE INTO image t
+		USING (${get_merge_source(src)}) s
+		ON (t.id = s.id)
+		WHEN MATCHED THEN
+			UPDATE SET alt=s.alt
+		WHEN NOT MATCHED THEN
+		INSERT (id, url, alt)
+		VALUES (s.id, s.url, s.alt)'
+
+	tx.execute(query, ...params)!
+
+	// kill orphans
+	params = []firebird.Value{len: image_ids_bin.len + 1, init: firebird.Null{}}
+	params[0] = product_id_bin
+	for i := 0; i < image_ids_bin.len; i++ {
+		params[i + 1] = image_ids_bin[i]
+	}
+
+	query = 'DELETE FROM image i
+		WHERE EXISTS (
+			SELECT 1 FROM product_image pi
+			WHERE pi.product_id = ?
+			AND pi.image_id = i.id
+		)
+		AND i.id NOT IN (${get_placeholders(image_ids_bin)})'
+	tx.execute(query, ...params)!
+
+	// handle translations
+	query = 'DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids_bin)})'
+	tx.execute(query, ...workaround_24757(image_ids_bin))!
+
+	src = []string{len: n_translations}
+	params = []firebird.Value{len: n_translations * 3, init: firebird.Null{}}
+	mut current_translation := 0
+	for i := 0; i < images.len; i++ {
+		image := images[i]
+		if translations := image.translations {
+			for t := 0; t < translations.len; t++ {
+				translation := translations[t]
+				src[current_translation] = 'SELECT
+					CAST(? AS BINARY(16)) AS image_id,
+					CAST(? AS BINARY(16)) AS locale_id,
+					CAST(? AS VARCHAR(191)) AS alt
+					FROM RDB\$DATABASE'
+				params[current_translation * 3] = image.id_bin
+				params[current_translation * 3 + 1] = translation.locale_id_bin
+				params[current_translation * 3 + 2] = translation.alt
+				current_translation++
+			}
+		}
+	}
+
+	query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
+	tx.execute(query, ...params)!
+
+	// handle relations
+	query = 'DELETE FROM product_image WHERE product_id = ?'
+	tx.execute(query, product_id_bin)!
+
+	src = []string{len: images.len}
+	params = []firebird.Value{len: images.len * 3, init: firebird.Null{}}
+	for i := 0; i < images.len; i++ {
+		image := images[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS image_id,
+			CAST(? AS INTEGER) AS image_rank
+			FROM RDB\$DATABASE'
+
+		params[i * 3] = product_id_bin
+		params[i * 3 + 1] = image.id_bin
 		params[i * 3 + 2] = i32(i)
 	}
 
 	query = 'INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}'
-	println(query)
 	tx.execute(query, ...params)!
 }
