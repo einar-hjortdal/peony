@@ -77,12 +77,14 @@
 
 ## Changes
 
-- [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 - [ ] Separate sales from price_list.
-- [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Limit returned list items to 250 in all requests.
 - [ ] Return created resources on creation.
 - [ ] Return updated resources on update.
+- [ ] Product option endpoints
+- [ ] Product option value endpoints
+- [ ] Product images endpoints
+- [ ] Move cors handling to starter
 
 ## Internals
 
@@ -96,7 +98,9 @@
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
+- [ ] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Attach function name to each error. Nested hygienise functions may return same error messages right now, making it difficult to identify which struct is malformed.
+- [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 
 ## Upstream
 

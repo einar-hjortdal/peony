@@ -58,7 +58,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	})
 }
 
-fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph ProductVariantCreateRequestHygienised) veb.Result {
+fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph VariantCreateRequestHygienised) veb.Result {
 	_, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
 
@@ -97,7 +97,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph ProductVariantUpdateRequestHygienised) veb.Result {
+fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}

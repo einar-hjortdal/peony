@@ -523,19 +523,19 @@ pub:
 	is_original ?bool  @[json: 'isOriginal']
 }
 
-struct ProductVariantMoneyAmountRequestHygienised {
+struct VariantMoneyAmountRequestHygienised {
 	amount        i32
 	region_id     string
 	region_id_bin []u8
 	is_original   ?bool
 }
 
-fn (p ProductVariantMoneyAmountRequest) hygienise() !ProductVariantMoneyAmountRequestHygienised {
+fn (p ProductVariantMoneyAmountRequest) hygienise() !VariantMoneyAmountRequestHygienised {
 	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
 		return new_internal_error(error_id_invalid, 'region_id')
 	}
 
-	return ProductVariantMoneyAmountRequestHygienised{
+	return VariantMoneyAmountRequestHygienised{
 		amount:        p.amount
 		region_id:     p.region_id
 		region_id_bin: region_id_bin
@@ -647,6 +647,7 @@ pub:
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
+// need to handle prices better.
 pub struct VariantCreateRequest {
 pub:
 	title            ?string
@@ -659,7 +660,7 @@ pub:
 	money_amounts    []ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
-struct ProductVariantCreateRequestHygienised {
+struct VariantCreateRequestHygienised {
 	title                ?string
 	ean                  ?string
 	upc                  ?string
@@ -667,22 +668,22 @@ struct ProductVariantCreateRequestHygienised {
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
-	money_amounts        []ProductVariantMoneyAmountRequestHygienised
+	money_amounts        []VariantMoneyAmountRequestHygienised
 mut:
 	inventory_item ?InventoryItemCreateRequestHygienised
 }
 
-fn (p VariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
+fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
 		return new_internal_error(error_id_invalid, 'ids_bin')
 	}
 
-	mut money_amounts := []ProductVariantMoneyAmountRequestHygienised{len: p.money_amounts.len}
+	mut money_amounts := []VariantMoneyAmountRequestHygienised{len: p.money_amounts.len}
 	for i := 0; i < p.money_amounts.len; i++ {
 		money_amounts[i] = p.money_amounts[i].hygienise()!
 	}
 
-	mut ph := ProductVariantCreateRequestHygienised{
+	mut ph := VariantCreateRequestHygienised{
 		title:                p.title
 		ean:                  p.ean
 		upc:                  p.upc
@@ -712,7 +713,7 @@ pub:
 	money_amounts    ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
-struct ProductVariantUpdateRequestHygienised {
+struct VariantUpdateRequestHygienised {
 	title                ?string
 	ean                  ?string
 	upc                  ?string
@@ -722,15 +723,15 @@ struct ProductVariantUpdateRequestHygienised {
 	option_value_ids_bin [][]u8
 	metadata             ?string
 mut:
-	money_amounts ?[]ProductVariantMoneyAmountRequestHygienised
+	money_amounts ?[]VariantMoneyAmountRequestHygienised
 }
 
-fn (p VariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
+fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
 		return new_internal_error(error_id_invalid, 'ids_bin')
 	}
 
-	mut ph := ProductVariantUpdateRequestHygienised{
+	mut ph := VariantUpdateRequestHygienised{
 		title:                p.title
 		ean:                  p.ean
 		upc:                  p.upc
@@ -742,7 +743,7 @@ fn (p VariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
 	}
 
 	if money_amounts := p.money_amounts {
-		mut h := []ProductVariantMoneyAmountRequestHygienised{len: money_amounts.len}
+		mut h := []VariantMoneyAmountRequestHygienised{len: money_amounts.len}
 		for i := 0; i < money_amounts.len; i++ {
 			h[i] = money_amounts[i].hygienise()!
 		}
@@ -1295,8 +1296,8 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // ## options
 // When provided, `options` is a replacement array for the product's options.
 // - Items with `id` update that option, items without `id` are created.
-// - Omitted existing options are removed. The last option cannot be removed by omission.
-// - The array index is the optionRank.
+// - Omitted existing options are removed. The last option cannot be removed.
+// - The array index is preserved.
 // - Each option may include a `values` array. When `values` is provided it replaces that option's values:
 //   - Items with `id` update that value, items without `id` are created.
 //   - Omitted existing values are removed.
@@ -1305,8 +1306,8 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // ## variants
 // When provided, `variants` is a replacement array for the product's variants.
 // - Items with `id` update that variant, items without `id` are created.
-// - Omitted existing variants are removed.
-// - The array order is the variantRank.
+// - Omitted existing variants are removed. The last variant cannot be removed.
+// - The array order is preserved.
 // - Each variant must include an `optionValues` array:
 //   - The index refers to the `optionRank`.
 //   - Each entry refers to the `valueRank`.

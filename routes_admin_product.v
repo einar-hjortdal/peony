@@ -284,7 +284,7 @@ pub fn (mut app App) admin_products_id_variants_post(mut ctx Context, product_id
 		if err is InternalError {
 			return handle_suite_error(mut ctx, err)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'ProductVariantCreateRequestHygienised.verify_money_amounts')
+		return handle_error_unhandled(mut ctx, err.msg(), 'VariantCreateRequestHygienised.verify_money_amounts')
 	}
 
 	if option_value_ids := ph.option_value_ids {
@@ -389,7 +389,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			if err is InternalError {
 				return handle_suite_error(mut ctx, err)
 			}
-			return handle_error_unhandled(mut ctx, err.msg(), 'ProductVariantCreateRequestHygienised.verify_money_amounts')
+			return handle_error_unhandled(mut ctx, err.msg(), 'VariantCreateRequestHygienised.verify_money_amounts')
 		}
 	}
 

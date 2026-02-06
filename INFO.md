@@ -66,13 +66,11 @@ boolean or null).
 
 ### Countries, regions, currencies and prices
 
-peony uses a multi‑currency architecture: typically, there is one base price for each supported currency, 
-and this base price can be overridden by a `price_list` according to its conditions.
+peony uses a multi‑currency architecture: typically, there is one base price for each supported currency, and this base price can be overridden by a `price_list` according to its conditions.
 
 A `region` is a group of one or more `country`.
 
-One `country` can only be in one `region`. One `region` can only have one `currency`. Therefore one 
-`country` can only have one `currency`. 
+One `country` can only be in one `region`. One `region` can only have one `currency`. Therefore one `country` can only have one `currency`. 
 
 By default, a `store` has one `region`, this region determines the default `currency`. 
 
@@ -82,24 +80,19 @@ A `product_variant` may have a `money_amount` that is related to a `region`.
 
 Whenever a `product_variant` is requested, the request may contain a `region_id` parameter.
 
-If it does: the returned `money_amount` will be the ones related to the `region` of the matching `region_id`, 
-and the prices in the `prices` object will be in the `currency` of this `region`.
+If it does: the returned `money_amount` will be the ones related to the `region` of the matching `region_id`, and the prices in the `prices` object will be in the `currency` of this `region`.
 
-If the request does not contain a `region_id` parameter, the returned `money_amount` will be related 
-to the default `region`, and the prices of the `prices` object  will be in the default `currency`.
+If the request does not contain a `region_id` parameter, the returned `money_amount` will be related to the default `region`, and the prices of the `prices` object  will be in the default `currency`.
 
 ### Prices
 
 Each `product_variant` must have at least 1 `money_amount` per `region`. This is the *base price*.
 
-A `product_variant` may have one more price if the optional `is_original` flag is set. The `money_amount` 
-marked with `is_original` is the *original price*. The original price is used from frontends to display 
-a price before any adjustment or sale.
+A `product_variant` may have one more price if the optional `is_original` flag is set. The `money_amount` marked with `is_original` is the *original price*. The original price is used from frontends to display a price before any adjustment or sale.
 
 One or more additional prices are set using `price_list`.
 
-Note: whenever a new `region` is created, all existing `product_variant` will have no base price for 
-the new `region`.
+Note: whenever a new `region` is created, all existing `product_variant` will have no base price for the new `region`.
 
 Note: `is_original` is never `true` when the `money_amount` is part of a `price_list`.
 
