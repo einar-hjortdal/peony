@@ -1,6 +1,5 @@
 module peony
 
-import log
 import net.http
 import veb
 
@@ -173,37 +172,6 @@ fn format_product_translation_response(p ProductTranslation) ProductTranslationR
 		title:       p.title
 		subtitle:    p.subtitle
 		description: p.description
-	}
-}
-
-fn format_money_amount_response(m MoneyAmount) MoneyAmountResponse {
-	mut price_list_id := ''
-	mut variant_id := ''
-	if !m.price_list_id_bin.is_null {
-		price_list_id = id_bin_to_string(m.price_list_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('money_amount.price_list_id is invalid')
-			''
-		}
-	}
-
-	if !m.variant_id_bin.is_null {
-		variant_id = id_bin_to_string(m.variant_id_bin.value) or {
-			log.error(error_database_data_malformed)
-			log.error('money_amount.price_list_id is invalid')
-			''
-		}
-	}
-
-	return MoneyAmountResponse{
-		id:            m.id
-		amount:        m.amount
-		region_id:     m.region_id
-		currency_code: m.currency_code
-		min_quantity:  m.min_quantity.value
-		max_quantity:  m.max_quantity.value
-		price_list_id: price_list_id
-		variant_id:    variant_id
 	}
 }
 

@@ -647,7 +647,6 @@ pub:
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
-// need to handle prices better.
 pub struct VariantCreateRequest {
 pub:
 	title            ?string

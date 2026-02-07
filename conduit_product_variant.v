@@ -22,7 +22,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 		return handle_error_500(mut ctx, 'Could not retrieve product_variant', err.msg())
 	}
 
-	money_amounts := model_product_variant_money_amount_retrieve(mut tx, ph.ids_bin) or {
+	money_amounts := model_variant_money_amount_retrieve(mut tx, ph.ids_bin) or {
 		tx.rollback() or {}
 		return handle_error_500(mut ctx, 'Could not retrieve product_variant_money_amount',
 			err.msg())

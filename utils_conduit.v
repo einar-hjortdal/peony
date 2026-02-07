@@ -120,10 +120,10 @@ fn assign_product_sales_channel_ids(pscs []ProductSalesChannel, mut products_map
 	}
 }
 
-fn assign_product_variant_money_amounts(money_amounts []MoneyAmount, mut product_variants_map map[string]ProductVariant) {
+fn assign_product_variant_money_amounts(money_amounts []VariantMoneyAmount, mut product_variants_map map[string]ProductVariant) {
 	for i := 0; i < money_amounts.len; i++ {
 		money_amount := money_amounts[i]
-		variant_id := id_bin_to_string(money_amount.variant_id_bin.value) or { panic(err) } // database corrupted
+		variant_id := money_amount.variant_id
 		old := product_variants_map[variant_id].money_amounts
 		product_variants_map[variant_id].money_amounts = arrays.concat(old, money_amount)
 	}

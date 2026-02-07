@@ -8,8 +8,8 @@ import arrays
 // The original_price is the money_amount amount for the given region that is marked with is_original.
 // If the customer has a price_list, the base_price is the price from its price_list, if it exists.
 // Otherwise is is the money_amount amount for the given region that is not marked with is_original.
-// It is called base_price because discounts may apply to these prices in the cart.
-struct ProductVariantPrice {
+// It is called base_price because discounts may apply in the cart.
+struct VariantPrice {
 	currency_code  string
 	includes_tax   bool
 	original_price i32
@@ -22,34 +22,39 @@ struct ProductVariantPrice {
 // region_id is obtained from url paramters, or from the database if none is provided by the request.
 // Change context to contain the Cart, Customer and Region structs instead of their id alone
 struct PriceContext {
+	cart_id         string
 	cart_id_bin     []u8
+	customer_id     string
 	customer_id_bin []u8
+	region_id       string
 	region_id_bin   []u8
 }
 
-// use app.tax_provider when necessary
+// use app.tax_provider
 fn calculate_taxes() {}
 
-fn is_fitting_price(ma MoneyAmount, region_id_bin []u8, quantity i32) bool {
+// TODO should also consider money_amount related to price-list.
+fn is_fitting_price(ma VariantMoneyAmount, region_id_bin []u8, quantity i32) bool {
 	return !ma.is_original && ma.region_id_bin == region_id_bin
-		&& (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
-		&& (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
+	// && (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
+	// && (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
 }
 
 // returns empty MoneyAmount if no original_price exists
-fn get_original_price(mas []MoneyAmount, region_id_bin []u8) MoneyAmount {
+fn get_original_price(mas []VariantMoneyAmount, region_id_bin []u8) VariantMoneyAmount {
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
 		if ma.is_original && ma.region_id_bin == region_id_bin {
 			return ma
 		}
 	}
-	return MoneyAmount{}
+	return VariantMoneyAmount{}
 }
 
 // returns empty MoneyAmount if no price exists for the region
-fn get_fitting_prices(mas []MoneyAmount, region_id_bin []u8, quantity i32) []MoneyAmount {
-	mut fitting_prices := []MoneyAmount{}
+// TODO It cannot return empty though, peony must guarantee prices exist for each region
+fn get_regional_prices(mas []VariantMoneyAmount, region_id_bin []u8, quantity i32) []VariantMoneyAmount {
+	mut fitting_prices := []VariantMoneyAmount{}
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
 		if is_fitting_price(ma, region_id_bin, quantity) {
@@ -59,8 +64,8 @@ fn get_fitting_prices(mas []MoneyAmount, region_id_bin []u8, quantity i32) []Mon
 	return fitting_prices
 }
 
-fn get_lowest_price(mas []MoneyAmount) MoneyAmount {
-	mut lowest := MoneyAmount{}
+fn get_lowest_price(mas []VariantMoneyAmount) VariantMoneyAmount {
+	mut lowest := VariantMoneyAmount{}
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
 		if lowest.id_bin.len == 0 {
@@ -77,14 +82,15 @@ fn get_lowest_price(mas []MoneyAmount) MoneyAmount {
 
 // this function should find the lowest possible price that fits all the criteria.
 // it considers: quantity, region.
-// TODO ignore min/max_quantity if no price_list. Consider price_list when customer fits criteria
-fn calculate_price(variant ProductVariant, quantity i32, pctx PriceContext) ProductVariantPrice {
+// TODO Consider price_list when in context.
+fn calculate_price(variant ProductVariant, quantity i32, pctx PriceContext) VariantPrice {
 	// for now just consider variant.money_amounts and pctx.region
 	original_price := get_original_price(variant.money_amounts, pctx.region_id_bin)
-	fitting_prices := get_fitting_prices(variant.money_amounts, pctx.region_id_bin, quantity)
-	base_price := get_lowest_price(fitting_prices)
+	regional_prices := get_regional_prices(variant.money_amounts, pctx.region_id_bin,
+		quantity)
+	base_price := get_lowest_price(regional_prices)
 
-	return ProductVariantPrice{
+	return VariantPrice{
 		currency_code:  base_price.currency_code
 		includes_tax:   base_price.includes_tax
 		original_price: original_price.amount

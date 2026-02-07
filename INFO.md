@@ -84,6 +84,8 @@ If it does: the returned `money_amount` will be the ones related to the `region`
 
 If the request does not contain a `region_id` parameter, the returned `money_amount` will be related to the default `region`, and the prices of the `prices` object  will be in the default `currency`.
 
+WIP: a sub-division of a country is a `Zone`. These are used to handle taxes for locations that require special handling.
+
 ### Prices
 
 Each `product_variant` must have at least 1 `money_amount` per `region`. This is the *base price*.

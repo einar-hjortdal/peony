@@ -4,7 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 
 struct SuiteProductVariantData {
-	money_amounts          []MoneyAmount
+	money_amounts          []VariantMoneyAmount
 	inventory_items        []InventoryItem
 	inventory_item_ids_bin [][]u8
 	inventory_levels       []InventoryLevel
@@ -17,7 +17,7 @@ fn suite_product_variant_data_get(mut tx firebird.Transaction, product_variant_i
 		return SuiteProductVariantData{}
 	}
 
-	money_amounts := model_product_variant_money_amount_retrieve(mut tx, product_variant_ids_bin) or {
+	money_amounts := model_variant_money_amount_retrieve(mut tx, product_variant_ids_bin) or {
 		return new_internal_error('Failed to retrieve product_variant_money_amount', err.msg())
 	}
 

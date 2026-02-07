@@ -226,6 +226,7 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	}
 }
 
+// Note: used for price_list endpoints
 pub struct MoneyAmountResponse {
 pub:
 	id            string
@@ -250,7 +251,8 @@ pub:
 	tax_type   string @[json: 'taxType'; omitempty]
 }
 
-pub struct ProductVariantPriceResponse {
+// VariantPricesResponseStore represents the price of a variant.
+pub struct VariantPricesResponseStore {
 pub:
 	currency_code  string @[json: 'currencyCode']
 	includes_tax   bool   @[json: 'includesTax']
@@ -258,12 +260,32 @@ pub:
 	base_price     i32    @[json: 'basePrice']
 }
 
-fn format_price_response(p ProductVariantPrice) ProductVariantPriceResponse {
-	return ProductVariantPriceResponse{
+fn format_price_response(p VariantPrice) VariantPricesResponseStore {
+	return VariantPricesResponseStore{
 		currency_code:  p.currency_code
 		includes_tax:   p.includes_tax
 		original_price: p.original_price
 		base_price:     p.base_price
+	}
+}
+
+// TODO replace with a container with both original and base price.
+// This also means variant responses to the admin endpoints should be processed to create such struct.
+// Also it needs a different name.
+pub struct VariantMoneyAmountResponse {
+pub:
+	region_id     string @[json: 'regionId']
+	currency_code string @[json: 'currencyCode']
+	is_original   bool   @[json: 'isOriginal']
+	amount        i32
+}
+
+fn format_variant_money_amount_response(p VariantMoneyAmount) VariantMoneyAmountResponse {
+	return VariantMoneyAmountResponse{
+		region_id:     p.region_id
+		currency_code: p.currency_code
+		is_original:   p.is_original
+		amount:        p.amount
 	}
 }
 
@@ -339,9 +361,9 @@ pub:
 	metadata           string                       @[omitempty]
 	image              string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	money_amounts      []MoneyAmountResponse        @[json: 'moneyAmounts'; omitempty]
-	inventory_item     InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
-	inventory_quantity i32 @[json: 'inventoryQuantity']
+	money_amounts      []VariantMoneyAmountResponse
+	inventory_item     InventoryItemResponse @[json: 'inventoryItem'; omitempty]
+	inventory_quantity i32                   @[json: 'inventoryQuantity']
 }
 
 fn format_variant_response(v ProductVariant) VariantResponse {
@@ -350,9 +372,10 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
 	}
 
-	mut money_amounts := []MoneyAmountResponse{len: v.money_amounts.len}
+	mut money_amounts := []VariantMoneyAmountResponse{len: v.money_amounts.len}
 	for i := 0; i < v.money_amounts.len; i++ {
-		money_amounts[i] = format_money_amount_response(v.money_amounts[i])
+		money_amount := v.money_amounts[i]
+		money_amounts[i] = format_variant_money_amount_response(money_amount)
 	}
 
 	return VariantResponse{
@@ -392,10 +415,10 @@ pub:
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 	purchasable        bool
-	price              ProductVariantPriceResponse
+	price              VariantPricesResponseStore
 }
 
-fn format_variant_response_store(v ProductVariant, p ProductVariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
+fn format_variant_response_store(v ProductVariant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
 	product_variant_availability := product_variants_availability[v.id]
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}

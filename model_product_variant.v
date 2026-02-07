@@ -24,7 +24,7 @@ struct ProductVariant {
 	// image              firebird.NullString // from variant_image TODO
 mut:
 	inventory_item InventoryItem
-	money_amounts  []MoneyAmount
+	money_amounts  []VariantMoneyAmount
 	option_values  []ProductOptionValue
 }
 
