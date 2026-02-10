@@ -362,9 +362,9 @@ pub:
 	metadata           string                       @[omitempty]
 	image              string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	prices             []VariantMoneyAmountResponse
-	inventory_item     InventoryItemResponse @[json: 'inventoryItem'; omitempty]
-	inventory_quantity i32                   @[json: 'inventoryQuantity']
+	money_amounts      []VariantMoneyAmountResponse @[json: 'moneyAmounts']
+	inventory_item     InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
+	inventory_quantity i32 @[json: 'inventoryQuantity']
 }
 
 fn format_variant_response(v ProductVariant) VariantResponse {
@@ -373,10 +373,10 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
 	}
 
-	mut prices := []VariantMoneyAmountResponse{len: v.money_amounts.len}
+	mut money_amounts := []VariantMoneyAmountResponse{len: v.money_amounts.len}
 	for i := 0; i < v.money_amounts.len; i++ {
 		ma := v.money_amounts[i]
-		prices[i] = format_variant_money_amount_response(ma)
+		money_amounts[i] = format_variant_money_amount_response(ma)
 	}
 
 	return VariantResponse{
@@ -395,7 +395,7 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 		inventory_item:     format_inventory_item_response(v.inventory_item)
 		inventory_quantity: get_inventory_quantity(v.inventory_item)
 		option_values:      option_values
-		prices:             prices
+		money_amounts:      money_amounts
 	}
 }
 

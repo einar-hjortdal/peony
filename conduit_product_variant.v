@@ -86,10 +86,15 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 		}
 	}
 
-	model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, ph.money_amounts) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not update product_variant_money_amount',
-			err.msg())
+	if money_amounts := ph.money_amounts {
+		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
+			tx.rollback() or {} // ignore error
+			return handle_error_500(mut ctx, 'Could not update product_variant_money_amount',
+				err.msg())
+		}
+	} else {
+		// TODO
+		// model_product_variant_money_amount_create_default(mut tx...)
 	}
 
 	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }

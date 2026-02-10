@@ -647,16 +647,50 @@ pub:
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
+// VariantCreateRequest describes the body of the request to create a new product variant.
+//
+// # Fields
+//
+// ## title
+// Variant title (e.g., "Large", "Red").
+//
+// ## ean
+// European Article Number (EAN) for the variant.
+//
+// ## upc
+// Universal Product Code (UPC) for the variant.
+//
+// ## barcode
+// Generic barcode field.
+//
+// ## inventory_item
+// See InventoryItemCreateRequest.
+//
+// ## option_value_ids
+// Required. Array of option value identifiers that define this variant (one id per product option).
+// The combination of option_value_ids must uniquely identify the variant within the product.
+// Each id must reference existing product option values.
+//
+// ## metadata
+// Raw metadata stored as a string. Use for arbitrary user-defined data.
+//
+// ## money_amounts
+// Optional array of region money amounts for this variant.
+// When provided:
+// - For each region, there must be at least one money amount with is_original set to false or omitted. This is the base_price of the variant.
+// - For each region, there may be at most one money amount with is_original set to true. This is the original_price.
+// When omitted:
+// All region money amounts will be initialized to a default value of 0.
 pub struct VariantCreateRequest {
 pub:
 	title            ?string
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	inventory_item   ?InventoryItemCreateRequest        @[json: 'inventoryItem']
-	option_value_ids ?[]string                          @[json: 'optionValueIds']
-	metadata         ?string                            @[raw]
-	money_amounts    []ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
+	inventory_item   ?InventoryItemCreateRequest         @[json: 'inventoryItem']
+	option_value_ids []string                            @[json: 'optionValueIds']
+	metadata         ?string                             @[raw]
+	money_amounts    ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct VariantCreateRequestHygienised {
@@ -664,22 +698,38 @@ struct VariantCreateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
-	option_value_ids     ?[]string
+	option_value_ids     []string
 	option_value_ids_bin [][]u8
 	metadata             ?string
-	money_amounts        []VariantMoneyAmountRequestHygienised
+	money_amounts        ?[]VariantMoneyAmountRequestHygienised
 mut:
 	inventory_item ?InventoryItemCreateRequestHygienised
 }
 
 fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
-	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
-		return new_internal_error(error_id_invalid, 'ids_bin')
+	if p.option_value_ids.len == 0 {
+		return new_internal_error(error_field_empty, 'option_value_ids cannot be an empty array')
 	}
 
-	mut money_amounts := []VariantMoneyAmountRequestHygienised{len: p.money_amounts.len}
-	for i := 0; i < p.money_amounts.len; i++ {
-		money_amounts[i] = p.money_amounts[i].hygienise()!
+	mut option_value_ids_bin := [][]u8{len: p.option_value_ids.len}
+	for i := 0; i < p.option_value_ids.len; i++ {
+		id := p.option_value_ids[i]
+		id_bin := id_string_to_bin(id) or {
+			return new_internal_error(error_id_invalid, 'option_value_ids')
+		}
+		option_value_ids_bin[i] = id_bin
+	}
+
+	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
+	if mas := p.money_amounts {
+		if mas.len == 0 {
+			new_internal_error(error_field_empty, 'money_amounts cannot be an empty array')
+		}
+
+		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
+		for i := 0; i < mas.len; i++ {
+			money_amounts[i] = mas[i].hygienise()!
+		}
 	}
 
 	mut ph := VariantCreateRequestHygienised{
@@ -700,8 +750,60 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	return ph
 }
 
+// VariantUpdateRequest describes the body of the request to update an existing product variant.
+//
+// # Fields
+//
+// ## id
+// Required. Identifier of the variant to update.
+//
+// ## title
+// Variant title (e.g., "Large", "Red").
+// If an empty string is provided, the variant title is deleted.
+// If omitted, the variant title is not changed.
+//
+// ## ean
+// European Article Number (EAN) for the variant.
+// If an empty string is provided, the EAN is deleted.
+// If omitted, the EAN is not changed.
+//
+// ## upc
+// Universal Product Code (UPC) for the variant.
+// If an empty string is provided, the UPC is deleted.
+// If omitted, the UPC is not changed.
+//
+// ## barcode
+// Generic barcode field.
+// If an empty string is provided, the barcode is deleted.
+// If omitted, the barcode is not changed.
+//
+// ## inventory_item
+// See InventoryItemUpdateRequest.
+// If omitted, inventory fields are not changed.
+//
+// ## option_value_ids
+// Optional. Array of option value identifiers that define this variant (one id per product option).
+// If provided, it replaces the variant's existing option values and follows the same rules as creation:
+// - The combination of option_value_ids must uniquely identify the variant within the product.
+// - Each id must reference an existing product option value.
+// If omitted, the variant's option values remain unchanged.
+//
+// ## metadata
+// Raw metadata stored as a string. Use for arbitrary user-defined data.
+// If an empty string is provided, the metadata is deleted.
+// If omitted, metadata is not changed.
+//
+// ## money_amounts
+// Optional array of region money amounts for this variant.
+// When provided:
+// - For each region, there must be at least one money amount with is_original set to false or omitted (the base price).
+// - For each region, there may be at most one money amount with is_original set to true (the original price).
+// - If a previously stored original price for a region is not included, that original price will be removed.
+// When omitted:
+//  money_amounts are not changed.
 pub struct VariantUpdateRequest {
 pub:
+	id               string
 	title            ?string
 	ean              ?string
 	upc              ?string
@@ -713,6 +815,8 @@ pub:
 }
 
 struct VariantUpdateRequestHygienised {
+	id                   string
+	id_bin               []u8
 	title                ?string
 	ean                  ?string
 	upc                  ?string
@@ -726,11 +830,15 @@ mut:
 }
 
 fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
+	id_bin := id_string_to_bin(p.id) or { return new_internal_error(error_id_invalid, 'id') }
+
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
-		return new_internal_error(error_id_invalid, 'ids_bin')
+		return new_internal_error(error_id_invalid, 'option_value_ids')
 	}
 
 	mut ph := VariantUpdateRequestHygienised{
+		id:                   p.id
+		id_bin:               id_bin
 		title:                p.title
 		ean:                  p.ean
 		upc:                  p.upc

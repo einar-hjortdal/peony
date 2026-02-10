@@ -1382,6 +1382,10 @@ fn test_peony() ! {
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//
+		// allow no variant money_amount provided (set default to 0 for all regions)
+		// refuse empty variant money_amount array
+		// refuse arrays with more than 2 base_price or original_price per region
+		//
 		// TODO options and values
 		// TODO variants endpoints
 		// TODO inventory item endpoints
