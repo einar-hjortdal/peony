@@ -2,6 +2,7 @@ module peony
 
 import arrays
 
+// VariantPrice is for the store frontend
 // `original_price` is the price of the item before an adjustment or a sale.
 // `base_price` is the price of the item.
 //

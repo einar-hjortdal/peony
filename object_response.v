@@ -226,8 +226,7 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	}
 }
 
-// Note: used for price_list endpoints
-pub struct MoneyAmountResponse {
+pub struct PriceListPriceResponse {
 pub:
 	id            string
 	currency_code string @[json: 'currencyCode']
@@ -251,8 +250,9 @@ pub:
 	tax_type   string @[json: 'taxType'; omitempty]
 }
 
-// VariantPricesResponseStore represents the price of a variant.
-pub struct VariantPricesResponseStore {
+// VariantPriceResponseStore represents the price of a variant.
+// This is calculated utilizing the context of the request coming from the /store/ endpoints.
+pub struct VariantPriceResponse {
 pub:
 	currency_code  string @[json: 'currencyCode']
 	includes_tax   bool   @[json: 'includesTax']
@@ -260,8 +260,8 @@ pub:
 	base_price     i32    @[json: 'basePrice']
 }
 
-fn format_price_response(p VariantPrice) VariantPricesResponseStore {
-	return VariantPricesResponseStore{
+fn format_variant_price_response(p VariantPrice) VariantPriceResponse {
+	return VariantPriceResponse{
 		currency_code:  p.currency_code
 		includes_tax:   p.includes_tax
 		original_price: p.original_price
@@ -269,14 +269,15 @@ fn format_price_response(p VariantPrice) VariantPricesResponseStore {
 	}
 }
 
-// TODO replace with a container with both original and base price.
-// This also means variant responses to the admin endpoints should be processed to create such struct.
-// Also it needs a different name.
+// VariantMoneyAmountResponse represents a regional price of a variant.
+// Each variant has one price for each region, and may have one additional price for each region.
+// The mandatory price is the `base_price` and the optional additional price is the `original_price`.
+// A /store/ consumer may display the original_price in comparison with the base_price (eg: was x, now y).
 pub struct VariantMoneyAmountResponse {
 pub:
 	region_id     string @[json: 'regionId']
 	currency_code string @[json: 'currencyCode']
-	is_original   bool   @[json: 'isOriginal']
+	is_original   bool   @[json: 'isOriginal'; omitempty]
 	amount        i32
 }
 
@@ -361,7 +362,7 @@ pub:
 	metadata           string                       @[omitempty]
 	image              string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	money_amounts      []VariantMoneyAmountResponse
+	prices             []VariantMoneyAmountResponse
 	inventory_item     InventoryItemResponse @[json: 'inventoryItem'; omitempty]
 	inventory_quantity i32                   @[json: 'inventoryQuantity']
 }
@@ -372,10 +373,10 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
 	}
 
-	mut money_amounts := []VariantMoneyAmountResponse{len: v.money_amounts.len}
+	mut prices := []VariantMoneyAmountResponse{len: v.money_amounts.len}
 	for i := 0; i < v.money_amounts.len; i++ {
-		money_amount := v.money_amounts[i]
-		money_amounts[i] = format_variant_money_amount_response(money_amount)
+		ma := v.money_amounts[i]
+		prices[i] = format_variant_money_amount_response(ma)
 	}
 
 	return VariantResponse{
@@ -394,7 +395,7 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 		inventory_item:     format_inventory_item_response(v.inventory_item)
 		inventory_quantity: get_inventory_quantity(v.inventory_item)
 		option_values:      option_values
-		money_amounts:      money_amounts
+		prices:             prices
 	}
 }
 
@@ -415,7 +416,7 @@ pub:
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 	purchasable        bool
-	price              VariantPricesResponseStore
+	price              VariantPriceResponse
 }
 
 fn format_variant_response_store(v ProductVariant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
@@ -441,7 +442,7 @@ fn format_variant_response_store(v ProductVariant, p VariantPrice, product_varia
 		// TODO images
 		inventory_quantity: product_variant_availability.inventory_quantity
 		option_values:      option_values
-		price:              format_price_response(p) // TODO not for /admin/
+		price:              format_variant_price_response(p)
 		purchasable:        product_variant_availability.purchasable
 	}
 }
