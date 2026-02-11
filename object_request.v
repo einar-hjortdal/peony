@@ -344,14 +344,36 @@ fn (p ProductOptionValueRequestHygienised) verify() ! {
 	}
 }
 
+// ProductOptionValueUpdateRequest describes an option value object used in option update requests.
+//
+// Fields
+//
+// id
+// Optional identifier of the option value.
+// If provided, the request updates the existing value with this id.
+// If omitted, a new value will be created.
+//
+// name
+// Option value name (for example "Red" or "Large").
+// Required when creating a new value (that is, when id is omitted).
+// If omitted when id is present, the value name is not changed.
+// If an empty string is provided, the value name is set to an empty string.
+//
+// translations
+// When provided, `translations` replaces the option value's existing translations.
+// To remove all existing translations, submit an empty array.
+// If omitted, translations are left unchanged.
 pub struct ProductOptionValueUpdateRequest {
 pub:
+	id           ?string
 	name         ?string
 	translations ?[]ProductOptionValueTranslationRequest
 }
 
 struct ProductOptionValueUpdateRequestHygienised {
-	name ?string
+	id     ?string
+	id_bin []u8
+	name   ?string
 mut:
 	translations ?[]ProductOptionValueTranslationRequestHygienised
 }
@@ -473,16 +495,45 @@ fn (p ProductOptionCreateRequestHygienised) verify() ! {
 	}
 }
 
+// ProductOptionUpdateRequest describes a product option object used in product update requests.
+//
+// # Fields
+//
+// ## id
+// Optional identifier of the product option.
+// If provided, the request updates the existing option with this id.
+// If omitted, a new option will be created in the product's options array.
+//
+// ## title
+// Option title.
+// Required if id is omitted.
+// If omitted, the option's title is not changed.
+//
+// ## translations
+// When provided, `translations` is a replacement array for the option's translations.
+// If omitted, translations are left unchanged.
+//
+// values
+// When provided, `values` is a replacement array for the option's values.
+// - Items with `id` update that value, items without `id` are created.
+// - Omitted existing values are removed.
+// - The array index is preserved.
+// - The index in the values array is the valueRank for that option.
 pub struct ProductOptionUpdateRequest {
 pub:
+	id           ?string
 	title        ?string
 	translations ?[]ProductOptionTranslationRequest
+	values       ?[]ProductOptionValueUpdateRequest
 }
 
 struct ProductOptionUpdateRequestHygienised {
-	title ?string
+	id     ?string
+	id_bin []u8
+	title  ?string
 mut:
 	translations ?[]ProductOptionTranslationRequestHygienised
+	values       ?[]ProductOptionValueUpdateRequestHygienised
 }
 
 fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
@@ -727,12 +778,12 @@ pub:
 // See InventoryItemUpdateRequest.
 // If omitted, inventory fields are not changed.
 //
-// ## option_value_indexes
+// ## option_values
 // Array of integers that maps this variant to option values by option position.
 // If provided, it replaces the variant's existing option value mapping.
 // - The array must contain exactly one element per product option.
 // - The element index represents the option index, while the element value represents the value index.
-// - Example: `option_value_indexes: [2, 0, 1]` → option index 0 uses value index 2; option index 1 uses value index 0; option index 2 uses value index 1.
+// - Example: `option_values: [2, 0, 1]` → option index 0 uses value index 2; option index 1 uses value index 0; option index 2 uses value index 1.
 // If omitted, the variant's option values remain unchanged.
 //
 // ## metadata
@@ -749,15 +800,15 @@ pub:
 // When omitted, `money_amounts` are not changed.
 pub struct ProductVariantUpdateRequest {
 pub:
-	id                   ?string
-	title                ?string
-	ean                  ?string
-	upc                  ?string
-	barcode              ?string
-	inventory_item       ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
-	option_value_indexes ?[]i32                              @[json: 'optionValueIndexes']
-	metadata             ?string                             @[raw]
-	money_amounts        ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
+	id             ?string
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	inventory_item ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
+	option_values  ?[]i32                              @[json: 'optionValues']
+	metadata       ?string                             @[raw]
+	money_amounts  ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 // VariantCreateRequest describes the body of the request to create a new product variant.
@@ -1297,9 +1348,6 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // ## images
 // Images to associate with the product.
 // Images preserve sorting order.
-//
-// TODO: Support creating variants on product creation (including variant stock, prices, etc.).
-// TODO: variant_rank is set using the variants array, to reorder variants, reorder array.
 pub struct ProductCreateRequest {
 pub:
 	title             string
@@ -1324,9 +1372,6 @@ pub:
 
 // TODO derive handle from title using slugify
 // TODO append id to handle if handle already exists in database
-// TODO verify title != ''
-// TODO verify title.len <= 63
-// TODO verify subtitle.len <= 191
 struct ProductCreateRequestHygienised {
 	title                 string
 	subtitle              ?string
@@ -1543,8 +1588,8 @@ pub:
 	thumbnail         ?i32
 	images            ?[]ImageUpdateRequest
 	seo               ?SEORequest
-	// options []OptionUpdateRequest
-	variants []ProductVariantUpdateRequest
+	options           ?[]ProductOptionUpdateRequest
+	variants          ?[]ProductVariantUpdateRequest
 }
 
 // TODO verify title != ''
