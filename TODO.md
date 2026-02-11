@@ -3,6 +3,7 @@
 ## Basics
 
 - [x] Write a database-friendly uuid library <!-- https://github.com/einar-hjortdal/lexical_uuid -->
+- [x] Write a string to slug conversion library <!-- https://github.com/einar-hjortdal/slugify -->
 - [x] Write a FirebirdSQL connector <!-- https://github.com/einar-hjortdal/firebird -->
 - [x] Write a Redict library <!-- https://github.com/einar-hjortdal/redict -->
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
@@ -94,7 +95,7 @@
 - [ ] Separate model parameter objects from Request objects
   - [x] Make Request objects public
   - [x] Remove `parse_` functions from methods
-- [ ] Rename query string structs to include `Query` in their name
+- [x] Rename query string structs to include `Query` in their name
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed

@@ -305,106 +305,150 @@ fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsH
 	return products
 }
 
-fn model_product_create(mut tx firebird.Transaction, product_id string, product_id_bin []u8, ph ProductCreateRequestHygienised) ! {
-	mut c := ['id', 'title', 'handle']
-	mut params := [firebird.Value(product_id_bin), ph.title]
-
-	if handle := ph.handle {
-		params = arrays.concat(params, handle)
-	} else {
-		params = arrays.concat(params, product_id)
-	}
-
-	if subtitle := ph.subtitle {
-		c = arrays.concat(c, 'subtitle')
-		params = arrays.concat(params, subtitle)
-	}
-
-	if description := ph.description {
-		c = arrays.concat(c, 'description')
-		params = arrays.concat(params, description)
-	}
-
-	if is_giftcard := ph.is_giftcard {
-		c = arrays.concat(c, 'is_giftcard')
-		params = arrays.concat(params, is_giftcard)
-	}
-
-	if status := ph.status {
-		c = arrays.concat(c, 'status')
-		params = arrays.concat(params, status)
-	}
-
-	if _ := ph.type_id {
-		c = arrays.concat(c, 'type_id')
-		params = arrays.concat(params, ph.type_id_bin)
-	}
-
-	if discountable := ph.discountable {
-		c = arrays.concat(c, 'discountable')
-		params = arrays.concat(params, discountable)
-	}
-
-	if metadata := ph.metadata {
-		c = arrays.concat(c, 'metadata')
-		params = arrays.concat(params, metadata)
-	}
-
-	tx.execute('INSERT INTO product (${get_columns(c)}) VALUES (${get_placeholders(c)})',
-		...params)!
+struct ProductCreateParams {
+	product_id     string
+	product_id_bin []u8
+	title          string
+	subtitle       string
+	description    string
+	handle         string
+	is_giftcard    ?bool
+	status         ?string
+	type_id        string
+	type_id_bin    []u8
+	discountable   ?bool
+	metadata       string
 }
 
-fn model_product_update(mut tx firebird.Transaction, product_id_bin []u8, ph ProductUpdateRequestHygienised) ! {
+fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
+	if p.product_id == '' || p.product_id_bin.len == 0 || p.title == '' || p.handle == '' {
+		return new_internal_error('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}, title: ${p.title}, handle: ${p.handle}')
+	}
+
+	mut c := ['id', 'title', 'handle']
+	mut params := [firebird.Value(p.product_id_bin), p.title, p.handle]
+
+	if p.subtitle != '' {
+		c = arrays.concat(c, 'subtitle')
+		params = arrays.concat(params, p.subtitle)
+	}
+
+	if p.description != '' {
+		c = arrays.concat(c, 'description')
+		params = arrays.concat(params, p.description)
+	}
+
+	if p.is_giftcard != none {
+		c = arrays.concat(c, 'is_giftcard')
+		params = arrays.concat(params, p.is_giftcard)
+	}
+
+	if p.status != none {
+		c = arrays.concat(c, 'status')
+		params = arrays.concat(params, p.status)
+	}
+
+	if p.type_id != '' {
+		c = arrays.concat(c, 'type_id')
+		params = arrays.concat(params, p.type_id_bin)
+	}
+
+	if p.discountable != none {
+		c = arrays.concat(c, 'discountable')
+		params = arrays.concat(params, p.discountable)
+	}
+
+	if p.metadata != '' {
+		c = arrays.concat(c, 'metadata')
+		params = arrays.concat(params, p.metadata)
+	}
+
+	query := 'INSERT INTO product (${get_columns(c)}) VALUES (${get_placeholders(c)})'
+	tx.execute(query, ...params)!
+}
+
+struct ProductUpdateParams {
+	product_id     string
+	product_id_bin []u8
+	title          ?string
+	subtitle       ?string
+	description    ?string
+	handle         ?string
+	is_giftcard    ?bool
+	status         ?string
+	type_id        ?string
+	type_id_bin    []u8
+	discountable   ?bool
+	metadata       ?string
+}
+
+fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
+	if p.product_id == '' || p.product_id_bin.len == 0 {
+		return new_internal_error('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}')
+	}
+
 	mut c := []string{}
 	mut params := []firebird.Value{}
 
-	if handle := ph.handle {
+	if handle := p.handle {
 		c = arrays.concat(c, 'handle')
 		params = arrays.concat(params, handle)
 	}
 
-	if title := ph.title {
+	if title := p.title {
 		c = arrays.concat(c, 'title')
 		params = arrays.concat(params, title)
 	}
 
-	if subtitle := ph.subtitle {
+	if subtitle := p.subtitle {
 		c = arrays.concat(c, 'subtitle')
-		params = arrays.concat(params, subtitle)
+		if subtitle != '' {
+			params = arrays.concat(params, subtitle)
+		} else {
+			params = arrays.concat(params, firebird.Null{})
+		}
 	}
 
-	if description := ph.description {
+	if description := p.description {
 		c = arrays.concat(c, 'description')
-		params = arrays.concat(params, description)
+		if description != '' {
+			params = arrays.concat(params, description)
+		} else {
+			params = arrays.concat(params, firebird.Null{})
+		}
 	}
 
-	if is_giftcard := ph.is_giftcard {
+	if is_giftcard := p.is_giftcard {
 		c = arrays.concat(c, 'is_giftcard')
 		params = arrays.concat(params, is_giftcard)
 	}
 
-	if status := ph.status {
+	if status := p.status {
 		c = arrays.concat(c, 'status')
 		params = arrays.concat(params, status)
 	}
 
-	if _ := ph.type_id {
+	if _ := p.type_id {
 		c = arrays.concat(c, 'type_id')
-		params = arrays.concat(params, ph.type_id_bin)
+		params = arrays.concat(params, p.type_id_bin)
 	}
 
-	if discountable := ph.discountable {
+	if discountable := p.discountable {
 		c = arrays.concat(c, 'discountable')
 		params = arrays.concat(params, discountable)
 	}
 
-	if metadata := ph.metadata {
+	if metadata := p.metadata {
 		c = arrays.concat(c, 'metadata')
-		params = arrays.concat(params, metadata)
+		if metadata != '' {
+			params = arrays.concat(params, metadata)
+		} else {
+			params = arrays.concat(params, firebird.Null{})
+		}
 	}
 
 	query := 'UPDATE product SET ${get_set_columns_with_updated_at(c)} WHERE id = ?'
-	params = arrays.concat(params, firebird.Value(product_id_bin))
+	params = arrays.concat(params, firebird.Value(p.product_id_bin))
 	tx.execute(query, ...params)!
 }
 

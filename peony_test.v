@@ -816,8 +816,51 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 
 fn handles_unique_product_handles(cookie_value string) ! {
 	println('handles_unique_product_handles')
-	// TODO create product with no specified handle
-	// TODO create product with specified handle
+	//  create product with no specified handle
+	mut new_product_title := luuid.v2()
+	mut new_product_data := peony.ProductCreateRequest{
+		title: new_product_title
+	}
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
+	mut created_product := peony.ProductResponse{}
+	mut found := false
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.title == new_product_title {
+			created_product = product
+			found = true
+			break
+		}
+	}
+	expect(created_product.handle == created_product.title, 'product created with no explicit handle has a handle that does not match title')!
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
+		cookie_value)!
+
+	// create product with specified handle
+	new_product_title = luuid.v2()
+	mut new_product_handle := luuid.v2()
+	new_product_data = peony.ProductCreateRequest{
+		title:  new_product_title
+		handle: new_product_handle
+	}
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
+	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
+	created_product = peony.ProductResponse{}
+	found = false
+	for i := 0; i < r.products.len; i++ {
+		product := r.products[i]
+		if product.handle == new_product_handle {
+			created_product = product
+			found = true
+			break
+		}
+	}
+	expect(found, 'Created product has unexpected handle')!
+
 	// TODO create product with no specified handle and already existing
 	// TODO create product with specified handle and already existing
 }

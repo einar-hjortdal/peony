@@ -2,6 +2,7 @@ module peony
 
 import json
 import veb
+import einar_hjortdal.slugify
 
 // lists products
 @['/admin/products'; get]
@@ -22,7 +23,6 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 }
 
 // create a product
-// TODO create options, values, variants, inventory_items and inventory_levels
 @['/admin/products'; post]
 pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
@@ -36,8 +36,27 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		return handle_error_unhandled(mut ctx, err.msg(), 'ProductCreateRequest.hygienise')
 	}
 
+	product_id, product_id_bin := app.new_id()
+
+	// generate handle from title if handle is not provided
+	mut handle := p.handle or { slugify.default().make(p.title) }
+
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	product_by_handle_count := model_product_retrieve_count(mut tx, RetrieveProductParamsHygienised{
+		handle: ZeroString{
+			is_set: true
+			v:      handle
+		}
+	}) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Could not verify handle exists', err.msg())
+	}
+
+	if product_by_handle_count > 0 {
+		handle = '${handle}-${product_id}'
 	}
 
 	// store := model_store_retrieve(mut tx) or {
@@ -84,7 +103,23 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	return conduit_product_create(mut app, mut ctx, images_to_create, ph)
+	product_create_params := ProductCreateParams{
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		title:          ph.title
+		subtitle:       string_value(ph.subtitle)
+		description:    string_value(ph.description)
+		handle:         handle
+		is_giftcard:    ph.is_giftcard
+		status:         ph.status
+		type_id:        string_value(ph.type_id)
+		type_id_bin:    ph.type_id_bin
+		discountable:   ph.discountable
+		metadata:       string_value(ph.metadata)
+	}
+
+	return conduit_product_create(mut app, mut ctx, product_create_params, images_to_create,
+		ph)
 }
 
 // get a product by id
@@ -125,6 +160,23 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+	}
+
+	mut handle := ?string(none)
+	if new_handle := ph.handle {
+		product_by_handle_count := model_product_retrieve_count(mut tx, RetrieveProductParamsHygienised{
+			handle: ZeroString{
+				is_set: true
+				v:      new_handle
+			}
+		}) or {
+			tx.rollback() or {}
+			return handle_error_500(mut ctx, 'Could not verify handle exists', err.msg())
+		}
+
+		if product_by_handle_count > 0 {
+			handle = '${new_handle}-${product_id}' // TODO use
+		}
 	}
 
 	seo := model_product_seo_retrieve(mut tx, [product_id_bin]) or {
@@ -216,8 +268,23 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	product_seo := seo[0]
 
+	product_update_params := ProductUpdateParams{
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		title:          ph.title
+		subtitle:       ph.subtitle
+		description:    ph.description
+		handle:         handle
+		is_giftcard:    ph.is_giftcard
+		status:         ph.status
+		type_id:        ph.type_id
+		type_id_bin:    ph.type_id_bin
+		discountable:   ph.discountable
+		metadata:       ph.metadata
+	}
+
 	return conduit_product_update(mut app, mut ctx, product_id_bin, product_seo.id_bin,
-		images_diff, ph)
+		images_diff, product_update_params, ph)
 }
 
 // deletes a product

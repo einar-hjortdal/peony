@@ -36,6 +36,18 @@ fn email_is_valid(e string) ! {
 	// TODO illegal characters
 }
 
+fn product_status_is_valid(s string) bool {
+	return s == product_status_draft || s == product_status_proposed
+		|| s == product_status_published || s == product_status_rejected
+}
+
+fn string_value(s ?string) string {
+	if v := s {
+		return v
+	}
+	return ''
+}
+
 fn option_id_string_to_id_bin(option_id_string ?string) ![]u8 {
 	if id_string := option_id_string {
 		return id_string_to_bin(id_string)!

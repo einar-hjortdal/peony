@@ -1429,6 +1429,12 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		}
 	}
 
+	if status := p.status {
+		if !product_status_is_valid(status) {
+			return new_internal_error('status is invalid', status)
+		}
+	}
+
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
 		return new_internal_error(error_id_invalid, 'type_id')
 	}
@@ -1652,6 +1658,12 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 			}
 		} else {
 			return new_internal_error('thumbnail invalid', 'images array not provided')
+		}
+	}
+
+	if status := p.status {
+		if !product_status_is_valid(status) {
+			return new_internal_error('status is invalid', status)
 		}
 	}
 

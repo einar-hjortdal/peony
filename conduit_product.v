@@ -2,20 +2,19 @@ module peony
 
 import veb
 
-fn conduit_product_create(mut app App, mut ctx Context, images_to_create []ProductImageCreateParams, ph ProductCreateRequestHygienised) veb.Result {
-	product_id, product_id_bin := app.new_id()
+fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, images_to_create []ProductImageCreateParams, ph ProductCreateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_create(mut tx, product_id, product_id_bin, ph) or {
+	model_product_create(mut tx, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
 	}
 
 	_, seo_id_bin := app.new_id()
 	if seo := ph.seo {
-		model_product_seo_create(mut tx, seo_id_bin, product_id_bin, seo) or {
+		model_product_seo_create(mut tx, seo_id_bin, p.product_id_bin, seo) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
 		}
@@ -30,7 +29,7 @@ fn conduit_product_create(mut app App, mut ctx Context, images_to_create []Produ
 			}
 		}
 	} else {
-		model_product_seo_create_default(mut tx, seo_id_bin, product_id_bin) or {
+		model_product_seo_create_default(mut tx, seo_id_bin, p.product_id_bin) or {
 			tx.rollback() or {} // ignore error
 			return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
 		}
@@ -52,32 +51,32 @@ fn conduit_product_create(mut app App, mut ctx Context, images_to_create []Produ
 	}
 
 	if images_to_create.len > 0 {
-		model_product_images_create(mut tx, product_id_bin, images_to_create) or {
+		model_product_images_create(mut tx, p.product_id_bin, images_to_create) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to create product images', err.msg())
 		}
 	}
 
 	if thumbnail := ph.thumbnail {
-		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
+		model_product_thumbnail_update(mut tx, p.product_id_bin, thumbnail) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	} else {
-		model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
+		model_product_thumbnail_update(mut tx, p.product_id_bin, default_thumbnail) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
-		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
+		model_product_sales_channel_update(mut tx, p.product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product_sales_channel',
 				err.msg())
 		}
 	} else {
-		model_product_sales_channel_update(mut tx, product_id_bin, [
+		model_product_sales_channel_update(mut tx, p.product_id_bin, [
 			store.default_sales_channel_id_bin,
 		]) or {
 			tx.rollback() or {}
@@ -87,7 +86,7 @@ fn conduit_product_create(mut app App, mut ctx Context, images_to_create []Produ
 	}
 
 	if _ := ph.category_ids {
-		model_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
+		model_category_product_update(mut tx, p.product_id_bin, ph.category_ids_bin) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to update product category relation',
 				err.msg())
@@ -96,7 +95,7 @@ fn conduit_product_create(mut app App, mut ctx Context, images_to_create []Produ
 
 	if translations := ph.translations {
 		if translations.len > 0 {
-			model_product_translations_create(mut tx, product_id_bin, translations) or {
+			model_product_translations_create(mut tx, p.product_id_bin, translations) or {
 				tx.rollback() or {}
 				return handle_error_500(mut ctx, 'Failed to update product translations',
 					err.msg())
@@ -119,7 +118,7 @@ fn conduit_product_create(mut app App, mut ctx Context, images_to_create []Produ
 	}
 
 	if product_options := ph.options {
-		model_variant_create_default_with_options(mut app, mut tx, product_id_bin, variant_id_bin,
+		model_variant_create_default_with_options(mut app, mut tx, p.product_id_bin, variant_id_bin,
 			product_options) or {
 			tx.rollback() or {}
 			return handle_error_500(mut ctx, 'Failed to create default product_variant with provided options',
@@ -130,7 +129,7 @@ fn conduit_product_create(mut app App, mut ctx Context, images_to_create []Produ
 		_, option_value_id_bin := app.new_id()
 		_, inventory_item_id_bin := app.new_id()
 		pv_p := VariantCreateDefaultParams{
-			product_id_bin:        product_id_bin
+			product_id_bin:        p.product_id_bin
 			variant_id_bin:        variant_id_bin
 			option_id_bin:         option_id_bin
 			option_value_id_bin:   option_value_id_bin
@@ -442,12 +441,12 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 
 // TODO handle options
 // TODO handle variants
-fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) veb.Result {
+fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, images_diff []ProductImageUpdateParams, p ProductUpdateParams, ph ProductUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		return handle_error_500(mut ctx, error_transaction_start, err.msg())
 	}
 
-	model_product_update(mut tx, product_id_bin, ph) or {
+	model_product_update(mut tx, p) or {
 		tx.rollback() or {} // ignore error
 		return handle_error_500(mut ctx, 'Failed to update product', err.msg())
 	}
