@@ -35,7 +35,7 @@ Please follow these standards
 
 - `object_` files contain request/response data structures and related functions.
 - `route_` files define endpoints and validate request inputs.
-- `conduit_` files manage transactions and prepare responses.
+- `conduit_` files execute CRUD operations and prepare responses.
 - `suite_` files aggregate related database operations.
 - `model_` files define individual database operations.
 

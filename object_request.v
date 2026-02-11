@@ -1339,6 +1339,9 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 //
 // ## variants
 // The array order is preserved.
+// If variants is provided with one element and options is omitted, the default variant will be created according to the data of the provided element.
+// If variants is omitted and options is omitted, one default variant will be created using the default option and the default value.
+// If variants is omitted but options is provided, one default variant will be created utilizing the first option and its first value.
 //
 // ## thumbnail
 // Index of the thumbnail image within the `images` array.

@@ -814,6 +814,33 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
+fn handles_unique_product_handles(cookie_value string) ! {
+	println('handles_unique_product_handles')
+	// TODO create product with no specified handle
+	// TODO create product with specified handle
+	// TODO create product with no specified handle and already existing
+	// TODO create product with specified handle and already existing
+}
+
+fn creates_product_with_options_and_values(cookie_value string) ! {
+	// TODO reject create a product with one option and no values
+	// TODO create a product with one option, one value and no explicit variants
+	// TODO create a product with 2 options and 2 values for each option, and no explicit variants
+	// TODO create a product with 2 options and 2 values for each option, and 3 explicit variants
+}
+
+fn creates_product_with_variants(cookie_value string) ! {
+	println('creates_product_with_variants')
+	// TODO create a product with no options but with default variant data
+	// TODO create a product with one option and 2 values, 2 variants
+}
+
+fn refuses_variant_with_same_values(cookie_value string) ! {
+	println('refuses_variant_with_same_values')
+	// TODO create one product with 2 variants with same values
+	// TODO first create a product with a variant, then update the product with a variant with same values
+}
+
 fn admin_products_updates_product(cookie_value string) ! {
 	println('admin_products_updates_product')
 	title := luuid.v2()
@@ -1379,6 +1406,10 @@ fn test_peony() ! {
 		admin_products_create_rejects_bad_requests,
 		admin_products_handles_product_images,
 		admin_handles_product_translations,
+		handles_unique_product_handles,
+		creates_product_with_options_and_values,
+		creates_product_with_variants,
+		refuses_variant_with_same_values,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//
