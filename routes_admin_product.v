@@ -91,17 +91,26 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
+	// if options are provided, verify locale_id are valid
 	if options := ph.options {
 		for i := 0; i < options.len; i++ {
 			option := options[i]
-			option.verify() or {
-				if err is InternalError {
-					return handle_error_400(mut ctx, err.message, err.details)
+			option_values := option.values
+
+			if _ := p.translations {
+				// TODO verify locale_ids exist
+			}
+
+			for j := 0; j < option_values.len; j++ {
+				option_value := option_values[j]
+				if _ := option_value.translations {
+					// TODO verify locale_ids exist
 				}
-				return handle_error_unhandled(mut ctx, err.msg(), 'ProductOptionCreateRequestHygienised.verify')
 			}
 		}
 	}
+	// TODO if options are provided, each variants must reference all options
+	// TODO if variants are provided, references to options and values must be valid
 
 	product_create_params := ProductCreateParams{
 		product_id:     product_id

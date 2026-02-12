@@ -315,6 +315,10 @@ mut:
 }
 
 fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
+	if p.name == '' {
+		return new_internal_error(error_field_empty, 'product_option_value name is required')
+	}
+
 	mut res := ProductOptionValueRequestHygienised{
 		name: p.name
 	}
@@ -382,20 +386,6 @@ fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequ
 	return res
 }
 
-fn (p ProductOptionValueUpdateRequestHygienised) verify() ! {
-	if name := p.name {
-		if name == '' {
-			return new_internal_error(error_field_empty, 'name')
-		}
-	}
-
-	if translations := p.translations {
-		if translations.len == 0 {
-			return new_internal_error(error_field_empty, 'translations')
-		}
-	}
-}
-
 pub struct ProductOptionTranslationRequest {
 pub:
 	title     string
@@ -434,6 +424,14 @@ mut:
 }
 
 fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
+	if p.title == '' {
+		return new_internal_error(error_field_empty, 'product_option title is required')
+	}
+
+	if p.values.len == 0 {
+		return new_internal_error(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
+	}
+
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
 	for i := 0; i < p.values.len; i++ {
 		values[i] = p.values[i].hygienise()!
@@ -453,36 +451,6 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 	}
 
 	return res
-}
-
-// verifies:
-// All locale_id exist
-// The product_option has at least one value
-fn (p ProductOptionCreateRequestHygienised) verify() ! {
-	if p.title == '' {
-		return new_internal_error(error_field_empty, 'product_option title is required')
-	}
-
-	option_values := p.values
-
-	if option_values.len == 0 {
-		return new_internal_error(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
-	}
-
-	if _ := p.translations {
-		// TODO verify locale_ids exist
-	}
-
-	for i := 0; i < option_values.len; i++ {
-		option_value := option_values[i]
-		if option_value.name == '' {
-			return new_internal_error(error_field_empty, 'product_option_value name is required')
-		}
-
-		if _ := option_value.translations {
-			// TODO verify locale_ids exist
-		}
-	}
 }
 
 // ProductOptionUpdateRequest describes a product option object used in product update requests.
@@ -540,21 +508,6 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 	}
 
 	return ph
-}
-
-// verifies:
-// title is not empty
-// All locale_id exist
-fn (p ProductOptionUpdateRequestHygienised) verify() ! {
-	if title := p.title {
-		if title == '' {
-			return new_internal_error(error_field_empty, 'The product_option lacks a title')
-		}
-	}
-
-	if _ := p.translations {
-		// TODO verify locale_id
-	}
 }
 
 pub struct VariantMoneyAmountRequest {
