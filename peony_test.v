@@ -874,7 +874,7 @@ fn creates_product_with_options_and_values(cookie_value string) ! {
 
 fn creates_product_with_variants(cookie_value string) ! {
 	println('creates_product_with_variants')
-	// TODO create a product with no options but with default variant data
+	// TODO create a product with no options but with variant data
 	// TODO create a product with one option and 2 values, 2 variants
 }
 

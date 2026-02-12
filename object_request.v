@@ -329,21 +329,6 @@ fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienise
 	return res
 }
 
-// verifies:
-// name is not empty
-// TODO all locale_id exist
-fn (p ProductOptionValueRequestHygienised) verify() ! {
-	if p.name == '' {
-		return new_internal_error(error_field_empty, 'name')
-	}
-
-	if translations := p.translations {
-		if translations.len == 0 {
-			return new_internal_error(error_field_empty, 'translations')
-		}
-	}
-}
-
 // ProductOptionValueUpdateRequest describes an option value object used in option update requests.
 //
 // Fields
@@ -471,27 +456,32 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 }
 
 // verifies:
-// All locale_id exist TODO
+// All locale_id exist
 // The product_option has at least one value
 fn (p ProductOptionCreateRequestHygienised) verify() ! {
 	if p.title == '' {
-		return new_internal_error(error_field_empty, 'title')
+		return new_internal_error(error_field_empty, 'product_option title is required')
 	}
 
 	option_values := p.values
-
-	if translations := p.translations {
-		if translations.len == 0 {
-			return new_internal_error(error_field_empty, 'translations')
-		}
-	}
 
 	if option_values.len == 0 {
 		return new_internal_error(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
 	}
 
+	if _ := p.translations {
+		// TODO verify locale_ids exist
+	}
+
 	for i := 0; i < option_values.len; i++ {
-		option_values[i].verify()!
+		option_value := option_values[i]
+		if option_value.name == '' {
+			return new_internal_error(error_field_empty, 'product_option_value name is required')
+		}
+
+		if _ := option_value.translations {
+			// TODO verify locale_ids exist
+		}
 	}
 }
 
@@ -554,20 +544,20 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 
 // verifies:
 // title is not empty
-// All locale_id exist TODO
-fn (ph ProductOptionUpdateRequestHygienised) verify() ! {
-	if title := ph.title {
+// All locale_id exist
+fn (p ProductOptionUpdateRequestHygienised) verify() ! {
+	if title := p.title {
 		if title == '' {
 			return new_internal_error(error_field_empty, 'The product_option lacks a title')
 		}
 	}
 
-	// if translations := ph.translations {
-	// TODO verify locale_id
-	// }
+	if _ := p.translations {
+		// TODO verify locale_id
+	}
 }
 
-pub struct ProductVariantMoneyAmountRequest {
+pub struct VariantMoneyAmountRequest {
 pub:
 	amount      i32
 	region_id   string @[json: 'regionId']
@@ -581,7 +571,7 @@ struct VariantMoneyAmountRequestHygienised {
 	is_original   ?bool
 }
 
-fn (p ProductVariantMoneyAmountRequest) hygienise() !VariantMoneyAmountRequestHygienised {
+fn (p VariantMoneyAmountRequest) hygienise() !VariantMoneyAmountRequestHygienised {
 	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
 		return new_internal_error(error_id_invalid, 'region_id')
 	}
@@ -717,8 +707,9 @@ pub:
 // ## inventory_item
 // See InventoryItemUpdateRequest.
 //
-// ## option_value_indexes
-// Required.
+// ## option_values
+// Required if more than one variant is provided.
+// If omitted, the variant to be created is the product's default variant.
 // Array of integers that maps this variant to option values by option position.
 // - The array must contain exactly one element per product option.
 // - The element index represents the option index, while the element value represents the value index.
@@ -735,14 +726,14 @@ pub:
 // - If a previously stored original price for a region is not included, that original price will be removed.
 struct ProductVariantCreateRequest {
 pub:
-	title                ?string
-	ean                  ?string
-	upc                  ?string
-	barcode              ?string
-	inventory_item       ?InventoryItemCreateRequest         @[json: 'inventoryItem']
-	option_value_indexes []i32                               @[json: 'optionValueIndexes']
-	metadata             ?string                             @[raw]
-	money_amounts        ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	inventory_item ?InventoryItemCreateRequest  @[json: 'inventoryItem']
+	option_values  ?[]i32                       @[json: 'optionValues']
+	metadata       ?string                      @[raw]
+	money_amounts  ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 // ProductVariantUpdateRequest describes a variant object used inside a product update payload.
@@ -783,7 +774,7 @@ pub:
 // If provided, it replaces the variant's existing option value mapping.
 // - The array must contain exactly one element per product option.
 // - The element index represents the option index, while the element value represents the value index.
-// - Example: `option_values: [2, 0, 1]` → option index 0 uses value index 2; option index 1 uses value index 0; option index 2 uses value index 1.
+// - Example: `option_values: [2, 0, 1]` → option index 0 uses value index 2, option index 1 uses value index 0, option index 2 uses value index 1.
 // If omitted, the variant's option values remain unchanged.
 //
 // ## metadata
@@ -805,10 +796,10 @@ pub:
 	ean            ?string
 	upc            ?string
 	barcode        ?string
-	inventory_item ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
-	option_values  ?[]i32                              @[json: 'optionValues']
-	metadata       ?string                             @[raw]
-	money_amounts  ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
+	inventory_item ?InventoryItemUpdateRequest  @[json: 'inventoryItem']
+	option_values  ?[]i32                       @[json: 'optionValues']
+	metadata       ?string                      @[raw]
+	money_amounts  ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 // VariantCreateRequest describes the body of the request to create a new product variant.
@@ -851,10 +842,10 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	inventory_item   ?InventoryItemCreateRequest         @[json: 'inventoryItem']
-	option_value_ids []string                            @[json: 'optionValueIds']
-	metadata         ?string                             @[raw]
-	money_amounts    ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
+	inventory_item   ?InventoryItemCreateRequest  @[json: 'inventoryItem']
+	option_value_ids []string                     @[json: 'optionValueIds']
+	metadata         ?string                      @[raw]
+	money_amounts    ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct VariantCreateRequestHygienised {
@@ -968,10 +959,10 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	inventory_item   ?InventoryItemUpdateRequest         @[json: 'inventoryItem']
-	option_value_ids ?[]string                           @[json: 'optionValueIds']
-	metadata         ?string                             @[raw]
-	money_amounts    ?[]ProductVariantMoneyAmountRequest @[json: 'moneyAmounts']
+	inventory_item   ?InventoryItemUpdateRequest  @[json: 'inventoryItem']
+	option_value_ids ?[]string                    @[json: 'optionValueIds']
+	metadata         ?string                      @[raw]
+	money_amounts    ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
 struct VariantUpdateRequestHygienised {
