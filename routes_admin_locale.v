@@ -13,7 +13,8 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 	}
 
 	if ph.fetch.is_set && ph.fetch.v == 0 {
-		return handle_fetch_zero(mut ctx)
+		err := new_error_fetch_zero()
+		return ctx.handle_peony_error(err)
 	}
 
 	return conduit_locale_list(mut app, mut ctx, ph)

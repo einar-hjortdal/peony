@@ -33,6 +33,14 @@ fn (mut ctx Context) handle_peony_error(err PeonyError) veb.Result {
 	}))
 }
 
+fn (mut ctx Context) handle_unhandled_error(function_name string, error_message string) veb.Result {
+	ctx.res.set_status(http.Status.internal_server_error)
+	return ctx.json(json.encode(PeonyErrorResponse{
+		message: 'Unhandled error at ${function_name}'
+		details: error_message
+	}))
+}
+
 // TODO deprecate
 fn new_peony_error_response(message string, details string) PeonyErrorResponse {
 	return PeonyErrorResponse{
@@ -41,47 +49,22 @@ fn new_peony_error_response(message string, details string) PeonyErrorResponse {
 	}
 }
 
-// TODO deprecate
+// TODO remove
 fn handle_error(mut ctx Context, status http.Status, message string, details string) veb.Result {
 	ctx.res.set_status(status)
 	return ctx.json(new_peony_error_response(message, details))
 }
 
-// TODO deprecate
+// TODO remove
 // 400 bad request
 fn handle_error_400(mut ctx Context, message string, details string) veb.Result {
 	return handle_error(mut ctx, http.Status.bad_request, message, details)
 }
 
-// TODO deprecate
-// 404 not found
-fn handle_error_404(mut ctx Context, message string, details string) veb.Result {
-	return handle_error(mut ctx, http.Status.not_found, message, details)
-}
-
-// TODO deprecate
+// TODO remove
 // 500 internal server error
 fn handle_error_500(mut ctx Context, message string, details string) veb.Result {
 	return handle_error(mut ctx, http.Status.internal_server_error, message, details)
-}
-
-// TODO deprecate
-fn handle_error_unhandled(mut ctx Context, message string, fn_name string) veb.Result {
-	return handle_error_500(mut ctx, 'Unhandled error at ${fn_name}', message)
-}
-
-fn handle_error_login(mut ctx Context) veb.Result {
-	return handle_error(mut ctx, http.Status.unauthorized, 'Invalid email or password',
-		'No further details')
-}
-
-fn handle_suite_error(mut ctx Context, e PeonyError) veb.Result {
-	return handle_error_500(mut ctx, e.message, e.details)
-}
-
-// TODO deprecate
-fn handle_fetch_zero(mut ctx Context) veb.Result {
-	return handle_error_400(mut ctx, 'Requested 0 results', 'fetch cannot be 0')
 }
 
 fn format_user_response(u User) UserResponse {

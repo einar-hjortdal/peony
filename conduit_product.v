@@ -186,9 +186,9 @@ fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsH
 	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
 		if err is PeonyError {
-			return handle_suite_error(mut ctx, err)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+		return ctx.handle_unhandled_error('Unhandled error at suite_product_data_get',
 			err.msg())
 	}
 
@@ -249,9 +249,9 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	mut products_data := suite_product_data_get(mut tx, product_ids_bin) or {
 		tx.rollback() or {}
 		if err is PeonyError {
-			return handle_suite_error(mut ctx, err)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+		return ctx.handle_unhandled_error('Unhandled error at suite_product_data_get',
 			err.msg())
 	}
 
@@ -331,16 +331,17 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	if products.len == 0 {
 		tx.rollback() or {} // ignore error
-		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
+		perr := new_error_not_found('No product exists with the given id', 'products.len == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	mut product := products[0]
 	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
 		tx.rollback() or {}
 		if err is PeonyError {
-			return handle_suite_error(mut ctx, err)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+		return ctx.handle_unhandled_error('Unhandled error at suite_product_data_get',
 			err.msg())
 	}
 
@@ -373,16 +374,17 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	}
 
 	if products.len == 0 {
-		return handle_error_404(mut ctx, 'Not found', 'No product exists with the given id')
+		perr := new_error_not_found('No product exists with the given id', 'products.len == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	mut product := products[0]
 	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
 		tx.rollback() or {}
 		if err is PeonyError {
-			return handle_suite_error(mut ctx, err)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_500(mut ctx, 'Unhandled error at suite_product_data_get',
+		return ctx.handle_unhandled_error('Unhandled error at suite_product_data_get',
 			err.msg())
 	}
 

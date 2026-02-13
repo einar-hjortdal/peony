@@ -16,7 +16,8 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 	}
 
 	if ph.fetch.is_set && ph.fetch.v == 0 {
-		return handle_fetch_zero(mut ctx)
+		err := new_error_fetch_zero()
+		return ctx.handle_peony_error(err)
 	}
 
 	return conduit_products_list(mut app, mut ctx, ph)
@@ -33,7 +34,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'ProductCreateRequest.hygienise')
+		return ctx.handle_unhandled_error('ProductCreateRequest.hygienise', err.msg())
 	}
 
 	product_id, product_id_bin := app.new_id()
@@ -339,7 +340,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
+		return ctx.handle_unhandled_error('hygienise_product_variant_request', err.msg())
 	}
 
 	if title := ph.title {
@@ -374,9 +375,10 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		verify_money_amounts(money_amounts, regions) or {
 			tx.rollback() or {}
 			if err is PeonyError {
-				return handle_suite_error(mut ctx, err)
+				return ctx.handle_peony_error(err)
 			}
-			return handle_error_unhandled(mut ctx, err.msg(), 'VariantCreateRequestHygienised.verify_money_amounts')
+			return ctx.handle_unhandled_error('VariantCreateRequestHygienised.verify_money_amounts',
+				err.msg())
 		}
 	}
 
@@ -385,17 +387,17 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 	]) or {
 		tx.rollback() or {}
 		if err is PeonyError {
-			return handle_suite_error(mut ctx, err)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
+		return ctx.handle_unhandled_error('suite_product_option_data_get', err.msg())
 	}
 
 	product_option_data.verify_product_option_value_ids(ph.option_value_ids, ph.option_value_ids_bin) or {
 		tx.rollback() or {}
 		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'verify_product_option_value_ids')
+		return ctx.handle_unhandled_error('verify_product_option_value_ids', err.msg())
 	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
@@ -445,7 +447,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
+		return ctx.handle_unhandled_error('hygienise_product_variant_request', err.msg())
 	}
 
 	if inventory_item := ph.inventory_item {
@@ -472,9 +474,10 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		verify_money_amounts(money_amounts, regions) or {
 			tx.rollback() or {}
 			if err is PeonyError {
-				return handle_suite_error(mut ctx, err)
+				return ctx.handle_peony_error(err)
 			}
-			return handle_error_unhandled(mut ctx, err.msg(), 'VariantCreateRequestHygienised.verify_money_amounts')
+			return ctx.handle_unhandled_error('VariantCreateRequestHygienised.verify_money_amounts',
+				err.msg())
 		}
 	}
 
@@ -484,16 +487,16 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		]) or {
 			tx.rollback() or {}
 			if err is PeonyError {
-				return handle_suite_error(mut ctx, err)
+				return ctx.handle_peony_error(err)
 			}
-			return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
+			return ctx.handle_unhandled_error('suite_product_option_data_get', err.msg())
 		}
 
 		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
 			if err is PeonyError {
 				return handle_error_400(mut ctx, err.message, err.details)
 			}
-			return handle_error_unhandled(mut ctx, err.msg(), 'verify_product_option_value_ids')
+			return ctx.handle_unhandled_error('verify_product_option_value_ids', err.msg())
 		}
 	}
 
@@ -548,12 +551,14 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 		}
 
 		if product_variants.len == 1 {
-			return handle_error_400(mut ctx, 'Cannot delete product_variant', 'A product must have at least 1 variant')
+			perr := new_error_bad_request('Cannot delete product_variant', 'A product must have at least 1 variant')
+			return ctx.handle_peony_error(perr)
 		}
 
 		inventory_item_id_bin := product_variants[i].inventory_item.id_bin
 		return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin, inventory_item_id_bin)
 	}
 
-	return handle_error_404(mut ctx, 'product_variant does not exist', 'no product_variant with provided id')
+	perr := new_error_not_found('no product_variant exists with given id', 'not found in variants')
+	return ctx.handle_peony_error(perr)
 }

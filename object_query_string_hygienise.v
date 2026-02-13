@@ -102,7 +102,7 @@ fn hygienise_category_list_request_query(p ProductCategoryListRequestQuery) !Cat
 
 fn hygienise_category_get_request_query(p ProductCategoryGetRequestQuery, category_id_bin []u8) !CategoryRetrieveParams {
 	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
-		return new_error_internal(error_id_invalid, 'locale_id')
+		return new_error_bad_request(error_id_invalid, 'locale_id')
 	}
 
 	return CategoryRetrieveParams{

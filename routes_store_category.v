@@ -11,7 +11,7 @@ pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_category_list_request_query')
+		return ctx.handle_unhandled_error('hygienise_category_list_request_query', err.msg())
 	}
 
 	return conduit_category_list(mut app, mut ctx, p)
@@ -29,9 +29,9 @@ pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb
 
 	p := hygienise_category_get_request_query(query_params, category_id_bin) or {
 		if err is PeonyError {
-			return handle_suite_error(mut ctx, err)
+			return ctx.handle_peony_error(err)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_category_list_request_query')
+		return ctx.handle_unhandled_error('hygienise_category_list_request_query', err.msg())
 	}
 
 	return conduit_category_get_store(mut app, mut ctx, query_params.locale_id.v, p)

@@ -24,7 +24,7 @@ pub fn (mut app App) admin_store_post(mut ctx Context, store_id string) veb.Resu
 		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_store_request')
+		return ctx.handle_unhandled_error('hygienise_store_request', err.msg())
 	}
 
 	return conduit_store_update(mut app, mut ctx, store_id_bin, ph)

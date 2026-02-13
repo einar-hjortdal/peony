@@ -102,6 +102,21 @@ fn new_error_not_found(message string, details string) PeonyError {
 	}
 }
 
+fn new_error_login() PeonyError {
+	return PeonyError{
+		message:     'Invalid email or password'
+		status_code: http.Status.unauthorized
+	}
+}
+
+fn new_error_fetch_zero() PeonyError {
+	return PeonyError{
+		message:     'Requested 0 results'
+		details:     'fetch cannot be 0'
+		status_code: http.Status.unauthorized
+	}
+}
+
 fn unwrap_option_or[T](option_type ?T, default_value T) T {
 	if some_value := option_type {
 		return some_value

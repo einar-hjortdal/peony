@@ -14,7 +14,8 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 
 	if count == 0 {
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-		return handle_error_404(mut ctx, 'No variant exists with the given id', 'count == 0')
+		perr := new_error_not_found('No variant exists with the given id', 'count == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	product_variants := model_product_variants_retrieve(mut tx, ph) or {

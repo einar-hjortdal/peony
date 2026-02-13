@@ -123,13 +123,14 @@ fn verify_money_amounts(money_amounts []VariantMoneyAmountRequestHygienised, exi
 		money_amount := money_amounts[i]
 		region_id := money_amount.region_id
 		if region_id !in region_id_map {
-			return new_error_internal(error_id_invalid, 'There exists no region with id ${region_id}')
+			return new_error_bad_request(error_id_invalid, 'There exists no region with id ${region_id}')
 		}
 
 		if is_original := money_amount.is_original {
 			if is_original {
 				if region_id in region_map_original_prices {
-					return new_error_internal('Multiple original_prices per region', 'At most one original_price per region is allowed, received 2 for the same region.')
+					return new_error_bad_request('Multiple original_prices per region',
+						'At most one original_price per region is allowed, received 2 for the same region.')
 				}
 
 				original_prices_count++
@@ -139,7 +140,7 @@ fn verify_money_amounts(money_amounts []VariantMoneyAmountRequestHygienised, exi
 		}
 
 		if region_id in region_map_base_prices {
-			return new_error_internal('Multiple base_prices per region', 'Exactly one base_price per region required, received 2 for the same region.')
+			return new_error_bad_request('Multiple base_prices per region', 'Exactly one base_price per region required, received 2 for the same region.')
 		}
 
 		base_prices_count++
@@ -147,6 +148,6 @@ fn verify_money_amounts(money_amounts []VariantMoneyAmountRequestHygienised, exi
 	}
 
 	if base_prices_count < existing_regions.len {
-		return new_error_internal('base_price/region count mismatch', 'Exactly one price per region required, received less prices than the number of existing regions.')
+		return new_error_bad_request('base_price/region count mismatch', 'Exactly one price per region required, received less prices than the number of existing regions.')
 	}
 }

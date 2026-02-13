@@ -117,7 +117,8 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 
 	if count == 0 {
 		tx.rollback() or {}
-		return handle_error_404(mut ctx, 'Not found', 'No category exists with the given id.')
+		perr := new_error_not_found('No category exists with the given id.', 'count == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	categories := model_category_retrieve(mut tx, p) or {
@@ -174,7 +175,8 @@ fn conduit_category_get_store(mut app App, mut ctx Context, locale_id string, p 
 
 	if count == 0 {
 		tx.rollback() or {}
-		return handle_error_404(mut ctx, 'Not found', 'No category exists with the given id.')
+		perr := new_error_not_found('No category exists with the given id.', 'count == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	categories := model_category_retrieve(mut tx, p) or {

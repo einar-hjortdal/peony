@@ -10,7 +10,7 @@ pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_user_list_request_query')
+		return ctx.handle_unhandled_error('hygienise_user_list_request_query', err.msg())
 	}
 
 	return conduit_user_list(mut app, mut ctx, p)

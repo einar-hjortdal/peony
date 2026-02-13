@@ -60,7 +60,8 @@ fn conduit_currency_get(mut app App, mut ctx Context, code string) veb.Result {
 
 	if count == 0 {
 		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
-		return handle_error_404(mut ctx, 'Not found', 'No currency exists with the given code')
+		perr := new_error_not_found('No currency exists with the given code', 'count == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	currencies := model_currency_retrieve(mut tx, p) or {

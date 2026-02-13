@@ -10,7 +10,7 @@ pub:
 pub struct PeonyErrorResponse {
 pub:
 	message string
-	details string
+	details string @[omitempty]
 }
 
 pub struct IDResponseEnvelope {

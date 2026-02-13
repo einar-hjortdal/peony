@@ -526,7 +526,7 @@ struct VariantMoneyAmountRequestHygienised {
 
 fn (p VariantMoneyAmountRequest) hygienise() !VariantMoneyAmountRequestHygienised {
 	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
-		return new_error_internal(error_id_invalid, 'region_id')
+		return new_error_bad_request(error_id_invalid, 'region_id')
 	}
 
 	return VariantMoneyAmountRequestHygienised{
@@ -816,14 +816,14 @@ mut:
 
 fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	if p.option_value_ids.len == 0 {
-		return new_error_internal(error_field_empty, 'option_value_ids cannot be an empty array')
+		return new_error_bad_request(error_field_empty, 'option_value_ids cannot be an empty array')
 	}
 
 	mut option_value_ids_bin := [][]u8{len: p.option_value_ids.len}
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
 		id_bin := id_string_to_bin(id) or {
-			return new_error_internal(error_id_invalid, 'option_value_ids')
+			return new_error_bad_request(error_id_invalid, 'option_value_ids')
 		}
 		option_value_ids_bin[i] = id_bin
 	}
@@ -831,7 +831,7 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
 	if mas := p.money_amounts {
 		if mas.len == 0 {
-			new_error_internal(error_field_empty, 'money_amounts cannot be an empty array')
+			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
 		}
 
 		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
@@ -1010,7 +1010,7 @@ struct SEOTranslationRequestHygienised {
 
 fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_internal(error_id_invalid, 'locale_id')
+		return new_error_bad_request(error_id_invalid, 'locale_id')
 	}
 
 	return SEOTranslationRequestHygienised{
@@ -1049,7 +1049,7 @@ mut:
 
 fn (p SEORequest) hygienise() !SEORequestHygienised {
 	if p.title == none && p.description == none && p.translations == none {
-		return new_error_internal(error_empty_object, 'SEORequest')
+		return new_error_bad_request(error_empty_object, 'SEORequest')
 	}
 
 	mut r := SEORequestHygienised{
@@ -1187,13 +1187,13 @@ mut:
 fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	if p.handle == none && p.is_internal == none && p.is_active == none
 		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
-		return new_error_internal(error_empty_object, 'CategoryUpdateRequest')
+		return new_error_bad_request(error_empty_object, 'CategoryUpdateRequest')
 	}
 
 	mut parent_category_id_bin := []u8{}
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
-			return new_error_internal(error_id_invalid, 'parent_category_id')
+			return new_error_bad_request(error_id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -1213,7 +1213,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_error_internal(error_id_invalid, 'locale_id')
+				return new_error_bad_request(error_id_invalid, 'locale_id')
 			}
 			t[i] = CategoryTranslationRequestHygienised{
 				locale_id:     translation.locale_id

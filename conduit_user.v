@@ -123,7 +123,8 @@ fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Re
 
 	if count == 0 {
 		tx.rollback() or {}
-		return handle_error_404(mut ctx, 'No user found with the given id', 'count == 0')
+		perr := new_error_not_found('No user found with the given id.', 'count == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	users := model_user_list(mut tx, p) or {

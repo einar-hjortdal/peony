@@ -9,7 +9,8 @@ import veb
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	p := extract_product_list_request_query_store(ctx.query)
 	if p.fetch.is_set && p.fetch.v == 0 {
-		return handle_fetch_zero(mut ctx)
+		err := new_error_fetch_zero()
+		return ctx.handle_peony_error(err)
 	}
 
 	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
@@ -45,7 +46,7 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 		if err is PeonyError {
 			return handle_error_500(mut ctx, err.message, err.details)
 		}
-		return handle_error_unhandled(mut ctx, err.msg(), 'ProductGetRequestQueryStore.hygienise')
+		return ctx.handle_unhandled_error('ProductGetRequestQueryStore.hygienise', err.msg())
 	}
 
 	return conduit_products_get_by_id_store(mut app, mut ctx, p)

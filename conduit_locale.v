@@ -55,7 +55,8 @@ fn conduit_locale_get(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygie
 	tx.rollback() or {} // ignore error
 
 	if locales.len == 0 {
-		return handle_error_404(mut ctx, 'Not found', 'No locale exists with the given id')
+		perr := new_error_not_found('No locale exists with the given id', 'locales.len == 0')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return ctx.json(LocaleResponseEnvelope{
