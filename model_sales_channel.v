@@ -236,7 +236,7 @@ fn model_sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p Mo
 	}
 
 	if p.stock_location_ids_bin.len > 0 && p.sales_channel_ids_bin.len > 0 {
-		return new_internal_error('received both stock_location_ids abd sales_channel_ids',
+		return new_error_internal('received both stock_location_ids abd sales_channel_ids',
 			'model_sales_channel_stock_location_retrieve')
 	}
 

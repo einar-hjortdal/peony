@@ -96,7 +96,7 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_chann
 // 	}
 
 // 	ph := hygienise_product_sales_channel_request(p) or {
-// 		if err is InternalError {
+// 		if err is PeonyError {
 // 			return handle_error_400(mut ctx, err.message, err.details)
 // 		} else {
 // 			return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_sales_channel_request',

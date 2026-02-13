@@ -359,7 +359,7 @@ fn model_category_product_retrieve(mut tx firebird.Transaction,
 	}
 
 	if p.category_ids_bin.len > 0 && p.product_ids_bin.len > 0 {
-		return new_internal_error('received both category_ids_bin and product_ids_bin',
+		return new_error_internal('received both category_ids_bin and product_ids_bin',
 			'model_category_product_retrieve')
 	}
 

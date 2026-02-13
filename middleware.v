@@ -20,7 +20,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 		}
 
 		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(new_peony_error('Invalid session', err.msg()))
+		ctx.json(new_error_internal('Invalid session', err.msg()))
 		return false
 	}
 
@@ -32,7 +32,7 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 
 	app.session_store.save(mut ctx.res.header, ctx.user_session) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(new_peony_error('Failed to save session', err.msg()))
+		ctx.json(new_error_internal('Failed to save session', err.msg()))
 		return false
 	}
 

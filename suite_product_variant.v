@@ -18,17 +18,17 @@ fn suite_product_variant_data_get(mut tx firebird.Transaction, product_variant_i
 	}
 
 	money_amounts := model_variant_money_amount_retrieve(mut tx, product_variant_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_variant_money_amount', err.msg())
+		return new_error_internal('Failed to retrieve product_variant_money_amount', err.msg())
 	}
 
 	inventory_items := model_inventory_item_retrieve(mut tx, product_variant_ids_bin) or {
-		return new_internal_error('Failed to retrieve inventory_item', err.msg())
+		return new_error_internal('Failed to retrieve inventory_item', err.msg())
 	}
 
 	mut inventory_item_map, inventory_item_ids_bin := make_inventory_item_map(inventory_items)
 
 	inventory_levels := model_inventory_level_get(mut tx, inventory_item_ids_bin) or {
-		return new_internal_error('Failed to retrieve inventory_level', err.msg())
+		return new_error_internal('Failed to retrieve inventory_level', err.msg())
 	}
 
 	return SuiteProductVariantData{

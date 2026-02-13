@@ -8,7 +8,7 @@ import veb
 pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 	query_params := extract_category_list_request_query(ctx.query)
 	p := hygienise_category_list_request_query(query_params) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_category_list_request_query')
@@ -28,7 +28,7 @@ pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb
 	query_params := extract_category_get_request_params(ctx.query)
 
 	p := hygienise_category_get_request_query(query_params, category_id_bin) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_suite_error(mut ctx, err)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_category_list_request_query')

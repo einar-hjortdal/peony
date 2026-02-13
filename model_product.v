@@ -322,7 +322,7 @@ struct ProductCreateParams {
 
 fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 	if p.product_id == '' || p.product_id_bin.len == 0 || p.title == '' || p.handle == '' {
-		return new_internal_error('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}, title: ${p.title}, handle: ${p.handle}')
+		return new_error_internal('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}, title: ${p.title}, handle: ${p.handle}')
 	}
 
 	mut c := ['id', 'title', 'handle']
@@ -384,7 +384,7 @@ struct ProductUpdateParams {
 
 fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
 	if p.product_id == '' || p.product_id_bin.len == 0 {
-		return new_internal_error('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}')
+		return new_error_internal('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}')
 	}
 
 	mut c := []string{}

@@ -8,7 +8,7 @@ import einar_hjortdal.slugify
 @['/admin/products'; get]
 pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 	ph := hygienise_retrieve_product_params(ctx.query) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_500(mut ctx, 'Unhandled error at hygienise_product_request',
@@ -30,7 +30,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	}
 
 	ph := p.hygienise() or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'ProductCreateRequest.hygienise')
@@ -179,7 +179,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	}
 
 	ph := p.hygienise() or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
@@ -336,7 +336,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 	}
 
 	ph := p.hygienise() or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
@@ -373,7 +373,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 	if money_amounts := ph.money_amounts {
 		verify_money_amounts(money_amounts, regions) or {
 			tx.rollback() or {}
-			if err is InternalError {
+			if err is PeonyError {
 				return handle_suite_error(mut ctx, err)
 			}
 			return handle_error_unhandled(mut ctx, err.msg(), 'VariantCreateRequestHygienised.verify_money_amounts')
@@ -384,7 +384,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		product_id_bin,
 	]) or {
 		tx.rollback() or {}
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_suite_error(mut ctx, err)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
@@ -392,7 +392,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 
 	product_option_data.verify_product_option_value_ids(ph.option_value_ids, ph.option_value_ids_bin) or {
 		tx.rollback() or {}
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'verify_product_option_value_ids')
@@ -442,7 +442,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	ph := p.hygienise() or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_product_variant_request')
@@ -471,7 +471,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 		verify_money_amounts(money_amounts, regions) or {
 			tx.rollback() or {}
-			if err is InternalError {
+			if err is PeonyError {
 				return handle_suite_error(mut ctx, err)
 			}
 			return handle_error_unhandled(mut ctx, err.msg(), 'VariantCreateRequestHygienised.verify_money_amounts')
@@ -483,14 +483,14 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			product_id_bin,
 		]) or {
 			tx.rollback() or {}
-			if err is InternalError {
+			if err is PeonyError {
 				return handle_suite_error(mut ctx, err)
 			}
 			return handle_error_unhandled(mut ctx, err.msg(), 'suite_product_option_data_get')
 		}
 
 		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
-			if err is InternalError {
+			if err is PeonyError {
 				return handle_error_400(mut ctx, err.message, err.details)
 			}
 			return handle_error_unhandled(mut ctx, err.msg(), 'verify_product_option_value_ids')

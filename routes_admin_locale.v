@@ -6,7 +6,7 @@ import veb
 @['/admin/locales/'; get]
 pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 	ph := hygienise_retrieve_locale_params(ctx.query) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_400(mut ctx, 'Unhandled error at admin_locales_get', err.msg())

@@ -1,5 +1,6 @@
 module peony
 
+import net.http
 import einar_hjortdal.luuid
 
 interface Identifiable {
@@ -54,16 +55,50 @@ fn (mut app App) gen_id() ID {
 	return new_id(mut app.luuid_generator)
 }
 
-struct InternalError {
-	Error
-	message string
-	details string
+struct PeonyError {
+	message     string
+	details     string
+	status_code http.Status
 }
 
-fn new_internal_error(message string, details string) InternalError {
-	return InternalError{
-		message: message
-		details: details
+// implement IError
+fn (e PeonyError) msg() string {
+	return e.message
+}
+
+fn (e PeonyError) code() int {
+	return i32(e.status_code)
+}
+
+fn new_peony_error(message string, details string, code http.Status) PeonyError {
+	return PeonyError{
+		message:     message
+		details:     details
+		status_code: code
+	}
+}
+
+fn new_error_internal(message string, details string) PeonyError {
+	return PeonyError{
+		message:     message
+		details:     details
+		status_code: http.Status.internal_server_error
+	}
+}
+
+fn new_error_bad_request(message string, details string) PeonyError {
+	return PeonyError{
+		message:     message
+		details:     details
+		status_code: http.Status.bad_request
+	}
+}
+
+fn new_error_not_found(message string, details string) PeonyError {
+	return PeonyError{
+		message:     message
+		details:     details
+		status_code: http.Status.not_found
 	}
 }
 

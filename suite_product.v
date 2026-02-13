@@ -32,18 +32,18 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	product_options_data := suite_product_option_data_get(mut tx, product_ids_bin)!
 
 	product_translations := model_product_translations_retrieve(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_translation', err.msg())
+		return new_error_internal('Failed to retrieve product_translation', err.msg())
 	}
 
 	cprp := CategoryProductRetrieveParams{
 		product_ids_bin: product_ids_bin
 	}
 	category_product := model_category_product_retrieve(mut tx, cprp) or {
-		return new_internal_error('Failed to retrieve category_product', err.msg())
+		return new_error_internal('Failed to retrieve category_product', err.msg())
 	}
 
 	product_images := model_product_image_retrieve(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_image', err.msg())
+		return new_error_internal('Failed to retrieve product_image', err.msg())
 	}
 
 	mut images_map := map[string]ProductImage{}
@@ -59,23 +59,23 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	mut image_translations := []ImageTranslation{}
 	if image_ids_bin.len > 0 {
 		image_translations = model_image_translation_retrieve(mut tx, image_ids_bin) or {
-			return new_internal_error('Failed to retrieve image_translation', err.msg())
+			return new_error_internal('Failed to retrieve image_translation', err.msg())
 		}
 	}
 
 	product_sales_channels := model_product_sales_channel_retrieve(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_sales_channel', err.msg())
+		return new_error_internal('Failed to retrieve product_sales_channel', err.msg())
 	}
 
 	product_variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_variant', err.msg())
+		return new_error_internal('Failed to retrieve product_variant', err.msg())
 	}
 
 	product_variants_map, product_variant_ids_bin := make_product_variant_map(product_variants)
 	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)!
 
 	seo := model_product_seo_retrieve(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve seo', err.msg())
+		return new_error_internal('Failed to retrieve seo', err.msg())
 	}
 
 	mut seo_ids_bin := [][]u8{len: seo.len}
@@ -88,7 +88,7 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 	}
 
 	seo_translations := model_seo_translation_retrieve(mut tx, seo_ids_bin) or {
-		return new_internal_error('Failed to retrieve seo_translations', err.msg())
+		return new_error_internal('Failed to retrieve seo_translations', err.msg())
 	}
 
 	return SuiteProductData{

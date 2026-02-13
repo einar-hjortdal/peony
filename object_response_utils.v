@@ -2,6 +2,7 @@ module peony
 
 import net.http
 import veb
+import json
 
 const error_database_data_malformed = 'Data retrieved from database is malformed'
 const error_field_empty = 'Field cannot be empty'
@@ -24,43 +25,47 @@ fn success(mut ctx Context) veb.Result {
 	})
 }
 
-fn new_peony_error(message string, details string) PeonyError {
-	return PeonyError{
+fn (mut ctx Context) handle_peony_error(err PeonyError) veb.Result {
+	ctx.res.set_status(err.status_code)
+	return ctx.json(json.encode(PeonyErrorResponse{
+		message: err.message
+		details: err.details
+	}))
+}
+
+// TODO deprecate
+fn new_peony_error_response(message string, details string) PeonyErrorResponse {
+	return PeonyErrorResponse{
 		message: message
 		details: details
 	}
 }
 
+// TODO deprecate
 fn handle_error(mut ctx Context, status http.Status, message string, details string) veb.Result {
 	ctx.res.set_status(status)
-	return ctx.json(new_peony_error(message, details))
+	return ctx.json(new_peony_error_response(message, details))
 }
 
+// TODO deprecate
 // 400 bad request
 fn handle_error_400(mut ctx Context, message string, details string) veb.Result {
 	return handle_error(mut ctx, http.Status.bad_request, message, details)
 }
 
+// TODO deprecate
 // 404 not found
 fn handle_error_404(mut ctx Context, message string, details string) veb.Result {
 	return handle_error(mut ctx, http.Status.not_found, message, details)
 }
 
-// 409 conflict
-fn handle_error_409(mut ctx Context, message string, details string) veb.Result {
-	return handle_error(mut ctx, http.Status.conflict, message, details)
-}
-
-// 422 unprocessable content
-fn handle_error_422(mut ctx Context, message string, details string) veb.Result {
-	return handle_error(mut ctx, http.Status.unprocessable_entity, message, details)
-}
-
+// TODO deprecate
 // 500 internal server error
 fn handle_error_500(mut ctx Context, message string, details string) veb.Result {
 	return handle_error(mut ctx, http.Status.internal_server_error, message, details)
 }
 
+// TODO deprecate
 fn handle_error_unhandled(mut ctx Context, message string, fn_name string) veb.Result {
 	return handle_error_500(mut ctx, 'Unhandled error at ${fn_name}', message)
 }
@@ -70,7 +75,7 @@ fn handle_error_login(mut ctx Context) veb.Result {
 		'No further details')
 }
 
-fn handle_suite_error(mut ctx Context, e InternalError) veb.Result {
+fn handle_suite_error(mut ctx Context, e PeonyError) veb.Result {
 	return handle_error_500(mut ctx, e.message, e.details)
 }
 

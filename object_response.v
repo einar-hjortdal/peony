@@ -7,8 +7,7 @@ pub:
 	success bool
 }
 
-pub struct PeonyError {
-	Error
+pub struct PeonyErrorResponse {
 pub:
 	message string
 	details string

@@ -18,7 +18,7 @@ mut:
 
 fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !SuiteProductOptionData {
 	product_options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_option', err.msg())
+		return new_error_internal('Failed to retrieve product_option', err.msg())
 	}
 
 	product_options_map, product_option_ids_bin := make_product_option_map(product_options)
@@ -29,11 +29,11 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin []
 
 	product_option_translations := model_product_option_translations_retrieve(mut tx,
 		product_option_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_option_translations', err.msg())
+		return new_error_internal('Failed to retrieve product_option_translations', err.msg())
 	}
 
 	product_option_values := model_product_option_values_retrieve(mut tx, product_option_ids_bin) or {
-		return new_internal_error('Failed to retrieve product_option_values', err.msg())
+		return new_error_internal('Failed to retrieve product_option_values', err.msg())
 	}
 
 	mut product_option_values_map, product_option_value_ids_bin := make_product_option_value_map(product_option_values)
@@ -43,13 +43,13 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin []
 	if product_option_value_ids_bin.len > 0 {
 		product_option_value_translations = model_product_option_value_translations_retrieve(mut tx,
 			product_option_value_ids_bin) or {
-			return new_internal_error('Failed to retrieve product_option_value_translations',
+			return new_error_internal('Failed to retrieve product_option_value_translations',
 				err.msg())
 		}
 
 		product_option_value_product_variant = model_product_option_value_product_variant_retrieve(mut tx,
 			product_option_value_ids_bin) or {
-			return new_internal_error('Failed to retrieve product_option_value_product_variant',
+			return new_error_internal('Failed to retrieve product_option_value_product_variant',
 				err.msg())
 		}
 	}
@@ -136,7 +136,7 @@ fn (mut s SuiteProductOptionData) verify_product_option_value_ids(provided_optio
 	for i := 0; i < provided_option_value_ids.len; i++ {
 		option_value_id := provided_option_value_ids[i]
 		if option_value_id !in existing_option_value_map {
-			return new_internal_error(error_id_invalid, 'One of the option_value_id does not exist or does not belong to this product')
+			return new_error_internal(error_id_invalid, 'One of the option_value_id does not exist or does not belong to this product')
 		}
 	}
 
@@ -146,12 +146,12 @@ fn (mut s SuiteProductOptionData) verify_product_option_value_ids(provided_optio
 		option_value_id := provided_option_value_ids[i]
 		option_id := existing_option_value_map[option_value_id].option_id
 		if option_id in option_value_parent_id_map {
-			return new_internal_error('Duplicate value for product_option', 'Exactly one value for each product_option must be provided')
+			return new_error_internal('Duplicate value for product_option', 'Exactly one value for each product_option must be provided')
 		}
 		option_value_parent_id_map[option_id] = true
 	}
 	if option_value_parent_id_map.len != options.len {
-		return new_internal_error('Value missing for product_option', 'Exactly one value for each product_option must be provided')
+		return new_error_internal('Value missing for product_option', 'Exactly one value for each product_option must be provided')
 	}
 
 	// Verify one variant with the same product_option_value does not exist already
@@ -177,7 +177,7 @@ fn (mut s SuiteProductOptionData) verify_product_option_value_ids(provided_optio
 			}
 		}
 		if variant_exists {
-			return new_internal_error('Variant already exists', 'A variant with the same product_option_value combination already exists.')
+			return new_error_internal('Variant already exists', 'A variant with the same product_option_value combination already exists.')
 		}
 	}
 }

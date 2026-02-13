@@ -274,27 +274,27 @@ fn hygienise_product_get_request_query_store(m map[string]string, product_id str
 	}
 
 	id_bin := id_string_to_bin(product_id) or {
-		return new_internal_error(error_id_invalid, 'product_id')
+		return new_error_internal(error_id_invalid, 'product_id')
 	}
 
 	cart_id := zero_string(m, 'cart_id')
 	cart_id_bin := zero_id_string_to_id_bin(cart_id) or {
-		return new_internal_error(error_id_invalid, 'cart_id')
+		return new_error_internal(error_id_invalid, 'cart_id')
 	}
 
 	sales_channel_ids := zero_array_string(m, 'sales_channel_id')
 	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
-		return new_internal_error(error_id_invalid, 'sales_channel_id')
+		return new_error_internal(error_id_invalid, 'sales_channel_id')
 	}
 
 	region_id := zero_string(m, 'region_id')
 	region_id_bin := zero_id_string_to_id_bin(region_id) or {
-		return new_internal_error(error_id_invalid, 'region_id')
+		return new_error_internal(error_id_invalid, 'region_id')
 	}
 
 	locale_id := zero_string(m, 'locale_id')
 	locale_id_bin := zero_id_string_to_id_bin(locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	return RetrieveProductParamsHygienised{
@@ -385,47 +385,47 @@ struct RetrieveProductParamsHygienised {
 fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParamsHygienised {
 	ids := zero_array_string(m, 'ids')
 	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
-		return new_internal_error(error_id_invalid, 'product_id')
+		return new_error_internal(error_id_invalid, 'product_id')
 	}
 
 	price_list_ids := zero_array_string(m, 'price_list_ids')
 	price_list_ids_bin := zero_array_id_string_to_array_id_bin(price_list_ids) or {
-		return new_internal_error(error_id_invalid, 'price_list_id')
+		return new_error_internal(error_id_invalid, 'price_list_id')
 	}
 
 	tag_ids := zero_array_string(m, 'tag_id')
 	tag_ids_bin := zero_array_id_string_to_array_id_bin(tag_ids) or {
-		return new_internal_error(error_id_invalid, 'tag_id')
+		return new_error_internal(error_id_invalid, 'tag_id')
 	}
 
 	type_ids := zero_array_string(m, 'type_id')
 	type_ids_bin := zero_array_id_string_to_array_id_bin(type_ids) or {
-		return new_internal_error(error_id_invalid, 'type_id')
+		return new_error_internal(error_id_invalid, 'type_id')
 	}
 
 	region_id := zero_string(m, 'region_id')
 	region_id_bin := zero_id_string_to_id_bin(region_id) or {
-		return new_internal_error(error_id_invalid, 'region_id')
+		return new_error_internal(error_id_invalid, 'region_id')
 	}
 
 	category_ids := zero_array_string(m, 'category_ids')
 	category_ids_bin := zero_array_id_string_to_array_id_bin(category_ids) or {
-		return new_internal_error(error_id_invalid, 'category_id')
+		return new_error_internal(error_id_invalid, 'category_id')
 	}
 
 	sales_channel_ids := zero_array_string(m, 'sales_channel_ids')
 	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
-		return new_internal_error(error_id_invalid, 'sales_channel_id')
+		return new_error_internal(error_id_invalid, 'sales_channel_id')
 	}
 
 	locale_id := zero_string(m, 'locale_id')
 	locale_id_bin := zero_id_string_to_id_bin(locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	cart_id := zero_string(m, 'cart_id')
 	cart_id_bin := zero_id_string_to_id_bin(cart_id) or {
-		return new_internal_error(error_id_invalid, 'cart_id')
+		return new_error_internal(error_id_invalid, 'cart_id')
 	}
 
 	return RetrieveProductParamsHygienised{

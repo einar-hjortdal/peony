@@ -32,23 +32,23 @@ struct StoreUpdateRequestHygienised {
 
 fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
-		return new_internal_error(error_id_invalid, 'default_locale_id')
+		return new_error_internal(error_id_invalid, 'default_locale_id')
 	}
 
 	default_region_id_bin := option_id_string_to_id_bin(p.default_region_id) or {
-		return new_internal_error(error_id_invalid, 'default_region_id')
+		return new_error_internal(error_id_invalid, 'default_region_id')
 	}
 
 	default_stock_location_id_bin := option_id_string_to_id_bin(p.default_stock_location_id) or {
-		return new_internal_error(error_id_invalid, 'default_stock_location_id')
+		return new_error_internal(error_id_invalid, 'default_stock_location_id')
 	}
 
 	locale_ids_bin := option_array_id_string_to_array_id_bin(p.locale_ids) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	default_sales_channel_id_bin := option_id_string_to_id_bin(p.default_sales_channel_id) or {
-		return new_internal_error(error_id_invalid, 'default_sales_channel_id')
+		return new_error_internal(error_id_invalid, 'default_sales_channel_id')
 	}
 
 	return StoreUpdateRequestHygienised{
@@ -95,15 +95,15 @@ struct ImageTranslationRequestHygienised {
 // TODO check alt.len <= 191
 fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(i.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	if i.alt == '' {
-		return new_internal_error(error_field_empty, 'alt')
+		return new_error_internal(error_field_empty, 'alt')
 	}
 
 	if utf8_str_visible_length(i.alt) > max_length_alt {
-		return new_internal_error('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+		return new_error_internal('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
 	}
 
 	return ImageTranslationRequestHygienised{
@@ -142,7 +142,7 @@ mut:
 fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_internal_error('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_internal('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -197,16 +197,16 @@ mut:
 
 fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	if p.id != none && p.url != none {
-		return new_internal_error('unable to update image url', 'both id and url are set')
+		return new_error_internal('unable to update image url', 'both id and url are set')
 	}
 
 	if p.id == none && p.url == none {
-		return new_internal_error('unable to create image without url', 'both id and url are unset')
+		return new_error_internal('unable to create image without url', 'both id and url are unset')
 	}
 
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_internal_error('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_internal('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -266,7 +266,7 @@ struct ProductTranslationRequestHygienised {
 
 fn (p ProductTranslationRequest) hygienise() !ProductTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	return ProductTranslationRequestHygienised{
@@ -292,7 +292,7 @@ struct ProductOptionValueTranslationRequestHygienised {
 
 fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	return ProductOptionValueTranslationRequestHygienised{
@@ -316,7 +316,7 @@ mut:
 
 fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
 	if p.name == '' {
-		return new_internal_error(error_field_empty, 'product_option_value name is required')
+		return new_error_internal(error_field_empty, 'product_option_value name is required')
 	}
 
 	mut res := ProductOptionValueRequestHygienised{
@@ -369,7 +369,7 @@ mut:
 
 fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequestHygienised {
 	if p.name == none && p.translations == none {
-		return new_internal_error(error_empty_object, 'ProductOptionValueUpdateRequest')
+		return new_error_internal(error_empty_object, 'ProductOptionValueUpdateRequest')
 	}
 
 	mut res := ProductOptionValueUpdateRequestHygienised{
@@ -400,7 +400,7 @@ struct ProductOptionTranslationRequestHygienised {
 
 fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 	return ProductOptionTranslationRequestHygienised{
 		title:         p.title
@@ -425,11 +425,11 @@ mut:
 
 fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
 	if p.title == '' {
-		return new_internal_error(error_field_empty, 'product_option title is required')
+		return new_error_internal(error_field_empty, 'product_option title is required')
 	}
 
 	if p.values.len == 0 {
-		return new_internal_error(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
+		return new_error_internal(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
 	}
 
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
@@ -526,7 +526,7 @@ struct VariantMoneyAmountRequestHygienised {
 
 fn (p VariantMoneyAmountRequest) hygienise() !VariantMoneyAmountRequestHygienised {
 	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
-		return new_internal_error(error_id_invalid, 'region_id')
+		return new_error_internal(error_id_invalid, 'region_id')
 	}
 
 	return VariantMoneyAmountRequestHygienised{
@@ -816,14 +816,14 @@ mut:
 
 fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	if p.option_value_ids.len == 0 {
-		return new_internal_error(error_field_empty, 'option_value_ids cannot be an empty array')
+		return new_error_internal(error_field_empty, 'option_value_ids cannot be an empty array')
 	}
 
 	mut option_value_ids_bin := [][]u8{len: p.option_value_ids.len}
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
 		id_bin := id_string_to_bin(id) or {
-			return new_internal_error(error_id_invalid, 'option_value_ids')
+			return new_error_internal(error_id_invalid, 'option_value_ids')
 		}
 		option_value_ids_bin[i] = id_bin
 	}
@@ -831,7 +831,7 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
 	if mas := p.money_amounts {
 		if mas.len == 0 {
-			new_internal_error(error_field_empty, 'money_amounts cannot be an empty array')
+			new_error_internal(error_field_empty, 'money_amounts cannot be an empty array')
 		}
 
 		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
@@ -933,7 +933,7 @@ mut:
 
 fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
-		return new_internal_error(error_id_invalid, 'option_value_ids')
+		return new_error_internal(error_id_invalid, 'option_value_ids')
 	}
 
 	mut ph := VariantUpdateRequestHygienised{
@@ -1010,7 +1010,7 @@ struct SEOTranslationRequestHygienised {
 
 fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_internal_error(error_id_invalid, 'locale_id')
+		return new_error_internal(error_id_invalid, 'locale_id')
 	}
 
 	return SEOTranslationRequestHygienised{
@@ -1049,7 +1049,7 @@ mut:
 
 fn (p SEORequest) hygienise() !SEORequestHygienised {
 	if p.title == none && p.description == none && p.translations == none {
-		return new_internal_error(error_empty_object, 'SEORequest')
+		return new_error_internal(error_empty_object, 'SEORequest')
 	}
 
 	mut r := SEORequestHygienised{
@@ -1100,7 +1100,7 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 	mut parent_category_id_bin := []u8{}
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
-			return new_internal_error(error_id_invalid, 'parent_category_id')
+			return new_error_internal(error_id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -1120,7 +1120,7 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_internal_error(error_id_invalid, 'locale_id')
+				return new_error_internal(error_id_invalid, 'locale_id')
 			}
 			ts[i] = CategoryTranslationRequestHygienised{
 				locale_id:     translation.locale_id
@@ -1187,13 +1187,13 @@ mut:
 fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	if p.handle == none && p.is_internal == none && p.is_active == none
 		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
-		return new_internal_error(error_empty_object, 'CategoryUpdateRequest')
+		return new_error_internal(error_empty_object, 'CategoryUpdateRequest')
 	}
 
 	mut parent_category_id_bin := []u8{}
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
-			return new_internal_error(error_id_invalid, 'parent_category_id')
+			return new_error_internal(error_id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -1213,7 +1213,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 		for i := 0; i < translations.len; i++ {
 			translation := translations[i]
 			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_internal_error(error_id_invalid, 'locale_id')
+				return new_error_internal(error_id_invalid, 'locale_id')
 			}
 			t[i] = CategoryTranslationRequestHygienised{
 				locale_id:     translation.locale_id
@@ -1346,53 +1346,53 @@ mut:
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if p.title == '' {
-		return new_internal_error(error_field_empty, 'title')
+		return new_error_internal(error_field_empty, 'title')
 	}
 
 	if utf8_str_visible_length(p.title) > max_length_product_title {
-		return new_internal_error(error_field_too_long, 'title')
+		return new_error_internal(error_field_too_long, 'title')
 	}
 
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
-			return new_internal_error(error_field_too_long, 'subtitle')
+			return new_error_internal(error_field_too_long, 'subtitle')
 		}
 	}
 
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
-			return new_internal_error('thumbnail invalid', 'negative value')
+			return new_error_internal('thumbnail invalid', 'negative value')
 		}
 
 		if images := p.images {
 			if !(thumbnail < images.len) {
-				return new_internal_error('thumbnail invalid', 'index out of range')
+				return new_error_internal('thumbnail invalid', 'index out of range')
 			}
 		} else {
-			return new_internal_error('thumbnail invalid', 'images array not provided')
+			return new_error_internal('thumbnail invalid', 'images array not provided')
 		}
 	}
 
 	if status := p.status {
 		if !product_status_is_valid(status) {
-			return new_internal_error('status is invalid', status)
+			return new_error_internal('status is invalid', status)
 		}
 	}
 
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_internal_error(error_id_invalid, 'type_id')
+		return new_error_internal(error_id_invalid, 'type_id')
 	}
 
 	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_internal_error(error_id_invalid, 'tag_id')
+		return new_error_internal(error_id_invalid, 'tag_id')
 	}
 
 	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_internal_error(error_id_invalid, 'sales_channel_id')
+		return new_error_internal(error_id_invalid, 'sales_channel_id')
 	}
 
 	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_internal_error(error_id_invalid, 'category_id')
+		return new_error_internal(error_id_invalid, 'category_id')
 	}
 
 	mut ph := ProductCreateRequestHygienised{
@@ -1577,54 +1577,54 @@ mut:
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if title := p.title {
 		if title == '' {
-			return new_internal_error(error_field_empty, 'title')
+			return new_error_internal(error_field_empty, 'title')
 		}
 
 		if utf8_str_visible_length(title) > max_length_product_title {
-			return new_internal_error(error_field_too_long, 'title')
+			return new_error_internal(error_field_too_long, 'title')
 		}
 	}
 
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
-			return new_internal_error(error_field_too_long, 'subtitle')
+			return new_error_internal(error_field_too_long, 'subtitle')
 		}
 	}
 
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
-			return new_internal_error('thumbnail invalid', 'negative value')
+			return new_error_internal('thumbnail invalid', 'negative value')
 		}
 
 		if images := p.images {
 			if !(thumbnail < images.len) {
-				return new_internal_error('thumbnail invalid', 'index out of range')
+				return new_error_internal('thumbnail invalid', 'index out of range')
 			}
 		} else {
-			return new_internal_error('thumbnail invalid', 'images array not provided')
+			return new_error_internal('thumbnail invalid', 'images array not provided')
 		}
 	}
 
 	if status := p.status {
 		if !product_status_is_valid(status) {
-			return new_internal_error('status is invalid', status)
+			return new_error_internal('status is invalid', status)
 		}
 	}
 
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_internal_error(error_id_invalid, 'type_id')
+		return new_error_internal(error_id_invalid, 'type_id')
 	}
 
 	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_internal_error(error_id_invalid, 'tag_id')
+		return new_error_internal(error_id_invalid, 'tag_id')
 	}
 
 	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_internal_error(error_id_invalid, 'sales_channel_id')
+		return new_error_internal(error_id_invalid, 'sales_channel_id')
 	}
 
 	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_internal_error(error_id_invalid, 'category_id')
+		return new_error_internal(error_id_invalid, 'category_id')
 	}
 
 	mut ph := ProductUpdateRequestHygienised{

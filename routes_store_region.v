@@ -9,7 +9,7 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 	p := extract_region_list_request_query(ctx.query)
 
 	ph := hygienise_region_list_request_query(p) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_500(mut ctx, 'Unhandled error at hygienise_region_list_request_query',

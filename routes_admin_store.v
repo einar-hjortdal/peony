@@ -21,7 +21,7 @@ pub fn (mut app App) admin_store_post(mut ctx Context, store_id string) veb.Resu
 	}
 
 	ph := hygienise_store_request(p) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_store_request')

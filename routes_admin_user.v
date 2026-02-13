@@ -7,7 +7,7 @@ import veb
 @['/admin/users'; get]
 pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 	p := hygienise_user_list_request_query(ctx.query) or {
-		if err is InternalError {
+		if err is PeonyError {
 			return handle_error_400(mut ctx, err.message, err.details)
 		}
 		return handle_error_unhandled(mut ctx, err.msg(), 'hygienise_user_list_request_query')
