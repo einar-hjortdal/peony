@@ -59,21 +59,58 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		handle = '${handle}-${product_id}'
 	}
 
-	// store := model_store_retrieve(mut tx) or {
-	// 	tx.rollback() or {}
-	// 	return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
-	// }
+	store := model_store_retrieve(mut tx) or {
+		tx.rollback() or {}
+		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+	}
 
 	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
 
-	if _ := ph.translations {
-		// TODO verify provided locale_id exist in database
+	mut store_locales_exist := map[string]bool{}
+	for i := 0; i < store.locales.len; i++ {
+		locale := store.locales[i]
+		store_locales_exist[locale.id] = true
 	}
 
-	// if seo := ph.seo {
-	// 	// TODO verify translations locale_id exist in database
-	// }
+	if _ := ph.translations {
+		// TODO verify locale_id exist in store.locales
+	}
 
+	if seo := ph.seo {
+		if _ := seo.translations {
+			// TODO verify locale_id exist in store.locales
+		}
+	}
+
+	if images := ph.images {
+		for i := 0; i < images.len; i++ {
+			image := images[i]
+			if _ := image.translations {
+				// TODO verify locale_id exist in store.locales
+			}
+		}
+	}
+
+	// if options are provided, verify locale_id are valid
+	if options := ph.options {
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			option_values := option.values
+
+			if _ := p.translations {
+				// TODO verify locale_id exist in store.locales
+			}
+
+			for j := 0; j < option_values.len; j++ {
+				option_value := option_values[j]
+				if _ := option_value.translations {
+					// TODO verify locale_id exist in store.locales
+				}
+			}
+		}
+	}
+
+	// is this input validation? No -> move to conduit / change scope of route handlers
 	mut images_to_create := []ProductImageCreateParams{}
 	if images := ph.images {
 		images_to_create = []ProductImageCreateParams{len: images.len}
@@ -91,24 +128,6 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	// if options are provided, verify locale_id are valid
-	if options := ph.options {
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-			option_values := option.values
-
-			if _ := p.translations {
-				// TODO verify locale_ids exist
-			}
-
-			for j := 0; j < option_values.len; j++ {
-				option_value := option_values[j]
-				if _ := option_value.translations {
-					// TODO verify locale_ids exist
-				}
-			}
-		}
-	}
 	// TODO if options are provided, each variants must reference all options
 	// TODO if variants are provided, references to options and values must be valid
 
