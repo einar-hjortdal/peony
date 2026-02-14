@@ -5,18 +5,18 @@ import veb
 fn conduit_country_get(mut app App, mut ctx Context, p ListCountriesParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	internal_countries, count := model_country_list(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve countries', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut external_countries := []CountryResponse{len: internal_countries.len}
@@ -24,7 +24,7 @@ fn conduit_country_get(mut app App, mut ctx Context, p ListCountriesParams) veb.
 		external_countries[i] = format_country_response(internal_countries[i]) or {
 			perr := new_error_internal('Could not retrieve countries: region_id stored in database is invalid',
 				err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 	}
 

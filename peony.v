@@ -1,5 +1,6 @@
 module peony
 
+import json
 import log
 import net.http
 import veb
@@ -27,6 +28,21 @@ mut:
 	user_session_values UserSessionValues
 	// customer_session        sessions.Session
 	// customer_session_values CustomerSessionValues
+}
+
+fn (mut ctx Context) handle_peony_error(error PeonyError) veb.Result {
+	ctx.res.set_status(error.status_code)
+	return ctx.json(json.encode(PeonyErrorResponse{
+		message: error.message
+		details: error.details
+	}))
+}
+
+fn (mut ctx Context) handle_error(error IError) veb.Result {
+	if error is PeonyError {
+		return ctx.handle_peony_error(error)
+	}
+	return ctx.handle_peony_error(new_error_internal('Unhandled error', error.msg()))
 }
 
 // returns the initialized peony App, you can register your custom veb middleware on it.

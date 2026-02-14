@@ -5,18 +5,18 @@ import veb
 fn conduit_stock_location_list(mut app App, mut ctx Context, p StockLocationRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	stock_locations := model_stock_location_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not get stock_location', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut external_stock_locations := []StockLocationResponse{len: stock_locations.len}
@@ -38,18 +38,18 @@ fn conduit_stock_location_get(mut app App, mut ctx Context, stock_location_id_bi
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	stock_locations := model_stock_location_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not get stock_location', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	stock_location := stock_locations[0]

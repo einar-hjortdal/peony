@@ -11,7 +11,7 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 
 	if ph.fetch.is_set && ph.fetch.v == 0 {
 		err := new_error_fetch_zero()
-		return ctx.handle_peony_error(err)
+		return ctx.handle_error(err)
 	}
 
 	return conduit_products_list(mut app, mut ctx, ph)
@@ -22,7 +22,7 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
 		perr := new_error_bad_request('Could not decode ProductRequest', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
@@ -34,7 +34,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	product_by_handle_count := model_product_retrieve_count(mut tx, RetrieveProductParamsHygienised{
@@ -45,7 +45,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	}) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not verify handle exists', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if product_by_handle_count > 0 {
@@ -55,12 +55,12 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve store', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut store_locales_exist := map[string]bool{}
@@ -152,7 +152,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := RetrieveProductParamsHygienised{
@@ -170,19 +170,19 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	p := json.decode(ProductUpdateRequest, ctx.req.data) or {
 		perr := new_error_bad_request('Could not decode ProductUpdateRequest', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut handle := ?string(none)
@@ -195,7 +195,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 		}) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Could not verify handle exists', err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 
 		if product_by_handle_count > 0 {
@@ -206,7 +206,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	seo := model_product_seo_retrieve(mut tx, [product_id_bin]) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut images_diff := []ProductImageUpdateParams{}
@@ -220,7 +220,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 			]) or {
 				tx.rollback() or {}
 				perr := new_error_internal('Failed to retrieve product_images', err.msg())
-				return ctx.handle_peony_error(perr)
+				return ctx.handle_error(perr)
 			}
 
 			// build map for fast lookup
@@ -239,7 +239,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 					if id !in existing_images_map {
 						tx.rollback() or {}
 						perr := new_error_bad_request(error_id_invalid, 'image with id ${id} does not exist')
-						return ctx.handle_peony_error(perr)
+						return ctx.handle_error(perr)
 					}
 
 					existing_image := existing_images_map[id]
@@ -256,7 +256,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 					url := image.url or {
 						tx.rollback() or {}
 						perr := new_error_bad_request(error_field_empty, 'A new image must have a url')
-						return ctx.handle_peony_error(perr)
+						return ctx.handle_error(perr)
 					}
 
 					images_diff[i] = ProductImageUpdateParams{
@@ -289,12 +289,12 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if seo.len == 0 {
 		perr := new_error_internal(error_database_data_malformed, 'Missing product seo for product with id ${product_id}')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	product_seo := seo[0]
@@ -323,7 +323,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 	return conduit_product_delete(mut app, mut ctx, product_id_bin)
 }
@@ -333,12 +333,12 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	p := json.decode(VariantCreateRequest, ctx.req.data) or {
 		perr := new_error_bad_request('Could not decode VariantRequest ', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
@@ -346,11 +346,11 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 	if title := ph.title {
 		if title == '' {
 			perr := new_error_bad_request('title is required', 'title not provided')
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 	} else {
 		perr := new_error_bad_request('title is required', 'title not provided')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if inventory_item := ph.inventory_item {
@@ -361,29 +361,25 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 			&& inventory_item.width == none && inventory_item.manage_inventory == none
 			&& inventory_item.requires_shipping == none {
 			perr := new_error_bad_request(error_empty_object, 'InventoryItemCreateRequest')
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 	}
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve region', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if money_amounts := ph.money_amounts {
 		verify_money_amounts(money_amounts, regions) or {
 			tx.rollback() or {}
-			if err is PeonyError {
-				return ctx.handle_peony_error(err)
-			}
-			return ctx.handle_unhandled_error('VariantCreateRequestHygienised.verify_money_amounts',
-				err.msg())
+			return ctx.handle_error(err)
 		}
 	}
 
@@ -391,23 +387,17 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		product_id_bin,
 	]) or {
 		tx.rollback() or {}
-		if err is PeonyError {
-			return ctx.handle_peony_error(err)
-		}
-		return ctx.handle_unhandled_error('suite_product_option_data_get', err.msg())
+		return ctx.handle_error(err)
 	}
 
 	product_option_data.verify_product_option_value_ids(ph.option_value_ids, ph.option_value_ids_bin) or {
 		tx.rollback() or {}
-		if err is PeonyError {
-			return ctx.handle_peony_error(err)
-		}
-		return ctx.handle_unhandled_error('verify_product_option_value_ids', err.msg())
+		return ctx.handle_error(err)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
@@ -418,12 +408,12 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, variant_id string) veb.Result {
 	_ := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'variant_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	// TODO is variant of product?
@@ -443,17 +433,17 @@ pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, v
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'variant_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	p := json.decode(VariantUpdateRequest, ctx.req.data) or {
 		perr := new_error_bad_request('Could not decode VariantRequest', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
@@ -466,29 +456,25 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			&& inventory_item.width == none && inventory_item.manage_inventory == none
 			&& inventory_item.requires_shipping == none {
 			perr := new_error_bad_request(error_empty_object, 'InventoryItemUpdateRequest')
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 	}
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if money_amounts := ph.money_amounts {
 		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Failed to retrieve region', err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 
 		verify_money_amounts(money_amounts, regions) or {
 			tx.rollback() or {}
-			if err is PeonyError {
-				return ctx.handle_peony_error(err)
-			}
-			return ctx.handle_unhandled_error('VariantCreateRequestHygienised.verify_money_amounts',
-				err.msg())
+			return ctx.handle_error(err)
 		}
 	}
 
@@ -497,10 +483,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			product_id_bin,
 		]) or {
 			tx.rollback() or {}
-			if err is PeonyError {
-				return ctx.handle_peony_error(err)
-			}
-			return ctx.handle_unhandled_error('suite_product_option_data_get', err.msg())
+			return ctx.handle_error(err)
 		}
 
 		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
@@ -510,7 +493,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
@@ -522,17 +505,17 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'variant_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := RetrieveProductVariantParamsHygienised{
@@ -545,27 +528,27 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	count := model_product_variants_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 		perr := new_error_internal('product_variant does not exist', 'count == 0')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	product_variants := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve product_variant', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	for i := 0; i < product_variants.len; i++ {
@@ -575,7 +558,7 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 
 		if product_variants.len == 1 {
 			perr := new_error_bad_request('Cannot delete product_variant', 'A product must have at least 1 variant')
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 
 		inventory_item_id_bin := product_variants[i].inventory_item.id_bin
@@ -583,5 +566,5 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	}
 
 	perr := new_error_not_found('no product_variant exists with given id', 'not found in variants')
-	return ctx.handle_peony_error(perr)
+	return ctx.handle_error(perr)
 }

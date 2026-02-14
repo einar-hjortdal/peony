@@ -19,7 +19,7 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 pub fn (mut app App) store_region_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'region_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
 }

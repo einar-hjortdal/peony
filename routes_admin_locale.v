@@ -9,7 +9,7 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 
 	if ph.fetch.is_set && ph.fetch.v == 0 {
 		err := new_error_fetch_zero()
-		return ctx.handle_peony_error(err)
+		return ctx.handle_error(err)
 	}
 
 	return conduit_locale_list(mut app, mut ctx, ph)
@@ -20,7 +20,7 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) veb.Result {
 	locale_id_bin := id_string_to_bin(locale_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'locale_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := LocaleRetrieveParamsHygienised{

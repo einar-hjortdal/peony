@@ -5,19 +5,19 @@ import veb
 fn conduit_region_list(mut app App, mut ctx Context, p RegionRetriveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_region_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve region count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 		return ctx.json(RegionResponseListEnvelope{
 			offset: p.offset
@@ -28,12 +28,12 @@ fn conduit_region_list(mut app App, mut ctx Context, p RegionRetriveParams) veb.
 	mut regions := model_region_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve regions', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	// TODO fetch taxes
@@ -60,19 +60,19 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_region_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve region count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 		return ctx.json(RegionResponseListEnvelope{
 			offset: p.offset
@@ -82,12 +82,12 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 	mut regions := model_region_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve regions', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return ctx.json(RegionResponseEnvelope{
@@ -98,7 +98,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	_, region_id_bin := app.new_id()
@@ -106,12 +106,12 @@ fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) ve
 	model_region_create(mut tx, region_id_bin, d) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not create region', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.commit() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return success(mut ctx)
@@ -120,18 +120,18 @@ fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) ve
 fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	model_region_update(mut tx, region_id_bin, d) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not update region', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.commit() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return success(mut ctx)
@@ -140,18 +140,18 @@ fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d Reg
 fn conduit_region_delete(mut app App, mut ctx Context, region_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	model_region_delete(mut tx, region_id_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not delete region', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.commit() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return success(mut ctx)

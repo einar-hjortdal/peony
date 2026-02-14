@@ -29,7 +29,9 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 
 	// locale_id_bin := [][]u8{} // TODO provide request context
 
-	product_options_data := suite_product_option_data_get(mut tx, product_ids_bin)!
+	product_options_data := suite_product_option_data_get(mut tx, product_ids_bin) or {
+		return new_error_internal('Failed to retrieve product_options', err.msg())
+	}
 
 	product_translations := model_product_translations_retrieve(mut tx, product_ids_bin) or {
 		return new_error_internal('Failed to retrieve product_translation', err.msg())

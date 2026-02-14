@@ -7,19 +7,19 @@ import veb
 fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 
 		return ctx.json(CategoryResponseListEnvelope{
@@ -33,7 +33,7 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 	categories := model_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut categories_map := map[string]Category{}
@@ -50,13 +50,13 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 	translations := model_category_translations_get(mut tx, categories_ids_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category_translations', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	seo := model_category_seo_retrieve(mut tx, categories_ids_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut seo_ids_bin := [][]u8{len: seo.len}
@@ -71,12 +71,12 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 	seo_translations := model_seo_translation_retrieve(mut tx, seo_ids_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo_translations', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	for i := 0; i < translations.len; i++ {
@@ -121,49 +121,49 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
 		perr := new_error_not_found('No category exists with the given id.', 'count == 0')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	categories := model_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	translations := model_category_translations_get(mut tx, p.ids_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category_translations', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	seo := model_category_seo_retrieve(mut tx, p.ids_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	// there should always be one seo row.
 	seo_translations := model_seo_translation_retrieve(mut tx, [seo[0].id_bin]) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo_translations', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut category := categories[0]
@@ -187,30 +187,30 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 fn conduit_category_get_store(mut app App, mut ctx Context, locale_id string, p CategoryRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
 		perr := new_error_not_found('No category exists with the given id.', 'count == 0')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	categories := model_category_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut category := categories[0]
@@ -227,13 +227,13 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	model_category_create(mut tx, category_id, category_id_bin, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not create category', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if translations := ph.translations {
@@ -241,7 +241,7 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 			model_category_translations_update(mut tx, category_id_bin, translations) or {
 				tx.rollback() or {}
 				perr := new_error_internal('Could not create category_translations', err.msg())
-				return ctx.handle_peony_error(perr)
+				return ctx.handle_error(perr)
 			}
 		}
 	}
@@ -251,7 +251,7 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 		model_category_seo_create(mut tx, seo_id_bin, category_id_bin, seo) or {
 			tx.rollback() or {} // ignore error
 			perr := new_error_internal('Failed to insert seo data', err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 
 		if translations := seo.translations {
@@ -260,7 +260,7 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 					tx.rollback() or {} // ignore error
 					perr := new_error_internal('Failed to insert seo_translations data',
 						err.msg())
-					return ctx.handle_peony_error(perr)
+					return ctx.handle_error(perr)
 				}
 			}
 		}
@@ -268,14 +268,14 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 		model_category_seo_create_default(mut tx, seo_id_bin, category_id_bin) or {
 			tx.rollback() or {} // ignore error
 			perr := new_error_internal('Failed to insert default seo data', err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return success(mut ctx)
@@ -284,27 +284,27 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, seo_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	model_category_update(mut tx, category_id_bin, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not update category', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if translations := ph.translations {
 		model_category_translations_delete(mut tx, category_id_bin) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Could not delete category_translations', err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 
 		if translations.len > 0 {
 			model_category_translations_update(mut tx, category_id_bin, translations) or {
 				tx.rollback() or {}
 				perr := new_error_internal('Could not update category_translations', err.msg())
-				return ctx.handle_peony_error(perr)
+				return ctx.handle_error(perr)
 			}
 		}
 	}
@@ -314,7 +314,7 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, s
 			model_seo_update(mut tx, seo_id_bin, seo) or {
 				tx.rollback() or {}
 				perr := new_error_internal('Could not update seo', err.msg())
-				return ctx.handle_peony_error(perr)
+				return ctx.handle_error(perr)
 			}
 		}
 
@@ -322,14 +322,14 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, s
 			model_seo_translations_delete(mut tx, seo_id_bin) or {
 				tx.rollback() or {}
 				perr := new_error_internal('Could not delete seo_translations', err.msg())
-				return ctx.handle_peony_error(perr)
+				return ctx.handle_error(perr)
 			}
 
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {}
 					perr := new_error_internal('Could not update seo_translations', err.msg())
-					return ctx.handle_peony_error(perr)
+					return ctx.handle_error(perr)
 				}
 			}
 		}
@@ -338,7 +338,7 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, s
 	tx.commit() or {
 		tx.rollback() or {}
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return success(mut ctx)
@@ -347,19 +347,19 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, s
 fn conduit_category_delete(mut app App, mut ctx Context, category_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	model_category_delete(mut tx, category_id_bin) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not delete category', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
 		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return success(mut ctx)

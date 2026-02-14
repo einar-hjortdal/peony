@@ -10,22 +10,22 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	p := extract_product_list_request_query_store(ctx.query)
 	if p.fetch.is_set && p.fetch.v == 0 {
 		err := new_error_fetch_zero()
-		return ctx.handle_peony_error(err)
+		return ctx.handle_error(err)
 	}
 
 	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'cart_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'region_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'locale_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	ph := RetrieveProductParamsHygienised{

@@ -15,7 +15,7 @@ pub fn (mut app App) admin_stock_location_list(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_stock_location_get(mut ctx Context, stock_location_id string) veb.Result {
 	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'stock_location_id')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 	return conduit_stock_location_get(mut app, mut ctx, stock_location_id_bin)
 }

@@ -1,8 +1,6 @@
 module peony
 
-import net.http
 import veb
-import json
 
 const error_database_data_malformed = 'Data retrieved from database is malformed'
 const error_field_empty = 'Field cannot be empty'
@@ -23,39 +21,6 @@ fn success(mut ctx Context) veb.Result {
 	return ctx.json(PeonySuccess{
 		success: true
 	})
-}
-
-fn (mut ctx Context) handle_peony_error(err PeonyError) veb.Result {
-	ctx.res.set_status(err.status_code)
-	return ctx.json(json.encode(PeonyErrorResponse{
-		message: err.message
-		details: err.details
-	}))
-}
-
-fn (mut ctx Context) handle_error(err IError) veb.Result {
-	if err is PeonyError {
-		return ctx.handle_peony_error(err)
-	}
-	perr := new_error_internal('Unhandled error', err.msg())
-	return ctx.handle_peony_error(perr)
-}
-
-// TODO remove in favor of handle_error
-fn (mut ctx Context) handle_unhandled_error(function_name string, error_message string) veb.Result {
-	ctx.res.set_status(http.Status.internal_server_error)
-	return ctx.json(json.encode(PeonyErrorResponse{
-		message: 'Unhandled error at ${function_name}'
-		details: error_message
-	}))
-}
-
-// TODO deprecate
-fn new_peony_error_response(message string, details string) PeonyErrorResponse {
-	return PeonyErrorResponse{
-		message: message
-		details: details
-	}
 }
 
 fn format_user_response(u User) UserResponse {

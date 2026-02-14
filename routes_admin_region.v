@@ -18,12 +18,12 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	data := json.decode(RegionCreateRequest, ctx.req.data) or {
 		perr := new_error_bad_request('Could not decode RegionCreateRequest', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if data.country_codes.len == 0 {
 		perr := new_error_bad_request(error_empty_object, 'country_codes')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	// TODO validation
@@ -41,7 +41,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
 }
@@ -51,18 +51,18 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	data := json.decode(RegionUpdateRequest, ctx.req.data) or {
 		perr := new_error_bad_request('Could not decode RegionUpdateRequest', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if country_codes := data.country_codes {
 		if country_codes.len == 0 {
 			perr := new_error_bad_request(error_empty_object, 'country_codes')
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 	}
 
@@ -74,7 +74,7 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	p := RegionRetriveParams{
@@ -83,34 +83,34 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error
 		perr := new_error_internal('Could not retrieve store', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_region_retrieve_count(mut tx, p) or {
 		tx.rollback() or {} // ignore error
 		perr := new_error_internal('Could not retrieve region count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if store.default_region_id_bin == region_id_bin {
 		perr := new_error_bad_request('Could not delete region', 'Cannot delete default region')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 1 {
 		perr := new_error_bad_request('Could not delete region', 'Refusing to delete last region')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	return conduit_region_delete(mut app, mut ctx, region_id_bin)

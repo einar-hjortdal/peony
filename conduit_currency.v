@@ -5,19 +5,19 @@ import veb
 fn conduit_currency_list(mut app App, mut ctx Context, p RetrieveCurrenciesParams) veb.Result {
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_currency_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve currency count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 		return ctx.json(CurrencyResponseListEnvelope{
 			offset: get_offset_amount(p.offset)
@@ -28,12 +28,12 @@ fn conduit_currency_list(mut app App, mut ctx Context, p RetrieveCurrenciesParam
 	currencies := model_currency_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve currencies from database', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	mut external_currencies := []CurrencyResponse{len: currencies.len}
@@ -59,33 +59,33 @@ fn conduit_currency_get(mut app App, mut ctx Context, code string) veb.Result {
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	count := model_currency_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve currency count', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_peony_error(perr)
+			return ctx.handle_error(perr)
 		}
 		perr := new_error_not_found('No currency exists with the given code', 'count == 0')
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	currencies := model_currency_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve currencies from database', err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_peony_error(perr)
+		return ctx.handle_error(perr)
 	}
 
 	external_currency := format_currency_response(currencies[0])
