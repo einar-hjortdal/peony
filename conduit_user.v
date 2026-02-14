@@ -4,7 +4,8 @@ import veb
 
 fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	user_id, user_id_bin := app.new_id()
@@ -15,12 +16,14 @@ fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Re
 
 	model_user_create(mut tx, p, user_id, user_id_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to create user', err.msg())
+		perr := new_error_internal('Failed to upload file', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)
@@ -28,7 +31,8 @@ fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Re
 
 fn conduit_user_update(mut app App, mut ctx Context, user_id_bin []u8, p UserUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if image := p.image {
@@ -37,12 +41,14 @@ fn conduit_user_update(mut app App, mut ctx Context, user_id_bin []u8, p UserUpd
 
 	model_user_update(mut tx, user_id_bin, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to create user', err.msg())
+		perr := new_error_internal('Failed to create user', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)
@@ -50,17 +56,20 @@ fn conduit_user_update(mut app App, mut ctx Context, user_id_bin []u8, p UserUpd
 
 fn conduit_user_delete(mut app App, mut ctx Context, user_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_user_delete(mut tx, user_id_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to delete user', err.msg())
+		perr := new_error_internal('Failed to delete user', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)
@@ -68,12 +77,14 @@ fn conduit_user_delete(mut app App, mut ctx Context, user_id_bin []u8) veb.Resul
 
 fn conduit_user_list(mut app App, mut ctx Context, p UserListParams) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_user_list_count(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve user count', err.msg())
+		perr := new_error_internal('Failed to retrieve user count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if count == 0 {
@@ -87,10 +98,14 @@ fn conduit_user_list(mut app App, mut ctx Context, p UserListParams) veb.Result 
 
 	users := model_user_list(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve users', err.msg())
+		perr := new_error_internal('Failed to retrieve users', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	mut external_users := []UserResponse{len: users.len}
 	for i := 0; i < users.len; i++ {
@@ -113,12 +128,14 @@ fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Re
 	}
 
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_user_list_count(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve user count', err.msg())
+		perr := new_error_internal('Failed to retrieve user count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if count == 0 {
@@ -129,10 +146,14 @@ fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Re
 
 	users := model_user_list(mut tx, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve users', err.msg())
+		perr := new_error_internal('Failed to retrieve users', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	user := users[0]
 	return ctx.json(UserResponseEnvelope{

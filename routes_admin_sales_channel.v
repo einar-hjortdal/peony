@@ -82,10 +82,11 @@ pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel
 @['/admin/sales-channels/:sales_channel_id'; delete]
 pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_channel_id string) veb.Result {
 	app.delete_sales_channel(sales_channel_id) or {
-		return handle_error_500(mut ctx, 'Could not delete sales channel', err.msg())
+		perr := new_error_internal('Could not delete sales channel', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	return ctx.text('OK')
+	return ctx.text('OK') // TODO
 }
 
 // updates products in the sales channel

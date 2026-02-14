@@ -11,12 +11,14 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	}
 
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_user_list_count(mut tx, up) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve user count', err.msg())
+		perr := new_error_internal('Failed to retrieve user count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if count == 0 {

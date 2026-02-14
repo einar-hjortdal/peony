@@ -6,17 +6,20 @@ fn conduit_sales_channel_create(mut app App, mut ctx Context, p SalesChannelRequ
 	_, sales_channel_id_bin := app.new_id()
 
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_sales_channel_create(mut tx, sales_channel_id_bin, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create sales_channel', err.msg())
+		perr := new_error_internal('Could not create sales_channel', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_commit, err.msg())
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)
@@ -24,17 +27,20 @@ fn conduit_sales_channel_create(mut app App, mut ctx Context, p SalesChannelRequ
 
 fn conduit_sales_channel_update(mut app App, mut ctx Context, sales_channel_id_bin []u8, p SalesChannelUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_sales_channel_update(mut tx, sales_channel_id_bin, p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create sales_channel', err.msg())
+		perr := new_error_internal('Could not create sales_channel', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_rollback, err.msg())
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)
@@ -42,20 +48,26 @@ fn conduit_sales_channel_update(mut app App, mut ctx Context, sales_channel_id_b
 
 fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannelsParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_sales_channel_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve sales channels count', err.msg())
+		perr := new_error_internal('Could not retrieve sales channels count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	sales_channels := model_sales_channel_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve sales channels', err.msg())
+		perr := new_error_internal('Could not retrieve sales channels', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	mut external_sales_channels := []SalesChannelResponse{len: sales_channels.len}
 	for i := 0; i < sales_channels.len; i++ {
@@ -73,18 +85,20 @@ fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannels
 
 fn conduit_sales_channel_stock_location_add(mut app App, mut ctx Context, sales_channel_id_bin []u8, stock_location_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_sales_channel_stock_location_add(mut tx, sales_channel_id_bin, stock_location_id_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not add stock_location to sales_channel',
-			err.msg())
+		perr := new_error_internal('Could not add stock_location to sales_channel', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_rollback, err.msg())
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)
@@ -92,18 +106,21 @@ fn conduit_sales_channel_stock_location_add(mut app App, mut ctx Context, sales_
 
 fn conduit_sales_channel_stock_location_delete(mut app App, mut ctx Context, sales_channel_id_bin []u8, stock_location_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_sales_channel_stock_location_delete(mut tx, sales_channel_id_bin, stock_location_id_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not remove stock_location from sales_channel',
+		perr := new_error_internal('Could not remove stock_location from sales_channel',
 			err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.commit() or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, error_transaction_rollback, err.msg())
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return success(mut ctx)

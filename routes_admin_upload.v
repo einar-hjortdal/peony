@@ -38,12 +38,14 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 			}
 
 			if fail_deletion {
-				return handle_error_500(mut ctx, 'Failed to upload file, any successfully uploaded file may have not been kept',
+				perr := new_error_internal('Failed to upload file, any successfully uploaded file may have not been kept',
 					'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}')
+				return ctx.handle_peony_error(perr)
 			}
 
-			return handle_error_500(mut ctx, 'Failed to upload file, any successfully uploaded file was deleted',
+			perr := new_error_internal('Failed to upload file, any successfully uploaded file was deleted',
 				'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}')
+			return ctx.handle_peony_error(perr)
 		}
 
 		files_data[i] = file_data
@@ -68,7 +70,8 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 	}
 
 	file_data := app.providers.blob.create(f) or {
-		return handle_error_500(mut ctx, 'Failed to upload file', err.msg())
+		perr := new_error_internal('Failed to upload file', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return ctx.json(UploadsUploadOneResponseEnvelope{
@@ -80,7 +83,8 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 @['/admin/uploads/:id'; delete]
 pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
 	app.providers.blob.delete(id) or {
-		return handle_error_500(mut ctx, 'Failed to delete file', err.msg())
+		perr := new_error_internal('Failed to delete file', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	return ctx.json(UploadsDeleteResponse{

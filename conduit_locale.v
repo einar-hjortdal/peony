@@ -4,16 +4,21 @@ import veb
 
 fn conduit_locale_list(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_locale_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve locale count', err.msg())
+		perr := new_error_internal('Could not retrieve locale count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if count == 0 {
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+		tx.rollback() or {
+			perr := new_error_internal(error_transaction_rollback, err.msg())
+			return ctx.handle_peony_error(perr)
+		}
 		return ctx.json(LocaleResponseListEnvelope{
 			locales: []LocaleResponse{}
 			count:   count
@@ -24,10 +29,14 @@ fn conduit_locale_list(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygi
 
 	locales := model_locale_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve locale', err.msg())
+		perr := new_error_internal('Could not retrieve locale', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	mut external_locales := []LocaleResponse{len: locales.len}
 	for i := 0; i < locales.len; i++ {
@@ -44,12 +53,14 @@ fn conduit_locale_list(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygi
 
 fn conduit_locale_get(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	locales := model_locale_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve locale', err.msg())
+		perr := new_error_internal('Could not retrieve locale', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	tx.rollback() or {} // ignore error

@@ -81,12 +81,12 @@ fn hygienise_fetch_amount(zi32 ZeroI32) !i32 {
 	}
 
 	if zi32.v < 1 {
-		return new_error_internal('Too few objects requested. Minimum ${min_fetch} must be requested',
+		return new_error_bad_request('Too few objects requested. Minimum ${min_fetch} must be requested',
 			'requested ${zi32.v}')
 	}
 
 	if zi32.v > max_fetch {
-		return new_error_internal('Too many objects requested. Maximum ${max_fetch} can be requested',
+		return new_error_bad_request('Too many objects requested. Maximum ${max_fetch} can be requested',
 			'requested ${zi32.v}')
 	}
 

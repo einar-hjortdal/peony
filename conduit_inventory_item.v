@@ -11,15 +11,20 @@ fn conduit_inventory_level_update(mut app App, mut ctx Context, inventory_item_i
 	}
 
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_inventory_level_update(mut tx, mp) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not create inventory_level', err.msg())
+		perr := new_error_internal('Could not create inventory_level', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.commit() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	return success(mut ctx)
 }

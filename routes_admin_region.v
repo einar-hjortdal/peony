@@ -8,13 +8,7 @@ import json
 pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 	p := extract_region_list_request_query(ctx.query)
 
-	ph := hygienise_region_list_request_query(p) or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return handle_error_500(mut ctx, 'Unhandled error at hygienise_region_list_request_query',
-			err.msg())
-	}
+	ph := hygienise_region_list_request_query(p) or { return ctx.handle_error(err) }
 
 	return conduit_region_list(mut app, mut ctx, ph)
 }
@@ -81,20 +75,26 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 	}
 
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not retrieve store', err.msg())
+		perr := new_error_internal('Could not retrieve store', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_region_retrieve_count(mut tx, p) or {
 		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Could not retrieve region count', err.msg())
+		perr := new_error_internal('Could not retrieve region count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	if store.default_region_id_bin == region_id_bin {
 		return handle_error_400(mut ctx, 'Could not delete region', 'Cannot delete default region')

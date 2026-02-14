@@ -8,13 +8,7 @@ import json
 pub fn (mut app App) admin_category_list(mut ctx Context) veb.Result {
 	query_params := extract_category_list_request_query(ctx.query)
 
-	p := hygienise_category_list_request_query(query_params) or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return handle_error_500(mut ctx, 'Unhandled error at hygienise_category_params',
-			err.msg())
-	}
+	p := hygienise_category_list_request_query(query_params) or { return ctx.handle_error(err) }
 
 	return conduit_category_list(mut app, mut ctx, p)
 }
@@ -81,12 +75,14 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 	}
 
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	seo := model_category_seo_retrieve(mut tx, [category_id_bin]) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Could not retrieve seo', err.msg())
+		perr := new_error_internal('Could not retrieve seo', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if _ := ph.parent_category_id {
@@ -104,12 +100,16 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 	}
 
 	if seo.len == 0 {
-		return handle_error_500(mut ctx, error_database_data_malformed, 'Missing category seo for category with id ${category_id}')
+		perr := new_error_internal(error_database_data_malformed, 'Missing category seo for category with id ${category_id}')
+		return ctx.handle_peony_error(perr)
 	}
 
 	category_seo := seo[0]
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	return conduit_category_update(mut app, mut ctx, category_id_bin, category_seo.id_bin,
 		ph)

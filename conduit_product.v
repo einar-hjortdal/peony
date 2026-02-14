@@ -4,46 +4,52 @@ import veb
 
 fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, images_to_create []ProductImageCreateParams, ph ProductCreateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_product_create(mut tx, p) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to create product', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to create product', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	_, seo_id_bin := app.new_id()
 	if seo := ph.seo {
 		model_product_seo_create(mut tx, seo_id_bin, p.product_id_bin, seo) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to insert seo data', err.msg())
+			tx.rollback() or {}
+			perr := new_error_internal('Failed to insert seo data', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 
 		if translations := seo.translations {
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {}
-					return handle_error_500(mut ctx, 'Failed to insert seo_translations',
-						err.msg())
+					perr := new_error_internal('Failed to insert seo_translations', err.msg())
+					return ctx.handle_peony_error(perr)
 				}
 			}
 		}
 	} else {
 		model_product_seo_create_default(mut tx, seo_id_bin, p.product_id_bin) or {
-			tx.rollback() or {} // ignore error
-			return handle_error_500(mut ctx, 'Failed to create seo', err.msg())
+			tx.rollback() or {}
+			perr := new_error_internal('Failed to create seo', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve store', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to retrieve store', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	// TODO potentially loop fetch if there are more than max_fetch regions (unlikely)
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{ fetch: max_fetch }) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve regions', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to retrieve regions', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if _ := ph.tag_ids {
@@ -53,43 +59,46 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 	if images_to_create.len > 0 {
 		model_product_images_create(mut tx, p.product_id_bin, images_to_create) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to create product images', err.msg())
+			perr := new_error_internal('Failed to update product thumbnail', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	if thumbnail := ph.thumbnail {
 		model_product_thumbnail_update(mut tx, p.product_id_bin, thumbnail) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
+			perr := new_error_internal('Failed to update product thumbnail', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	} else {
 		model_product_thumbnail_update(mut tx, p.product_id_bin, default_thumbnail) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
+			perr := new_error_internal('Failed to update product thumbnail', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, p.product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product_sales_channel',
-				err.msg())
+			perr := new_error_internal('Failed to update product_sales_channel', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	} else {
 		model_product_sales_channel_update(mut tx, p.product_id_bin, [
 			store.default_sales_channel_id_bin,
 		]) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product_sales_channel',
-				err.msg())
+			perr := new_error_internal('Failed to update product_sales_channel', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	if _ := ph.category_ids {
 		model_category_product_update(mut tx, p.product_id_bin, ph.category_ids_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product category relation',
-				err.msg())
+			perr := new_error_internal('Failed to update product category relation', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
@@ -97,8 +106,8 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 		if translations.len > 0 {
 			model_product_translations_create(mut tx, p.product_id_bin, translations) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Failed to update product translations',
-					err.msg())
+				perr := new_error_internal('Failed to update product translations', err.msg())
+				return ctx.handle_peony_error(perr)
 			}
 		}
 	}
@@ -121,8 +130,9 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 		model_variant_create_default_with_options(mut app, mut tx, p.product_id_bin, variant_id_bin,
 			product_options) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to create default product_variant with provided options',
+			perr := new_error_internal('Failed to create default product_variant with provided options',
 				err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	} else {
 		_, option_id_bin := app.new_id()
@@ -138,35 +148,44 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 
 		model_variant_create_default(mut tx, pv_p) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to create default product_variant',
-				err.msg())
+			perr := new_error_internal('Failed to create default product_variant', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	model_product_variant_money_amount_create_default(mut tx, ma_p) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to create default money_amount', err.msg())
+		perr := new_error_internal('Failed to create default money_amount', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	return success(mut ctx)
 }
 
 fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_product_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve product count', err.msg())
+		perr := new_error_internal('Failed to retrieve product count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	offset := get_offset_amount(ph.offset)
 
 	if count == 0 || offset >= count {
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+		tx.rollback() or {
+			perr := new_error_internal(error_transaction_rollback, err.msg())
+			return ctx.handle_peony_error(perr)
+		}
 		r := ProductResponseListEnvelope{
 			products: []ProductResponse{}
 			count:    count
@@ -179,7 +198,8 @@ fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsH
 
 	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve product', err.msg())
+		perr := new_error_internal('Failed to retrieve product', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	mut products_map, product_ids_bin := make_product_map(products)
@@ -192,7 +212,10 @@ fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsH
 			err.msg())
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	assign_products_data(mut products_data, mut products_map)
 
@@ -218,18 +241,23 @@ fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsH
 
 fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	count := model_product_retrieve_count(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products count', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to retrieve products count', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	offset := get_offset_amount(ph.offset)
 
 	if count == 0 || offset >= count {
-		tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+		tx.rollback() or {
+			perr := new_error_internal(error_transaction_rollback, err.msg())
+			return ctx.handle_peony_error(perr)
+		}
 		r := ProductResponseListEnvelope{
 			products: []ProductResponse{}
 			count:    count
@@ -242,7 +270,8 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 
 	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve product', err.msg())
+		perr := new_error_internal('Failed to retrieve product', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	mut products_map, product_ids_bin := make_product_map(products)
@@ -260,7 +289,8 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	// For now just use default sales_channel.id_bin
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'could not retrieve store', err.msg())
+		perr := new_error_internal('Could not retrieve store', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
 		sales_channel_ids_bin: [store.default_sales_channel_id_bin]
@@ -268,14 +298,15 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
 		tx.rollback() or {}
-		if err is PeonyError {
-			return handle_error_500(mut ctx, err.message, err.details)
-		}
-		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+		perr := new_error_internal('Failed to retrieve sales_channel_stock_location',
 			err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	assign_products_data(mut products_data, mut products_map)
 
@@ -321,16 +352,18 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 
 fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	products := model_product_retrieve(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to retrieve products data', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if products.len == 0 {
-		tx.rollback() or {} // ignore error
+		tx.rollback() or {}
 		perr := new_error_not_found('No product exists with the given id', 'products.len == 0')
 		return ctx.handle_peony_error(perr)
 	}
@@ -345,7 +378,10 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 			err.msg())
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	assign_product_data(mut product_data, mut product)
 
@@ -365,12 +401,14 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 
 fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	products := model_product_retrieve(mut tx, ph) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to retrieve products data', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to retrieve products data', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if products.len == 0 {
@@ -393,22 +431,24 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	// For now just use default sales_channel.id_bin
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'could not retrieve store', err.msg())
+		perr := new_error_internal('could not retrieve store', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
 		sales_channel_ids_bin: [store.default_sales_channel_id_bin]
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
-		if err is PeonyError {
-			return handle_error_500(mut ctx, err.message, err.details)
-		}
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to retrieve sales_channel_stock_location',
+		perr := new_error_internal('Failed to retrieve sales_channel_stock_location',
 			err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.rollback() or { return handle_error_500(mut ctx, error_transaction_rollback, err.msg()) }
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	assign_product_data(mut product_data, mut product)
 
@@ -445,12 +485,14 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 // TODO handle variants
 fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, images_diff []ProductImageUpdateParams, p ProductUpdateParams, ph ProductUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_product_update(mut tx, p) or {
-		tx.rollback() or {} // ignore error
-		return handle_error_500(mut ctx, 'Failed to update product', err.msg())
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to update product', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if _ := ph.tag_ids {
@@ -460,25 +502,28 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 	if _ := ph.images {
 		model_product_thumbnail_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to delete product thumbnail', err.msg())
+			perr := new_error_internal('Failed to delete product thumbnail', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 
 		if images_diff.len == 0 {
 			model_product_images_delete(mut tx, product_id_bin) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Failed to delete product images', err.msg())
+				perr := new_error_internal('Failed to delete product images', err.msg())
+				return ctx.handle_peony_error(perr)
 			}
 		} else {
 			model_product_images_update(mut tx, product_id_bin, images_diff) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Failed to update product images', err.msg())
+				perr := new_error_internal('Failed to update product images', err.msg())
+				return ctx.handle_peony_error(perr)
 			}
 
 			if ph.thumbnail == none {
 				model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
 					tx.rollback() or {}
-					return handle_error_500(mut ctx, 'Failed to update product thumbnail',
-						err.msg())
+					perr := new_error_internal('Failed to update product thumbnail', err.msg())
+					return ctx.handle_peony_error(perr)
 				}
 			}
 		}
@@ -487,38 +532,39 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 	if thumbnail := ph.thumbnail {
 		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product thumbnail', err.msg())
+			perr := new_error_internal('Failed to update product thumbnail', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product sales channel',
-				err.msg())
+			perr := new_error_internal('Failed to update product sales channel', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	if _ := ph.category_ids {
 		model_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to update product category relation',
-				err.msg())
+			perr := new_error_internal('Failed to update product category relation', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
 	if translations := ph.translations {
 		model_product_translations_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
-			return handle_error_500(mut ctx, 'Failed to delete from product_translations',
-				err.msg())
+			perr := new_error_internal('Failed to delete from product_translations', err.msg())
+			return ctx.handle_peony_error(perr)
 		}
 
 		if translations.len > 0 {
 			model_product_translations_create(mut tx, product_id_bin, translations) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Failed to create product_translations',
-					err.msg())
+				perr := new_error_internal('Failed to create product_translations', err.msg())
+				return ctx.handle_peony_error(perr)
 			}
 		}
 	}
@@ -527,43 +573,52 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 		if seo.title != none || seo.description != none {
 			model_seo_update(mut tx, seo_id_bin, seo) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Could not update seo', err.msg())
+				perr := new_error_internal('Could not update seo', err.msg())
+				return ctx.handle_peony_error(perr)
 			}
 		}
 
 		if translations := seo.translations {
 			model_seo_translations_delete(mut tx, seo_id_bin) or {
 				tx.rollback() or {}
-				return handle_error_500(mut ctx, 'Could not delete seo_translations',
-					err.msg())
+				perr := new_error_internal('Could not delete seo_translations', err.msg())
+				return ctx.handle_peony_error(perr)
 			}
 
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {}
-					return handle_error_500(mut ctx, 'Could not update seo_translations',
-						err.msg())
+					perr := new_error_internal('Could not update seo_translations', err.msg())
+					return ctx.handle_peony_error(perr)
 				}
 			}
 		}
 	}
 
-	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	return success(mut ctx)
 }
 
 fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb.Result {
 	mut tx := app.start_transaction() or {
-		return handle_error_500(mut ctx, error_transaction_start, err.msg())
+		perr := new_error_internal(error_transaction_start, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	model_product_delete(mut tx, product_id_bin) or {
 		tx.rollback() or {}
-		return handle_error_500(mut ctx, 'Failed to delete product', err.msg())
+		perr := new_error_internal('Failed to delete product', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	tx.commit() or { return handle_error_500(mut ctx, error_transaction_commit, err.msg()) }
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 
 	return success(mut ctx)
 }

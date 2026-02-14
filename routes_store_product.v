@@ -43,10 +43,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
 	p := hygienise_product_get_request_query_store(ctx.query, product_id) or {
-		if err is PeonyError {
-			return handle_error_500(mut ctx, err.message, err.details)
-		}
-		return ctx.handle_unhandled_error('ProductGetRequestQueryStore.hygienise', err.msg())
+		return ctx.handle_error(err)
 	}
 
 	return conduit_products_get_by_id_store(mut app, mut ctx, p)
