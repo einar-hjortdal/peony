@@ -85,7 +85,7 @@
 - [ ] Product option endpoints.
 - [ ] Product option value endpoints.
 - [ ] Product images endpoints.
-- [ ] Move cors handling to starter.
+- [x] Move cors handling to starter.
 - [ ] Return and accept translations as a map rather than an array.
 
 ## Internals

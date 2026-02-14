@@ -2,7 +2,6 @@ module peony
 
 import json
 import log
-import net.http
 import veb
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
@@ -86,11 +85,6 @@ pub fn new_peony_app(config Config, providers &Providers) !&App {
 	}
 
 	app.use(handler: app.middleware_debug)
-	app.use(veb.cors[Context](veb.CorsOptions{
-		origins:           [c.admin_frontend_url]
-		allow_credentials: true
-		allowed_methods:   [http.Method.get, http.Method.post, http.Method.delete]
-	}))
 	app.route_use('/admin/:path...', handler: app.middleware_load_user_session)
 	app.route_use('/admin/:path...', handler: app.middleware_save_user_session, after: true)
 	// app.route_use('/store/:path...', handler: app.middleware_load_store_session)

@@ -22,8 +22,6 @@ pub:
 	session_refresh_expire bool
 	session_name           string
 	session_admin_prefix   string
-	admin_frontend_url     string
-	store_frontend_url     string
 }
 
 // TODO validate
@@ -115,7 +113,5 @@ fn (c Config) verify() !Config {
 		session_refresh_expire: c.session_refresh_expire
 		session_name:           c.get_session_name()!
 		session_admin_prefix:   c.get_session_admin_prefix()!
-		admin_frontend_url:     c.admin_frontend_url
-		store_frontend_url:     c.store_frontend_url
 	}
 }
