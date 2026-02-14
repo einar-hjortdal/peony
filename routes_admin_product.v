@@ -21,15 +21,11 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 @['/admin/products'; post]
 pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductRequest', err.msg())
+		perr := new_error_bad_request('Could not decode ProductRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	ph := p.hygienise() or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return ctx.handle_unhandled_error('ProductCreateRequest.hygienise', err.msg())
-	}
+	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	product_id, product_id_bin := app.new_id()
 
@@ -155,7 +151,8 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 @['/admin/products/:product_id'; get]
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	ph := RetrieveProductParamsHygienised{
@@ -172,20 +169,16 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 @['/admin/products/:product_id'; post]
 pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(ProductUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode ProductUpdateRequest', err.msg())
+		perr := new_error_bad_request('Could not decode ProductUpdateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	ph := p.hygienise() or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return handle_error_400(mut ctx, 'Unhandled error at hygienise_product_request',
-			err.msg())
-	}
+	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	mut tx := app.start_transaction() or {
 		perr := new_error_internal(error_transaction_start, err.msg())
@@ -245,7 +238,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 					// if id in images does not exist return bad request
 					if id !in existing_images_map {
 						tx.rollback() or {}
-						return handle_error_400(mut ctx, error_id_invalid, 'image with id ${id} does not exist')
+						perr := new_error_bad_request(error_id_invalid, 'image with id ${id} does not exist')
+						return ctx.handle_peony_error(perr)
 					}
 
 					existing_image := existing_images_map[id]
@@ -328,7 +322,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 @['/admin/products/:product_id'; delete]
 pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		return ctx.handle_peony_error(perr)
 	}
 	return conduit_product_delete(mut app, mut ctx, product_id_bin)
 }
@@ -337,26 +332,25 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(VariantCreateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode VariantRequest ', err.msg())
+		perr := new_error_bad_request('Could not decode VariantRequest ', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	ph := p.hygienise() or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return ctx.handle_unhandled_error('hygienise_product_variant_request', err.msg())
-	}
+	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	if title := ph.title {
 		if title == '' {
-			return handle_error_400(mut ctx, 'title is required', 'title not provided')
+			perr := new_error_bad_request('title is required', 'title not provided')
+			return ctx.handle_peony_error(perr)
 		}
 	} else {
-		return handle_error_400(mut ctx, 'title is required', 'title not provided')
+		perr := new_error_bad_request('title is required', 'title not provided')
+		return ctx.handle_peony_error(perr)
 	}
 
 	if inventory_item := ph.inventory_item {
@@ -366,7 +360,8 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 			&& inventory_item.length == none && inventory_item.height == none
 			&& inventory_item.width == none && inventory_item.manage_inventory == none
 			&& inventory_item.requires_shipping == none {
-			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemCreateRequest')
+			perr := new_error_bad_request(error_empty_object, 'InventoryItemCreateRequest')
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
@@ -422,11 +417,13 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 @['/admin/products/:product_id/variants/:variant_id'; get]
 pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, variant_id string) veb.Result {
 	_ := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'variant_id')
+		perr := new_error_bad_request(error_id_invalid, 'variant_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	// TODO is variant of product?
@@ -445,23 +442,21 @@ pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, v
 @['/admin/products/:product_id/variants/:variant_id'; post]
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'variant_id')
+		perr := new_error_bad_request(error_id_invalid, 'variant_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(VariantUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode VariantRequest', err.msg())
+		perr := new_error_bad_request('Could not decode VariantRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	ph := p.hygienise() or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return ctx.handle_unhandled_error('hygienise_product_variant_request', err.msg())
-	}
+	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	if inventory_item := ph.inventory_item {
 		if inventory_item.sku == none && inventory_item.origin_country == none
@@ -470,7 +465,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			&& inventory_item.length == none && inventory_item.height == none
 			&& inventory_item.width == none && inventory_item.manage_inventory == none
 			&& inventory_item.requires_shipping == none {
-			return handle_error_400(mut ctx, error_empty_object, 'InventoryItemUpdateRequest')
+			perr := new_error_bad_request(error_empty_object, 'InventoryItemUpdateRequest')
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
@@ -508,10 +504,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		}
 
 		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
-			if err is PeonyError {
-				return handle_error_400(mut ctx, err.message, err.details)
-			}
-			return ctx.handle_unhandled_error('verify_product_option_value_ids', err.msg())
+			return ctx.handle_error(err)
 		}
 	}
 
@@ -528,11 +521,13 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 @['/admin/products/:product_id/variants/:variant_id'; delete]
 pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'product_id')
+		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'variant_id')
+		perr := new_error_bad_request(error_id_invalid, 'variant_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	mut tx := app.start_transaction() or {

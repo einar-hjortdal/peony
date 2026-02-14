@@ -58,18 +58,6 @@ fn new_peony_error_response(message string, details string) PeonyErrorResponse {
 	}
 }
 
-// TODO remove
-fn handle_error(mut ctx Context, status http.Status, message string, details string) veb.Result {
-	ctx.res.set_status(status)
-	return ctx.json(new_peony_error_response(message, details))
-}
-
-// TODO remove
-// 400 bad request
-fn handle_error_400(mut ctx Context, message string, details string) veb.Result {
-	return handle_error(mut ctx, http.Status.bad_request, message, details)
-}
-
 fn format_user_response(u User) UserResponse {
 	return UserResponse{
 		id:         u.id

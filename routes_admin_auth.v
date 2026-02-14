@@ -13,22 +13,29 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 @['/admin/auth'; post]
 pub fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
 	if ctx.user_session_values.id != '' {
-		return handle_error_400(mut ctx, 'Already logged in', 'user session exists')
+		perr := new_error_bad_request('Already logged in', 'user session exists')
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(AuthRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode AuthRequest', err.msg())
+		perr := new_error_bad_request('Could not decode AuthRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if p.email == '' {
-		return handle_error_400(mut ctx, error_field_empty, 'email')
+		perr := new_error_bad_request(error_field_empty, 'email')
+		return ctx.handle_peony_error(perr)
 	}
 
 	if p.password == '' {
-		return handle_error_400(mut ctx, error_field_empty, 'password')
+		perr := new_error_bad_request(error_field_empty, 'password')
+		return ctx.handle_peony_error(perr)
 	}
 
-	email_is_valid(p.email) or { return handle_error_400(mut ctx, 'invalid email', err.msg()) }
+	email_is_valid(p.email) or {
+		perr := new_error_bad_request('Invalid email', err.msg())
+		return ctx.handle_peony_error(perr)
+	}
 	// TODO quick validate email: min/max char length, shape and presence of @ and .
 	// return error if user already logged in
 

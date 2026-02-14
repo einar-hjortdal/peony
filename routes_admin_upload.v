@@ -16,15 +16,18 @@ const uploads_field_name = 'files'
 @['/admin/uploads'; post]
 pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
-		return handle_error_400(mut ctx, error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
+		perr := new_error_bad_request(error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
+		return ctx.handle_peony_error(perr)
 	}
 
 	if content_type != 'multipart/form-data' {
-		return handle_error_400(mut ctx, error_header_invalid, 'Expected `Content-Type` header with `multipart/form-data` value')
+		perr := new_error_bad_request(error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
+		return ctx.handle_peony_error(perr)
 	}
 
 	if ctx.files.len == 0 || uploads_field_name !in ctx.files {
-		return handle_error_400(mut ctx, 'No files provided', 'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
+		perr := new_error_bad_request('No files provided', 'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
+		return ctx.handle_peony_error(perr)
 	}
 
 	files := ctx.files[uploads_field_name]
@@ -60,7 +63,8 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 @['/admin/uploads/:filename'; post]
 pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
-		return handle_error_400(mut ctx, error_header_missing, 'Expected `Content-Type` header')
+		perr := new_error_bad_request(error_header_missing, 'Expected `Content-Type` header')
+		return ctx.handle_peony_error(perr)
 	}
 
 	f := http.FileData{

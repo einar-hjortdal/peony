@@ -4,13 +4,13 @@ fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
 	p := extract_user_list_request_query(m)
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return new_error_internal(error_id_invalid, 'ids')
+		return new_error_bad_request(error_id_invalid, 'ids')
 	}
 
 	include_deleted := p.with_deleted.is_set && p.with_deleted.v
 
 	order_direction := get_order_direction(p.order) or {
-		return new_error_internal(error_order_direction_invalid, details_order_direction_invalid)
+		return new_error_bad_request(error_order_direction_invalid, details_order_direction_invalid)
 	}
 
 	return UserListParams{
@@ -123,7 +123,7 @@ struct LocaleRetrieveParamsHygienised {
 fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParamsHygienised {
 	ids := zero_array_string(m, 'ids')
 	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
-		return new_error_internal(error_id_invalid, 'ids')
+		return new_error_bad_request(error_id_invalid, 'ids')
 	}
 
 	return LocaleRetrieveParamsHygienised{

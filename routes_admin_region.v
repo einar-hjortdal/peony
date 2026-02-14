@@ -17,11 +17,13 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 @['/admin/regions/'; post]
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	data := json.decode(RegionCreateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode RegionCreateRequest', err.msg())
+		perr := new_error_bad_request('Could not decode RegionCreateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if data.country_codes.len == 0 {
-		return handle_error_400(mut ctx, error_empty_object, 'country_codes')
+		perr := new_error_bad_request(error_empty_object, 'country_codes')
+		return ctx.handle_peony_error(perr)
 	}
 
 	// TODO validation
@@ -38,7 +40,8 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
 	id_bin := id_string_to_bin(region_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
 }
@@ -47,16 +50,19 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 @['/admin/regions/:region_id'; post]
 pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	data := json.decode(RegionUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode RegionUpdateRequest', err.msg())
+		perr := new_error_bad_request('Could not decode RegionUpdateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if country_codes := data.country_codes {
 		if country_codes.len == 0 {
-			return handle_error_400(mut ctx, error_empty_object, 'country_codes')
+			perr := new_error_bad_request(error_empty_object, 'country_codes')
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
@@ -67,7 +73,8 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 @['/admin/regions/:region_id'; delete]
 pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
 	region_id_bin := id_string_to_bin(region_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := RegionRetriveParams{
@@ -97,11 +104,13 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 	}
 
 	if store.default_region_id_bin == region_id_bin {
-		return handle_error_400(mut ctx, 'Could not delete region', 'Cannot delete default region')
+		perr := new_error_bad_request('Could not delete region', 'Cannot delete default region')
+		return ctx.handle_peony_error(perr)
 	}
 
 	if count == 1 {
-		return handle_error_400(mut ctx, 'Could not delete region', 'Refusing to delete last region')
+		perr := new_error_bad_request('Could not delete region', 'Refusing to delete last region')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return conduit_region_delete(mut app, mut ctx, region_id_bin)

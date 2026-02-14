@@ -22,7 +22,8 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 @['/admin/currencies/:code'; get]
 pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) veb.Result {
 	if code.len != 3 {
-		return handle_error_400(mut ctx, error_id_invalid, 'currency code too long or too short')
+		perr := new_error_bad_request(error_id_invalid, 'currency code too long or too short')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return conduit_currency_get(mut app, mut ctx, code)

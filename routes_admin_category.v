@@ -17,15 +17,11 @@ pub fn (mut app App) admin_category_list(mut ctx Context) veb.Result {
 @['/admin/categories'; post]
 pub fn (mut app App) admin_category_create(mut ctx Context) veb.Result {
 	p := json.decode(CategoryCreateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode CategoryCreateRequest', err.msg())
+		perr := new_error_bad_request('Could not decode CategoryCreateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	ph := p.hygienise() or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return ctx.handle_unhandled_error('CategoryCreateRequest.hygienise', err.msg())
-	}
+	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	if translations := ph.translations {
 		for i := 0; i < translations.len; i++ {
@@ -41,7 +37,8 @@ pub fn (mut app App) admin_category_create(mut ctx Context) veb.Result {
 @['/admin/categories/:category_id'; get]
 pub fn (mut app App) admin_category_get(mut ctx Context, category_id string) veb.Result {
 	category_id_bin := id_string_to_bin(category_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
+		perr := new_error_bad_request(error_id_invalid, 'category_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	query_params := extract_category_get_request_params(ctx.query)
@@ -60,11 +57,13 @@ pub fn (mut app App) admin_category_get(mut ctx Context, category_id string) veb
 @['/admin/categories/:category_id'; post]
 pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) veb.Result {
 	category_id_bin := id_string_to_bin(category_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
+		perr := new_error_bad_request(error_id_invalid, 'category_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(CategoryUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode CategoryUpdateRequest', err.msg())
+		perr := new_error_bad_request('Could not decode CategoryUpdateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	ph := p.hygienise() or {
@@ -119,7 +118,8 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 @['/admin/categories/:category_id'; delete]
 pub fn (mut app App) admin_category_delete(mut ctx Context, category_id string) veb.Result {
 	category_id_bin := id_string_to_bin(category_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'category_id')
+		perr := new_error_bad_request(error_id_invalid, 'category_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return conduit_category_delete(mut app, mut ctx, category_id_bin)

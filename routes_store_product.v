@@ -14,15 +14,18 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	}
 
 	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
-		return handle_error_400(mut ctx, 'Invalid cart_id', err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'cart_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
-		return handle_error_400(mut ctx, 'Invalid region_id', err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'region_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
-		return handle_error_400(mut ctx, 'Invalid locale_id', err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'locale_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	ph := RetrieveProductParamsHygienised{

@@ -13,19 +13,16 @@ pub fn (mut app App) admin_store_get(mut ctx Context) veb.Result {
 @['/admin/store/:store_id'; post]
 pub fn (mut app App) admin_store_post(mut ctx Context, store_id string) veb.Result {
 	store_id_bin := id_string_to_bin(store_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'store_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(StoreUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode StoreUpdateRequest', err.msg())
+		perr := new_error_bad_request('Could not decode StoreUpdateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
-	ph := hygienise_store_request(p) or {
-		if err is PeonyError {
-			return handle_error_400(mut ctx, err.message, err.details)
-		}
-		return ctx.handle_unhandled_error('hygienise_store_request', err.msg())
-	}
+	ph := hygienise_store_request(p) or { return ctx.handle_error(err) }
 
 	return conduit_store_update(mut app, mut ctx, store_id_bin, ph)
 }

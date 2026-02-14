@@ -13,7 +13,8 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 	}
 
 	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'ids')
+		return ctx.handle_peony_error(perr)
 	}
 
 	ph := ListSalesChannelsParamsHygienised{
@@ -31,7 +32,8 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 @['/admin/sales-channels/:sales_channel_id'; get]
 pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_id string) veb.Result {
 	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, err.msg())
+		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	ph := ListSalesChannelsParamsHygienised{
@@ -47,11 +49,13 @@ pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_
 @['/admin/sales-channels'; post]
 pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 	p := json.decode(SalesChannelRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode SalesChannelRequest', err.msg())
+		perr := new_error_bad_request('Could not decode SalesChannelRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if p.name == '' {
-		return handle_error_400(mut ctx, 'name is required', 'name is empty')
+		perr := new_error_bad_request('name is required', 'name is empty')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return conduit_sales_channel_create(mut app, mut ctx, p)
@@ -61,17 +65,19 @@ pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 @['/admin/sales-channels/:sales_channel_id'; post]
 pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel_id string) veb.Result {
 	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
+		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	p := json.decode(SalesChannelUpdateRequest, ctx.req.data) or {
-		return handle_error_400(mut ctx, 'Could not decode SalesChannelUpdateRequest',
-			err.msg())
+		perr := new_error_bad_request('Could not decode SalesChannelUpdateRequest', err.msg())
+		return ctx.handle_peony_error(perr)
 	}
 
 	if name := p.name {
 		if name == '' {
-			return handle_error_400(mut ctx, 'name is required', 'name is empty')
+			perr := new_error_bad_request('name is required', 'name is empty')
+			return ctx.handle_peony_error(perr)
 		}
 	}
 
@@ -113,11 +119,13 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_chann
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; post]
 pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
 	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
+		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
+		perr := new_error_bad_request(error_id_invalid, 'stock_location_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return conduit_sales_channel_stock_location_add(mut app, mut ctx, sales_channel_id_bin,
@@ -128,11 +136,13 @@ pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_c
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; delete]
 pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
 	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'sales_channel_id')
+		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
-		return handle_error_400(mut ctx, error_id_invalid, 'stock_location_id')
+		perr := new_error_bad_request(error_id_invalid, 'stock_location_id')
+		return ctx.handle_peony_error(perr)
 	}
 
 	return conduit_sales_channel_stock_location_delete(mut app, mut ctx, sales_channel_id_bin,
