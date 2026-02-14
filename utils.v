@@ -125,6 +125,7 @@ fn hygienise_fetch_amount(zi32 ZeroI32) !i32 {
 	return zi32.v
 }
 
+// WIP
 interface Identifiable {
 	id_string() string
 	id_bytes() []u8
@@ -175,6 +176,15 @@ fn id_from_bytes(b []u8) !ID {
 
 fn (mut app App) gen_id() ID {
 	return new_id(mut app.luuid_generator)
+}
+
+// WIP
+interface Translation {
+	locale_id() string
+}
+
+interface Translatable {
+	translations() []Translation
 }
 
 // PeonyError contains the appropriate http status code for the error.

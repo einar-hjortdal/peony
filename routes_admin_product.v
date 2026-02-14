@@ -52,9 +52,9 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		handle = '${handle}-${product_id}'
 	}
 
-	store := model_store_retrieve(mut tx) or {
+	store_locales := model_store_locales_retrieve(mut tx) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve store', err.msg())
+		perr := new_error_internal('Failed to retrieve store locales', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -63,27 +63,53 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		return ctx.handle_error(perr)
 	}
 
+	// verify all locale_id exist in store locales
 	mut store_locales_exist := map[string]bool{}
-	for i := 0; i < store.locales.len; i++ {
-		locale := store.locales[i]
+	for i := 0; i < store_locales.len; i++ {
+		locale := store_locales[i]
 		store_locales_exist[locale.id] = true
 	}
 
-	if _ := ph.translations {
-		// TODO verify locale_id exist in store.locales
+	// TODO the loop to check translation locale_id exists is the same in all translatable objects. Abstract?
+	if translations := ph.translations {
+		for i := 0; i < translations.len; i++ {
+			translation := translations[i]
+			locale_id := translation.locale_id
+			if store_locales_exist[locale_id] {
+				continue
+			}
+			perr := new_error_bad_request(error_id_invalid, 'translation locale_id')
+			return ctx.handle_error(perr)
+		}
 	}
 
 	if seo := ph.seo {
-		if _ := seo.translations {
-			// TODO verify locale_id exist in store.locales
+		if translations := seo.translations {
+			for i := 0; i < translations.len; i++ {
+				translation := translations[i]
+				locale_id := translation.locale_id
+				if store_locales_exist[locale_id] {
+					continue
+				}
+				perr := new_error_bad_request(error_id_invalid, 'seo_translation locale_id')
+				return ctx.handle_error(perr)
+			}
 		}
 	}
 
 	if images := ph.images {
 		for i := 0; i < images.len; i++ {
 			image := images[i]
-			if _ := image.translations {
-				// TODO verify locale_id exist in store.locales
+			if translations := image.translations {
+				for j := 0; j < translations.len; j++ {
+					translation := translations[j]
+					locale_id := translation.locale_id
+					if store_locales_exist[locale_id] {
+						continue
+					}
+					perr := new_error_bad_request(error_id_invalid, 'image_translation locale_id')
+					return ctx.handle_error(perr)
+				}
 			}
 		}
 	}
@@ -94,14 +120,30 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 			option := options[i]
 			option_values := option.values
 
-			if _ := p.translations {
-				// TODO verify locale_id exist in store.locales
+			if translations := p.translations {
+				for j := 0; j < translations.len; j++ {
+					translation := translations[j]
+					locale_id := translation.locale_id
+					if store_locales_exist[locale_id] {
+						continue
+					}
+					perr := new_error_bad_request(error_id_invalid, 'option_translation locale_id')
+					return ctx.handle_error(perr)
+				}
 			}
 
 			for j := 0; j < option_values.len; j++ {
 				option_value := option_values[j]
-				if _ := option_value.translations {
-					// TODO verify locale_id exist in store.locales
+				if translations := option_value.translations {
+					for k := 0; k < translations.len; k++ {
+						translation := translations[k]
+						locale_id := translation.locale_id
+						if store_locales_exist[locale_id] {
+							continue
+						}
+						perr := new_error_bad_request(error_id_invalid, 'option_value_translation locale_id')
+						return ctx.handle_error(perr)
+					}
 				}
 			}
 		}
