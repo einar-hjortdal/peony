@@ -1,10 +1,18 @@
 module peony
 
 import time
+import veb
 
+// TODO eliminate: always return created/updated resource
 pub struct PeonySuccess {
 pub:
 	success bool
+}
+
+fn success(mut ctx Context) veb.Result {
+	return ctx.json(PeonySuccess{
+		success: true
+	})
 }
 
 pub struct PeonyErrorResponse {
@@ -32,6 +40,21 @@ pub:
 	metadata   string    @[omitempty]
 }
 
+fn format_user_response(u User) UserResponse {
+	return UserResponse{
+		id:         u.id
+		handle:     u.handle
+		email:      u.email
+		role:       u.role
+		created_at: u.created_at.Time
+		updated_at: u.updated_at.Time
+		deleted_at: u.deleted_at.Time
+		first_name: u.first_name
+		last_name:  u.last_name
+		metadata:   u.metadata.value
+	}
+}
+
 pub struct UserResponseEnvelope {
 pub:
 	user UserResponse
@@ -55,6 +78,13 @@ pub:
 	code string
 }
 
+fn format_locale_response(l Locale) LocaleResponse {
+	return LocaleResponse{
+		id:   l.id
+		code: l.code
+	}
+}
+
 pub struct LocaleResponseEnvelope {
 pub:
 	locale LocaleResponse
@@ -74,6 +104,13 @@ pub:
 	decimal_digits i32 @[json: 'decimalDigits'; omitempty]
 }
 
+fn format_currency_response(c Currency) CurrencyResponse {
+	return CurrencyResponse{
+		code:           c.code
+		decimal_digits: c.decimal_digits.value
+	}
+}
+
 pub struct CurrencyResponseEnvelope {
 pub:
 	currency CurrencyResponse
@@ -91,6 +128,18 @@ pub struct CountryResponse {
 pub:
 	code      string
 	region_id string @[json: 'regionId'; omitempty]
+}
+
+fn format_country_response(c Country) !CountryResponse {
+	mut region_id := ''
+	if !c.region_id_bin.is_null {
+		region_id = id_bin_to_string(c.region_id_bin.value)!
+	}
+
+	return CountryResponse{
+		code:      c.code
+		region_id: region_id
+	}
 }
 
 pub struct CountryResponseListEnvelope {
@@ -114,6 +163,25 @@ pub:
 	locales                   []LocaleResponse
 }
 
+fn format_store_response(s Store) StoreResponse {
+	mut locales := []LocaleResponse{len: s.locales.len}
+	for i := 0; i < s.locales.len; i++ {
+		locales[i] = format_locale_response(s.locales[i])
+	}
+
+	return StoreResponse{
+		id:                        s.id
+		created_at:                s.created_at.Time
+		updated_at:                s.updated_at.Time
+		name:                      s.name
+		default_locale_id:         s.default_locale_id
+		default_region_id:         s.default_region_id
+		default_stock_location_id: s.default_stock_location_id
+		default_sales_channel_id:  s.default_sales_channel_id
+		locales:                   locales
+	}
+}
+
 pub struct StoreResponseEnvelope {
 pub:
 	store StoreResponse
@@ -126,6 +194,14 @@ pub:
 	alt       string
 }
 
+fn format_image_translation_response(p ImageTranslation) ImageTranslationResponse {
+	return ImageTranslationResponse{
+		image_id:  p.image_id
+		locale_id: p.locale_id
+		alt:       p.alt
+	}
+}
+
 pub struct ProductImageResponse {
 pub:
 	id           string
@@ -135,6 +211,24 @@ pub:
 	translations []ImageTranslationResponse @[omitempty]
 }
 
+fn format_product_image_response(p ProductImage) ProductImageResponse {
+	mut translations := []ImageTranslationResponse{}
+	if p.translations.len > 0 {
+		translations = []ImageTranslationResponse{len: p.translations.len}
+		for i := 0; i < p.translations.len; i++ {
+			translations[i] = format_image_translation_response(p.translations[i])
+		}
+	}
+
+	return ProductImageResponse{
+		id:           p.id
+		url:          p.url
+		product_id:   p.product_id
+		alt:          p.alt.value
+		translations: translations
+	}
+}
+
 pub struct ProductTranslationResponse {
 pub:
 	product_id  string @[json: 'productId']
@@ -142,6 +236,16 @@ pub:
 	title       string @[omitempty]
 	subtitle    string @[omitempty]
 	description string @[omitempty]
+}
+
+fn format_product_translation_response(p ProductTranslation) ProductTranslationResponse {
+	return ProductTranslationResponse{
+		product_id:  p.product_id
+		locale_id:   p.locale_id
+		title:       p.title
+		subtitle:    p.subtitle
+		description: p.description
+	}
 }
 
 pub struct ProductOptionValueTranslationResponse {
@@ -249,6 +353,19 @@ pub:
 	tax_type   string @[json: 'taxType'; omitempty]
 }
 
+fn format_tax_rate_response(t TaxRate) TaxRateResponse {
+	return TaxRateResponse{
+		id:         t.id
+		created_at: t.created_at.Time
+		updated_at: t.updated_at.Time
+		deleted_at: t.deleted_at.value.Time
+		rate:       t.rate
+		code:       t.code.value
+		name:       t.name
+		tax_type:   t.tax_type
+	}
+}
+
 // VariantPriceResponseStore represents the price of a variant.
 // This is calculated utilizing the context of the request coming from the /store/ endpoints.
 pub struct VariantPriceResponse {
@@ -303,6 +420,26 @@ pub:
 	tax_rates          []TaxRateResponse @[json: 'taxRates']
 }
 
+fn format_region_response(r Region) RegionResponse {
+	mut tax_rates := []TaxRateResponse{len: r.tax_rates.len}
+	for i := 0; i < r.tax_rates.len; i++ {
+		tax_rates[i] = format_tax_rate_response(r.tax_rates[i])
+	}
+
+	return RegionResponse{
+		id:                 r.id
+		name:               r.name
+		created_at:         r.created_at.Time
+		updated_at:         r.updated_at.Time
+		deleted_at:         r.deleted_at.value.Time
+		currency_code:      r.currency_code
+		includes_tax:       r.includes_tax
+		gift_cards_taxable: r.gift_cards_taxable
+		automatic_taxes:    r.automatic_taxes
+		tax_rates:          tax_rates
+	}
+}
+
 pub struct RegionResponseEnvelope {
 pub:
 	region RegionResponse
@@ -322,6 +459,15 @@ pub:
 	stock_location_id string @[json: 'stockLocationId']
 	stocked_quantity  i32    @[json: 'stockedQuantity']
 	reserved_quantity i32    @[json: 'reservedQuantity']
+}
+
+fn format_inventory_level_response(v InventoryLevel) InventoryLevelResponse {
+	return InventoryLevelResponse{
+		inventory_item_id: v.inventory_item_id
+		stock_location_id: v.stock_location_id
+		stocked_quantity:  v.stocked_quantity
+		reserved_quantity: v.reserved_quantity
+	}
 }
 
 pub struct InventoryItemResponse {
@@ -344,6 +490,34 @@ pub:
 	manage_inventory  bool                     @[json: 'manageInventory']
 	allow_backorder   bool                     @[json: 'allowBackorder']
 	inventory_levels  []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
+}
+
+fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
+	mut inventory_levels := []InventoryLevelResponse{len: v.inventory_levels.len}
+	for i := 0; i < v.inventory_levels.len; i++ {
+		inventory_levels[i] = format_inventory_level_response(v.inventory_levels[i])
+	}
+
+	return InventoryItemResponse{
+		id:                v.id
+		created_at:        v.created_at.Time
+		updated_at:        v.updated_at.Time
+		deleted_at:        v.deleted_at.value.Time
+		variant_id:        v.variant_id
+		sku:               v.sku.value
+		origin_country:    v.origin_country.value
+		hs_code:           v.hs_code.value
+		mid_code:          v.mid_code.value
+		material:          v.material.value
+		weight:            v.weight.value
+		length:            v.length.value
+		height:            v.height.value
+		width:             v.width.value
+		requires_shipping: v.requires_shipping
+		manage_inventory:  v.manage_inventory
+		allow_backorder:   v.allow_backorder
+		inventory_levels:  inventory_levels
+	}
 }
 
 pub struct VariantResponse {

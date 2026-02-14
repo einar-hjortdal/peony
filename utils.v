@@ -3,6 +3,21 @@ module peony
 import net.http
 import einar_hjortdal.luuid
 
+const error_database_data_malformed = 'Data retrieved from database is malformed'
+const error_field_empty = 'Field cannot be empty'
+const error_field_too_long = 'Field too long'
+const error_empty_object = 'Received all empty fields'
+const error_header_invalid = 'Invalid header'
+const error_header_missing = 'Missing header'
+const error_id_generation = 'Failed to generate id'
+const error_id_invalid = 'Invalid id'
+const error_order_direction_invalid = 'Invalid order direction'
+const error_transaction_commit = 'Failed to start transaction'
+const error_transaction_rollback = 'Failed to rollback transaction'
+const error_transaction_start = 'Failed to start transaction'
+
+const details_order_direction_invalid = 'order direction must either be ${order_direction_asc} or ${order_direction_desc}'
+
 interface Identifiable {
 	id_string() string
 	id_bytes() []u8
