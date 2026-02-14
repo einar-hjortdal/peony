@@ -36,7 +36,7 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	store_rows := store_data.rows()
 
 	if store_rows.len == 0 {
-		return error(format_error_message('No entries in table store'))
+		return error('No entries in table store')
 	}
 
 	v := store_rows[0].values()

@@ -22,6 +22,20 @@ const error_transaction_start = 'Failed to start transaction'
 
 const details_order_direction_invalid = 'order direction must either be ${order_direction_asc} or ${order_direction_desc}'
 
+// parse_bool returns true if the string represents a true bool, or false if the string represents a
+// false bool.
+// Any of the following are accepted values: 1, t, T, TRUE, true, True, 0, f, F, FALSE, false, False
+// Always call `can_parse_bool` before `parse_bool` to handle strings that cannot be parsed to bool.
+fn parse_bool(s string) bool {
+	string_true := ['1', 't', 'T', 'TRUE', 'true', 'True']
+	for value in string_true {
+		if s == value {
+			return true
+		}
+	}
+	return false
+}
+
 struct ZeroString {
 	v      string
 	is_set bool
