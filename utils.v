@@ -55,6 +55,7 @@ fn (mut app App) gen_id() ID {
 	return new_id(mut app.luuid_generator)
 }
 
+// PeonyError contains the appropriate http status code for the error.
 struct PeonyError {
 	message     string
 	details     string
@@ -79,42 +80,27 @@ fn new_peony_error(message string, details string, code http.Status) PeonyError 
 }
 
 fn new_error_internal(message string, details string) PeonyError {
-	return PeonyError{
-		message:     message
-		details:     details
-		status_code: http.Status.internal_server_error
-	}
+	return new_peony_error(message, details, http.Status.internal_server_error)
 }
 
 fn new_error_bad_request(message string, details string) PeonyError {
-	return PeonyError{
-		message:     message
-		details:     details
-		status_code: http.Status.bad_request
-	}
+	return new_peony_error(message, details, http.Status.bad_request)
 }
 
 fn new_error_not_found(message string, details string) PeonyError {
-	return PeonyError{
-		message:     message
-		details:     details
-		status_code: http.Status.not_found
-	}
+	return new_peony_error(message, details, http.Status.not_found)
+}
+
+fn new_error_unauthorized(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.unauthorized)
 }
 
 fn new_error_login() PeonyError {
-	return PeonyError{
-		message:     'Invalid email or password'
-		status_code: http.Status.unauthorized
-	}
+	return new_error_unauthorized('Invalid email or password', '')
 }
 
 fn new_error_fetch_zero() PeonyError {
-	return PeonyError{
-		message:     'Requested 0 results'
-		details:     'fetch cannot be 0'
-		status_code: http.Status.unauthorized
-	}
+	return new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
 }
 
 fn unwrap_option_or[T](option_type ?T, default_value T) T {

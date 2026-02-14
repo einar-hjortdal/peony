@@ -24,15 +24,13 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	if count == 0 {
 		tx.rollback() or {}
 		log.debug('user count == 0')
-		perr := new_error_login()
-		return ctx.handle_error(perr)
+		return ctx.handle_error(new_error_login())
 	}
 
 	users := model_user_list(mut tx, up) or {
 		tx.rollback() or {}
 		log.debug(err.msg())
-		perr := new_error_login()
-		return ctx.handle_error(perr)
+		return ctx.handle_error(new_error_login())
 	}
 
 	tx.rollback() or {}
@@ -40,8 +38,7 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	user := users[0]
 	verify_password(p.password, user.password_hash, user.password_salt) or {
 		log.debug(err.msg())
-		perr := new_error_login()
-		return ctx.handle_error(perr)
+		return ctx.handle_error(new_error_login())
 	}
 
 	ctx.user_session_values = UserSessionValues{
