@@ -866,10 +866,11 @@ fn handles_unique_product_handles(cookie_value string) ! {
 }
 
 fn creates_product_with_options_and_values(cookie_value string) ! {
-	// TODO reject create a product with one option and no values
-	// TODO create a product with one option, one value and no explicit variants
-	// TODO create a product with 2 options and 2 values for each option, and no explicit variants
-	// TODO create a product with 2 options and 2 values for each option, and 3 explicit variants
+	// checkbox marks logic was written to handle case, test must be written.
+	// [x] TODO reject create a product with one option and no values
+	// [ ] TODO create a product with one option, one value and no explicit variants
+	// [ ] TODO create a product with 2 options and 2 values for each option, and no explicit variants
+	// [ ] TODO create a product with 2 options and 2 values for each option, and 3 explicit variants
 }
 
 fn creates_product_with_variants(cookie_value string) ! {

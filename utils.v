@@ -184,7 +184,7 @@ interface Translation {
 }
 
 interface Translatable {
-	translations() []Translation
+	translations() ?[]Translation
 }
 
 // PeonyError contains the appropriate http status code for the error.

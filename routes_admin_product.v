@@ -167,9 +167,6 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	// TODO if options are provided, each variants must reference all options
-	// TODO if variants are provided, references to options and values must be valid
-
 	product_create_params := ProductCreateParams{
 		product_id:     product_id
 		product_id_bin: product_id_bin

@@ -14,6 +14,9 @@ pub const max_length_product_subtitle = 191
 pub const max_length_option_title = 63
 pub const max_length_option_value_name = 63
 pub const max_length_variant_title = 63
+pub const max_length_ean = 13
+pub const max_length_upc = 12
+pub const max_length_barcode = 63
 pub const max_length_seo_title = 63
 pub const max_length_seo_description = 191
 pub const max_length_category_name = 63
@@ -21,6 +24,10 @@ pub const max_length_category_description = 191
 pub const max_length_region_name = 63
 
 pub const default_thumbnail = 0
+
+fn format_field_too_long_details(field_name string, max_utf8_length i32) string {
+	return '${field_name} can be at most ${max_utf8_length} UTF8 characters long'
+}
 
 fn email_is_valid(e string) ! {
 	if e.len > 254 {

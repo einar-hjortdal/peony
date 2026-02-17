@@ -142,7 +142,7 @@ mut:
 fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_bad_request('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_bad_request(error_field_too_long, 'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -206,7 +206,7 @@ fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_bad_request('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_bad_request(error_field_too_long, 'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -689,6 +689,77 @@ pub:
 	money_amounts  ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
 }
 
+struct ProductVariantCreateRequestHygienised {
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	inventory_item ?InventoryItemCreateRequestHygienised
+	option_values  ?[]i32
+	metadata       ?string
+	money_amounts  ?[]VariantMoneyAmountRequestHygienised
+}
+
+fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
+	if title := p.title {
+		if utf8_str_visible_length(title) > max_length_variant_title {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('title',
+				max_length_variant_title))
+		}
+	}
+
+	if ean := p.ean {
+		if utf8_str_visible_length(ean) > max_length_ean {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('ean',
+				max_length_ean))
+		}
+	}
+
+	if upc := p.upc {
+		if utf8_str_visible_length(upc) > max_length_upc {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('upc',
+				max_length_upc))
+		}
+	}
+
+	if barcode := p.barcode {
+		if utf8_str_visible_length(barcode) > max_length_barcode {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('barcode',
+				max_length_barcode))
+		}
+	}
+
+	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
+	if mas := p.money_amounts {
+		if mas.len == 0 {
+			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
+		}
+
+		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
+		for i := 0; i < mas.len; i++ {
+			money_amounts[i] = mas[i].hygienise()!
+		}
+	}
+
+	mut inventory_item := InventoryItemCreateRequestHygienised{}
+	if ii := p.inventory_item {
+		inventory_item = ii.hygienise()!
+	}
+
+	mut ph := ProductVariantCreateRequestHygienised{
+		title:          p.title
+		ean:            p.ean
+		upc:            p.upc
+		barcode:        p.barcode
+		inventory_item: inventory_item
+		option_values:  p.option_values
+		metadata:       p.metadata
+		money_amounts:  money_amounts
+	}
+
+	return ph
+}
+
 // ProductVariantUpdateRequest describes a variant object used inside a product update payload.
 //
 // # Fields
@@ -1008,6 +1079,10 @@ struct SEOTranslationRequestHygienised {
 	description   ?string
 }
 
+fn (r SEOTranslationRequestHygienised) locale_id() string {
+	return r.locale_id
+}
+
 fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
 		return new_error_bad_request(error_id_invalid, 'locale_id')
@@ -1045,6 +1120,10 @@ struct SEORequestHygienised {
 	description ?string
 mut:
 	translations ?[]SEOTranslationRequestHygienised
+}
+
+fn (r SEORequestHygienised) translations() ?[]SEOTranslationRequestHygienised {
+	return r.translations
 }
 
 fn (p SEORequest) hygienise() !SEORequestHygienised {
@@ -1317,8 +1396,6 @@ pub:
 	images            ?[]ImageCreateRequest
 }
 
-// TODO derive handle from title using slugify
-// TODO append id to handle if handle already exists in database
 struct ProductCreateRequestHygienised {
 	title                 string
 	subtitle              ?string
@@ -1340,6 +1417,7 @@ struct ProductCreateRequestHygienised {
 mut:
 	seo          ?SEORequestHygienised
 	options      ?[]ProductOptionCreateRequestHygienised
+	variants     ?[]ProductVariantCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageCreateRequestHygienised
 }
@@ -1441,6 +1519,131 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 			h[i] = images[i].hygienise()!
 		}
 		ph.images = h
+	}
+
+	// TODO move this validation to the top (use p)
+	if options := ph.options {
+		// If an option is provided, at least one value per option must also be provided
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			if option.values.len == 0 {
+				return new_error_bad_request(error_field_empty, 'At least one value per option must be provided.')
+			}
+		}
+
+		// each variant must reference all options
+		if variants := ph.variants {
+			for i := 0; i < variants.len; i++ {
+				variant := variants[i]
+				option_values := variant.option_values or {
+					return new_error_bad_request(error_field_empty, 'Each variant must reference all options with the option_values field')
+				}
+
+				if option_values.len < options.len {
+					return new_error_bad_request('option_values contains less entries than expected. Got ${option_values.len}, expected ${options.len}',
+						'Each variant must reference all options')
+				}
+			}
+		}
+	}
+
+	// if variants are provided, references to options and values must be valid
+	if variants := ph.variants {
+		// the request could contain one variant and no options, in which case a default option is created.
+		// the request may contain one variant and one option. In this case, references must be verified.
+		if variants.len == 1 {
+			variant := variants[0]
+			if options := ph.options {
+				if options.len > 0 {
+					option_values := variant.option_values or {
+						return new_error_bad_request(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+					}
+
+					for option_index := 0; option_index < option_values.len; option_index++ {
+						option := options[option_index]
+						value_index := option_values[option_index]
+						max_value_index := option.values.len - 1
+						if value_index < 0 {
+							return new_error_bad_request('Invalid value index.', 'An index cannot be a negative integer')
+						}
+
+						if value_index > max_value_index {
+							return new_error_bad_request('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
+								'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
+						}
+					}
+				}
+			}
+
+			if option_values := variant.option_values {
+				if options := ph.options {
+					if option_values.len > 0 && options.len == 0 {
+						return new_error_bad_request('options missing', 'option_values cannot reference non-existing options')
+					}
+				} else {
+					if option_values.len > 0 {
+						return new_error_bad_request('options missing', 'option_values cannot reference non-existing options')
+					}
+				}
+			}
+		}
+
+		if variants.len > 1 {
+			options := ph.options or {
+				return new_error_bad_request(error_field_empty, 'Empty `options` field not allowed: an option must be created in order to create variants')
+			}
+
+			// There cannot be more variants than combinations of option values
+			mut possible_combinations := 1
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				possible_combinations *= option.values.len
+			}
+
+			if variants.len > possible_combinations {
+				return new_error_bad_request('too_many_variants', 'Provided ${variants.len} variants but there can only be ${possible_combinations} possible combinations with the provided options and values.')
+			}
+
+			mut seen_combinations := map[string]bool{}
+			for i := 0; i < variants.len; i++ {
+				variant := variants[i]
+				option_values := variant.option_values or {
+					return new_error_bad_request(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+				}
+
+				if option_values.len != options.len {
+					return new_error_bad_request('option_values contains too few or too many entries. Got ${option_values.len}, expected ${options.len}',
+						'Each variant must reference all options')
+				}
+
+				mut combination := ''
+				for option_index := 0; option_index < option_values.len; option_index++ {
+					option := options[option_index]
+					value_index := option_values[option_index]
+					max_value_index := option.values.len - 1
+					if value_index < 0 {
+						return new_error_bad_request('Invalid value index.', 'An index cannot be a negative integer')
+					}
+
+					if value_index > max_value_index {
+						return new_error_bad_request('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
+							'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
+					}
+
+					if option_index == 0 {
+						combination = '${value_index}'
+					} else {
+						combination = '${combination}-${value_index}'
+					}
+				}
+
+				if seen_combinations[combination] {
+					return new_error_bad_request('Duplicate variant.', '2 variants have the same option values')
+				}
+
+				seen_combinations[combination] = true
+			}
+		}
 	}
 
 	return ph
