@@ -211,20 +211,24 @@ fn new_peony_error(message string, details string, code http.Status) PeonyError 
 	}
 }
 
-fn new_error_internal(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.internal_server_error)
-}
-
 fn new_error_bad_request(message string, details string) PeonyError {
 	return new_peony_error(message, details, http.Status.bad_request)
+}
+
+fn new_error_unauthorized(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.unauthorized)
 }
 
 fn new_error_not_found(message string, details string) PeonyError {
 	return new_peony_error(message, details, http.Status.not_found)
 }
 
-fn new_error_unauthorized(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.unauthorized)
+fn new_error_unprocessable_entity(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.unprocessable_entity)
+}
+
+fn new_error_internal(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.internal_server_error)
 }
 
 fn new_error_login() PeonyError {
