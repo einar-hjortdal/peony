@@ -1422,6 +1422,138 @@ mut:
 	images       ?[]ImageCreateRequestHygienised
 }
 
+fn (p ProductCreateRequestHygienised) variants_reference_all_options() ! {
+	options := p.options or { return }
+	variants := p.variants or { return }
+
+	// each variant must reference all options
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		option_values := variant.option_values or {
+			return new_error_bad_request(error_field_empty, 'Each variant must reference all options with the option_values field')
+		}
+
+		if option_values.len != options.len {
+			return new_error_bad_request('option_values length does not match options length. Got ${option_values.len}, expected ${options.len}',
+				'Each variant must reference all options')
+		}
+	}
+}
+
+fn (p ProductCreateRequestHygienised) validate_no_orphan_option_values() ! {
+	variants := p.variants or { return }
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		option_values := variant.option_values or { continue }
+		if option_values.len == 0 {
+			continue
+		}
+
+		options := p.options or {
+			return new_error_bad_request(error_field_empty, 'option_values cannot be provided because no options are defined')
+		}
+
+		if options.len == 0 {
+			return new_error_bad_request(error_field_empty, 'option_values cannot be provided because the options list is empty')
+		}
+	}
+}
+
+// the request could contain one variant and no options, in which case a default option is created.
+// the request may contain one variant and one option. In this case, references must be verified.
+fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
+	variants := p.variants or { return }
+	if variants.len != 1 {
+		return
+	}
+
+	variant := variants[0]
+	options := p.options or { return }
+	if options.len == 0 {
+		return
+	}
+
+	option_values := variant.option_values or {
+		return new_error_bad_request(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+	}
+
+	for option_index := 0; option_index < option_values.len; option_index++ {
+		option := options[option_index]
+		value_index := option_values[option_index]
+		max_value_index := option.values.len - 1
+		if value_index < 0 {
+			return new_error_bad_request('Invalid value index.', 'An index cannot be a negative integer')
+		}
+
+		if value_index > max_value_index {
+			return new_error_bad_request('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
+				'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
+		}
+	}
+}
+
+fn (p ProductCreateRequestHygienised) validate_many_variants_case() ! {
+	variants := p.variants or { return }
+	if variants.len < 2 {
+		return
+	}
+
+	options := p.options or {
+		return new_error_bad_request(error_field_empty, 'Empty `options` field not allowed: an option must be created in order to create variants')
+	}
+
+	// There cannot be more variants than combinations of option values
+	mut possible_combinations := 1
+	for i := 0; i < options.len; i++ {
+		option := options[i]
+		possible_combinations *= option.values.len
+	}
+
+	if variants.len > possible_combinations {
+		return new_error_bad_request('too_many_variants', 'Provided ${variants.len} variants but there can only be ${possible_combinations} possible combinations with the provided options and values.')
+	}
+
+	mut seen_combinations := map[string]bool{}
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		option_values := variant.option_values or {
+			return new_error_bad_request(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+		}
+
+		if option_values.len != options.len {
+			return new_error_bad_request('option_values contains too few or too many entries. Got ${option_values.len}, expected ${options.len}',
+				'Each variant must reference all options')
+		}
+
+		mut combination := ''
+		for option_index := 0; option_index < option_values.len; option_index++ {
+			option := options[option_index]
+			value_index := option_values[option_index]
+			max_value_index := option.values.len - 1
+			if value_index < 0 {
+				return new_error_bad_request('Invalid value index.', 'An index cannot be a negative integer')
+			}
+
+			if value_index > max_value_index {
+				return new_error_bad_request('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
+					'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
+			}
+
+			if option_index == 0 {
+				combination = '${value_index}'
+			} else {
+				combination = '${combination}-${value_index}'
+			}
+		}
+
+		if seen_combinations[combination] {
+			return new_error_bad_request('Duplicate variant.', '2 variants have the same option values')
+		}
+
+		seen_combinations[combination] = true
+	}
+}
+
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if p.title == '' {
 		return new_error_bad_request(error_field_empty, 'title')
@@ -1521,130 +1653,10 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		ph.images = h
 	}
 
-	// TODO move this validation to the top (use p)
-	if options := ph.options {
-		// If an option is provided, at least one value per option must also be provided
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-			if option.values.len == 0 {
-				return new_error_bad_request(error_field_empty, 'At least one value per option must be provided.')
-			}
-		}
-
-		// each variant must reference all options
-		if variants := ph.variants {
-			for i := 0; i < variants.len; i++ {
-				variant := variants[i]
-				option_values := variant.option_values or {
-					return new_error_bad_request(error_field_empty, 'Each variant must reference all options with the option_values field')
-				}
-
-				if option_values.len < options.len {
-					return new_error_bad_request('option_values contains less entries than expected. Got ${option_values.len}, expected ${options.len}',
-						'Each variant must reference all options')
-				}
-			}
-		}
-	}
-
-	// if variants are provided, references to options and values must be valid
-	if variants := ph.variants {
-		// the request could contain one variant and no options, in which case a default option is created.
-		// the request may contain one variant and one option. In this case, references must be verified.
-		if variants.len == 1 {
-			variant := variants[0]
-			if options := ph.options {
-				if options.len > 0 {
-					option_values := variant.option_values or {
-						return new_error_bad_request(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
-					}
-
-					for option_index := 0; option_index < option_values.len; option_index++ {
-						option := options[option_index]
-						value_index := option_values[option_index]
-						max_value_index := option.values.len - 1
-						if value_index < 0 {
-							return new_error_bad_request('Invalid value index.', 'An index cannot be a negative integer')
-						}
-
-						if value_index > max_value_index {
-							return new_error_bad_request('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
-								'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
-						}
-					}
-				}
-			}
-
-			if option_values := variant.option_values {
-				if options := ph.options {
-					if option_values.len > 0 && options.len == 0 {
-						return new_error_bad_request('options missing', 'option_values cannot reference non-existing options')
-					}
-				} else {
-					if option_values.len > 0 {
-						return new_error_bad_request('options missing', 'option_values cannot reference non-existing options')
-					}
-				}
-			}
-		}
-
-		if variants.len > 1 {
-			options := ph.options or {
-				return new_error_bad_request(error_field_empty, 'Empty `options` field not allowed: an option must be created in order to create variants')
-			}
-
-			// There cannot be more variants than combinations of option values
-			mut possible_combinations := 1
-			for i := 0; i < options.len; i++ {
-				option := options[i]
-				possible_combinations *= option.values.len
-			}
-
-			if variants.len > possible_combinations {
-				return new_error_bad_request('too_many_variants', 'Provided ${variants.len} variants but there can only be ${possible_combinations} possible combinations with the provided options and values.')
-			}
-
-			mut seen_combinations := map[string]bool{}
-			for i := 0; i < variants.len; i++ {
-				variant := variants[i]
-				option_values := variant.option_values or {
-					return new_error_bad_request(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
-				}
-
-				if option_values.len != options.len {
-					return new_error_bad_request('option_values contains too few or too many entries. Got ${option_values.len}, expected ${options.len}',
-						'Each variant must reference all options')
-				}
-
-				mut combination := ''
-				for option_index := 0; option_index < option_values.len; option_index++ {
-					option := options[option_index]
-					value_index := option_values[option_index]
-					max_value_index := option.values.len - 1
-					if value_index < 0 {
-						return new_error_bad_request('Invalid value index.', 'An index cannot be a negative integer')
-					}
-
-					if value_index > max_value_index {
-						return new_error_bad_request('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
-							'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
-					}
-
-					if option_index == 0 {
-						combination = '${value_index}'
-					} else {
-						combination = '${combination}-${value_index}'
-					}
-				}
-
-				if seen_combinations[combination] {
-					return new_error_bad_request('Duplicate variant.', '2 variants have the same option values')
-				}
-
-				seen_combinations[combination] = true
-			}
-		}
-	}
+	ph.variants_reference_all_options()!
+	ph.validate_no_orphan_option_values()!
+	ph.validate_one_variant_case()!
+	ph.validate_many_variants_case()!
 
 	return ph
 }
