@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_product_variants_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
@@ -76,10 +73,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 	_, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_product_variant_create(mut tx, product_id_bin, variant_id_bin, ph) or {
 		tx.rollback() or {}
@@ -125,10 +119,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin [
 }
 
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	if ph.title != none || ph.ean != none || ph.upc != none || ph.barcode != none {
 		model_product_variant_update(mut tx, variant_id_bin, ph) or {
@@ -172,10 +163,7 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 }
 
 fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin []u8, inventory_item_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_product_variant_delete(mut tx, variant_id_bin) or {
 		tx.rollback() or {}

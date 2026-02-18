@@ -1,7 +1,10 @@
 module peony
 
+import json
 import net.http
+import veb
 import einar_hjortdal.luuid
+import einar_hjortdal.firebird
 
 pub const min_fetch = i32(1)
 pub const max_fetch = i32(250)
@@ -21,6 +24,27 @@ const error_transaction_rollback = 'Failed to rollback transaction'
 const error_transaction_start = 'Failed to start transaction'
 
 const details_order_direction_invalid = 'order direction must either be ${order_direction_asc} or ${order_direction_desc}'
+
+fn id_string_to_bin(id_string string) ![]u8 {
+	return luuid.to_bytes(id_string)
+}
+
+fn id_bin_to_string(id_bin []u8) !string {
+	return luuid.from_bytes(id_bin)
+}
+
+fn (mut app App) new_id() (string, []u8) {
+	id_string := app.luuid_generator.v1().to_upper()
+	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
+	return id_string, id_bin
+}
+
+fn (mut app App) start_transaction() !&firebird.Transaction {
+	mut tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
+		return new_error_internal(error_transaction_start, err.msg())
+	}
+	return tx
+}
 
 // parse_bool returns true if the string represents a true bool, or false if the string represents a
 // false bool.
@@ -237,6 +261,21 @@ fn new_error_login() PeonyError {
 
 fn new_error_fetch_zero() PeonyError {
 	return new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
+}
+
+fn (mut ctx Context) handle_peony_error(error PeonyError) veb.Result {
+	ctx.res.set_status(error.status_code)
+	return ctx.json(json.encode(PeonyErrorResponse{
+		message: error.message
+		details: error.details
+	}))
+}
+
+fn (mut ctx Context) handle_error(error IError) veb.Result {
+	if error is PeonyError {
+		return ctx.handle_peony_error(error)
+	}
+	return ctx.handle_peony_error(new_error_internal('Unhandled error', error.msg()))
 }
 
 fn unwrap_option_or[T](option_type ?T, default_value T) T {

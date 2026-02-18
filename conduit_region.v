@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_region_list(mut app App, mut ctx Context, p RegionRetriveParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_region_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -58,10 +55,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 		fetch:        1
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_region_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -96,10 +90,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Resul
 }
 
 fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	_, region_id_bin := app.new_id()
 
@@ -118,10 +109,7 @@ fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) ve
 }
 
 fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionUpdateRequest) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_region_update(mut tx, region_id_bin, d) or {
 		tx.rollback() or {}
@@ -138,10 +126,7 @@ fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d Reg
 }
 
 fn conduit_region_delete(mut app App, mut ctx Context, region_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_region_delete(mut tx, region_id_bin) or {
 		tx.rollback() or {}

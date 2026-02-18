@@ -5,10 +5,7 @@ import veb
 
 // TODO split store/admin conduit to fetch only data required by the endpoint
 fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -119,10 +116,7 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 }
 
 fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -185,10 +179,7 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 }
 
 fn conduit_category_get_store(mut app App, mut ctx Context, locale_id string, p CategoryRetrieveParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_category_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -225,10 +216,7 @@ fn conduit_category_get_store(mut app App, mut ctx Context, locale_id string, p 
 fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateRequestHygienised) veb.Result {
 	category_id, category_id_bin := app.new_id()
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_category_create(mut tx, category_id, category_id_bin, ph) or {
 		tx.rollback() or {}
@@ -282,10 +270,7 @@ fn conduit_category_create(mut app App, mut ctx Context, ph CategoryCreateReques
 }
 
 fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, seo_id_bin []u8, ph CategoryUpdateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_category_update(mut tx, category_id_bin, ph) or {
 		tx.rollback() or {}
@@ -345,10 +330,7 @@ fn conduit_category_update(mut app App, mut ctx Context, category_id_bin []u8, s
 }
 
 fn conduit_category_delete(mut app App, mut ctx Context, category_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_category_delete(mut tx, category_id_bin) or {
 		tx.rollback() or {}

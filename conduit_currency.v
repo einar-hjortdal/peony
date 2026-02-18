@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_currency_list(mut app App, mut ctx Context, p RetrieveCurrenciesParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_currency_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -57,10 +54,7 @@ fn conduit_currency_get(mut app App, mut ctx Context, code string) veb.Result {
 		}
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_currency_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}

@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_country_get(mut app App, mut ctx Context, p ListCountriesParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	internal_countries, count := model_country_list(mut tx, p) or {
 		tx.rollback() or {}

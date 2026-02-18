@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_store_get(mut app App, mut ctx Context) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	mut store := model_store_retrieve(mut tx) or {
 		perr := new_error_internal('Failed to retrieve store', err.msg())
@@ -33,10 +30,7 @@ fn conduit_store_get(mut app App, mut ctx Context) veb.Result {
 }
 
 fn conduit_store_update(mut app App, mut ctx Context, store_id_bin []u8, ph StoreUpdateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	if ph.name != none || ph.default_locale_id != none || ph.default_region_id != none
 		|| ph.default_stock_location_id != none || ph.default_sales_channel_id != none {

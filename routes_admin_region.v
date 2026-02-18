@@ -81,10 +81,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		ids_bin: [region_id_bin]
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {} // ignore error

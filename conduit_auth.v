@@ -10,10 +10,7 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 		fetch:           1
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_user_list_count(mut tx, up) or {
 		tx.rollback() or {}

@@ -65,10 +65,7 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	seo := model_category_seo_retrieve(mut tx, [category_id_bin]) or {
 		tx.rollback() or {}

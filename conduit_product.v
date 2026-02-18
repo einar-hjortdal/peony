@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, images_to_create []ProductImageCreateParams, ph ProductCreateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_product_create(mut tx, p) or {
 		tx.rollback() or {}
@@ -112,7 +109,19 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 		}
 	}
 
-	_, variant_id_bin := app.new_id()
+	if options := ph.options {
+		// TODO call
+		// model_product_option_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
+		// model_product_option_translations_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
+		// model_product_option_value_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
+		// model_product_option_value_translations_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
+		// TODO return errors if bad params
+	} else {
+		// same calls as above but with generated default option and value
+		default_option := ProductOptionCreateParams{}
+		default_option_value := ProductOptionValueCreateParams{}
+	}
+
 	mut region_ids_bin := [][]u8{len: regions.len}
 	mut money_amount_ids_bin := [][]u8{len: regions.len}
 	for i := 0; i < regions.len; i++ {
@@ -120,44 +129,33 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 		_, money_amount_ids_bin[i] = app.new_id()
 	}
 
-	ma_p := VariantMoneyAmountCreateDefaultParams{
-		variant_id_bin:       variant_id_bin
-		region_ids_bin:       region_ids_bin
-		money_amount_ids_bin: money_amount_ids_bin
-	}
-
-	if product_options := ph.options {
-		model_variant_create_default_with_options(mut app, mut tx, p.product_id_bin, variant_id_bin,
-			product_options) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Failed to create default product_variant with provided options',
-				err.msg())
-			return ctx.handle_error(perr)
+	// If options are provided but no option_values exists
+	if variants := ph.variants {
+		mut variant_ids := []string{len: variants.len}
+		mut variant_ids_bin := [][]u8{len: variants.len}
+		for i := 0; i < variants.len; i++ {
+			variant_ids[i], variant_ids_bin[i] = app.new_id()
 		}
+
+		// TODO create variants
+		// TODO create variant relations to option values (product_option_value_product_variant table)
+		// Problem: option values ids are in above scope
+		// TODO create money amounts
 	} else {
-		_, option_id_bin := app.new_id()
-		_, option_value_id_bin := app.new_id()
-		_, inventory_item_id_bin := app.new_id()
-		pv_p := VariantCreateDefaultParams{
-			product_id_bin:        p.product_id_bin
-			variant_id_bin:        variant_id_bin
-			option_id_bin:         option_id_bin
-			option_value_id_bin:   option_value_id_bin
-			inventory_item_id_bin: inventory_item_id_bin
-		}
-
-		model_variant_create_default(mut tx, pv_p) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Failed to create default product_variant', err.msg())
-			return ctx.handle_error(perr)
+		if options := ph.options {
+			// TODO use first option and value
+			// Problem: ids are in above scope
+		} else {
+			// TODO use default option and value
+			// Problem: ids are in above scope
 		}
 	}
 
-	model_product_variant_money_amount_create_default(mut tx, ma_p) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Failed to create default money_amount', err.msg())
-		return ctx.handle_error(perr)
-	}
+	// model_product_variant_money_amount_create_default(mut tx, ma_p) or {
+	// 	tx.rollback() or {}
+	// 	perr := new_error_internal('Failed to create default money_amount', err.msg())
+	// 	return ctx.handle_error(perr)
+	// }
 
 	tx.commit() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())
@@ -168,10 +166,7 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 }
 
 fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_product_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
@@ -236,10 +231,7 @@ fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsH
 }
 
 fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_product_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
@@ -343,10 +335,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 }
 
 fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
@@ -388,10 +377,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 }
 
 fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
@@ -468,10 +454,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 // TODO handle options
 // TODO handle variants
 fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, images_diff []ProductImageUpdateParams, p ProductUpdateParams, ph ProductUpdateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_product_update(mut tx, p) or {
 		tx.rollback() or {}
@@ -588,10 +571,7 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 }
 
 fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_product_delete(mut tx, product_id_bin) or {
 		tx.rollback() or {}

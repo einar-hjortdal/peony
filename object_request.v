@@ -1555,7 +1555,7 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 	variant := variants[0]
 	options := p.options or { return }
 	if options.len == 0 {
-		return
+		return new_error_unprocessable_entity(error_field_empty, 'options cannot be an empty array')
 	}
 
 	option_values := variant.option_values or {

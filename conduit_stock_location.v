@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_stock_location_list(mut app App, mut ctx Context, p StockLocationRetrieveParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	stock_locations := model_stock_location_retrieve(mut tx, p) or {
 		tx.rollback() or {}
@@ -36,10 +33,7 @@ fn conduit_stock_location_get(mut app App, mut ctx Context, stock_location_id_bi
 		ids_bin:      [stock_location_id_bin]
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	stock_locations := model_stock_location_retrieve(mut tx, p) or {
 		tx.rollback() or {}

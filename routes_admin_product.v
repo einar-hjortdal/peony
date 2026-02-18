@@ -32,10 +32,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	// generate handle from title if handle is not provided
 	mut handle := p.handle or { slugify.default().make(p.title) }
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	product_by_handle_count := model_product_retrieve_count(mut tx, RetrieveProductParamsHygienised{
 		handle: ZeroString{
@@ -219,10 +216,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	mut handle := ?string(none)
 	if new_handle := ph.handle {
@@ -404,10 +398,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		}
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 		tx.rollback() or {}
@@ -499,10 +490,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		}
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	if money_amounts := ph.money_amounts {
 		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
@@ -552,10 +540,7 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 		return ctx.handle_error(perr)
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	ph := RetrieveProductVariantParamsHygienised{
 		product_ids:     ZeroArrayString{

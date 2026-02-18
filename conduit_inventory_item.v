@@ -10,10 +10,7 @@ fn conduit_inventory_level_update(mut app App, mut ctx Context, inventory_item_i
 		stocked_quantity:      p.stocked_quantity
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_inventory_level_update(mut tx, mp) or {
 		tx.rollback() or {}

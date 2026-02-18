@@ -3,10 +3,7 @@ module peony
 import veb
 
 fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	user_id, user_id_bin := app.new_id()
 
@@ -30,10 +27,7 @@ fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Re
 }
 
 fn conduit_user_update(mut app App, mut ctx Context, user_id_bin []u8, p UserUpdateRequest) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	if image := p.image {
 		println('TODO update image: ${image}')
@@ -55,10 +49,7 @@ fn conduit_user_update(mut app App, mut ctx Context, user_id_bin []u8, p UserUpd
 }
 
 fn conduit_user_delete(mut app App, mut ctx Context, user_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	model_user_delete(mut tx, user_id_bin) or {
 		tx.rollback() or {}
@@ -76,10 +67,7 @@ fn conduit_user_delete(mut app App, mut ctx Context, user_id_bin []u8) veb.Resul
 }
 
 fn conduit_user_list(mut app App, mut ctx Context, p UserListParams) veb.Result {
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_user_list_count(mut tx, p) or {
 		tx.rollback() or {}
@@ -127,10 +115,7 @@ fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Re
 		fetch:        1
 	}
 
-	mut tx := app.start_transaction() or {
-		perr := new_error_internal(error_transaction_start, err.msg())
-		return ctx.handle_error(perr)
-	}
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_user_list_count(mut tx, p) or {
 		tx.rollback() or {}

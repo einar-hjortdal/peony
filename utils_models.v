@@ -1,6 +1,5 @@
 module peony
 
-import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
 pub const order_asc = 'ASC'
@@ -122,56 +121,6 @@ fn get_fetch_amount(zi32 ZeroI32) i32 {
 		return zi32.v
 	}
 	return max_fetch
-}
-
-fn (mut app App) start_transaction() !&firebird.Transaction {
-	return app.firebird.start_transaction(firebird.isolation_level_read_commited)!
-}
-
-fn id_string_to_bin(id_string string) ![]u8 {
-	return luuid.to_bytes(id_string)
-}
-
-fn id_bin_to_string(id_bin []u8) !string {
-	return luuid.from_bytes(id_bin)
-}
-
-fn (mut app App) new_id() (string, []u8) {
-	id_string := app.luuid_generator.v1().to_upper()
-	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
-	return id_string, id_bin
-}
-
-struct Firebird_ID {
-	is_null   bool
-	as_string string
-	as_bin    []u8
-}
-
-fn (mut app App) new_firebird_id() Firebird_ID {
-	id_string := app.luuid_generator.v1().to_upper()
-	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
-
-	return Firebird_ID{
-		as_string: id_string
-		as_bin:    id_bin
-	}
-}
-
-fn get_null_id(v firebird.Value) !Firebird_ID {
-	db_id := v.get_null_array_u8()!
-	if db_id.is_null {
-		return Firebird_ID{
-			is_null: true
-		}
-	}
-
-	id_bin := db_id.value
-	id_string := id_bin_to_string(id_bin)!
-	return Firebird_ID{
-		as_string: id_string
-		as_bin:    id_bin
-	}
 }
 
 // https://github.com/vlang/v/issues/24757
