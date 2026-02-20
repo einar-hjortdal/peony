@@ -129,7 +129,6 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 		_, money_amount_ids_bin[i] = app.new_id()
 	}
 
-	// If options are provided but no option_values exists
 	if variants := ph.variants {
 		mut variant_ids := []string{len: variants.len}
 		mut variant_ids_bin := [][]u8{len: variants.len}

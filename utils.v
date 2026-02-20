@@ -13,6 +13,7 @@ pub const default_offset = i32(0)
 const error_database_data_malformed = 'Data retrieved from database is malformed'
 const error_field_empty = 'Field cannot be empty'
 const error_field_too_long = 'Field too long'
+const error_field_explicit_empty = 'Field explicitly empty'
 const error_empty_object = 'Received all empty fields'
 const error_header_invalid = 'Invalid header'
 const error_header_missing = 'Missing header'

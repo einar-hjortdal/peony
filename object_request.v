@@ -746,6 +746,13 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 		inventory_item = ii.hygienise()!
 	}
 
+	// Reject creation of a variant with 0 option values
+	if option_values := p.option_values {
+		if option_values.len == 0 {
+			return new_error_unprocessable_entity(error_field_empty, 'A variant must reference at least one option')
+		}
+	}
+
 	mut ph := ProductVariantCreateRequestHygienised{
 		title:          p.title
 		ean:            p.ean
@@ -1359,12 +1366,18 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 //
 // ## options
 // Product options (e.g. size, color).
+// The array order is preserved.
+// An empty array is treated as an explicit empty value and rejected.
+// If omitted, peony creates a default option.
+// If provided, variants must also be provided.
 //
 // ## variants
 // The array order is preserved.
-// If variants is provided with one element and options is omitted, the default variant will be created according to the data of the provided element.
-// If variants is omitted and options is omitted, one default variant will be created using the default option and the default value.
-// If variants is omitted but options is provided, one default variant will be created utilizing the first option and its first value.
+// An empty array is treated as an explicit empty value and rejected.
+// All variants must reference all options.
+// All variants must have a unique combination of option values.
+// If omitted and options is omitted, one default variant will be created using the default option.
+// If one variant is provided and options is omitted, the default variant will be created according to the data of the provided element.
 //
 // ## thumbnail
 // Index of the thumbnail image within the `images` array.
@@ -1444,17 +1457,12 @@ fn (p ProductCreateRequestHygienised) validate_no_orphan_option_values() ! {
 	variants := p.variants or { return }
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
-		option_values := variant.option_values or { continue }
-		if option_values.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'option_values cannot be an empty array')
+		if variant.option_values == none {
+			continue
 		}
 
-		options := p.options or {
+		if p.options == none {
 			return new_error_unprocessable_entity(error_field_empty, 'option_values cannot be provided because no options are defined')
-		}
-
-		if options.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'option_values cannot be provided because the options list is empty')
 		}
 	}
 }
@@ -1554,9 +1562,6 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 
 	variant := variants[0]
 	options := p.options or { return }
-	if options.len == 0 {
-		return new_error_unprocessable_entity(error_field_empty, 'options cannot be an empty array')
-	}
 
 	option_values := variant.option_values or {
 		return new_error_unprocessable_entity(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
@@ -1579,53 +1584,71 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if p.title == '' {
-		return new_error_bad_request(error_field_empty, 'title')
+		return new_error_unprocessable_entity(error_field_empty, 'title')
 	}
 
 	if utf8_str_visible_length(p.title) > max_length_product_title {
-		return new_error_bad_request(error_field_too_long, 'title')
+		return new_error_unprocessable_entity(error_field_too_long, 'title')
 	}
 
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
-			return new_error_bad_request(error_field_too_long, 'subtitle')
+			return new_error_unprocessable_entity(error_field_too_long, 'subtitle')
 		}
 	}
 
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
-			return new_error_bad_request('thumbnail invalid', 'negative value')
+			return new_error_unprocessable_entity('thumbnail invalid', 'negative value')
 		}
 
 		if images := p.images {
 			if !(thumbnail < images.len) {
-				return new_error_bad_request('thumbnail invalid', 'index out of range')
+				return new_error_unprocessable_entity('thumbnail invalid', 'index out of range')
 			}
 		} else {
-			return new_error_bad_request('thumbnail invalid', 'images array not provided')
+			return new_error_unprocessable_entity('thumbnail invalid', 'images array not provided')
 		}
 	}
 
 	if status := p.status {
 		if !product_status_is_valid(status) {
-			return new_error_bad_request('status is invalid', status)
+			return new_error_unprocessable_entity('status is invalid', status)
 		}
 	}
 
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_error_bad_request(error_id_invalid, 'type_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'type_id')
 	}
 
 	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_error_bad_request(error_id_invalid, 'tag_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'tag_id')
 	}
 
 	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_error_bad_request(error_id_invalid, 'sales_channel_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
 	}
 
 	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_error_bad_request(error_id_invalid, 'category_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'category_id')
+	}
+
+	if options := p.options {
+		// Reject creation of a product with 0 options
+		if options.len == 0 {
+			return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one option.')
+		}
+
+		if p.variants == none {
+			return new_error_unprocessable_entity(error_field_empty, 'Variants must be provided when options are specified')
+		}
+	}
+
+	if variants := p.variants {
+		// Reject creation of a product with 0 variants
+		if variants.len == 0 {
+			return new_error_unprocessable_entity(error_field_explicit_empty, 'A product must have one at least one variant.')
+		}
 	}
 
 	mut ph := ProductCreateRequestHygienised{
