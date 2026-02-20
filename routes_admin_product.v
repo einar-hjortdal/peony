@@ -146,41 +146,11 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	// is this input validation? No -> move to conduit / change scope of route handlers
-	mut images_to_create := []ProductImageCreateParams{}
-	if images := ph.images {
-		images_to_create = []ProductImageCreateParams{len: images.len}
-		for i := 0; i < images.len; i++ {
-			image := images[i]
-			id, id_bin := app.new_id()
-			images_to_create[i] = ProductImageCreateParams{
-				id:           id
-				id_bin:       id_bin
-				url:          image.url
-				alt:          image.alt
-				image_rank:   i32(i)
-				translations: image.translations
-			}
-		}
+	conduit_product_create(mut app, mut ctx, product_id, product_id_bin, handle, ph) or {
+		return ctx.handle_error(err)
 	}
 
-	product_create_params := ProductCreateParams{
-		product_id:     product_id
-		product_id_bin: product_id_bin
-		title:          ph.title
-		subtitle:       string_value(ph.subtitle)
-		description:    string_value(ph.description)
-		handle:         handle
-		is_giftcard:    ph.is_giftcard
-		status:         ph.status
-		type_id:        string_value(ph.type_id)
-		type_id_bin:    ph.type_id_bin
-		discountable:   ph.discountable
-		metadata:       string_value(ph.metadata)
-	}
-
-	return conduit_product_create(mut app, mut ctx, product_create_params, images_to_create,
-		ph)
+	return ctx.handle_created()
 }
 
 // get a product by id

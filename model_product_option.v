@@ -173,6 +173,7 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, pr
 	return options
 }
 
+// TODO validate before running operation
 struct ProductOptionCreateParams {
 	id             string
 	id_bin         []u8
@@ -205,6 +206,7 @@ fn model_product_option_create(mut tx firebird.Transaction, p []ProductOptionCre
 	tx.execute(query, ...params)!
 }
 
+// TODO validate before running operation
 struct ProductOptionTranslationCreateParams {
 	product_option_id     string
 	product_option_id_bin []u8
@@ -235,6 +237,7 @@ fn model_product_option_translations_create(mut tx firebird.Transaction, p []Pro
 	tx.execute(query, ...params)!
 }
 
+// TODO validate before running operation
 struct ProductOptionValueCreateParams {
 	id_string     string
 	id_bin        []u8
@@ -266,6 +269,7 @@ fn model_product_option_value_create(mut tx firebird.Transaction, p []ProductOpt
 	tx.execute(query, ...params)!
 }
 
+// TODO validate before running operation
 struct ProductOptionValueTranslationCreateParams {
 	product_option_value_id     string
 	product_option_value_id_bin []u8

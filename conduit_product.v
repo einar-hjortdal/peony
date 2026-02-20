@@ -2,124 +2,274 @@ module peony
 
 import veb
 
-fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, images_to_create []ProductImageCreateParams, ph ProductCreateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+fn conduit_product_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, handle string, ph ProductCreateRequestHygienised) ! {
+	product_create_params := ProductCreateParams{
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		title:          ph.title
+		subtitle:       string_value(ph.subtitle)
+		description:    string_value(ph.description)
+		handle:         handle
+		is_giftcard:    ph.is_giftcard
+		status:         ph.status
+		type_id:        string_value(ph.type_id)
+		type_id_bin:    ph.type_id_bin
+		discountable:   ph.discountable
+		metadata:       string_value(ph.metadata)
+	}
 
-	model_product_create(mut tx, p) or {
+	mut tx := app.start_transaction()!
+
+	model_product_create(mut tx, product_create_params) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to create product', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to create product', err.msg())
 	}
 
 	_, seo_id_bin := app.new_id()
 	if seo := ph.seo {
-		model_product_seo_create(mut tx, seo_id_bin, p.product_id_bin, seo) or {
+		model_product_seo_create(mut tx, seo_id_bin, product_id_bin, seo) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to insert seo data', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to insert seo data', err.msg())
 		}
 
 		if translations := seo.translations {
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {}
-					perr := new_error_internal('Failed to insert seo_translations', err.msg())
-					return ctx.handle_error(perr)
+					return new_error_internal('Failed to insert seo_translations', err.msg())
 				}
 			}
 		}
 	} else {
-		model_product_seo_create_default(mut tx, seo_id_bin, p.product_id_bin) or {
+		model_product_seo_create_default(mut tx, seo_id_bin, product_id_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to create seo', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to create seo', err.msg())
 		}
 	}
 
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve store', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to retrieve store', err.msg())
 	}
 
 	// TODO potentially loop fetch if there are more than max_fetch regions (unlikely)
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{ fetch: max_fetch }) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve regions', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to retrieve regions', err.msg())
 	}
 
 	if _ := ph.tag_ids {
 		// TODO
 	}
 
-	if images_to_create.len > 0 {
-		model_product_images_create(mut tx, p.product_id_bin, images_to_create) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product thumbnail', err.msg())
-			return ctx.handle_error(perr)
+	if images := ph.images {
+		mut images_to_create := []ProductImageCreateParams{len: images.len}
+		for i := 0; i < images.len; i++ {
+			image := images[i]
+			id, id_bin := app.new_id()
+			images_to_create[i] = ProductImageCreateParams{
+				id:           id
+				id_bin:       id_bin
+				url:          image.url
+				alt:          image.alt
+				image_rank:   i32(i)
+				translations: image.translations
+			}
+		}
+
+		if images_to_create.len > 0 {
+			model_product_images_create(mut tx, product_id_bin, images_to_create) or {
+				tx.rollback() or {}
+				return new_error_internal('Failed to update product thumbnail', err.msg())
+			}
 		}
 	}
 
 	if thumbnail := ph.thumbnail {
-		model_product_thumbnail_update(mut tx, p.product_id_bin, thumbnail) or {
+		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product thumbnail', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product thumbnail', err.msg())
 		}
 	} else {
-		model_product_thumbnail_update(mut tx, p.product_id_bin, default_thumbnail) or {
+		model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product thumbnail', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product thumbnail', err.msg())
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
-		model_product_sales_channel_update(mut tx, p.product_id_bin, ph.sales_channel_ids_bin) or {
+		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product_sales_channel', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product_sales_channel', err.msg())
 		}
 	} else {
-		model_product_sales_channel_update(mut tx, p.product_id_bin, [
+		model_product_sales_channel_update(mut tx, product_id_bin, [
 			store.default_sales_channel_id_bin,
 		]) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product_sales_channel', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product_sales_channel', err.msg())
 		}
 	}
 
 	if _ := ph.category_ids {
-		model_category_product_update(mut tx, p.product_id_bin, ph.category_ids_bin) or {
+		model_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product category relation', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product category relation', err.msg())
 		}
 	}
 
 	if translations := ph.translations {
 		if translations.len > 0 {
-			model_product_translations_create(mut tx, p.product_id_bin, translations) or {
+			model_product_translations_create(mut tx, product_id_bin, translations) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Failed to update product translations', err.msg())
-				return ctx.handle_error(perr)
+				return new_error_internal('Failed to update product translations', err.msg())
 			}
 		}
 	}
 
+	mut options_to_create := []ProductOptionCreateParams{}
+	mut option_values_to_create := []ProductOptionValueCreateParams{}
 	if options := ph.options {
-		// TODO call
-		// model_product_option_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
-		// model_product_option_translations_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
-		// model_product_option_value_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
-		// model_product_option_value_translations_create(mut tx, TODO_params) or { tx.rollback() perr:=new_error_internal('',err.msg()) return ctx.handle_error(perr)}
-		// TODO return errors if bad params
+		options_to_create = []ProductOptionCreateParams{len: options.len}
+		mut n_option_values := 0
+		mut n_option_translations := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			option_id, option_id_bin := app.new_id()
+			options_to_create[i] = ProductOptionCreateParams{
+				id:             option_id
+				id_bin:         option_id_bin
+				product_id:     product_id
+				product_id_bin: product_id_bin
+				option_rank:    i
+				title:          option.title
+			}
+
+			n_option_values += option.values.len
+			if translations := option.translations {
+				n_option_translations += translations.len
+			}
+		}
+
+		model_product_option_create(mut tx, options_to_create) or {
+			tx.rollback() or {}
+			return new_error_internal('Failed to create product_option', err.msg())
+		}
+
+		option_values_to_create = []ProductOptionValueCreateParams{len: n_option_values}
+		mut values_added := 0
+		mut n_value_translations := 0
+		for i := 0; i < options.len; i++ {
+			values := options[i].values
+			option_id := options_to_create[i].id
+			option_id_bin := options_to_create[i].id_bin
+			for j := 0; j < values.len; j++ {
+				value := values[j]
+				value_id, value_id_bin := app.new_id()
+				option_values_to_create[values_added] = ProductOptionValueCreateParams{
+					id_string:     value_id
+					id_bin:        value_id_bin
+					option_id:     option_id
+					option_id_bin: option_id_bin
+					value_rank:    j
+					name:          value.name
+				}
+
+				values_added++
+				if translations := value.translations {
+					n_value_translations += translations.len
+				}
+			}
+		}
+
+		model_product_option_value_create(mut tx, option_values_to_create) or {
+			tx.rollback() or {}
+			return new_error_internal('Failed to create product_option_value', err.msg())
+		}
+
+		if n_option_translations > 0 {
+			mut translations_to_create := []ProductOptionTranslationCreateParams{len: n_option_translations}
+			mut translations_added := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				option_id := options_to_create[i].id
+				option_id_bin := options_to_create[i].id_bin
+				translations := option.translations or { continue }
+				for j := 0; j < translations.len; j++ {
+					translation := translations[j]
+					translations_to_create[translations_added] = ProductOptionTranslationCreateParams{
+						product_option_id:     option_id
+						product_option_id_bin: option_id_bin
+						locale_id:             translation.locale_id
+						locale_id_bin:         translation.locale_id_bin
+						title:                 translation.title
+					}
+					translations_added++
+				}
+			}
+
+			model_product_option_translations_create(mut tx, translations_to_create) or {
+				tx.rollback() or {}
+				return new_error_internal('Failed to create product_option_translations',
+					err.msg())
+			}
+		}
+
+		if n_value_translations > 0 {
+			mut translations_to_create := []ProductOptionValueTranslationCreateParams{len: n_value_translations}
+			mut values_processed := 0
+			mut translations_added := 0
+			for i := 0; i < options.len; i++ {
+				values := options[i].values
+				for j := 0; j < values.len; j++ {
+					value := values[j]
+					value_id := option_values_to_create[values_processed].id_string
+					value_id_bin := option_values_to_create[values_processed].id_bin
+					translations := value.translations or { continue }
+					for k := 0; k < translations.len; k++ {
+						translation := translations[k]
+						translations_to_create[translations_added] = ProductOptionValueTranslationCreateParams{
+							product_option_value_id:     value_id
+							product_option_value_id_bin: value_id_bin
+							locale_id:                   translation.locale_id
+							locale_id_bin:               translation.locale_id_bin
+							name:                        translation.name
+						}
+						translations_added++
+					}
+					values_processed++
+				}
+			}
+			model_product_option_value_translations_create(mut tx, translations_to_create) or {
+				tx.rollback() or {}
+				return new_error_internal('Failed to create product_option_value_translations',
+					err.msg())
+			}
+		}
 	} else {
-		// same calls as above but with generated default option and value
-		default_option := ProductOptionCreateParams{}
-		default_option_value := ProductOptionValueCreateParams{}
+		option_id, option_id_bin := app.new_id()
+		options_to_create = [
+			ProductOptionCreateParams{
+				id:             option_id
+				id_bin:         option_id_bin
+				product_id:     product_id
+				product_id_bin: product_id_bin
+				option_rank:    0
+				title:          option_default_title
+			},
+		]
+
+		option_value_id, option_value_id_bin := app.new_id()
+		option_values_to_create = [
+			ProductOptionValueCreateParams{
+				id_string:     option_value_id
+				id_bin:        option_value_id_bin
+				option_id:     option_id
+				option_id_bin: option_id_bin
+				value_rank:    0
+				name:          option_value_default_name
+			},
+		]
 	}
 
 	mut region_ids_bin := [][]u8{len: regions.len}
@@ -152,16 +302,11 @@ fn conduit_product_create(mut app App, mut ctx Context, p ProductCreateParams, i
 
 	// model_product_variant_money_amount_create_default(mut tx, ma_p) or {
 	// 	tx.rollback() or {}
-	// 	perr := new_error_internal('Failed to create default money_amount', err.msg())
+	// 	return new_error_internal('Failed to create default money_amount', err.msg())
 	// 	return ctx.handle_error(perr)
 	// }
 
-	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	return success(mut ctx)
+	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
 }
 
 fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
