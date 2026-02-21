@@ -69,13 +69,28 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	})
 }
 
-fn conduit_product_variant_create(mut app App, mut ctx Context, product_id_bin []u8, ph VariantCreateRequestHygienised) veb.Result {
-	_, variant_id_bin := app.new_id()
+fn conduit_product_variant_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph VariantCreateRequestHygienised) veb.Result {
+	variant_id, variant_id_bin := app.new_id()
 	_, inventory_item_id_bin := app.new_id()
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_product_variant_create(mut tx, product_id_bin, variant_id_bin, ph) or {
+	variant_to_create := VariantCreateParams{
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		variant_id:     variant_id
+		variant_id_bin: variant_id_bin
+		image_id:       '' // TODO
+		image_id_bin:   [] // TODO
+		title:          string_value(ph.title)
+		barcode:        string_value(ph.barcode)
+		ean:            string_value(ph.ean)
+		upc:            string_value(ph.upc)
+		metadata:       string_value(ph.metadata)
+		variant_rank:   0 // Explicit
+	}
+	variants_to_create := [variant_to_create]
+	model_variant_create(mut tx, variants_to_create) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not create product_variant', err.msg())
 		return ctx.handle_error(perr)
@@ -130,7 +145,7 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	}
 
 	if ph.option_value_ids_bin.len > 0 {
-		model_product_option_value_product_variant_update(mut tx, variant_id_bin, ph.option_value_ids_bin) or {
+		model_product_option_value_variant_update(mut tx, variant_id_bin, ph.option_value_ids_bin) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Could not update product_option_value', err.msg())
 			return ctx.handle_error(perr)

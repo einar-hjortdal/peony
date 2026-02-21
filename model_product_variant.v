@@ -168,36 +168,83 @@ fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, p
 	return model_product_variants_retrieve(mut tx, vph)
 }
 
-fn model_product_variant_create(mut tx firebird.Transaction, product_id_bin []u8, variant_id_bin []u8, ph VariantCreateRequestHygienised) ! {
-	mut columns := ['id', 'product_id']
-	mut params := [firebird.Value(variant_id_bin), product_id_bin]
-	if title := ph.title {
-		columns = arrays.concat(columns, 'title')
-		params = arrays.concat(params, title)
+struct VariantCreateParams {
+	product_id     string
+	product_id_bin []u8
+	variant_id     string
+	variant_id_bin []u8
+	image_id       string // TODO
+	image_id_bin   []u8
+	title          string
+	barcode        string
+	ean            string
+	upc            string
+	metadata       string
+	variant_rank   i32
+}
+
+// TODO validate struct fields
+fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! {
+	mut src := []string{len: p.len}
+	n_params := 9
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+
+	for i := 0; i < p.len; i++ {
+		v := p[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS image_id,
+			CAST(? AS VARCHAR(63)) AS title,
+			CAST(? AS VARCHAR(63)) AS barcode,
+			CAST(? AS VARCHAR(13)) AS ean,
+			CAST(? AS VARCHAR(12)) AS upc,
+			CAST(? AS INTEGER) AS variant_rank,
+			CAST(? AS BLOB SUB_TYPE TEXT) AS metadata
+			FROM RDB\$DATABASE'
+
+		params[i * n_params] = v.variant_id_bin
+		params[i * n_params + 1] = v.product_id_bin
+
+		if v.image_id_bin.len > 0 {
+			params[i * n_params + 2] = v.image_id_bin
+		}
+
+		if v.title != '' {
+			params[i * n_params + 3] = v.title
+		}
+
+		if v.barcode != '' {
+			params[i * n_params + 4] = v.barcode
+		}
+
+		if v.ean != '' {
+			params[i * n_params + 5] = v.ean
+		}
+
+		if v.upc != '' {
+			params[i * n_params + 6] = v.upc
+		}
+
+		params[i * n_params + 7] = v.variant_rank
+
+		if v.metadata != '' {
+			params[i * n_params + 8] = v.metadata
+		}
 	}
 
-	if barcode := ph.barcode {
-		columns = arrays.concat(columns, 'barcode')
-		params = arrays.concat(params, barcode)
-	}
-
-	if ean := ph.ean {
-		columns = arrays.concat(columns, 'ean')
-		params = arrays.concat(params, ean)
-	}
-
-	if upc := ph.upc {
-		columns = arrays.concat(columns, 'upc')
-		params = arrays.concat(params, upc)
-	}
-
-	if metadata := ph.metadata {
-		columns = arrays.concat(columns, 'metadata')
-		params = arrays.concat(params, metadata)
-	}
-
-	tx.execute('INSERT INTO product_variant (${get_columns(columns)}) 
-		VALUES (${get_placeholders(columns)})',
+	tx.execute('INSERT INTO product_variant
+		(
+			id,
+			product_id,
+			image_id,
+			title,
+			barcode,
+			ean,
+			upc,
+			variant_rank,
+			metadata
+		) (${get_merge_source(src)})',
 		...params)!
 }
 

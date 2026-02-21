@@ -400,7 +400,8 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_product_variant_create(mut app, mut ctx, product_id_bin, ph)
+	return conduit_product_variant_create(mut app, mut ctx, product_id, product_id_bin,
+		ph)
 }
 
 // retrieves a product_variant by its id

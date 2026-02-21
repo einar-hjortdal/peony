@@ -50,6 +50,36 @@ mut:
 	translations []ProductOptionValueTranslation
 }
 
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionValue {
+	data := tx.execute('SELECT id, option_id, name FROM product_option_value
+		WHERE option_id IN (${get_placeholders(product_option_ids_bin)})',
+		...workaround_24757(product_option_ids_bin))!
+
+	rows := data.rows()
+
+	mut product_option_values := []ProductOptionValue{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+
+		id_bin, _ := v[0].get_array_u8()!
+		option_id_bin, _ := v[1].get_array_u8()!
+		name, _ := v[2].get_string()!
+
+		id := id_bin_to_string(id_bin)!
+		option_id := id_bin_to_string(option_id_bin)!
+
+		product_option_values[i] = ProductOptionValue{
+			id:            id
+			id_bin:        id_bin
+			option_id:     option_id
+			option_id_bin: option_id_bin
+			name:          name
+		}
+	}
+
+	return product_option_values
+}
+
 struct ProductOptionValueUpdateParams {
 	name string
 }
@@ -372,16 +402,16 @@ fn model_product_option_value_product_variant_retrieve(mut tx firebird.Transacti
 	return product_option_value_product_variants
 }
 
-fn model_product_option_value_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, option_value_ids_bin [][]u8) ! {
+fn model_product_option_value_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, option_value_ids_bin [][]u8) ! {
 	tx.execute('DELETE FROM product_option_value_product_variant WHERE variant_id = ?',
 		variant_id_bin)!
 
 	mut src := []string{len: option_value_ids_bin.len}
 	mut params := []firebird.Value{len: option_value_ids_bin.len * 2, init: firebird.Null{}}
-	for i := 0; i < variant_id_bin.len; i++ {
+	for i := 0; i < option_value_ids_bin.len; i++ {
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS option_value_id,
-			CAST(? AS BINARY(16)) AS variant_id,
+			CAST(? AS BINARY(16)) AS variant_id
 			FROM RDB\$DATABASE'
 		params[i * 2] = option_value_ids_bin[i]
 		params[i * 2 + 1] = variant_id_bin

@@ -280,23 +280,61 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 	}
 
 	if variants := ph.variants {
-		mut variant_ids := []string{len: variants.len}
-		mut variant_ids_bin := [][]u8{len: variants.len}
+		mut variants_to_create := []VariantCreateParams{len: variants.len}
 		for i := 0; i < variants.len; i++ {
-			variant_ids[i], variant_ids_bin[i] = app.new_id()
+			variant := variants[i]
+			variant_id, variant_id_bin := app.new_id()
+			variants_to_create[i] = VariantCreateParams{
+				product_id:     product_id
+				product_id_bin: product_id_bin
+				variant_id:     variant_id
+				variant_id_bin: variant_id_bin
+				image_id:       '' // TODO
+				image_id_bin:   [] // TODO
+				title:          string_value(variant.title)
+				barcode:        string_value(variant.barcode)
+				ean:            string_value(variant.ean)
+				upc:            string_value(variant.upc)
+				metadata:       string_value(variant.metadata)
+				variant_rank:   i
+			}
 		}
 
-		// TODO create variants
+		model_variant_create(mut tx, variants_to_create) or {
+			if err is PeonyError {
+				return err
+			}
+			return new_error_internal('Could not create default variant', err.msg())
+		}
+
 		// TODO create variant relations to option values (product_option_value_product_variant table)
-		// Problem: option values ids are in above scope
-		// TODO create money amounts
+		// Problem: we have option value ids, but we need them as in an array to parse the index
+		// TODO create inventory item, money amounts
 	} else {
-		if options := ph.options {
-			// TODO use first option and value
-			// Problem: ids are in above scope
-		} else {
-			// TODO use default option and value
-			// Problem: ids are in above scope
+		variant_id, variant_id_bin := app.new_id()
+		variant_to_create := VariantCreateParams{
+			product_id:     product_id
+			product_id_bin: product_id_bin
+			variant_id:     variant_id
+			variant_id_bin: variant_id_bin
+			title:          variant_default_title
+		}
+		variants_to_create := [variant_to_create]
+		model_variant_create(mut tx, variants_to_create) or {
+			if err is PeonyError {
+				return err
+			}
+			return new_error_internal('Could not create default variant', err.msg())
+		}
+
+		default_option_value := option_values_to_create[0]
+		option_value_ids_bin := [default_option_value.id_bin]
+		model_product_option_value_variant_update(mut tx, variant_id_bin, option_value_ids_bin) or {
+			if err is PeonyError {
+				return err
+			}
+			return new_error_internal('Could not associate new variant to the new default option_value',
+				err.msg())
 		}
 	}
 
