@@ -259,6 +259,11 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 			},
 		]
 
+		model_product_option_create(mut tx, options_to_create) or {
+			tx.rollback() or {}
+			return new_error_internal('Failed to create product_option', err.msg())
+		}
+
 		option_value_id, option_value_id_bin := app.new_id()
 		option_values_to_create = [
 			ProductOptionValueCreateParams{
@@ -270,6 +275,11 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				name:          option_value_default_name
 			},
 		]
+
+		model_product_option_value_create(mut tx, option_values_to_create) or {
+			tx.rollback() or {}
+			return new_error_internal('Failed to create product_option_value', err.msg())
+		}
 	}
 
 	mut region_ids_bin := [][]u8{len: regions.len}
