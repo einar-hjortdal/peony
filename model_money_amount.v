@@ -1,6 +1,5 @@
 module peony
 
-import log
 import einar_hjortdal.firebird
 
 const default_money_amount = i32(0)
@@ -70,118 +69,76 @@ fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_
 	return variant_money_amounts
 }
 
-struct VariantMoneyAmountCreateDefaultParams {
-	variant_id_bin       []u8
-	region_ids_bin       [][]u8
-	money_amount_ids_bin [][]u8
+struct VariantMoneyAmountUpdateParams {
+	variant_id          string
+	variant_id_bin      []u8
+	region_id           string
+	region_id_bin       []u8
+	money_amount_id     string
+	money_amount_id_bin []u8
+	amount              i32
+	is_original         bool
 }
 
-fn model_product_variant_money_amount_create_default(mut tx firebird.Transaction, p VariantMoneyAmountCreateDefaultParams) ! {
-	log.debug('Creating default money_amount entries')
-	mut src := []string{len: p.region_ids_bin.len}
-	mut params := []firebird.Value{len: p.region_ids_bin.len * 3, init: firebird.Null{}}
-	for i := 0; i < p.region_ids_bin.len; i++ {
-		region_id_bin := p.region_ids_bin[i]
-		money_amount_id_bin := p.money_amount_ids_bin[i]
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS id,
-			CAST(? AS BINARY(16)) AS region_id,
-			CAST(? AS INTEGER) AS amount
-			FROM RDB\$DATABASE'
-		params[i * 3] = money_amount_id_bin
-		params[i * 3 + 1] = region_id_bin
-		params[i * 3 + 2] = default_money_amount
+fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMoneyAmountUpdateParams) ! {
+	// deduplicate variant ids
+	mut variant_ids_map := map[string][]u8{}
+	for i := 0; i < p.len; i++ {
+		variant_id := p[i].variant_id
+		variant_id_bin := p[i].variant_id_bin
+		variant_ids_map[variant_id] = variant_id_bin
 	}
 
-	tx.execute('INSERT INTO money_amount (id, region_id, amount) ${get_merge_source(src)}',
-		...params)!
-
-	log.debug('Creating relations in the product_variant_money_amount table')
-	params = []firebird.Value{len: p.money_amount_ids_bin.len * 2, init: firebird.Null{}}
-	for i := 0; i < p.money_amount_ids_bin.len; i++ {
-		money_amount_id_bin := p.money_amount_ids_bin[i]
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS variant_id,
-			CAST(? AS BINARY(16)) AS money_amount_id
-			FROM RDB\$DATABASE'
-		params[i * 2] = p.variant_id_bin
-		params[i * 2 + 1] = money_amount_id_bin
+	mut variant_ids_bin := [][]u8{len: variant_ids_map.len}
+	mut idx := 0
+	for _, id_bin in variant_ids_map {
+		variant_ids_bin[idx] = id_bin
+		idx++
 	}
 
-	tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)
-		${get_merge_source(src)}',
-		...params)!
-}
-
-// money_amount that are related to a price_list are left untouched.
-fn model_product_variant_money_amount_update(mut app App, mut tx firebird.Transaction, variant_id_bin []u8, ph []VariantMoneyAmountRequestHygienised) ! {
-	mut money_amount_ids_bin := [][]u8{len: ph.len}
-	for i := 0; i < ph.len; i++ {
-		_, id_bin := app.new_id()
-		money_amount_ids_bin[i] = id_bin
-	}
-
+	// delete all related money amount first
 	tx.execute('DELETE FROM money_amount
 		WHERE price_list_id IS NULL
 		AND id IN (
 			SELECT money_amount_id
 			FROM product_variant_money_amount
-			WHERE variant_id = ?
+			WHERE variant_id IN (${get_placeholders(variant_ids_bin)})
 		)',
-		variant_id_bin)!
+		...workaround_24757(variant_ids_bin))!
 
-	if ph.len == 0 {
-		return
-	}
-
-	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 4, init: firebird.Null{}}
-	for i := 0; i < ph.len; i++ {
+	mut n_params := 4
+	mut src := []string{len: p.len}
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
 		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) as id,
-			CAST(? AS INTEGER) as amount,
-			CAST(? AS BINARY(16)) as region_id,
-			CAST(? AS BOOLEAN) as is_original
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS region_id,
+			CAST(? AS BOOLEAN) AS is_original,
+			CAST(? AS INTEGER) AS amount
 			FROM RDB\$DATABASE'
-		params[i * 5] = money_amount_ids_bin[i]
-		params[i * 5 + 1] = ph[i].amount
-		params[i * 5 + 2] = ph[i].region_id_bin
 
-		if is_original := ph[i].is_original {
-			params[i * 5 + 3] = is_original
-		} else {
-			params[i * 5 + 3] = false
-		}
+		params[i * n_params] = p[i].money_amount_id_bin
+		params[i * n_params + 1] = p[i].region_id_bin
+		params[i * n_params + 2] = p[i].is_original
+		params[i * n_params + 3] = p[i].amount
 	}
 
-	tx.execute('INSERT INTO money_amount (id, amount, region_id, is_original)
-		${get_merge_source(src)}',
+	tx.execute('INSERT INTO money_amount (id, region_id, is_original, amount) ${get_merge_source(src)}',
 		...params)!
 
-	src = []string{len: money_amount_ids_bin.len}
-	params = []firebird.Value{len: money_amount_ids_bin.len * 2, init: firebird.Null{}}
-	for i := 0; i < money_amount_ids_bin.len; i++ {
+	n_params = 2
+	params = []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
 		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) as variant_id,
-			CAST(? AS BINARY(16)) as money_amount_id
+			CAST(? AS BINARY(16)) AS variant_id,
+			CAST(? AS BINARY(16)) AS money_amount_id
 			FROM RDB\$DATABASE'
-		params[i * 2] = variant_id_bin
-		params[i * 2 + 1] = money_amount_ids_bin[i]
+
+		params[i * n_params] = p[i].variant_id_bin
+		params[i * n_params + 1] = p[i].money_amount_id_bin
 	}
 
 	tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)
 		${get_merge_source(src)}',
 		...params)!
 }
-
-// TODO price-list money_amounts
-// fn model_price_list_money_amount_update(price_list_id []u8, []PriceListMoneyAmountRequestHygienised) ! {
-// 	tx.execute('DELETE FROM money_amount
-// 		WHERE price_list_id = ?
-// 		AND id IN (
-// 			SELECT money_amount_id
-// 			FROM product_variant_money_amount
-// 			WHERE variant_id IN (?, ?)
-// 		)',
-// 		price_list_id)!
-// }

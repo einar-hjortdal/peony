@@ -113,16 +113,10 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id strin
 		}
 	}
 
-	if money_amounts := ph.money_amounts {
-		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
-			tx.rollback() or {} // ignore error			
-			perr := new_error_internal('Could not update product_variant_money_amount',
-				err.msg())
-			return ctx.handle_error(perr)
-		}
+	if _ := ph.money_amounts {
+		// TODO	update variant money amounts
 	} else {
-		// TODO
-		// model_product_variant_money_amount_create_default(mut tx...)
+		// TODO	create default variant money amounts
 	}
 
 	tx.commit() or {
@@ -160,13 +154,8 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 		}
 	}
 
-	if money_amounts := ph.money_amounts {
-		model_product_variant_money_amount_update(mut app, mut tx, variant_id_bin, money_amounts) or {
-			tx.rollback() or {} // ignore error			
-			perr := new_error_internal('Could not update product_variant_money_amount',
-				err.msg())
-			return ctx.handle_error(perr)
-		}
+	if _ := ph.money_amounts {
+		// TODO	update variant money amounts
 	}
 
 	tx.commit() or {

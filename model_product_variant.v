@@ -28,10 +28,6 @@ mut:
 	option_values  []ProductOptionValue
 }
 
-struct VariantCreateDefaultWithOptionsParams {
-	// TODO
-}
-
 fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygienised) (string, []firebird.Value) {
 	mut params := []firebird.Value{}
 	mut conditions := []string{}

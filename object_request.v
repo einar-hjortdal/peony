@@ -673,10 +673,10 @@ pub:
 //
 // ## money_amounts
 // Array of region money amounts for this variant.
-// When provided:
-// - For each region, there must be at least one money amount with is_original set to false or omitted (the base price).
+// If omitted, a base price of 0 will be created for each region.
+// If provided:
+// - For each region, there must be exactly one money amount with is_original set to false or omitted (the base price).
 // - For each region, there may be at most one money amount with is_original set to true (the original price).
-// - If a previously stored original price for a region is not included, that original price will be removed.
 struct ProductVariantCreateRequest {
 pub:
 	title          ?string
@@ -1433,6 +1433,74 @@ mut:
 	variants     ?[]ProductVariantCreateRequestHygienised
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageCreateRequestHygienised
+}
+
+// assumes validation has been done (one base price per region, at most one original price per region)
+// WIP: I am not sure this is a good idea. I want the conduit function to be easier to understand and have less logic, but I do not like this method
+fn (p ProductCreateRequestHygienised) get_variant_money_amount_update_params(mut app App, regions []Region) []VariantMoneyAmountUpdateParams {
+	variants := p.variants or {
+		// default variant needs one base price per region
+		mut res := []VariantMoneyAmountUpdateParams{len: regions.len}
+		for i := 0; i < regions.len; i++ {
+			money_amount_id, money_amount_id_bin := app.new_id()
+			res[i] = VariantMoneyAmountUpdateParams{
+				money_amount_id:     money_amount_id
+				money_amount_id_bin: money_amount_id_bin
+				region_id:           regions[i].id
+				region_id_bin:       regions[i].id_bin
+				is_original:         false
+				amount:              default_money_amount
+			}
+		}
+		return res
+	}
+
+	mut n_money_amounts := 0
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		mut to_add := regions.len
+		money_amounts := variant.money_amounts or {
+			n_money_amounts += to_add
+			continue
+		}
+
+		for j := 0; j < money_amounts.len; j++ {
+			money_amount := money_amounts[j]
+			is_original := money_amount.is_original or { continue }
+			if is_original {
+				to_add++
+			}
+		}
+		n_money_amounts += to_add
+	}
+
+	mut res := []VariantMoneyAmountUpdateParams{len: n_money_amounts}
+	mut added_money_amounts := 0
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		money_amounts := variant.money_amounts or {
+			for j := 0; j < regions.len; j++ {
+				region := regions[j]
+				money_amount_id, money_amount_id_bin := app.new_id()
+				res[added_money_amounts] = VariantMoneyAmountUpdateParams{
+					money_amount_id:     money_amount_id
+					money_amount_id_bin: money_amount_id_bin
+					region_id:           region.id
+					region_id_bin:       region.id_bin
+					is_original:         false
+					amount:              default_money_amount
+				}
+				added_money_amounts++
+			}
+			continue
+		}
+
+		for j := 0; j < money_amounts.len; j++ {
+			res[added_money_amounts] = VariantMoneyAmountUpdateParams{}
+			added_money_amounts++
+		}
+	}
+	return res
 }
 
 fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() ! {

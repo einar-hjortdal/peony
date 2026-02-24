@@ -304,7 +304,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		mut variant_ids_bin := [][]u8{len: variants.len}
 		mut variants_to_create := []VariantCreateParams{len: variants.len}
 		mut option_value_ids_bin := [][][]u8{len: variants.len}
-		mut money_amounts := '' // TODO
 		mut inventory_items := '' // TODO
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
@@ -346,11 +345,12 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				option_value_ids_bin[i][j] = value_id_bin
 			}
 
-			if money_amount := variant.money_amounts {
+			if money_amounts := variant.money_amounts {
 			}
 
-			if inventory_item := variant.inventory_item {
-			}
+			// TODO
+			// if inventory_item := variant.inventory_item {
+			// }
 		}
 
 		model_variant_create(mut tx, variants_to_create) or {
@@ -363,7 +363,11 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				err.msg())
 		}
 
-		// TODO create inventory item, money amounts
+		// model_variant_money_amount_update(mut tx, variant_money_amounts_to_create) or {
+		// 	return new_error_internal('Failed to create variant money_amount', err.msg())
+		// }
+
+		// TODO create inventory item
 	} else {
 		variant_id, variant_id_bin := app.new_id()
 		variant_to_create := VariantCreateParams{
