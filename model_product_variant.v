@@ -287,5 +287,3 @@ fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8
 	tx.execute('UPDATE product_variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		variant_id_bin)!
 }
-
-fn model_product_variant_product_option_value_update(mut tx firebird.Transaction)

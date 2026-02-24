@@ -402,22 +402,55 @@ fn model_product_option_value_product_variant_retrieve(mut tx firebird.Transacti
 	return product_option_value_product_variants
 }
 
-fn model_product_option_value_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, option_value_ids_bin [][]u8) ! {
-	tx.execute('DELETE FROM product_option_value_product_variant WHERE variant_id = ?',
-		variant_id_bin)!
+// TODO check no empty variants id array
+// TODO check no empty array in option_value_ids_bin
+fn model_product_option_value_variants_update(mut tx firebird.Transaction, variant_ids_bin [][]u8, option_value_ids_bin [][][]u8) ! {
+	if variant_ids_bin.len != option_value_ids_bin.len {
+		return error('Number of variants does not match number of option_value arrays. got ${variant_ids_bin.len} variants and ${option_value_ids_bin.len} option_value arrays')
+	}
 
-	mut src := []string{len: option_value_ids_bin.len}
-	mut params := []firebird.Value{len: option_value_ids_bin.len * 2, init: firebird.Null{}}
+	mut n_rows := 0
 	for i := 0; i < option_value_ids_bin.len; i++ {
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS option_value_id,
-			CAST(? AS BINARY(16)) AS variant_id
-			FROM RDB\$DATABASE'
-		params[i * 2] = option_value_ids_bin[i]
-		params[i * 2 + 1] = variant_id_bin
+		n_option_values := option_value_ids_bin[i].len
+		n_rows += n_option_values
+	}
+
+	if n_rows == 0 {
+		return error('variants have no option_values, 0 rows to insert in product_option_value_product_variant')
+	}
+
+	// delete all relations first
+	tx.execute('DELETE FROM product_option_value_product_variant WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
+		...workaround_24757(variant_ids_bin))!
+
+	// insert new relations
+	mut rows_prepared := 0
+	mut src := []string{len: n_rows}
+	mut params := []firebird.Value{len: n_rows * 2, init: firebird.Null{}}
+	for i := 0; i < variant_ids_bin.len; i++ {
+		variant_id_bin := variant_ids_bin[i]
+		value_ids_bin := option_value_ids_bin[i]
+		for j := 0; j < value_ids_bin.len; j++ {
+			value_id_bin := value_ids_bin[j]
+			src[rows_prepared] = 'SELECT
+				CAST(? AS BINARY(16)) AS option_value_id,
+				CAST(? AS BINARY(16)) AS variant_id
+				FROM RDB\$DATABASE'
+			params[rows_prepared * 2] = value_id_bin
+			params[rows_prepared * 2 + 1] = variant_id_bin
+
+			rows_prepared++
+		}
 	}
 
 	tx.execute('INSERT INTO product_option_value_product_variant (option_value_id, variant_id)
 		${get_merge_source(src)}',
 		...params)!
+}
+
+// updates one variant's option values
+fn model_product_option_value_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, value_ids_bin [][]u8) ! {
+	variant_ids_bin := [variant_id_bin]
+	option_value_ids_bin := [value_ids_bin]
+	return model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin)
 }

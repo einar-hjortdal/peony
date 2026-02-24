@@ -215,6 +215,12 @@ fn response_is_ok(r http.Response) ! {
 	}
 }
 
+fn is_created(r http.Response) ! {
+	if r.status_code != 201 {
+		return error('status ${r.status_code} (${r.status_msg}): ${r.body}')
+	}
+}
+
 fn extract_cookie_from_set_cookie(r http.Response) !string {
 	v := r.header.get(http.CommonHeader.set_cookie)!
 	return v.split(';')[0] // remove attributes
@@ -686,7 +692,7 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 		title: new_product_title
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	response_is_ok(response)!
+	is_created(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!

@@ -129,6 +129,7 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 
 	mut options_to_create := []ProductOptionCreateParams{}
 	mut option_values_to_create := []ProductOptionValueCreateParams{}
+	mut option_index_to_value_ids := map[int][][]u8{}
 	if options := ph.options {
 		options_to_create = []ProductOptionCreateParams{len: options.len}
 		mut n_option_values := 0
@@ -174,6 +175,13 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 					value_rank:    j
 					name:          value.name
 				}
+
+				// update map of option index to value ids
+				if j == 0 {
+					// initialize array with correct length
+					option_index_to_value_ids[i] = [][]u8{len: values.len}
+				}
+				option_index_to_value_ids[i][j] = value_id_bin
 
 				values_added++
 				if translations := value.translations {
@@ -280,6 +288,9 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 			tx.rollback() or {}
 			return new_error_internal('Failed to create product_option_value', err.msg())
 		}
+
+		option_index_to_value_ids[0] = [][]u8{len: 1}
+		option_index_to_value_ids[0][0] = option_value_id_bin
 	}
 
 	mut region_ids_bin := [][]u8{len: regions.len}
@@ -290,10 +301,15 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 	}
 
 	if variants := ph.variants {
+		mut variant_ids_bin := [][]u8{len: variants.len}
 		mut variants_to_create := []VariantCreateParams{len: variants.len}
+		mut option_value_ids_bin := [][][]u8{len: variants.len}
+		mut money_amounts := '' // TODO
+		mut inventory_items := '' // TODO
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			variant_id, variant_id_bin := app.new_id()
+			variant_ids_bin[i] = variant_id_bin
 			variants_to_create[i] = VariantCreateParams{
 				product_id:     product_id
 				product_id_bin: product_id_bin
@@ -308,17 +324,45 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				metadata:       string_value(variant.metadata)
 				variant_rank:   i
 			}
+
+			option_values := variant.option_values or {
+				if variants.len != 1 {
+					return new_error_internal('Could not create variants', 'Missing option_values and more than one variant is to be created')
+				}
+
+				default_value_id_bin := option_index_to_value_ids[0][0]
+				option_value_ids_bin[0][0] = default_value_id_bin
+				continue
+			}
+
+			for j := 0; j < option_values.len; j++ {
+				option_index := j
+				values_index := option_values[j]
+				value_id_bin := option_index_to_value_ids[option_index][values_index]
+				if j == 0 {
+					// initialize array
+					option_value_ids_bin[i] = [][]u8{len: options_to_create.len}
+				}
+				option_value_ids_bin[i][j] = value_id_bin
+			}
+
+			if money_amount := variant.money_amounts {
+			}
+
+			if inventory_item := variant.inventory_item {
+			}
 		}
 
 		model_variant_create(mut tx, variants_to_create) or {
-			if err is PeonyError {
-				return err
-			}
-			return new_error_internal('Could not create default variant', err.msg())
+			tx.rollback() or {}
+			return new_error_internal('Could not create variants', err.msg())
 		}
 
-		// TODO create variant relations to option values (product_option_value_product_variant table)
-		// Problem: we have option value ids, but we need them as in an array to parse the index
+		model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
+			return new_error_internal('Failed to create relations in product_option_value_product_variant',
+				err.msg())
+		}
+
 		// TODO create inventory item, money amounts
 	} else {
 		variant_id, variant_id_bin := app.new_id()
@@ -331,18 +375,12 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 		variants_to_create := [variant_to_create]
 		model_variant_create(mut tx, variants_to_create) or {
-			if err is PeonyError {
-				return err
-			}
 			return new_error_internal('Could not create default variant', err.msg())
 		}
 
 		default_option_value := option_values_to_create[0]
-		option_value_ids_bin := [default_option_value.id_bin]
-		model_product_option_value_variant_update(mut tx, variant_id_bin, option_value_ids_bin) or {
-			if err is PeonyError {
-				return err
-			}
+		value_ids_bin := [default_option_value.id_bin]
+		model_product_option_value_variant_update(mut tx, variant_id_bin, value_ids_bin) or {
 			return new_error_internal('Could not associate new variant to the new default option_value',
 				err.msg())
 		}
