@@ -304,7 +304,8 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		mut variant_ids_bin := [][]u8{len: variants.len}
 		mut variants_to_create := []VariantCreateParams{len: variants.len}
 		mut option_value_ids_bin := [][][]u8{len: variants.len}
-		mut inventory_items := '' // TODO
+		mut n_money_amounts := 0
+		// mut inventory_items := ''
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			variant_id, variant_id_bin := app.new_id()
@@ -346,6 +347,9 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 			}
 
 			if money_amounts := variant.money_amounts {
+				n_money_amounts += money_amounts.len
+			} else {
+				n_money_amounts += regions.len
 			}
 
 			// TODO
@@ -363,9 +367,52 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				err.msg())
 		}
 
-		// model_variant_money_amount_update(mut tx, variant_money_amounts_to_create) or {
-		// 	return new_error_internal('Failed to create variant money_amount', err.msg())
-		// }
+		mut money_amounts_to_create := []VariantMoneyAmountUpdateParams{len: n_money_amounts}
+		mut money_amounts_added := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			variant_id := variants_to_create[i].variant_id
+			variant_id_bin := variants_to_create[i].variant_id_bin
+			money_amounts := variant.money_amounts or {
+				for j := 0; j < regions.len; j++ {
+					region := regions[j]
+					money_amount_id, money_amount_id_bin := app.new_id()
+					money_amounts_to_create[money_amounts_added] = VariantMoneyAmountUpdateParams{
+						variant_id:          variant_id
+						variant_id_bin:      variant_id_bin
+						region_id:           region.id
+						region_id_bin:       region.id_bin
+						money_amount_id:     money_amount_id
+						money_amount_id_bin: money_amount_id_bin
+						is_original:         false
+						amount:              default_money_amount
+					}
+					money_amounts_added++
+				}
+				continue
+			}
+
+			for j := 0; j < money_amounts.len; j++ {
+				money_amount := money_amounts[j]
+				money_amount_id, money_amount_id_bin := app.new_id()
+				is_original := money_amount.is_original or { false }
+				money_amounts_to_create[money_amounts_added] = VariantMoneyAmountUpdateParams{
+					variant_id:          variant_id
+					variant_id_bin:      variant_id_bin
+					region_id:           money_amount.region_id
+					region_id_bin:       money_amount.region_id_bin
+					money_amount_id:     money_amount_id
+					money_amount_id_bin: money_amount_id_bin
+					is_original:         is_original
+					amount:              money_amount.amount
+				}
+				money_amounts_added++
+			}
+		}
+
+		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
+			return new_error_internal('Failed to create variant money_amount', err.msg())
+		}
 
 		// TODO create inventory item
 	} else {
@@ -387,6 +434,26 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		model_product_option_value_variant_update(mut tx, variant_id_bin, value_ids_bin) or {
 			return new_error_internal('Could not associate new variant to the new default option_value',
 				err.msg())
+		}
+
+		mut money_amounts_to_create := []VariantMoneyAmountUpdateParams{len: regions.len}
+		for i := 0; i < regions.len; i++ {
+			region := regions[i]
+			money_amount_id, money_amount_id_bin := app.new_id()
+			money_amounts_to_create[i] = VariantMoneyAmountUpdateParams{
+				variant_id:          variant_id
+				variant_id_bin:      variant_id_bin
+				region_id:           region.id
+				region_id_bin:       region.id_bin
+				money_amount_id:     money_amount_id
+				money_amount_id_bin: money_amount_id_bin
+				is_original:         false
+				amount:              default_money_amount
+			}
+		}
+
+		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
+			return new_error_internal('Failed to create variant money_amount', err.msg())
 		}
 	}
 
