@@ -706,14 +706,6 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 
 fn admin_products_create_complex_product(cookie_value string) ! {
 	println('admin_products_create_complex_product')
-	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	response_is_ok(response)!
-	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
-	old_count := r.count
-	old_products_len := r.products.len
-	expected_count := old_count + 1
-	expected_products_len := old_products_len + 1
-
 	title := luuid.v2()
 	subtitle := luuid.v2()
 	description := luuid.v2()
@@ -752,47 +744,32 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 			},
 		]
 	}
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	is_created(response)!
-
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	response_is_ok(response)!
-	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
-	expect(r.count == expected_count, 'Count does not include the newly created product')!
-	expect(r.products.len == expected_products_len, 'Products returned do not include the newly created product: same length.')!
-
-	mut new_product := peony.ProductResponse{}
-	mut found := false
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.handle == handle {
-			new_product = product
-			found = true
-			break
-		}
-	}
-	expect(found, 'Products returned do not include the newly created product: product not found.')!
-	expect(new_product.id != '', 'Product is missing id')!
-	expect(new_product.title == title, 'title does not match')!
-	expect(new_product.subtitle == subtitle, 'subtitle does not match')!
-	expect(new_product.description == description, 'description does not match')!
-	expect(new_product.status == status, 'status does not match')!
-	expect(new_product.discountable == discountable, 'discountable does not match')!
-	expect(new_product.metadata == '"${metadata}"', 'metadata does not match')!
-	expect(new_product.seo.title == seo_title, 'seo_title does not match')!
-	expect(new_product.seo.description == seo_description, 'seo_description does not match')!
-	expect(new_product.thumbnail.id != '', 'thumbnail is missing id')!
-	expect(new_product.thumbnail.url == image_1_url, 'thumbnail url does not match')!
-	expect(new_product.thumbnail.alt == image_1_alt, 'thumbnail alt does not match')!
-	expect(new_product.images.len == 2, 'Missing images')!
-	image_0 := new_product.images[0]
-	image_1 := new_product.images[1]
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	created_product := r.product
+	expect(created_product.id != '', 'Product is missing id')!
+	expect(created_product.title == title, 'title does not match')!
+	expect(created_product.subtitle == subtitle, 'subtitle does not match')!
+	expect(created_product.description == description, 'description does not match')!
+	expect(created_product.status == status, 'status does not match')!
+	expect(created_product.discountable == discountable, 'discountable does not match')!
+	expect(created_product.metadata == '"${metadata}"', 'metadata does not match')!
+	expect(created_product.seo.title == seo_title, 'seo_title does not match')!
+	expect(created_product.seo.description == seo_description, 'seo_description does not match')!
+	expect(created_product.thumbnail.id != '', 'thumbnail is missing id')!
+	expect(created_product.thumbnail.url == image_1_url, 'thumbnail url does not match')!
+	expect(created_product.thumbnail.alt == image_1_alt, 'thumbnail alt does not match')!
+	expect(created_product.images.len == 2, 'Missing images')!
+	image_0 := created_product.images[0]
+	image_1 := created_product.images[1]
 	expect(image_0.url == image_0_url, 'image_0_url does not match')!
 	expect(image_0.alt == image_0_alt, 'image_0_alt does not match')!
 	expect(image_1.url == image_1_url, 'image_1_url does not match')!
 	expect(image_1.alt == image_1_alt, 'image_1_alt does not match')!
 
-	response = do_authenticated_delete_request('${endpoint_admin_products}/${new_product.id}',
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
 	response_is_ok(response)!
 }
@@ -806,18 +783,10 @@ fn handles_unique_product_handles(cookie_value string) ! {
 	}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(new_product_data))!
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
-	mut created_product := peony.ProductResponse{}
-	mut found := false
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.title == new_product_title {
-			created_product = product
-			found = true
-			break
-		}
-	}
+	is_created(response)!
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	mut created_product := r.product
+
 	expect(created_product.handle == created_product.title, 'product created with no explicit handle has a handle that does not match title')!
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
@@ -830,19 +799,13 @@ fn handles_unique_product_handles(cookie_value string) ! {
 		handle: new_product_handle
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
-	created_product = peony.ProductResponse{}
-	found = false
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.handle == new_product_handle {
-			created_product = product
-			found = true
-			break
-		}
-	}
-	expect(found, 'Created product has unexpected handle')!
+	is_created(response)!
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	created_product = r.product
+	expect(created_product.handle == new_product_handle, 'product created with explicit handle has a handle that does not match the given handle')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
+		cookie_value)!
 
 	// TODO create product with no specified handle and already existing
 	// TODO create product with specified handle and already existing
@@ -876,19 +839,8 @@ fn admin_products_updates_product(cookie_value string) ! {
 	}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(original_product_data))!
-
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
-
-	mut new_product := peony.ProductResponse{}
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.title == title {
-			new_product = product
-			break
-		}
-	}
-	new_product_id := new_product.id
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	new_product := r.product
 
 	new_title := luuid.v2()
 	new_subtitle := luuid.v2()
@@ -919,16 +871,10 @@ fn admin_products_updates_product(cookie_value string) ! {
 		cookie_value, updated_product_data)!
 	response_is_ok(response)!
 
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
-	mut updated_product := peony.ProductResponse{}
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.id == new_product.id {
-			updated_product = product
-			break
-		}
-	}
+	response = do_authenticated_get_request('${endpoint_admin_products}/${new_product.id}',
+		cookie_value)!
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	updated_product := r.product
 
 	expect(updated_product.id != '', 'Product is missing id')!
 	expect(updated_product.updated_at > new_product.updated_at, 'updated_at field was not updated')!
@@ -1431,6 +1377,8 @@ fn test_peony() ! {
 		admin_products_create_complex_product,
 		admin_products_updates_product,
 		admin_products_create_rejects_bad_requests,
+		// TODO test list products contains new products
+		// TODO test list products does not contain deleted products
 		admin_products_handles_product_images,
 		admin_handles_product_translations,
 		handles_unique_product_handles,
