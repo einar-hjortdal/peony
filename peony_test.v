@@ -669,7 +669,7 @@ fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 	new_category_data := peony.CategoryCreateRequest{}
 	response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		json.encode(new_category_data))!
-	expect(response.status_code == 400, 'Category was created despite having no name')!
+	expect(response.status_code == 422, 'Category was created despite having no name')!
 }
 
 // Verifies:
@@ -776,7 +776,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 		]
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	response_is_ok(response)!
+	is_created(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	response_is_ok(response)!
@@ -970,13 +970,13 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	mut new_product_data := peony.ProductCreateRequest{}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(new_product_data))!
-	expect(response.status_code == 400, 'Product was created despite having no title')!
+	expect(response.status_code == 422, 'Product was created despite having no title')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title: ''
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 400, 'Product was created despite request having empty title')!
+	expect(response.status_code == 422, 'Product was created despite request having empty title')!
 }
 
 fn get_category_translation(locale_id string, r peony.CategoryResponse) !peony.CategoryTranslationResponse {
@@ -1104,7 +1104,7 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 	}
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(original_product_data))!
-	response_is_ok(response)!
+	is_created(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
@@ -1350,7 +1350,7 @@ fn admin_handles_product_translations(cookie_value string) ! {
 
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(product_data))!
-	response_is_ok(response)!
+	is_created(response)!
 	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
 	product_r := json.decode(peony.ProductResponseListEnvelope, response.body)!
 	mut new_product := peony.ProductResponse{}
