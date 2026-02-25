@@ -302,12 +302,14 @@ fn (mut ctx Context) handle_error(error IError) veb.Result {
 	return ctx.handle_peony_error(new_error_internal('Unhandled error', error.msg()))
 }
 
-// TODO return created resource json
-fn (mut ctx Context) handle_created() veb.Result {
+fn (mut ctx Context) handle_ok[T](payload T) veb.Result {
+	ctx.res.set_status(http.Status.ok)
+	return ctx.json(payload)
+}
+
+fn (mut ctx Context) handle_created[T](payload T) veb.Result {
 	ctx.res.set_status(http.Status.created)
-	return ctx.json(PeonySuccess{
-		success: true
-	})
+	return ctx.json(payload)
 }
 
 fn unwrap_option_or[T](option_type ?T, default_value T) T {

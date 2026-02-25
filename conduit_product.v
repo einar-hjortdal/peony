@@ -2,14 +2,20 @@ module peony
 
 import veb
 
-fn conduit_product_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, handle string, ph ProductCreateRequestHygienised) ! {
+fn conduit_product_create(mut app App, mut ctx Context, handle string, handle_is_duplicate bool, ph ProductCreateRequestHygienised) !(string, []u8) {
+	product_id, product_id_bin := app.new_id()
+	mut unique_handle := handle
+	if handle_is_duplicate {
+		unique_handle = '${handle}-${product_id}'
+	}
+
 	product_create_params := ProductCreateParams{
 		product_id:     product_id
 		product_id_bin: product_id_bin
 		title:          ph.title
 		subtitle:       string_value(ph.subtitle)
 		description:    string_value(ph.description)
-		handle:         handle
+		handle:         unique_handle
 		is_giftcard:    ph.is_giftcard
 		status:         ph.status
 		type_id:        string_value(ph.type_id)
@@ -511,13 +517,8 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 	}
 
-	// model_product_variant_money_amount_create_default(mut tx, ma_p) or {
-	// 	tx.rollback() or {}
-	// 	return new_error_internal('Failed to create default money_amount', err.msg())
-	// 	return ctx.handle_error(perr)
-	// }
-
 	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
+	return product_id, product_id_bin
 }
 
 fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -689,31 +690,26 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	})
 }
 
-fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+fn conduit_product_get_by_id(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) !ProductResponse {
+	mut tx := app.start_transaction()!
 
 	products := model_product_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve products data', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to retrieve products data', err.msg())
 	}
 
 	if products.len == 0 {
 		tx.rollback() or {}
-		perr := new_error_not_found('No product exists with the given id', 'products.len == 0')
-		return ctx.handle_error(perr)
+		return new_error_not_found('No product exists with the given id', 'products.len == 0')
 	}
 
 	mut product := products[0]
 	mut product_data := suite_product_data_get(mut tx, [product.id_bin]) or {
 		tx.rollback() or {}
-		return ctx.handle_error(err)
+		return err
 	}
 
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
+	tx.rollback() or { return new_error_internal(error_transaction_rollback, err.msg()) }
 
 	assign_product_data(mut product_data, mut product)
 
@@ -726,9 +722,7 @@ fn conduit_products_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPa
 
 	external_product := format_product_response(product)
 
-	return ctx.json(ProductResponseEnvelope{
-		product: external_product
-	})
+	return external_product
 }
 
 fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {

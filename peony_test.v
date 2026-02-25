@@ -221,6 +221,12 @@ fn is_created(r http.Response) ! {
 	}
 }
 
+fn is_not_found(r http.Response) ! {
+	if r.status_code != 404 {
+		return error('status ${r.status_code} (${r.status_msg}): ${r.body}')
+	}
+}
+
 fn extract_cookie_from_set_cookie(r http.Response) !string {
 	v := r.header.get(http.CommonHeader.set_cookie)!
 	return v.split(';')[0] // remove attributes
@@ -679,52 +685,23 @@ fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 // Correctly lists deleted product
 fn admin_products_create_minimal_product(cookie_value string) ! {
 	println('admin_products_create_minimal_product')
-	mut response := do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	response_is_ok(response)!
-	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
-	old_count := r.count
-	old_products_len := r.products.len
-	expected_count := old_count + 1
-	expected_products_len := old_products_len + 1
-
 	new_product_title := luuid.v2()
 	new_product_data := peony.ProductCreateRequest{
 		title: new_product_title
 	}
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	is_created(response)!
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	created_product := r.product
 
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	response_is_ok(response)!
-	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
-	expect(r.count == expected_count, 'Count does not include newly created product: ${r.count}')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.products.len == expected_products_len, 'Products returned do not include newly created product: ${r.products.len}')!
-
-	mut product_to_delete := peony.ProductResponse{}
-	mut found := false
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.title == new_product_title {
-			product_to_delete = product
-			found = true
-			break
-		}
-	}
-	expect(found, 'Products returned do not include newly created product')!
-
-	response = do_authenticated_delete_request('${endpoint_admin_products}/${product_to_delete.id}',
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
 	response_is_ok(response)!
 
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	response_is_ok(response)!
-	r = json.decode(peony.ProductResponseListEnvelope, response.body)!
-	expect(r.count == old_count, 'Count includes deleted product')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.products.len == old_products_len, 'Products returned include deleted product')!
+	response = do_authenticated_get_request('${endpoint_admin_products}/${created_product.id}',
+		cookie_value)!
+	is_not_found(response)!
 }
 
 fn admin_products_create_complex_product(cookie_value string) ! {

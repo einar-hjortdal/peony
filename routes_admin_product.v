@@ -27,10 +27,9 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
 
-	product_id, product_id_bin := app.new_id()
-
 	// generate handle from title if handle is not provided
 	mut handle := p.handle or { slugify.default().make(p.title) }
+	mut handle_is_duplicate := false
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
@@ -46,7 +45,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	}
 
 	if product_by_handle_count > 0 {
-		handle = '${handle}-${product_id}'
+		handle_is_duplicate = true
 	}
 
 	store_locales := model_store_locales_retrieve(mut tx) or {
@@ -146,11 +145,21 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	conduit_product_create(mut app, mut ctx, product_id, product_id_bin, handle, ph) or {
-		return ctx.handle_error(err)
+	_, product_id_bin := conduit_product_create(mut app, mut ctx, handle, handle_is_duplicate,
+		ph) or { return ctx.handle_error(err) }
+
+	rp := RetrieveProductParamsHygienised{
+		ids:     ZeroArrayString{
+			is_set: true
+		}
+		ids_bin: [product_id_bin]
 	}
 
-	return ctx.handle_created()
+	product := conduit_product_get_by_id(mut app, mut ctx, rp) or { return ctx.handle_error(err) }
+
+	return ctx.handle_created(ProductResponseEnvelope{
+		product: product
+	})
 }
 
 // get a product by id
@@ -168,7 +177,11 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 		ids_bin: [product_id_bin]
 	}
 
-	return conduit_products_get_by_id(mut app, mut ctx, ph)
+	product := conduit_product_get_by_id(mut app, mut ctx, ph) or { return ctx.handle_error(err) }
+
+	return ctx.handle_ok(ProductResponseEnvelope{
+		product: product
+	})
 }
 
 // updates a product
