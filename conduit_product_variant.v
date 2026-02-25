@@ -97,20 +97,20 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id strin
 	}
 
 	if inventory_item := ph.inventory_item {
-		model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, inventory_item) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Could not create inventory_item for product_variant',
-				err.msg())
-			return ctx.handle_error(perr)
-		}
+		// model_inventory_item_create(mut tx) or {
+		// 	tx.rollback() or {}
+		// 	perr := new_error_internal('Could not create inventory_item for product_variant',
+		// 		err.msg())
+		// 	return ctx.handle_error(perr)
+		// }
 	} else {
 		// TODO create model_inventory_item_create_default
-		model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, InventoryItemCreateRequestHygienised{}) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Could not create inventory_item for product_variant',
-				err.msg())
-			return ctx.handle_error(perr)
-		}
+		// model_inventory_item_create(mut tx, inventory_item_id_bin, variant_id_bin, InventoryItemCreateRequestHygienised{}) or {
+		// 	tx.rollback() or {}
+		// 	perr := new_error_internal('Could not create inventory_item for product_variant',
+		// 		err.msg())
+		// 	return ctx.handle_error(perr)
+		// }
 	}
 
 	if _ := ph.money_amounts {

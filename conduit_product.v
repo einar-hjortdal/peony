@@ -305,7 +305,7 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		mut variants_to_create := []VariantCreateParams{len: variants.len}
 		mut option_value_ids_bin := [][][]u8{len: variants.len}
 		mut n_money_amounts := 0
-		// mut inventory_items := ''
+		mut inventory_items_to_create := []InventoryItemCreateParams{len: variants.len}
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			variant_id, variant_id_bin := app.new_id()
@@ -327,6 +327,7 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 
 			option_values := variant.option_values or {
 				if variants.len != 1 {
+					tx.rollback() or {}
 					return new_error_internal('Could not create variants', 'Missing option_values and more than one variant is to be created')
 				}
 
@@ -352,9 +353,37 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				n_money_amounts += regions.len
 			}
 
-			// TODO
-			// if inventory_item := variant.inventory_item {
-			// }
+			inventory_item_id, inventory_item_id_bin := app.new_id()
+			if inventory_item := variant.inventory_item {
+				inventory_items_to_create[i] = InventoryItemCreateParams{
+					id:                inventory_item_id
+					id_bin:            inventory_item_id_bin
+					variant_id:        variant_id
+					variant_id_bin:    variant_id_bin
+					sku:               string_value(inventory_item.sku)
+					origin_country:    string_value(inventory_item.origin_country)
+					hs_code:           string_value(inventory_item.hs_code)
+					mid_code:          string_value(inventory_item.mid_code)
+					material:          string_value(inventory_item.material)
+					weight:            i32_value(inventory_item.weight)
+					length:            i32_value(inventory_item.length)
+					height:            i32_value(inventory_item.height)
+					width:             i32_value(inventory_item.width)
+					requires_shipping: bool_or(inventory_item.requires_shipping, true)
+					manage_inventory:  bool_or(inventory_item.manage_inventory, true)
+					allow_backorder:   bool_or(inventory_item.allow_backorder, false)
+				}
+			} else {
+				inventory_items_to_create[i] = InventoryItemCreateParams{
+					id:                inventory_item_id
+					id_bin:            inventory_item_id_bin
+					variant_id:        variant_id
+					variant_id_bin:    variant_id_bin
+					requires_shipping: true
+					manage_inventory:  true
+					allow_backorder:   false
+				}
+			}
 		}
 
 		model_variant_create(mut tx, variants_to_create) or {
@@ -363,6 +392,7 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
+			tx.rollback() or {}
 			return new_error_internal('Failed to create relations in product_option_value_product_variant',
 				err.msg())
 		}
@@ -411,10 +441,14 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
+			tx.rollback() or {}
 			return new_error_internal('Failed to create variant money_amount', err.msg())
 		}
 
-		// TODO create inventory item
+		model_inventory_item_create(mut tx, inventory_items_to_create) or {
+			tx.rollback() or {}
+			return new_error_internal('Failed to create inventory_item', err.msg())
+		}
 	} else {
 		variant_id, variant_id_bin := app.new_id()
 		variant_to_create := VariantCreateParams{
@@ -426,13 +460,15 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 		variants_to_create := [variant_to_create]
 		model_variant_create(mut tx, variants_to_create) or {
+			tx.rollback() or {}
 			return new_error_internal('Could not create default variant', err.msg())
 		}
 
 		default_option_value := option_values_to_create[0]
 		value_ids_bin := [default_option_value.id_bin]
 		model_product_option_value_variant_update(mut tx, variant_id_bin, value_ids_bin) or {
-			return new_error_internal('Could not associate new variant to the new default option_value',
+			tx.rollback() or {}
+			return new_error_internal('Could not associate new default variant to the new default option_value',
 				err.msg())
 		}
 
@@ -453,7 +489,25 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
-			return new_error_internal('Failed to create variant money_amount', err.msg())
+			tx.rollback() or {}
+			return new_error_internal('Failed to create default variant money_amount',
+				err.msg())
+		}
+
+		inventory_item_id, inventory_item_id_bin := app.new_id()
+		inventory_item_to_create := InventoryItemCreateParams{
+			id:                inventory_item_id
+			id_bin:            inventory_item_id_bin
+			variant_id:        variant_id
+			variant_id_bin:    variant_id_bin
+			requires_shipping: true
+			manage_inventory:  true
+			allow_backorder:   false
+		}
+		inventory_items_to_create := [inventory_item_to_create]
+		model_inventory_item_create(mut tx, inventory_items_to_create) or {
+			tx.rollback() or {}
+			return new_error_internal('Failed to create default inventory_item', err.msg())
 		}
 	}
 

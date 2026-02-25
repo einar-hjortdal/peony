@@ -172,72 +172,112 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, product_variant_id
 	return inventory_items
 }
 
-fn model_inventory_item_create(mut tx firebird.Transaction, inventory_item_id_bin []u8, variant_id_bin []u8, p InventoryItemCreateRequestHygienised) ! {
-	mut columns := ['id', 'variant_id']
-	mut params := [firebird.Value(inventory_item_id_bin), variant_id_bin]
+struct InventoryItemCreateParams {
+	id                string
+	id_bin            []u8
+	variant_id        string
+	variant_id_bin    []u8
+	sku               string
+	origin_country    string
+	hs_code           string
+	mid_code          string
+	material          string
+	weight            i32
+	length            i32
+	height            i32
+	width             i32
+	requires_shipping bool
+	manage_inventory  bool
+	allow_backorder   bool
+}
 
-	if sku := p.sku {
-		columns = arrays.concat(columns, 'sku')
-		params = arrays.concat(params, sku)
+// TODO validate params
+fn model_inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCreateParams) ! {
+	mut src := []string{len: p.len}
+	n_params := p.len * 14
+	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
+
+	for i := 0; i < p.len; i++ {
+		item := p[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS variant_id,
+			CAST(? AS VARCHAR(63)) AS sku,
+			CAST(? AS CHAR(2)) AS origin_country,
+			CAST(? AS VARCHAR(63)) AS hs_code,
+			CAST(? AS VARCHAR(15)) AS mid_code,
+			CAST(? AS VARCHAR(191)) AS material,
+			CAST(? AS INTEGER) AS weight,
+			CAST(? AS INTEGER) AS length,
+			CAST(? AS INTEGER) AS height,
+			CAST(? AS INTEGER) AS width,
+			CAST(? AS BOOLEAN) AS requires_shipping,
+			CAST(? AS BOOLEAN) AS manage_inventory,
+			CAST(? AS BOOLEAN) AS allow_backorder
+			FROM RDB\$DATABASE'
+
+		params[i * n_params] = item.id_bin
+		params[i * n_params + 1] = item.variant_id_bin
+
+		if item.sku != '' {
+			params[i * n_params + 2] = item.sku
+		}
+
+		if item.origin_country != '' {
+			params[i * n_params + 3] = item.origin_country
+		}
+
+		if item.hs_code != '' {
+			params[i * n_params + 4] = item.hs_code
+		}
+
+		if item.mid_code != '' {
+			params[i * n_params + 5] = item.mid_code
+		}
+
+		if item.material != '' {
+			params[i * n_params + 6] = item.material
+		}
+
+		if item.weight != 0 {
+			params[i * n_params + 7] = item.weight
+		}
+
+		if item.length != 0 {
+			params[i * n_params + 8] = item.length
+		}
+
+		if item.height != 0 {
+			params[i * n_params + 9] = item.height
+		}
+
+		if item.width != 0 {
+			params[i * n_params + 10] = item.width
+		}
+
+		params[i * n_params + 11] = item.requires_shipping
+		params[i * n_params + 12] = item.manage_inventory
+		params[i * n_params + 13] = item.allow_backorder
 	}
 
-	if origin_country := p.origin_country {
-		columns = arrays.concat(columns, 'origin_country')
-		params = arrays.concat(params, origin_country)
-	}
-
-	if hs_code := p.hs_code {
-		columns = arrays.concat(columns, 'hs_code')
-		params = arrays.concat(params, hs_code)
-	}
-
-	if mid_code := p.mid_code {
-		columns = arrays.concat(columns, 'mid_code')
-		params = arrays.concat(params, mid_code)
-	}
-
-	if material := p.material {
-		columns = arrays.concat(columns, 'material')
-		params = arrays.concat(params, material)
-	}
-
-	if weight := p.weight {
-		columns = arrays.concat(columns, 'weight')
-		params = arrays.concat(params, weight)
-	}
-
-	if length := p.length {
-		columns = arrays.concat(columns, 'length')
-		params = arrays.concat(params, length)
-	}
-
-	if height := p.height {
-		columns = arrays.concat(columns, 'height')
-		params = arrays.concat(params, height)
-	}
-
-	if width := p.width {
-		columns = arrays.concat(columns, 'width')
-		params = arrays.concat(params, width)
-	}
-
-	if requires_shipping := p.requires_shipping {
-		columns = arrays.concat(columns, 'requires_shipping')
-		params = arrays.concat(params, requires_shipping)
-	}
-
-	if manage_inventory := p.manage_inventory {
-		columns = arrays.concat(columns, 'manage_inventory')
-		params = arrays.concat(params, manage_inventory)
-	}
-
-	if allow_backorder := p.allow_backorder {
-		columns = arrays.concat(columns, 'allow_backorder')
-		params = arrays.concat(params, allow_backorder)
-	}
-
-	tx.execute('INSERT INTO inventory_item (${get_columns(columns)})
-		VALUES (${get_placeholders(columns)})',
+	tx.execute('INSERT INTO inventory_item
+		(
+			id,
+			variant_id,
+			sku,
+			origin_country,
+			hs_code,
+			mid_code,
+			material,
+			weight,
+			length,
+			height,
+			width,
+			requires_shipping,
+			manage_inventory,
+			allow_backorder
+		)
+		${get_merge_source(src)}',
 		...params)!
 }
 

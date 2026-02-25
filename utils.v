@@ -451,6 +451,20 @@ fn string_value(s ?string) string {
 	return ''
 }
 
+fn i32_value(i ?i32) i32 {
+	if v := i {
+		return v
+	}
+	return 0
+}
+
+fn bool_or(b ?bool, default bool) bool {
+	if v := b {
+		return v
+	}
+	return default
+}
+
 fn option_id_string_to_id_bin(option_id_string ?string) ![]u8 {
 	if id_string := option_id_string {
 		return id_string_to_bin(id_string)!
