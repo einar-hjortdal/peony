@@ -1028,20 +1028,9 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(original_product_data))!
 	is_created(response)!
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	new_product := r.product
 
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	mut r := json.decode(peony.ProductResponseListEnvelope, response.body)!
-
-	mut new_product := peony.ProductResponse{}
-	for i := 0; i < r.products.len; i++ {
-		product := r.products[i]
-		if product.title == title {
-			new_product = product
-			break
-		}
-	}
-
-	product_id := new_product.id
 	expect(new_product.images.len == n_images, 'number of images created does not match')!
 	new_thumbnail := new_product.thumbnail
 	expect(new_thumbnail.id == new_product.images[0].id, 'thumbnail is the wrong image')!
@@ -1091,14 +1080,14 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 		images: images_update
 	}
 
-	response = do_authenticated_post_request('${endpoint_admin_products}/${product_id}',
+	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, json.encode(product_update))!
 	response_is_ok(response)!
 
-	response = do_authenticated_get_request('${endpoint_admin_products}/${product_id}',
+	response = do_authenticated_get_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value)!
-	mut r_by_id := json.decode(peony.ProductResponseEnvelope, response.body)!
-	updated_product := r_by_id.product
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	updated_product := r.product
 	updated_images := updated_product.images
 	expect(updated_images.len == images_update.len, 'images are an unexpected number')!
 	for i := 0; i < images_update.len; i++ {
@@ -1274,16 +1263,8 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(product_data))!
 	is_created(response)!
-	response = do_authenticated_get_request(endpoint_admin_products, cookie_value)!
-	product_r := json.decode(peony.ProductResponseListEnvelope, response.body)!
-	mut new_product := peony.ProductResponse{}
-	for i := 0; i < product_r.products.len; i++ {
-		product := product_r.products[i]
-		if product.title == product_title {
-			new_product = product
-			break
-		}
-	}
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	new_product := r.product
 
 	product_translation_1 := get_product_translation(secondary_locale_1.id, new_product)!
 	product_translation_2 := get_product_translation(secondary_locale_2.id, new_product)!
