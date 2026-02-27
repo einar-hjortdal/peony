@@ -594,11 +594,43 @@ struct InventoryItemCreateRequestHygienised {
 	requires_shipping ?bool
 	manage_inventory  ?bool
 	allow_backorder   ?bool
-mut:
-	inventory_levels ?[]InventoryLevelCreateRequestHygienised
 }
 
 fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygienised {
+	if sku := p.sku {
+		if utf8_str_visible_length(sku) > max_length_sku {
+			return new_error_unprocessable_entity(error_field_too_long, 'sku')
+		}
+	}
+
+	if origin_country := p.origin_country {
+		if utf8_str_visible_length(origin_country) > max_length_country {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('origin_country',
+				max_length_country))
+		}
+	}
+
+	if hs_code := p.hs_code {
+		if utf8_str_visible_length(hs_code) > max_length_hs_code {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('hs_code',
+				max_length_hs_code))
+		}
+	}
+
+	if mid_code := p.mid_code {
+		if utf8_str_visible_length(mid_code) > max_length_mid_code {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('mid_code',
+				max_length_mid_code))
+		}
+	}
+
+	if material := p.material {
+		if utf8_str_visible_length(material) > max_length_material {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('material',
+				max_length_material))
+		}
+	}
+
 	mut inventory_item := InventoryItemCreateRequestHygienised{
 		sku:               p.sku
 		origin_country:    p.origin_country
@@ -612,14 +644,6 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 		requires_shipping: p.requires_shipping
 		manage_inventory:  p.manage_inventory
 		allow_backorder:   p.allow_backorder
-	}
-
-	if inventory_levels := p.inventory_levels {
-		mut iih := []InventoryLevelCreateRequestHygienised{len: inventory_levels.len}
-		for i := 0; i < inventory_levels.len; i++ {
-			iih[i] = inventory_levels[i].hygienise()!
-		}
-		inventory_item.inventory_levels = iih
 	}
 
 	return inventory_item
@@ -639,6 +663,74 @@ pub:
 	requires_shipping ?bool @[json: 'requiresShipping']
 	manage_inventory  ?bool @[json: 'manageInventory']
 	allow_backorder   ?bool @[json: 'allowBackorder']
+}
+
+struct InventoryItemUpdateRequestHygienised {
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool
+	manage_inventory  ?bool
+	allow_backorder   ?bool
+}
+
+fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygienised {
+	if sku := p.sku {
+		if utf8_str_visible_length(sku) > max_length_sku {
+			return new_error_unprocessable_entity(error_field_too_long, 'sku')
+		}
+	}
+
+	if origin_country := p.origin_country {
+		if utf8_str_visible_length(origin_country) > max_length_country {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('origin_country',
+				max_length_country))
+		}
+	}
+
+	if hs_code := p.hs_code {
+		if utf8_str_visible_length(hs_code) > max_length_hs_code {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('hs_code',
+				max_length_hs_code))
+		}
+	}
+
+	if mid_code := p.mid_code {
+		if utf8_str_visible_length(mid_code) > max_length_mid_code {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('mid_code',
+				max_length_mid_code))
+		}
+	}
+
+	if material := p.material {
+		if utf8_str_visible_length(material) > max_length_material {
+			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('material',
+				max_length_material))
+		}
+	}
+
+	mut inventory_item := InventoryItemUpdateRequestHygienised{
+		sku:               p.sku
+		origin_country:    p.origin_country
+		hs_code:           p.hs_code
+		mid_code:          p.mid_code
+		material:          p.material
+		weight:            p.weight
+		length:            p.length
+		height:            p.height
+		width:             p.width
+		requires_shipping: p.requires_shipping
+		manage_inventory:  p.manage_inventory
+		allow_backorder:   p.allow_backorder
+	}
+
+	return inventory_item
 }
 
 // ProductVariantCreateRequest describes the variant to create during product creation.
@@ -831,6 +923,82 @@ pub:
 	option_values  ?[]i32                       @[json: 'optionValues']
 	metadata       ?string                      @[raw]
 	money_amounts  ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
+}
+
+struct ProductVariantUpdateRequestHygienised {
+	id             ?string
+	id_bin         []u8
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	inventory_item ?InventoryItemUpdateRequestHygienised
+	option_values  ?[]i32
+	metadata       ?string
+	money_amounts  ?[]VariantMoneyAmountRequest
+}
+
+fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
+	id_bin := option_id_string_to_id_bin(p.id) or {
+		return new_error_unprocessable_entity(error_id_invalid, 'id')
+	}
+
+	if ean := p.ean {
+		if utf8_str_visible_length(ean) > max_length_ean {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('ean',
+				max_length_ean))
+		}
+	}
+
+	if upc := p.upc {
+		if utf8_str_visible_length(upc) > max_length_upc {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('upc',
+				max_length_upc))
+		}
+	}
+
+	if barcode := p.barcode {
+		if utf8_str_visible_length(barcode) > max_length_barcode {
+			return new_error_bad_request(error_field_too_long, format_field_too_long_details('barcode',
+				max_length_barcode))
+		}
+	}
+
+	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
+	if mas := p.money_amounts {
+		if mas.len == 0 {
+			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
+		}
+
+		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
+		for i := 0; i < mas.len; i++ {
+			money_amounts[i] = mas[i].hygienise()!
+		}
+	}
+
+	mut inventory_item := InventoryItemUpdateRequestHygienised{}
+	if ii := p.inventory_item {
+		inventory_item = ii.hygienise()!
+	}
+
+	if option_values := p.option_values {
+		if option_values.len == 0 {
+			return new_error_unprocessable_entity(error_field_empty, 'A variant must reference at least one option')
+		}
+	}
+
+	return ProductVariantUpdateRequestHygienised{
+		id:             p.id
+		id_bin:         id_bin
+		title:          p.title
+		ean:            p.ean
+		upc:            p.upc
+		barcode:        p.barcode
+		inventory_item: inventory_item
+		option_values:  p.option_values
+		metadata:       p.metadata
+		money_amounts:  p.money_amounts
+	}
 }
 
 // VariantCreateRequest describes the body of the request to create a new product variant.
@@ -1841,6 +2009,8 @@ mut:
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageUpdateRequestHygienised
 	seo          ?SEORequestHygienised
+	options      ?[]ProductOptionUpdateRequestHygienised
+	variants     ?[]ProductVariantUpdateRequestHygienised
 }
 
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {

@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import einar_hjortdal.firebird
 
 struct ProductOptionValueTranslation {
@@ -330,37 +331,104 @@ fn model_product_option_value_translations_create(mut tx firebird.Transaction, p
 	tx.execute(query, ...params)!
 }
 
-fn model_product_option_update(mut tx firebird.Transaction, product_option_id_bin []u8, ph ProductOptionUpdateRequestHygienised) ! {
-	if title := ph.title {
-		tx.execute('UPDATE product_option SET title = ? WHERE id = ?', title, product_option_id_bin)!
-	}
+struct ProductOptionUpdateParams {
+	id             string
+	id_bin         []u8
+	product_id     string
+	product_id_bin []u8
+	option_rank    i32
+	title          string
+}
 
-	if translations := ph.translations {
-		mut src := []string{len: translations.len}
-		mut params := []firebird.Value{len: translations.len * 3 + 1, init: firebird.Null{}}
-		for i := 0; i < translations.len; i++ {
-			src[i] = 'SELECT
-				CAST(? AS BINARY(16)) AS product_option_id,
-				CAST(? AS VARCHAR(63)) AS title,
-				CAST(? AS BINARY(16)) AS locale_id
-				FROM RDB\$DATABASE'
-			params[i * 3] = product_option_id_bin
-			params[i * 3 + 1] = translations[i].title
-			params[i * 3 + 2] = translations[i].locale_id_bin
+fn model_product_option_update(mut tx firebird.Transaction, p []ProductOptionUpdateParams) ! {
+	mut src := []string{len: p.len}
+	n_params := 4
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+
+	// deduplicate product ids
+	mut product_ids := map[string][]u8{}
+
+	for i := 0; i < p.len; i++ {
+		option := p[i]
+		if option.id == '' {
+			return error('product_option id is invalid: ${option.id}')
 		}
-		params[translations.len * 3] = product_option_id_bin
 
-		tx.execute('MERGE INTO product_option_translations t
-			USING (${get_merge_source(src)}) s (product_option_id, title, locale_id)
-			ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
-			WHEN NOT MATCHED THEN
-				INSERT (product_option_id, locale_id, title)
-				VALUES (s.product_option_id, s.locale_id, s.title)
-			WHEN NOT MATCHED BY SOURCE
-				AND t.product_option_id = ?
-			THEN DELETE',
-			...params)!
+		if option.id_bin.len == 0 {
+			return error('product_option id_bin is invalid: ${option.id_bin}')
+		}
+
+		if option.product_id == '' {
+			return error('product_option product_id is invalid: ${option.product_id}')
+		}
+
+		if option.product_id_bin.len == 0 {
+			return error('product_option product_id_bin is invalid: ${option.product_id_bin}')
+		}
+
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS INTEGER) AS option_rank,
+			CAST(? AS VARCHAR(63)) AS title
+			FROM RDB\$DATABASE'
+
+		params[n_params * i + 0] = option.id_bin
+		params[n_params * i + 1] = option.product_id_bin
+		params[n_params * i + 2] = option.option_rank
+		params[n_params * i + 3] = option.title
+
+		product_ids[option.product_id] = option.product_id_bin
 	}
+
+	product_ids_bin := product_ids.values()
+
+	query := 'MERGE INTO product_option t
+		USING (${get_merge_source(src)}) s
+		ON s.id = t.id
+		WHEN MATCHED THEN UPDATE
+			SET
+				t.option_rank = s.option_rank,
+				t.title = s.title
+		WHEN NOT MATCHED THEN INSERT
+			(id, product_id, option_rank, title)
+			VALUES (s.id, s.product_id, s.option_rank, s.title)
+		WHEN NOT MATCHED BY SOURCE AND t.product_id IN (${get_placeholders(product_ids_bin)})
+			THEN DELETE'
+
+	params = arrays.concat(params, ...workaround_24757(product_ids_bin))
+
+	tx.execute(query, ...params)!
+}
+
+fn model_product_option_translations_update(mut tx firebird.Transaction) ! {
+	// 	if translations := ph.translations {
+	// 		mut src := []string{len: translations.len}
+	// 		mut params := []firebird.Value{len: translations.len * 3 + 1, init: firebird.Null{}}
+	// 		for i := 0; i < translations.len; i++ {
+	// 			src[i] = 'SELECT
+	// 				CAST(? AS BINARY(16)) AS product_option_id,
+	// 				CAST(? AS VARCHAR(63)) AS title,
+	// 				CAST(? AS BINARY(16)) AS locale_id
+	// 				FROM RDB\$DATABASE'
+	// 			params[i * 3] = product_option_id_bin
+	// 			params[i * 3 + 1] = translations[i].title
+	// 			params[i * 3 + 2] = translations[i].locale_id_bin
+	// 		}
+	// 		params[translations.len * 3] = product_option_id_bin
+
+	// 		tx.execute('MERGE INTO product_option_translations t
+	// 			USING (${get_merge_source(src)}) s (product_option_id, title, locale_id)
+	// 			ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
+	// 			WHEN NOT MATCHED THEN
+	// 				INSERT (product_option_id, locale_id, title)
+	// 				VALUES (s.product_option_id, s.locale_id, s.title)
+	// 			WHEN NOT MATCHED BY SOURCE
+	// 				AND t.product_option_id = ?
+	// 			THEN DELETE',
+	// 			...params)!
+	// 	}
+	// }
 }
 
 fn model_product_option_delete(mut tx firebird.Transaction, id_bin []u8) ! {

@@ -80,7 +80,7 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		if images_to_create.len > 0 {
 			model_product_images_create(mut tx, product_id_bin, images_to_create) or {
 				tx.rollback() or {}
-				return new_error_internal('Failed to update product thumbnail', err.msg())
+				return new_error_internal('Failed to create product_image', err.msg())
 			}
 		}
 	}
@@ -793,28 +793,12 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	})
 }
 
-// first get inventory items from db, then diff with new data, then bulk update.
-// TODO handle options
-// TODO handle variants
-fn conduit_product_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, seo_id_bin []u8, handle string, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) ! {
+fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product_diff ProductUpdateParams, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) ! {
+	product_id_bin := product_diff.product_id_bin
 	mut tx := app.start_transaction()!
 
-	p := ProductUpdateParams{
-		product_id:     product_id
-		product_id_bin: product_id_bin
-		title:          ph.title
-		subtitle:       ph.subtitle
-		description:    ph.description
-		handle:         handle
-		is_giftcard:    ph.is_giftcard
-		status:         ph.status
-		type_id:        ph.type_id
-		type_id_bin:    ph.type_id_bin
-		discountable:   ph.discountable
-		metadata:       ph.metadata
-	}
-
-	model_product_update(mut tx, p) or {
+	// always update the product row for `updated_at`
+	model_product_update(mut tx, product_diff) or {
 		tx.rollback() or {}
 		return new_error_internal('Failed to update product', err.msg())
 	}
@@ -823,7 +807,7 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id string, produ
 		// TODO
 	}
 
-	if _ := ph.images {
+	if ph.images != none {
 		model_product_thumbnail_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
 			return new_error_internal('Failed to delete product thumbnail', err.msg())
@@ -903,6 +887,18 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id string, produ
 					tx.rollback() or {}
 					return new_error_internal('Could not update seo_translations', err.msg())
 				}
+			}
+		}
+	}
+
+	mut options_diff := []ProductOptionUpdateParams{}
+	if options := ph.options {
+	}
+
+	if variants := ph.variants {
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			if inventory_item := variant.inventory_item {
 			}
 		}
 	}

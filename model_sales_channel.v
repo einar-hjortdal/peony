@@ -209,7 +209,7 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bi
 
 	query := 'MERGE INTO product_sales_channel t
 			USING (${d}) s (product_id, sales_channel_id)
-			ON (t.product_id = s.product_id AND t.sales_channel_id = s.sales_channel_id)
+			ON t.product_id = s.product_id AND t.sales_channel_id = s.sales_channel_id
 			WHEN NOT MATCHED THEN 
 				INSERT (product_id, sales_channel_id) 
 				VALUES (s.product_id, s.sales_channel_id)

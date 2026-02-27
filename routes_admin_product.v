@@ -208,6 +208,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
+	// verify the product actually exists
 	pr := RetrieveProductParamsHygienised{
 		ids:     ZeroArrayString{
 			is_set: true
@@ -228,6 +229,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 		return ctx.handle_error(perr)
 	}
 
+	// get data to diff
 	products := model_product_retrieve(mut tx, pr) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve product by id', err.msg())
@@ -259,10 +261,25 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 			handle = '${new_handle}-${product_id}'
 			if utf8_str_visible_length(new_handle) > max_length_handle {
 				tx.rollback() or {}
-				perr := new_error_internal(error_field_too_long, error_handle_fallback_too_long)
+				perr := new_error_unprocessable_entity(error_field_too_long, error_handle_fallback_too_long)
 				return ctx.handle_error(perr)
 			}
 		}
+	}
+
+	product_diff := ProductUpdateParams{
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		title:          unwrap_option_or(ph.title, product.title)
+		subtitle:       unwrap_option_or(ph.subtitle, product.subtitle.value)
+		description:    unwrap_option_or(ph.description, product.description.value)
+		handle:         handle
+		is_giftcard:    unwrap_option_or(ph.is_giftcard, product.is_giftcard)
+		status:         unwrap_option_or(ph.status, product.status)
+		type_id:        unwrap_option_or(ph.type_id, product.type_id)
+		type_id_bin:    unwrap_option_or(ph.type_id_bin, product.type_id_bin)
+		discountable:   unwrap_option_or(ph.discountable, product.discountable)
+		metadata:       unwrap_option_or(ph.metadata, product.metadata.value)
 	}
 
 	mut images_diff := []ProductImageUpdateParams{}
@@ -355,8 +372,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	product_seo := seo[0]
 
-	conduit_product_update(mut app, mut ctx, product_id, product_id_bin, product_seo.id_bin,
-		handle, images_diff, ph) or { return ctx.handle_error(err) }
+	conduit_product_update(mut app, mut ctx, product_seo.id_bin, product_diff, images_diff,
+		ph) or { return ctx.handle_error(err) }
 
 	rp := RetrieveProductParamsHygienised{
 		ids:     ZeroArrayString{

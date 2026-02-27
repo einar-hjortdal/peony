@@ -370,85 +370,67 @@ fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 struct ProductUpdateParams {
 	product_id     string
 	product_id_bin []u8
-	title          ?string
-	subtitle       ?string
-	description    ?string
-	handle         ?string
-	is_giftcard    ?bool
-	status         ?string
-	type_id        ?string
+	title          string
+	subtitle       string
+	description    string
+	handle         string
+	is_giftcard    bool
+	status         string
+	type_id        string
 	type_id_bin    []u8
-	discountable   ?bool
-	metadata       ?string
+	discountable   bool
+	metadata       string
 }
 
 fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
-	if p.product_id == '' || p.product_id_bin.len == 0 {
-		return new_error_internal('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}')
+	query := 'UPDATE product
+		SET
+			updated_at = CURRENT_TIMESTAMP,
+			handle = s.handle,
+			title = s.title,
+			subtitle = s.subtitle,
+			description = s.description,
+			is_giftcard = s.is_giftcard,
+			status = s.status,
+			type_id = s.type_id,
+			discountable = s.discountable,
+			metadata = s.metadata
+		WHERE product.id = ?'
+
+	mut n_params := 10
+	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
+
+	if p.product_id == '' {
+		return error('Invalid product_id in ProductCreateParams: `${p.product_id}`')
 	}
 
-	mut c := []string{}
-	mut params := []firebird.Value{}
-
-	if handle := p.handle {
-		c = arrays.concat(c, 'handle')
-		params = arrays.concat(params, handle)
+	if p.product_id_bin.len == 0 {
+		return error('Invalid product_id_bin in ProductCreateParams: `${p.product_id_bin.len}`')
 	}
 
-	if title := p.title {
-		c = arrays.concat(c, 'title')
-		params = arrays.concat(params, title)
+	if p.handle == '' {
+		return error('Invalid handle in ProductCreateParams: `${p.handle}`')
 	}
 
-	if subtitle := p.subtitle {
-		c = arrays.concat(c, 'subtitle')
-		if subtitle != '' {
-			params = arrays.concat(params, subtitle)
-		} else {
-			params = arrays.concat(params, firebird.Null{})
-		}
+	if p.title == '' {
+		return error('Invalid title in ProductCreateParams: `${p.title}`')
 	}
 
-	if description := p.description {
-		c = arrays.concat(c, 'description')
-		if description != '' {
-			params = arrays.concat(params, description)
-		} else {
-			params = arrays.concat(params, firebird.Null{})
-		}
+	params[0] = p.handle
+	params[1] = p.title
+	params[2] = p.subtitle
+	params[3] = p.description
+	params[4] = p.is_giftcard
+	params[5] = p.status
+
+	if p.type_id_bin.len > 0 {
+		params[6] = p.type_id_bin
 	}
 
-	if is_giftcard := p.is_giftcard {
-		c = arrays.concat(c, 'is_giftcard')
-		params = arrays.concat(params, is_giftcard)
-	}
+	params[7] = p.discountable
+	params[8] = p.metadata
+	params[9] = p.product_id_bin
 
-	if status := p.status {
-		c = arrays.concat(c, 'status')
-		params = arrays.concat(params, status)
-	}
-
-	if _ := p.type_id {
-		c = arrays.concat(c, 'type_id')
-		params = arrays.concat(params, p.type_id_bin)
-	}
-
-	if discountable := p.discountable {
-		c = arrays.concat(c, 'discountable')
-		params = arrays.concat(params, discountable)
-	}
-
-	if metadata := p.metadata {
-		c = arrays.concat(c, 'metadata')
-		if metadata != '' {
-			params = arrays.concat(params, metadata)
-		} else {
-			params = arrays.concat(params, firebird.Null{})
-		}
-	}
-
-	query := 'UPDATE product SET ${get_set_columns_with_updated_at(c)} WHERE id = ?'
-	params = arrays.concat(params, firebird.Value(p.product_id_bin))
 	tx.execute(query, ...params)!
 }
 
@@ -458,12 +440,14 @@ fn model_product_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
 
 fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []u8, image_rank i32) ! {
 	tx.execute('UPDATE product p
-		SET p.thumbnail_id = (
-			SELECT pi.image_id
-			FROM product_image pi
-			WHERE pi.product_id = p.id
-			AND pi.image_rank = ?
-		)
+		SET 
+			updated_at = CURRENT_TIMESTAMP,
+			p.thumbnail_id = (
+				SELECT pi.image_id
+				FROM product_image pi
+				WHERE pi.product_id = p.id
+				AND pi.image_rank = ?
+			)
 		WHERE p.id = ?',
 		image_rank, product_id_bin)!
 }

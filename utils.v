@@ -31,6 +31,11 @@ pub const max_length_category_name = 63
 pub const max_length_category_description = 191
 pub const max_length_region_name = 63
 pub const max_length_handle = 63
+pub const max_length_sku = 63
+pub const max_length_country = 2
+pub const max_length_hs_code = 63
+pub const max_length_mid_code = 15
+pub const max_length_material = 191
 
 pub const default_thumbnail = 0
 
