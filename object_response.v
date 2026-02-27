@@ -15,6 +15,8 @@ fn success(mut ctx Context) veb.Result {
 	})
 }
 
+pub struct DeletedResponse {}
+
 pub struct PeonyErrorResponse {
 pub:
 	message string

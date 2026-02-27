@@ -95,15 +95,15 @@ struct ImageTranslationRequestHygienised {
 // TODO check alt.len <= 191
 fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(i.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 	}
 
 	if i.alt == '' {
-		return new_error_bad_request(error_field_empty, 'alt')
+		return new_error_unprocessable_entity(error_field_empty, 'alt')
 	}
 
 	if utf8_str_visible_length(i.alt) > max_length_alt {
-		return new_error_bad_request('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
+		return new_error_unprocessable_entity('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
 	}
 
 	return ImageTranslationRequestHygienised{
@@ -197,16 +197,16 @@ mut:
 
 fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	if p.id != none && p.url != none {
-		return new_error_bad_request('unable to update image url', 'both id and url are set')
+		return new_error_unprocessable_entity('unable to update image url', 'both id and url are set')
 	}
 
 	if p.id == none && p.url == none {
-		return new_error_bad_request('unable to create image without url', 'both id and url are unset')
+		return new_error_unprocessable_entity('unable to create image without url', 'both id and url are unset')
 	}
 
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_bad_request(error_field_too_long, 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_unprocessable_entity(error_field_too_long, 'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -266,7 +266,7 @@ struct ProductTranslationRequestHygienised {
 
 fn (p ProductTranslationRequest) hygienise() !ProductTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 	}
 
 	return ProductTranslationRequestHygienised{
@@ -1092,7 +1092,7 @@ fn (r SEOTranslationRequestHygienised) locale_id() string {
 
 fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 	}
 
 	return SEOTranslationRequestHygienised{
@@ -1135,7 +1135,7 @@ fn (r SEORequestHygienised) translations() ?[]SEOTranslationRequestHygienised {
 
 fn (p SEORequest) hygienise() !SEORequestHygienised {
 	if p.title == none && p.description == none && p.translations == none {
-		return new_error_bad_request(error_empty_object, 'SEORequest')
+		return new_error_unprocessable_entity(error_empty_object, 'SEORequest')
 	}
 
 	mut r := SEORequestHygienised{
@@ -1597,6 +1597,12 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		}
 	}
 
+	if handle := p.handle {
+		if utf8_str_visible_length(handle) > max_length_handle {
+			return new_error_unprocessable_entity(error_field_too_long, 'handle')
+		}
+	}
+
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
 			return new_error_unprocessable_entity('thumbnail invalid', 'negative value')
@@ -1840,54 +1846,60 @@ mut:
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if title := p.title {
 		if title == '' {
-			return new_error_bad_request(error_field_empty, 'title')
+			return new_error_unprocessable_entity(error_field_empty, 'title')
 		}
 
 		if utf8_str_visible_length(title) > max_length_product_title {
-			return new_error_bad_request(error_field_too_long, 'title')
+			return new_error_unprocessable_entity(error_field_too_long, 'title')
 		}
 	}
 
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
-			return new_error_bad_request(error_field_too_long, 'subtitle')
+			return new_error_unprocessable_entity(error_field_too_long, 'subtitle')
+		}
+	}
+
+	if handle := p.handle {
+		if utf8_str_visible_length(handle) > max_length_handle {
+			return new_error_unprocessable_entity(error_field_too_long, 'handle')
 		}
 	}
 
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
-			return new_error_bad_request('thumbnail invalid', 'negative value')
+			return new_error_unprocessable_entity('thumbnail invalid', 'negative value')
 		}
 
 		if images := p.images {
 			if !(thumbnail < images.len) {
-				return new_error_bad_request('thumbnail invalid', 'index out of range')
+				return new_error_unprocessable_entity('thumbnail invalid', 'index out of range')
 			}
 		} else {
-			return new_error_bad_request('thumbnail invalid', 'images array not provided')
+			return new_error_unprocessable_entity('thumbnail invalid', 'images array not provided')
 		}
 	}
 
 	if status := p.status {
 		if !product_status_is_valid(status) {
-			return new_error_bad_request('status is invalid', status)
+			return new_error_unprocessable_entity('status is invalid', status)
 		}
 	}
 
 	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_error_bad_request(error_id_invalid, 'type_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'type_id')
 	}
 
 	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_error_bad_request(error_id_invalid, 'tag_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'tag_id')
 	}
 
 	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_error_bad_request(error_id_invalid, 'sales_channel_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
 	}
 
 	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_error_bad_request(error_id_invalid, 'category_id')
+		return new_error_unprocessable_entity(error_id_invalid, 'category_id')
 	}
 
 	mut ph := ProductUpdateRequestHygienised{

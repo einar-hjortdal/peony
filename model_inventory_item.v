@@ -281,6 +281,26 @@ fn model_inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCre
 		...params)!
 }
 
+// same as create params. Is a duplicated struct a problem? I don't think so right now.
+struct InventoryItemUpdateParams {
+	id                string
+	id_bin            []u8
+	variant_id        string
+	variant_id_bin    []u8
+	sku               string
+	origin_country    string
+	hs_code           string
+	mid_code          string
+	material          string
+	weight            i32
+	length            i32
+	height            i32
+	width             i32
+	requires_shipping bool
+	manage_inventory  bool
+	allow_backorder   bool
+}
+
 fn model_inventory_item_update(mut tx firebird.Transaction, variant_id_bin []u8, p InventoryItemUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}

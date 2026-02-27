@@ -2,20 +2,14 @@ module peony
 
 import veb
 
-fn conduit_product_create(mut app App, mut ctx Context, handle string, handle_is_duplicate bool, ph ProductCreateRequestHygienised) !(string, []u8) {
-	product_id, product_id_bin := app.new_id()
-	mut unique_handle := handle
-	if handle_is_duplicate {
-		unique_handle = '${handle}-${product_id}'
-	}
-
+fn conduit_product_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, handle string, ph ProductCreateRequestHygienised) ! {
 	product_create_params := ProductCreateParams{
 		product_id:     product_id
 		product_id_bin: product_id_bin
 		title:          ph.title
 		subtitle:       string_value(ph.subtitle)
 		description:    string_value(ph.description)
-		handle:         unique_handle
+		handle:         handle
 		is_giftcard:    ph.is_giftcard
 		status:         ph.status
 		type_id:        string_value(ph.type_id)
@@ -518,7 +512,6 @@ fn conduit_product_create(mut app App, mut ctx Context, handle string, handle_is
 	}
 
 	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
-	return product_id, product_id_bin
 }
 
 fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -800,15 +793,30 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	})
 }
 
+// first get inventory items from db, then diff with new data, then bulk update.
 // TODO handle options
 // TODO handle variants
-fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo_id_bin []u8, images_diff []ProductImageUpdateParams, p ProductUpdateParams, ph ProductUpdateRequestHygienised) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+fn conduit_product_update(mut app App, mut ctx Context, product_id string, product_id_bin []u8, seo_id_bin []u8, handle string, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) ! {
+	mut tx := app.start_transaction()!
+
+	p := ProductUpdateParams{
+		product_id:     product_id
+		product_id_bin: product_id_bin
+		title:          ph.title
+		subtitle:       ph.subtitle
+		description:    ph.description
+		handle:         handle
+		is_giftcard:    ph.is_giftcard
+		status:         ph.status
+		type_id:        ph.type_id
+		type_id_bin:    ph.type_id_bin
+		discountable:   ph.discountable
+		metadata:       ph.metadata
+	}
 
 	model_product_update(mut tx, p) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to update product', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to update product', err.msg())
 	}
 
 	if _ := ph.tag_ids {
@@ -818,28 +826,24 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 	if _ := ph.images {
 		model_product_thumbnail_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to delete product thumbnail', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to delete product thumbnail', err.msg())
 		}
 
 		if images_diff.len == 0 {
 			model_product_images_delete(mut tx, product_id_bin) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Failed to delete product images', err.msg())
-				return ctx.handle_error(perr)
+				return new_error_internal('Failed to delete product images', err.msg())
 			}
 		} else {
 			model_product_images_update(mut tx, product_id_bin, images_diff) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Failed to update product images', err.msg())
-				return ctx.handle_error(perr)
+				return new_error_internal('Failed to update product images', err.msg())
 			}
 
 			if ph.thumbnail == none {
 				model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
 					tx.rollback() or {}
-					perr := new_error_internal('Failed to update product thumbnail', err.msg())
-					return ctx.handle_error(perr)
+					return new_error_internal('Failed to update product thumbnail', err.msg())
 				}
 			}
 		}
@@ -848,39 +852,34 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 	if thumbnail := ph.thumbnail {
 		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product thumbnail', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product thumbnail', err.msg())
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product sales channel', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product sales channel', err.msg())
 		}
 	}
 
 	if _ := ph.category_ids {
 		model_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to update product category relation', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to update product category relation', err.msg())
 		}
 	}
 
 	if translations := ph.translations {
 		model_product_translations_delete(mut tx, product_id_bin) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to delete from product_translations', err.msg())
-			return ctx.handle_error(perr)
+			return new_error_internal('Failed to delete from product_translations', err.msg())
 		}
 
 		if translations.len > 0 {
 			model_product_translations_create(mut tx, product_id_bin, translations) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Failed to create product_translations', err.msg())
-				return ctx.handle_error(perr)
+				return new_error_internal('Failed to create product_translations', err.msg())
 			}
 		}
 	}
@@ -889,49 +888,35 @@ fn conduit_product_update(mut app App, mut ctx Context, product_id_bin []u8, seo
 		if seo.title != none || seo.description != none {
 			model_seo_update(mut tx, seo_id_bin, seo) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Could not update seo', err.msg())
-				return ctx.handle_error(perr)
+				return new_error_internal('Could not update seo', err.msg())
 			}
 		}
 
 		if translations := seo.translations {
 			model_seo_translations_delete(mut tx, seo_id_bin) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Could not delete seo_translations', err.msg())
-				return ctx.handle_error(perr)
+				return new_error_internal('Could not delete seo_translations', err.msg())
 			}
 
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
 					tx.rollback() or {}
-					perr := new_error_internal('Could not update seo_translations', err.msg())
-					return ctx.handle_error(perr)
+					return new_error_internal('Could not update seo_translations', err.msg())
 				}
 			}
 		}
 	}
 
-	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	return success(mut ctx)
+	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
 }
 
-fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) ! {
+	mut tx := app.start_transaction()!
 
 	model_product_delete(mut tx, product_id_bin) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to delete product', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to delete product', err.msg())
 	}
 
-	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	return success(mut ctx)
+	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
 }

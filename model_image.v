@@ -205,8 +205,8 @@ struct ProductImageUpdateParams {
 	id           string
 	id_bin       []u8
 	url          string
-	alt          ?string
-	translations ?[]ImageTranslationRequestHygienised
+	alt          ?string // TODO remove option. if alt == '' is null.
+	translations ?[]ImageTranslationRequestHygienised // TODO remove option. if translations.len == 0 is none
 }
 
 fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ProductImageUpdateParams) ! {
@@ -242,7 +242,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 		USING (${get_merge_source(src)}) s
 		ON (t.id = s.id)
 		WHEN MATCHED THEN
-			UPDATE SET alt=s.alt
+			UPDATE SET alt = s.alt
 		WHEN NOT MATCHED THEN
 		INSERT (id, url, alt)
 		VALUES (s.id, s.url, s.alt)'

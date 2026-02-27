@@ -30,6 +30,7 @@ pub const max_length_seo_description = 191
 pub const max_length_category_name = 63
 pub const max_length_category_description = 191
 pub const max_length_region_name = 63
+pub const max_length_handle = 63
 
 pub const default_thumbnail = 0
 
@@ -46,6 +47,8 @@ const error_order_direction_invalid = 'Invalid order direction'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
 const error_transaction_start = 'Failed to start transaction'
+
+const error_handle_fallback_too_long = 'The provided handle already exists. The default default fallback is to add the product id to the provided duplicate handle, but this results in the handle being too long. Please provide a unique handle for this product.'
 
 const details_order_direction_invalid = 'order direction must either be ${order_direction_asc} or ${order_direction_desc}'
 
@@ -310,6 +313,11 @@ fn (mut ctx Context) handle_ok[T](payload T) veb.Result {
 fn (mut ctx Context) handle_created[T](payload T) veb.Result {
 	ctx.res.set_status(http.Status.created)
 	return ctx.json(payload)
+}
+
+fn (mut ctx Context) handle_deleted() veb.Result {
+	ctx.res.set_status(http.Status.ok)
+	return ctx.json(DeletedResponse{})
 }
 
 fn unwrap_option_or[T](option_type ?T, default_value T) T {
