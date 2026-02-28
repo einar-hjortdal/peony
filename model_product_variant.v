@@ -244,39 +244,103 @@ fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! 
 		...params)!
 }
 
-fn model_product_variant_update(mut tx firebird.Transaction, variant_id_bin []u8, ph VariantUpdateRequestHygienised) ! {
-	mut columns := []string{}
-	mut params := []firebird.Value{}
+struct VariantUpdateParams {
+	id           string
+	id_bin       []u8
+	image_id     string
+	image_id_bin []u8
+	title        string
+	barcode      string
+	ean          string
+	upc          string
+	variant_rank i32
+	metadata     string
+}
 
-	if title := ph.title {
-		columns = arrays.concat(columns, 'title')
-		params = arrays.concat(params, title)
+fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p []VariantUpdateParams) ! {
+	mut src := []string{len: p.len}
+	n_params := 9
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+
+	for i := 0; i < p.len; i++ {
+		variant := p[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS product_id,
+			CAST(? AS BINARY(16)) AS image_id,
+			CAST(? AS VARCHAR(63)) AS title,
+			CAST(? AS VARCHAR(63)) AS barcode,
+			CAST(? AS VARCHAR(13)) AS ean,
+			CAST(? AS VARCHAR(12)) AS upc,
+			CAST(? AS INTEGER) AS variant_rank,
+			CAST(? AS BLOB SUB_TYPE TEXT) AS metadata
+			FROM RDB\$DATABASE'
+
+		params[i * n_params + 0] = variant.id_bin
+		params[i * n_params + 1] = product_id_bin
+
+		if variant.image_id_bin.len > 0 {
+			params[i * n_params + 2] = variant.image_id_bin
+		}
+
+		if variant.title != '' {
+			params[i * n_params + 3] = variant.title
+		}
+
+		params[i * n_params + 4] = variant.barcode
+		params[i * n_params + 5] = variant.ean
+		params[i * n_params + 6] = variant.upc
+		params[i * n_params + 7] = variant.variant_rank
+		params[i * n_params + 8] = variant.metadata
 	}
 
-	if barcode := ph.barcode {
-		columns = arrays.concat(columns, 'barcode')
-		params = arrays.concat(params, barcode)
-	}
+	query := 'MERGE INTO product_variant t
+		USING (${get_merge_source(src)}) s
+		ON s.id = t.id
+		WHEN MATCHED THEN UPDATE
+			SET
+				updated_at = CURRENT_TIMESTAMP,
+				image_id = s.image_id,
+				title = s.title,
+				barcode = s.barcode,
+				ean = s.ean,
+				upc = s.upc,
+				variant_rank = s.variant_rank,
+				metadata = s.metadata
+		WHEN NOT MATCHED THEN
+			INSERT
+				(
+					id,
+					product_id,
+					image_id,
+					title,
+					barcode,
+					ean,
+					upc,
+					variant_rank,
+					metadata
+				)
+			VALUES
+				(
+					s.id,
+					s.product_id,
+					s.image_id,
+					s.title,
+					s.barcode,
+					s.ean,
+					s.upc,
+					s.variant_rank,
+					s.metadata
+				)
+		WHEN NOT MATCHED BY SOURCE
+			AND product_id = ? 
+			AND deleted_at IS NOT NULL
+			THEN UPDATE
+				SET deleted_at = CURRENT_TIMESTAMP'
 
-	if ean := ph.ean {
-		columns = arrays.concat(columns, 'ean')
-		params = arrays.concat(params, ean)
-	}
+	params = arrays.concat(params, product_id_bin)
 
-	if upc := ph.upc {
-		columns = arrays.concat(columns, 'upc')
-		params = arrays.concat(params, upc)
-	}
-
-	if metadata := ph.metadata {
-		columns = arrays.concat(columns, 'metadata')
-		params = arrays.concat(params, metadata)
-	}
-
-	params = arrays.concat(params, variant_id_bin)
-
-	tx.execute('UPDATE product_variant ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
-		...params)!
+	tx.execute(query, ...params)!
 }
 
 fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {

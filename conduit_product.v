@@ -892,13 +892,79 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 	}
 
 	mut options_diff := []ProductOptionUpdateParams{}
+	mut option_values_diff := []ProductOptionValueUpdateParams{}
 	if options := ph.options {
+		options_diff = []ProductOptionUpdateParams{len: options.len}
+		old_options := model_product_options_retrieve_by_product_ids(mut tx, [
+			product_id_bin,
+		]) or {
+			tx.rollback() or {}
+			return new_error_internal('Could not retrieve product_option', err.msg())
+		}
+
+		mut old_options_map := map[string]ProductOption{}
+		for i := 0; i < old_options.len; i++ {
+			option := old_options[i]
+			id := option.id
+			old_options_map[id] = option
+		}
+
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			if id := option.id {
+				// update (diff from old_options_map)
+			} else {
+				id, id_bin := app.new_id()
+				// create
+			}
+		}
+
+		// TODO diff translations, option values, option value translations
 	}
 
 	if variants := ph.variants {
+		mut variants_diff := []VariantUpdateParams{len: variants.len}
+		old_variants := model_product_variants_retrieve_by_product_ids(mut tx, [
+			product_id_bin,
+		]) or {
+			tx.rollback() or {}
+			return new_error_internal('Could not retrieve variants', err.msg())
+		}
+
+		mut old_variants_map := map[string]ProductVariant{}
+		for i := 0; i < old_variants.len; i++ {
+			variant := old_variants[i]
+			id := variant.id
+			old_variants_map[id] = variant
+		}
+
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
+			if id := variant.id {
+				if id !in old_variants_map {
+					tx.rollback() or {}
+					return new_error_bad_request(error_id_invalid, 'variant with id ${id} does not exist')
+				}
+
+				old_variant := old_variants_map[id]
+				variants_diff[i] = VariantUpdateParams{
+					id:     id
+					id_bin: variant.id_bin
+					// image_id:
+					// image_id_bin:
+					title:        unwrap_option_or(variant.title, old_variant.title.value)
+					barcode:      unwrap_option_or(variant.barcode, old_variant.barcode.value)
+					ean:          unwrap_option_or(variant.ean, old_variant.ean.value)
+					upc:          unwrap_option_or(variant.upc, old_variant.upc.value)
+					variant_rank: i
+					metadata:     unwrap_option_or(variant.metadata, old_variant.metadata.value)
+				}
+			} else {
+				// TODO
+			}
+
 			if inventory_item := variant.inventory_item {
+				mut inventory_items_diff := []InventoryItemUpdateParams{len: variants.len}
 			}
 		}
 	}

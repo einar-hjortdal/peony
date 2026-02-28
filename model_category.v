@@ -415,7 +415,7 @@ fn model_category_product_update(mut tx firebird.Transaction, product_id_bin []u
 
 	tx.execute('MERGE INTO category_product t
 			USING (${get_merge_source(src)}) s
-			ON (t.product_id = s.product_id AND t.category_id = s.category_id)
+			ON t.product_id = s.product_id AND t.category_id = s.category_id
 			WHEN NOT MATCHED THEN
 				INSERT (product_id, category_id)
 				VALUES (s.product_id, s.category_id)

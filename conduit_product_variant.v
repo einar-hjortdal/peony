@@ -130,13 +130,11 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id strin
 fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	if ph.title != none || ph.ean != none || ph.upc != none || ph.barcode != none {
-		model_product_variant_update(mut tx, variant_id_bin, ph) or {
-			tx.rollback() or {} // ignore error		
-			perr := new_error_internal('Could not update product_variant', err.msg())
-			return ctx.handle_error(perr)
-		}
-	}
+	// model_product_variant_update(mut tx, variant_id_bin, ph) or {
+	// 	tx.rollback() or {} // ignore error		
+	// 	perr := new_error_internal('Could not update product_variant', err.msg())
+	// 	return ctx.handle_error(perr)
+	// }
 
 	if ph.option_value_ids_bin.len > 0 {
 		model_product_option_value_variant_update(mut tx, variant_id_bin, ph.option_value_ids_bin) or {

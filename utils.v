@@ -185,7 +185,6 @@ fn hygienise_fetch_amount(zi32 ZeroI32) !i32 {
 interface Identifiable {
 	id_string() string
 	id_bytes() []u8
-	has_id() bool
 }
 
 struct ID {
@@ -209,13 +208,6 @@ fn (id ID) id_bytes() []u8 {
 	return id.b
 }
 
-fn (id ID) has_id() bool {
-	if id.s != '' && id.b.len > 0 {
-		return true
-	}
-	return false
-}
-
 fn id_from_string(s string) !ID {
 	return ID{
 		s: s
@@ -228,6 +220,14 @@ fn id_from_bytes(b []u8) !ID {
 		s: luuid.from_bytes(b)!
 		b: b
 	}
+}
+
+// for Firebird's `BINARY(16)` columns
+fn id_from_nullable_bytes(nb firebird.NullArrayU8) !ID {
+	if nb.is_null {
+		return ID{}
+	}
+	return id_from_bytes(nb.value)
 }
 
 fn (mut app App) gen_id() ID {
