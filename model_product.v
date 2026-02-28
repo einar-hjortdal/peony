@@ -383,23 +383,6 @@ struct ProductUpdateParams {
 }
 
 fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
-	query := 'UPDATE product
-		SET
-			updated_at = CURRENT_TIMESTAMP,
-			handle = s.handle,
-			title = s.title,
-			subtitle = s.subtitle,
-			description = s.description,
-			is_giftcard = s.is_giftcard,
-			status = s.status,
-			type_id = s.type_id,
-			discountable = s.discountable,
-			metadata = s.metadata
-		WHERE product.id = ?'
-
-	mut n_params := 10
-	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
-
 	if p.product_id == '' {
 		return error('Invalid product_id in ProductCreateParams: `${p.product_id}`')
 	}
@@ -415,6 +398,21 @@ fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
 	if p.title == '' {
 		return error('Invalid title in ProductCreateParams: `${p.title}`')
 	}
+
+	columns := [
+		'handle',
+		'title',
+		'subtitle',
+		'description',
+		'is_giftcard',
+		'status',
+		'type_id',
+		'discountable',
+		'metadata',
+	]
+	query := 'UPDATE product SET ${get_set_columns_with_updated_at(columns)} WHERE product.id = ?'
+
+	mut params := []firebird.Value{len: 10, init: firebird.Null{}}
 
 	params[0] = p.handle
 	params[1] = p.title
