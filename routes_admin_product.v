@@ -60,11 +60,6 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		return ctx.handle_error(perr)
 	}
 
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
-
 	// verify all locale_id exist in store locales
 	mut store_locales_exist := map[string]bool{}
 	for i := 0; i < store_locales.len; i++ {
@@ -151,8 +146,15 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	conduit_product_create(mut app, mut ctx, product_id, product_id_bin, handle, ph) or {
+	conduit_product_create(mut app, mut ctx, mut tx, product_id, product_id_bin, handle,
+		ph) or {
+		tx.rollback() or {}
 		return ctx.handle_error(err)
+	}
+
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_error(perr)
 	}
 
 	rp := RetrieveProductParamsHygienised{

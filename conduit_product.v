@@ -1,9 +1,10 @@
 module peony
 
+import arrays
 import veb
 import einar_hjortdal.firebird
 
-fn conduit_product_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, handle string, ph ProductCreateRequestHygienised) ! {
+fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id string, product_id_bin []u8, handle string, ph ProductCreateRequestHygienised) ! {
 	product_create_params := ProductCreateParams{
 		product_id:     product_id
 		product_id_bin: product_id_bin
@@ -19,43 +20,35 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		metadata:       string_value(ph.metadata)
 	}
 
-	mut tx := app.start_transaction()!
-
 	model_product_create(mut tx, product_create_params) or {
-		tx.rollback() or {}
 		return new_error_internal('Failed to create product', err.msg())
 	}
 
 	_, seo_id_bin := app.new_id()
 	if seo := ph.seo {
 		model_product_seo_create(mut tx, seo_id_bin, product_id_bin, seo) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to insert seo data', err.msg())
 		}
 
 		if translations := seo.translations {
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
-					tx.rollback() or {}
 					return new_error_internal('Failed to insert seo_translations', err.msg())
 				}
 			}
 		}
 	} else {
 		model_product_seo_create_default(mut tx, seo_id_bin, product_id_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create seo', err.msg())
 		}
 	}
 
 	store := model_store_retrieve(mut tx) or {
-		tx.rollback() or {}
 		return new_error_internal('Failed to retrieve store', err.msg())
 	}
 
 	// TODO potentially loop fetch if there are more than max_fetch regions (unlikely)
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{ fetch: max_fetch }) or {
-		tx.rollback() or {}
 		return new_error_internal('Failed to retrieve regions', err.msg())
 	}
 
@@ -80,7 +73,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 
 		if images_to_create.len > 0 {
 			model_product_images_create(mut tx, product_id_bin, images_to_create) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to create product_image', err.msg())
 			}
 		}
@@ -88,33 +80,26 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 
 	if thumbnail := ph.thumbnail {
 		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product thumbnail', err.msg())
 		}
 	} else {
 		model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product thumbnail', err.msg())
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product_sales_channel', err.msg())
 		}
 	} else {
 		model_product_sales_channel_update(mut tx, product_id_bin, [
 			store.default_sales_channel_id_bin,
-		]) or {
-			tx.rollback() or {}
-			return new_error_internal('Failed to update product_sales_channel', err.msg())
-		}
+		]) or { return new_error_internal('Failed to update product_sales_channel', err.msg()) }
 	}
 
 	if _ := ph.category_ids {
 		model_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product category relation', err.msg())
 		}
 	}
@@ -122,7 +107,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 	if translations := ph.translations {
 		if translations.len > 0 {
 			model_product_translations_create(mut tx, product_id_bin, translations) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to update product translations', err.msg())
 			}
 		}
@@ -154,7 +138,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_product_option_create(mut tx, options_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create product_option', err.msg())
 		}
 
@@ -192,7 +175,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_product_option_value_create(mut tx, option_values_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create product_option_value', err.msg())
 		}
 
@@ -218,7 +200,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 			}
 
 			model_product_option_translations_create(mut tx, translations_to_create) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to create product_option_translations',
 					err.msg())
 			}
@@ -250,7 +231,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 				}
 			}
 			model_product_option_value_translations_create(mut tx, translations_to_create) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to create product_option_value_translations',
 					err.msg())
 			}
@@ -269,7 +249,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		]
 
 		model_product_option_create(mut tx, options_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create product_option', err.msg())
 		}
 
@@ -286,7 +265,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		]
 
 		model_product_option_value_create(mut tx, option_values_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create product_option_value', err.msg())
 		}
 
@@ -328,7 +306,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 
 			option_values := variant.option_values or {
 				if variants.len != 1 {
-					tx.rollback() or {}
 					return new_error_internal('Could not create variants', 'Missing option_values and more than one variant is to be created')
 				}
 
@@ -388,12 +365,10 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_variant_create(mut tx, variants_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Could not create variants', err.msg())
 		}
 
 		model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create relations in product_option_value_product_variant',
 				err.msg())
 		}
@@ -442,12 +417,10 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create variant money_amount', err.msg())
 		}
 
 		model_inventory_item_create(mut tx, inventory_items_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create inventory_item', err.msg())
 		}
 	} else {
@@ -461,14 +434,12 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 		variants_to_create := [variant_to_create]
 		model_variant_create(mut tx, variants_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Could not create default variant', err.msg())
 		}
 
 		default_option_value := option_values_to_create[0]
 		value_ids_bin := [default_option_value.id_bin]
 		model_product_option_value_variant_update(mut tx, variant_id_bin, value_ids_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Could not associate new default variant to the new default option_value',
 				err.msg())
 		}
@@ -490,7 +461,6 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 
 		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create default variant money_amount',
 				err.msg())
 		}
@@ -507,12 +477,9 @@ fn conduit_product_create(mut app App, mut ctx Context, product_id string, produ
 		}
 		inventory_items_to_create := [inventory_item_to_create]
 		model_inventory_item_create(mut tx, inventory_items_to_create) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to create default inventory_item', err.msg())
 		}
 	}
-
-	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
 }
 
 fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
@@ -795,6 +762,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 }
 
 fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transaction, seo_id_bin []u8, product_diff ProductUpdateParams, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) ! {
+	product_id := product_diff.product_id
 	product_id_bin := product_diff.product_id_bin
 
 	// always update the product row for `updated_at`
@@ -878,10 +846,8 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 	}
 
-	mut options_diff := []ProductOptionUpdateParams{}
-	mut option_values_diff := []ProductOptionValueUpdateParams{}
 	if options := ph.options {
-		options_diff = []ProductOptionUpdateParams{len: options.len}
+		mut options_diff := []ProductOptionUpdateParams{len: options.len}
 		old_options := model_product_options_retrieve_by_product_ids(mut tx, [
 			product_id_bin,
 		]) or { return new_error_internal('Could not retrieve product_option', err.msg()) }
@@ -896,19 +862,124 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		for i := 0; i < options.len; i++ {
 			option := options[i]
 			if id := option.id {
-				// update (diff from old_options_map)
+				old_option := old_options_map[id]
+				options_diff[i] = ProductOptionUpdateParams{
+					id:             id
+					id_bin:         option.id_bin
+					product_id:     product_id
+					product_id_bin: product_id_bin
+					option_rank:    i
+					title:          unwrap_option_or(option.title, old_option.title)
+				}
 			} else {
-				id, id_bin := app.new_id()
-				// create
+				new_option_id, new_option_id_bin := app.new_id()
+				options_diff[i] = ProductOptionUpdateParams{
+					id:             new_option_id
+					id_bin:         new_option_id_bin
+					product_id:     product_id
+					product_id_bin: product_id_bin
+					option_rank:    i
+					title:          string_value(option.title)
+				}
 			}
 		}
 
-		// TODO diff translations, option values, option value translations
+		model_product_option_update(mut tx, options_diff) or {
+			return new_error_internal('Could not update product_option', err.msg())
+		}
+
+		old_translations := model_product_option_translations_retrieve(mut tx, [
+			product_id_bin,
+		]) or {
+			return new_error_internal('Could not retrieve product_option_translations',
+				err.msg())
+		}
+
+		mut option_translations_map := map[string][]ProductOptionTranslation{}
+		for i := 0; i < old_translations.len; i++ {
+			old_translation := old_translations[i]
+			option_id := old_translation.product_option_id
+			old_array := option_translations_map[option_id]
+			option_translations_map[option_id] = arrays.concat(old_array, old_translation)
+		}
+
+		// preallocate
+		mut n_translations := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			option_id := option.id or { options_diff[i].id }
+			if translations := option.translations {
+				n_translations += translations.len
+			} else {
+				n_translations += option_translations_map[option_id].len
+			}
+		}
+
+		mut option_translations_diff := []ProductOptionTranslationUpdateParams{len: n_translations}
+		mut translations_added := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			option_id := option.id or {
+				new_option_id := options_diff[i].id
+				new_option_id_bin := options_diff[i].id_bin
+				if translations := option.translations {
+					for j := 0; j < translations.len; j++ {
+						translation := translations[j]
+						option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
+							product_option_id:     new_option_id
+							product_option_id_bin: new_option_id_bin
+							locale_id:             translation.locale_id
+							locale_id_bin:         translation.locale_id_bin
+							title:                 translation.title
+						}
+						translations_added++
+					}
+				}
+				continue
+			}
+
+			translations := option.translations or {
+				old_option_translations := option_translations_map[option_id]
+				for j := 0; j < old_option_translations.len; j++ {
+					old_translation := old_translations[j]
+					option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
+						product_option_id:     old_translation.product_option_id
+						product_option_id_bin: old_translation.product_option_id_bin
+						locale_id:             old_translation.locale_id
+						locale_id_bin:         old_translation.locale_id_bin
+						title:                 old_translation.title
+					}
+					translations_added++
+				}
+				continue
+			}
+
+			for j := 0; j < translations.len; j++ {
+				translation := translations[j]
+				option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
+					product_option_id:     option_id
+					product_option_id_bin: option.id_bin
+					locale_id:             translation.locale_id
+					locale_id_bin:         translation.locale_id_bin
+					title:                 translation.title
+				}
+				translations_added++
+			}
+		}
+
+		model_product_option_translations_update(mut tx, option_translations_diff) or {
+			return new_error_internal('Could not update product_option_translations',
+				err.msg())
+		}
+
+		// TODO option values
+		// TODO option value translations
 	}
 
 	if variants := ph.variants {
 		mut variants_diff := []VariantUpdateParams{len: variants.len}
 		mut inventory_items_diff := []InventoryItemUpdateParams{len: variants.len}
+		// TODO get options and option values to create relations
 
 		old_variants := model_product_variants_retrieve_by_product_ids(mut tx, [
 			product_id_bin,
@@ -1049,9 +1120,6 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Failed to update variants', err.msg())
 		}
 
-		// TODO product_variant_money_amount
-		// TODO product_option_value_product_variant
-
 		model_inventory_item_update(mut tx, inventory_items_diff) or {
 			return new_error_internal('Failed to update inventory items', err.msg())
 		}
@@ -1059,6 +1127,10 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		model_inventory_item_sync_delete(mut tx, product_id_bin) or {
 			return new_error_internal('Failed to delete inventory items', err.msg())
 		}
+
+		// TODO product_option_value_product_variant
+
+		// TODO product_variant_money_amount
 	}
 }
 
