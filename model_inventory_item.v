@@ -1,6 +1,5 @@
 module peony
 
-import arrays
 import einar_hjortdal.firebird
 
 struct InventoryLevel {
@@ -281,7 +280,6 @@ fn model_inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCre
 		...params)!
 }
 
-// same as create params. Is a duplicated struct a problem? I don't think so right now.
 struct InventoryItemUpdateParams {
 	id                string
 	id_bin            []u8
@@ -301,77 +299,150 @@ struct InventoryItemUpdateParams {
 	allow_backorder   bool
 }
 
-fn model_inventory_item_update(mut tx firebird.Transaction, variant_id_bin []u8, p InventoryItemUpdateRequest) ! {
-	mut columns := []string{}
-	mut params := []firebird.Value{}
+fn model_inventory_item_update(mut tx firebird.Transaction, p []InventoryItemUpdateParams) ! {
+	mut src := []string{len: p.len}
+	n_params := 14
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
+		item := p[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS variant_id,
+			CAST(? AS VARCHAR(63)) AS sku,
+			CAST(? AS CHAR(2)) AS origin_country,
+			CAST(? AS VARCHAR(63)) AS hs_code,
+			CAST(? AS VARCHAR(15)) AS mid_code,
+			CAST(? AS VARCHAR(191)) AS material,
+			CAST(? AS INTEGER) AS weight,
+			CAST(? AS INTEGER) AS length,
+			CAST(? AS INTEGER) AS height,
+			CAST(? AS INTEGER) AS width,
+			CAST(? AS BOOLEAN) AS requires_shipping,
+			CAST(? AS BOOLEAN) AS manage_inventory,
+			CAST(? AS BOOLEAN) AS allow_backorder
+			FROM RDB\$DATABASE'
 
-	if sku := p.sku {
-		columns = arrays.concat(columns, 'sku')
-		params = arrays.concat(params, sku)
+		params[i * n_params + 0] = item.id_bin
+		params[i * n_params + 1] = item.id_bin
+
+		if item.sku != '' {
+			params[i * n_params + 2] = item.sku
+		}
+
+		if item.origin_country != '' {
+			params[i * n_params + 3] = item.origin_country
+		}
+
+		if item.hs_code != '' {
+			params[i * n_params + 4] = item.hs_code
+		}
+
+		if item.mid_code != '' {
+			params[i * n_params + 5] = item.mid_code
+		}
+
+		if item.material != '' {
+			params[i * n_params + 6] = item.material
+		}
+
+		if item.weight != 0 {
+			params[i * n_params + 7] = item.weight
+		}
+
+		if item.length != 0 {
+			params[i * n_params + 8] = item.length
+		}
+
+		if item.height != 0 {
+			params[i * n_params + 9] = item.height
+		}
+
+		if item.width != 0 {
+			params[i * n_params + 10] = item.width
+		}
+
+		params[i * n_params + 11] = item.requires_shipping
+		params[i * n_params + 12] = item.manage_inventory
+		params[i * n_params + 13] = item.allow_backorder
 	}
 
-	if origin_country := p.origin_country {
-		columns = arrays.concat(columns, 'origin_country')
-		params = arrays.concat(params, origin_country)
-	}
+	query := 'MERGE INTO inventory_item t
+		USING (${get_merge_source(src)}) s
+		ON s.id = t.id
+		WHEN MATCHED THEN UPDATE
+			SET
+				t.updated_at = CURRENT_TIMESTAMP,
+				t.sku = s.sku,
+				t.origin_country = s.origin_country,
+				t.hs_code = s.hs_code,
+				t.mid_code = s.mid_code,
+				t.material = s.material,
+				t.weight = s.weight,
+				t.length = s.length,
+				t.height = s.height,
+				t.width = s.width,
+				t.requires_shipping = s.requires_shipping,
+				t.manage_inventory = s.manage_inventory,
+				t.allow_backorder = s.allow_backorder
+		WHEN NOT MATCHED THEN
+			INSERT
+				(
+					id,
+					variant_id,
+					sku,
+					origin_country,
+					hs_code,
+					mid_code,
+					material,
+					weight,
+					length,
+					height,
+					width,
+					requires_shipping,
+					manage_inventory,
+					allow_backorder
+				)
+			VALUES
+				(
+					s.id,
+					s.variant_id,
+					s.sku,
+					s.origin_country,
+					s.hs_code,
+					s.mid_code,
+					s.material,
+					s.weight,
+					s.length,
+					s.height,
+					s.width,
+					s.requires_shipping,
+					s.manage_inventory,
+					s.allow_backorder
+				)
+			'
 
-	if hs_code := p.hs_code {
-		columns = arrays.concat(columns, 'hs_code')
-		params = arrays.concat(params, hs_code)
-	}
-
-	if mid_code := p.mid_code {
-		columns = arrays.concat(columns, 'mid_code')
-		params = arrays.concat(params, mid_code)
-	}
-
-	if material := p.material {
-		columns = arrays.concat(columns, 'material')
-		params = arrays.concat(params, material)
-	}
-
-	if weight := p.weight {
-		columns = arrays.concat(columns, 'weight')
-		params = arrays.concat(params, weight)
-	}
-
-	if length := p.length {
-		columns = arrays.concat(columns, 'length')
-		params = arrays.concat(params, length)
-	}
-
-	if height := p.height {
-		columns = arrays.concat(columns, 'height')
-		params = arrays.concat(params, height)
-	}
-
-	if width := p.width {
-		columns = arrays.concat(columns, 'width')
-		params = arrays.concat(params, width)
-	}
-
-	if requires_shipping := p.requires_shipping {
-		columns = arrays.concat(columns, 'requires_shipping')
-		params = arrays.concat(params, requires_shipping)
-	}
-
-	if manage_inventory := p.manage_inventory {
-		columns = arrays.concat(columns, 'manage_inventory')
-		params = arrays.concat(params, manage_inventory)
-	}
-
-	if allow_backorder := p.allow_backorder {
-		columns = arrays.concat(columns, 'allow_backorder')
-		params = arrays.concat(params, allow_backorder)
-	}
-
-	params = arrays.concat(params, variant_id_bin)
-
-	tx.execute('UPDATE inventory_item SET ${get_set_columns_with_updated_at(columns)} WHERE variant_id = ?',
-		...params)!
+	tx.execute(query, ...params)!
 }
 
 fn model_inventory_item_delete(mut tx firebird.Transaction, inventory_item_id_bin []u8) ! {
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		inventory_item_id_bin)!
+}
+
+// used when updating variants within a product update
+fn model_inventory_item_sync_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
+	tx.execute('MERGE INTO inventory_item t
+		USING
+			(
+				SELECT 
+					id AS variant_id,
+					deleted_at
+				FROM product_variant
+				WHERE product_id = ?
+					AND deleted_at IS NOT NULL
+			) s
+		ON s.variant_id = t.variant_id
+		WHEN MATCHED AND t.deleted_at IS NULL THEN UPDATE 
+			SET t.deleted_at = s.deleted_at',
+		product_id_bin)!
 }

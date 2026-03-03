@@ -360,20 +360,24 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	// 	// TODO verify provided locale_id exist in database
 	// }
 
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
-
 	if seo.len == 0 {
 		perr := new_error_internal(error_database_data_malformed, 'Missing product seo for product with id ${product_id}')
+		tx.rollback() or {}
 		return ctx.handle_error(perr)
 	}
 
 	product_seo := seo[0]
 
-	conduit_product_update(mut app, mut ctx, product_seo.id_bin, product_diff, images_diff,
-		ph) or { return ctx.handle_error(err) }
+	conduit_product_update(mut app, mut ctx, mut tx, product_seo.id_bin, product_diff,
+		images_diff, ph) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_error(perr)
+	}
 
 	rp := RetrieveProductParamsHygienised{
 		ids:     ZeroArrayString{

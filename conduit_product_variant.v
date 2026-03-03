@@ -144,13 +144,13 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 		}
 	}
 
-	if inventory_item := ph.inventory_item {
-		model_inventory_item_update(mut tx, variant_id_bin, inventory_item) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Could not update inventory_item', err.msg())
-			return ctx.handle_error(perr)
-		}
-	}
+	// if inventory_item := ph.inventory_item {
+	// 	model_inventory_item_update(mut tx, variant_id_bin, inventory_item) or {
+	// 		tx.rollback() or {}
+	// 		perr := new_error_internal('Could not update inventory_item', err.msg())
+	// 		return ctx.handle_error(perr)
+	// 	}
+	// }
 
 	if _ := ph.money_amounts {
 		// TODO	update variant money amounts
@@ -173,11 +173,11 @@ fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin [
 		return ctx.handle_error(perr)
 	}
 
-	model_inventory_item_delete(mut tx, inventory_item_id_bin) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Could not delete inventory_item', err.msg())
-		return ctx.handle_error(perr)
-	}
+	// model_inventory_item_delete(mut tx, inventory_item_id_bin) or {
+	// 	tx.rollback() or {}
+	// 	perr := new_error_internal('Could not delete inventory_item', err.msg())
+	// 	return ctx.handle_error(perr)
+	// }
 
 	tx.commit() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())

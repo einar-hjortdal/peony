@@ -97,6 +97,7 @@ struct ZeroString {
 	is_set bool
 }
 
+// TODO replace all ZeroT with ?T
 // TODO change `v` to `value`
 fn zero_string(m map[string]string, k string) ZeroString {
 	if k in m {

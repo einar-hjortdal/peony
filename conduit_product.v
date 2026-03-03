@@ -1,6 +1,7 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 
 fn conduit_product_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, handle string, ph ProductCreateRequestHygienised) ! {
 	product_create_params := ProductCreateParams{
@@ -793,13 +794,11 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	})
 }
 
-fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product_diff ProductUpdateParams, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) ! {
+fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transaction, seo_id_bin []u8, product_diff ProductUpdateParams, images_diff []ProductImageUpdateParams, ph ProductUpdateRequestHygienised) ! {
 	product_id_bin := product_diff.product_id_bin
-	mut tx := app.start_transaction()!
 
 	// always update the product row for `updated_at`
 	model_product_update(mut tx, product_diff) or {
-		tx.rollback() or {}
 		return new_error_internal('Failed to update product', err.msg())
 	}
 
@@ -809,24 +808,20 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 
 	if ph.images != none {
 		model_product_thumbnail_delete(mut tx, product_id_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to delete product thumbnail', err.msg())
 		}
 
 		if images_diff.len == 0 {
 			model_product_images_delete(mut tx, product_id_bin) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to delete product images', err.msg())
 			}
 		} else {
 			model_product_images_update(mut tx, product_id_bin, images_diff) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to update product images', err.msg())
 			}
 
 			if ph.thumbnail == none {
 				model_product_thumbnail_update(mut tx, product_id_bin, default_thumbnail) or {
-					tx.rollback() or {}
 					return new_error_internal('Failed to update product thumbnail', err.msg())
 				}
 			}
@@ -835,34 +830,29 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 
 	if thumbnail := ph.thumbnail {
 		model_product_thumbnail_update(mut tx, product_id_bin, thumbnail) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product thumbnail', err.msg())
 		}
 	}
 
 	if _ := ph.sales_channel_ids {
 		model_product_sales_channel_update(mut tx, product_id_bin, ph.sales_channel_ids_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product sales channel', err.msg())
 		}
 	}
 
 	if _ := ph.category_ids {
 		model_category_product_update(mut tx, product_id_bin, ph.category_ids_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to update product category relation', err.msg())
 		}
 	}
 
 	if translations := ph.translations {
 		model_product_translations_delete(mut tx, product_id_bin) or {
-			tx.rollback() or {}
 			return new_error_internal('Failed to delete from product_translations', err.msg())
 		}
 
 		if translations.len > 0 {
 			model_product_translations_create(mut tx, product_id_bin, translations) or {
-				tx.rollback() or {}
 				return new_error_internal('Failed to create product_translations', err.msg())
 			}
 		}
@@ -871,20 +861,17 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 	if seo := ph.seo {
 		if seo.title != none || seo.description != none {
 			model_seo_update(mut tx, seo_id_bin, seo) or {
-				tx.rollback() or {}
 				return new_error_internal('Could not update seo', err.msg())
 			}
 		}
 
 		if translations := seo.translations {
 			model_seo_translations_delete(mut tx, seo_id_bin) or {
-				tx.rollback() or {}
 				return new_error_internal('Could not delete seo_translations', err.msg())
 			}
 
 			if translations.len > 0 {
 				model_seo_translations_create(mut tx, seo_id_bin, translations) or {
-					tx.rollback() or {}
 					return new_error_internal('Could not update seo_translations', err.msg())
 				}
 			}
@@ -897,10 +884,7 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 		options_diff = []ProductOptionUpdateParams{len: options.len}
 		old_options := model_product_options_retrieve_by_product_ids(mut tx, [
 			product_id_bin,
-		]) or {
-			tx.rollback() or {}
-			return new_error_internal('Could not retrieve product_option', err.msg())
-		}
+		]) or { return new_error_internal('Could not retrieve product_option', err.msg()) }
 
 		mut old_options_map := map[string]ProductOption{}
 		for i := 0; i < old_options.len; i++ {
@@ -924,31 +908,39 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 
 	if variants := ph.variants {
 		mut variants_diff := []VariantUpdateParams{len: variants.len}
+		mut inventory_items_diff := []InventoryItemUpdateParams{len: variants.len}
+
 		old_variants := model_product_variants_retrieve_by_product_ids(mut tx, [
 			product_id_bin,
-		]) or {
-			tx.rollback() or {}
-			return new_error_internal('Could not retrieve variants', err.msg())
-		}
+		]) or { return new_error_internal('Could not retrieve variants', err.msg()) }
 
 		mut old_variants_map := map[string]ProductVariant{}
+		mut old_variants_ids_bin := [][]u8{len: old_variants.len}
 		for i := 0; i < old_variants.len; i++ {
 			variant := old_variants[i]
-			id := variant.id
-			old_variants_map[id] = variant
+			variant_id := variant.id
+			variant_id_bin := variant.id_bin
+			old_variants_map[variant_id] = variant
+			old_variants_ids_bin[i] = variant_id_bin
+		}
+
+		old_inventory_items := model_inventory_item_retrieve(mut tx, old_variants_ids_bin) or {
+			return new_error_internal('Could not retrieve inventory items', err.msg())
+		}
+
+		mut old_inventory_items_map := map[string]InventoryItem{}
+		for i := 0; i < old_inventory_items.len; i++ {
+			inventory_item := old_inventory_items[i]
+			variant_id := inventory_item.variant_id
+			old_inventory_items_map[variant_id] = inventory_item
 		}
 
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
-			if id := variant.id {
-				if id !in old_variants_map {
-					tx.rollback() or {}
-					return new_error_bad_request(error_id_invalid, 'variant with id ${id} does not exist')
-				}
-
-				old_variant := old_variants_map[id]
+			if variant_id := variant.id {
+				old_variant := old_variants_map[variant_id]
 				variants_diff[i] = VariantUpdateParams{
-					id:     id
+					id:     variant_id
 					id_bin: variant.id_bin
 					// image_id:
 					// image_id_bin:
@@ -959,17 +951,115 @@ fn conduit_product_update(mut app App, mut ctx Context, seo_id_bin []u8, product
 					variant_rank: i
 					metadata:     unwrap_option_or(variant.metadata, old_variant.metadata.value)
 				}
-			} else {
-				// TODO
-			}
 
-			if inventory_item := variant.inventory_item {
-				mut inventory_items_diff := []InventoryItemUpdateParams{len: variants.len}
+				old_inventory_item := old_inventory_items_map[variant_id]
+				if inventory_item := variant.inventory_item {
+					inventory_items_diff[i] = InventoryItemUpdateParams{
+						id:                old_inventory_item.id
+						id_bin:            old_inventory_item.id_bin
+						variant_id:        variant_id
+						variant_id_bin:    variant.id_bin
+						sku:               unwrap_option_or(inventory_item.sku, old_inventory_item.sku.value)
+						origin_country:    unwrap_option_or(inventory_item.origin_country,
+							old_inventory_item.origin_country.value)
+						hs_code:           unwrap_option_or(inventory_item.hs_code, old_inventory_item.hs_code.value)
+						mid_code:          unwrap_option_or(inventory_item.mid_code, old_inventory_item.mid_code.value)
+						material:          unwrap_option_or(inventory_item.material, old_inventory_item.material.value)
+						weight:            unwrap_option_or(inventory_item.weight, old_inventory_item.weight.value)
+						length:            unwrap_option_or(inventory_item.length, old_inventory_item.length.value)
+						height:            unwrap_option_or(inventory_item.height, old_inventory_item.height.value)
+						width:             unwrap_option_or(inventory_item.width, old_inventory_item.width.value)
+						requires_shipping: unwrap_option_or(inventory_item.requires_shipping,
+							old_inventory_item.requires_shipping)
+						manage_inventory:  unwrap_option_or(inventory_item.manage_inventory,
+							old_inventory_item.manage_inventory)
+						allow_backorder:   unwrap_option_or(inventory_item.allow_backorder,
+							old_inventory_item.allow_backorder)
+					}
+				} else {
+					inventory_items_diff[i] = InventoryItemUpdateParams{
+						id:                old_inventory_item.id
+						id_bin:            old_inventory_item.id_bin
+						variant_id:        variant_id
+						variant_id_bin:    variant.id_bin
+						sku:               old_inventory_item.sku.value
+						origin_country:    old_inventory_item.origin_country.value
+						hs_code:           old_inventory_item.hs_code.value
+						mid_code:          old_inventory_item.mid_code.value
+						material:          old_inventory_item.material.value
+						weight:            old_inventory_item.weight.value
+						length:            old_inventory_item.length.value
+						height:            old_inventory_item.height.value
+						width:             old_inventory_item.width.value
+						requires_shipping: old_inventory_item.requires_shipping
+						manage_inventory:  old_inventory_item.manage_inventory
+						allow_backorder:   old_inventory_item.allow_backorder
+					}
+				}
+			} else {
+				new_variant_id, new_variant_id_bin := app.new_id()
+				variants_diff[i] = VariantUpdateParams{
+					id:     new_variant_id
+					id_bin: new_variant_id_bin
+					// image_id:
+					// image_id_bin:
+					title:        string_value(variant.title)
+					barcode:      string_value(variant.barcode)
+					ean:          string_value(variant.ean)
+					upc:          string_value(variant.upc)
+					variant_rank: i
+					metadata:     string_value(variant.metadata)
+				}
+
+				new_inventory_item_id, new_inventory_item_id_bin := app.new_id()
+				if inventory_item := variant.inventory_item {
+					inventory_items_diff[i] = InventoryItemUpdateParams{
+						id:                new_inventory_item_id
+						id_bin:            new_inventory_item_id_bin
+						variant_id:        new_variant_id
+						variant_id_bin:    new_variant_id_bin
+						sku:               string_value(inventory_item.sku)
+						origin_country:    string_value(inventory_item.origin_country)
+						hs_code:           string_value(inventory_item.hs_code)
+						mid_code:          string_value(inventory_item.mid_code)
+						material:          string_value(inventory_item.material)
+						weight:            i32_value(inventory_item.weight)
+						length:            i32_value(inventory_item.length)
+						height:            i32_value(inventory_item.height)
+						width:             i32_value(inventory_item.width)
+						requires_shipping: bool_or(inventory_item.requires_shipping, true)
+						manage_inventory:  bool_or(inventory_item.manage_inventory, true)
+						allow_backorder:   bool_or(inventory_item.allow_backorder, false)
+					}
+				} else {
+					inventory_items_diff[i] = InventoryItemUpdateParams{
+						id:                new_inventory_item_id
+						id_bin:            new_inventory_item_id_bin
+						variant_id:        new_variant_id
+						variant_id_bin:    new_variant_id_bin
+						requires_shipping: true
+						manage_inventory:  true
+						allow_backorder:   false
+					}
+				}
 			}
 		}
-	}
 
-	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
+		model_product_variant_update(mut tx, product_id_bin, variants_diff) or {
+			return new_error_internal('Failed to update variants', err.msg())
+		}
+
+		// TODO product_variant_money_amount
+		// TODO product_option_value_product_variant
+
+		model_inventory_item_update(mut tx, inventory_items_diff) or {
+			return new_error_internal('Failed to update inventory items', err.msg())
+		}
+
+		model_inventory_item_sync_delete(mut tx, product_id_bin) or {
+			return new_error_internal('Failed to delete inventory items', err.msg())
+		}
+	}
 }
 
 fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) ! {
