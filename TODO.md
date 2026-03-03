@@ -114,6 +114,7 @@
 - Create higher order to provide tx by wraping blocks that need tx.
   - Problem: impossible to modify variables outside of closures without using unsafe blocks.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
+- Refactor, abstract, reduce boilerplating, separate concerns, but only after minimal viable product works.
 
 ## Documentation
 
