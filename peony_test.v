@@ -870,9 +870,6 @@ fn admin_products_updates_product(cookie_value string) ! {
 	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, updated_product_data)!
 	response_is_ok(response)!
-
-	response = do_authenticated_get_request('${endpoint_admin_products}/${new_product.id}',
-		cookie_value)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	updated_product := r.product
 
@@ -1083,9 +1080,6 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, json.encode(product_update))!
 	response_is_ok(response)!
-
-	response = do_authenticated_get_request('${endpoint_admin_products}/${new_product.id}',
-		cookie_value)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	updated_product := r.product
 	updated_images := updated_product.images
