@@ -94,6 +94,7 @@ fn model_product_option_value_update(mut tx firebird.Transaction, p []ProductOpt
 	mut src := []string{len: p.len}
 	n_params := 4
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	mut option_ids_map := map[string][]u8{}
 	for i := 0; i < p.len; i++ {
 		value := p[i]
 		src[i] = 'SELECT
@@ -107,7 +108,12 @@ fn model_product_option_value_update(mut tx firebird.Transaction, p []ProductOpt
 		params[i * n_params + 1] = value.option_id_bin
 		params[i * n_params + 2] = value.value_rank
 		params[i * n_params + 3] = value.name
+
+		option_ids_map[value.option_id] = value.option_id_bin
 	}
+
+	option_ids_bin := option_ids_map.values()
+	params = arrays.concat(params, ...workaround_24757(option_ids_bin))
 
 	query := 'MERGE INTO product_option_value t
 		USING (${get_merge_source(src)}) s
@@ -117,7 +123,7 @@ fn model_product_option_value_update(mut tx firebird.Transaction, p []ProductOpt
 		WHEN NOT MATCHED THEN INSERT
 			(id, option_id, value_rank, name)
 			VALUES (s.id, s.option_id, s.value_rank, s.name)
-		WHEN NOT MATCHED BY SOURCE THEN DELETE'
+		WHEN NOT MATCHED BY SOURCE AND t.option_id IN (${get_placeholders(option_ids_bin)}) THEN DELETE'
 
 	tx.execute(query, ...params)!
 }
