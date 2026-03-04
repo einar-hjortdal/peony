@@ -972,8 +972,104 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				err.msg())
 		}
 
-		// TODO option values
-		// TODO option value translations
+		// preallocate
+		mut n_values := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			_ := option.id or { // new option, must have new values
+				values := option.values or {
+					return new_error_internal('New option has no values', 'option.values == none')
+				}
+
+				n_values += values.len
+				continue
+			}
+
+			values := option.values or {
+				continue // no changes for this option
+			}
+
+			n_values += values.len // replace old values with new ones
+		}
+
+		mut option_ids_bin := [][]u8{len: options_diff.len}
+		for i := 0; i < options_diff.len; i++ {
+			option_ids_bin[i] = options_diff[i].id_bin
+		}
+
+		old_values := model_product_option_values_retrieve(mut tx, option_ids_bin) or {
+			return new_error_internal('Could not retrieve product_option_values', err.msg())
+		}
+
+		mut old_values_map := map[string]ProductOptionValue{}
+		for i := 0; i < old_values.len; i++ {
+			old_value := old_values[i]
+			old_value_id := old_value.id
+			old_values_map[old_value_id] = old_value
+		}
+
+		mut values_diff := []ProductOptionValueUpdateParams{len: n_values}
+		mut values_added := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			option_id := option.id or {
+				new_option := options_diff[i]
+				values := option.values or {
+					return new_error_internal('New option has no values', 'option.values == none')
+				}
+
+				for j := 0; j < values.len; j++ {
+					value := values[j]
+					new_value_id, new_value_id_bin := app.new_id()
+					values_diff[values_added] = ProductOptionValueUpdateParams{
+						id:            new_value_id
+						id_bin:        new_value_id_bin
+						option_id:     new_option.id
+						option_id_bin: new_option.id_bin
+						value_rank:    j
+						name:          string_value(value.name)
+					}
+				}
+				values_added++
+				continue
+			}
+
+			values := option.values or { continue }
+
+			for j := 0; j < values.len; j++ {
+				value := values[j]
+				value_id := value.id or {
+					new_value_id, new_value_id_bin := app.new_id()
+					values_diff[values_added] = ProductOptionValueUpdateParams{
+						id:            new_value_id
+						id_bin:        new_value_id_bin
+						option_id:     option_id
+						option_id_bin: option.id_bin
+						value_rank:    j
+						name:          string_value(value.name)
+					}
+					values_added++
+					continue
+				}
+
+				old_value := old_values_map[value_id]
+				values_diff[values_added] = ProductOptionValueUpdateParams{
+					id:            value_id
+					id_bin:        value.id_bin
+					option_id:     option_id
+					option_id_bin: option.id_bin
+					value_rank:    j
+					name:          unwrap_option_or(value.name, old_value.name)
+				}
+				values_added++
+			}
+		}
+
+		model_product_option_value_update(mut tx, values_diff) or {
+			return new_error_internal('Could not update product_option_value', err.msg())
+		}
+
+		// TODO value translations
 	}
 
 	if variants := ph.variants {

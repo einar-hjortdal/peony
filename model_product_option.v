@@ -82,11 +82,44 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 }
 
 struct ProductOptionValueUpdateParams {
-	name string
+	id            string
+	id_bin        []u8
+	option_id     string
+	option_id_bin []u8
+	value_rank    i32
+	name          string
 }
 
-fn model_product_option_value_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, p ProductOptionValueUpdateParams) ! {
-	tx.execute('UPDATE product_option_value SET name = ? WHERE id = ?', p.name, product_option_value_id_bin)!
+fn model_product_option_value_update(mut tx firebird.Transaction, p []ProductOptionValueUpdateParams) ! {
+	mut src := []string{len: p.len}
+	n_params := 4
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
+		value := p[i]
+		src[i] = 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS option_id,
+			CAST(? AS INTEGER) AS value_rank,
+			CAST(? AS VARCHAR(63)) AS name
+			FROM RDB\$DATABASE'
+
+		params[i * n_params + 0] = value.id_bin
+		params[i * n_params + 1] = value.option_id_bin
+		params[i * n_params + 2] = value.value_rank
+		params[i * n_params + 3] = value.name
+	}
+
+	query := 'MERGE INTO product_option_value t
+		USING (${get_merge_source(src)}) s
+		ON s.id = t.id
+		WHEN MATCHED THEN UPDATE
+			SET t.value_rank = s.value_rank, t.name = s.name
+		WHEN NOT MATCHED THEN INSERT
+			(id, option_id, value_rank, name)
+			VALUES (s.id, s.option_id, s.value_rank, s.name)
+		WHEN NOT MATCHED BY SOURCE THEN DELETE'
+
+	tx.execute(query, ...params)!
 }
 
 struct ProductOptionValueTranslationUpdateParams {
