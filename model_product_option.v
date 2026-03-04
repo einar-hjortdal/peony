@@ -123,37 +123,56 @@ fn model_product_option_value_update(mut tx firebird.Transaction, p []ProductOpt
 		WHEN NOT MATCHED THEN INSERT
 			(id, option_id, value_rank, name)
 			VALUES (s.id, s.option_id, s.value_rank, s.name)
-		WHEN NOT MATCHED BY SOURCE AND t.option_id IN (${get_placeholders(option_ids_bin)}) THEN DELETE'
+		WHEN NOT MATCHED BY SOURCE AND t.option_id IN (${get_placeholders(option_ids_bin)})
+			THEN DELETE'
 
 	tx.execute(query, ...params)!
 }
 
 struct ProductOptionValueTranslationUpdateParams {
-	locale_id_bin []u8
-	name          string
+	product_option_value_id     string
+	product_option_value_id_bin []u8
+	locale_id                   string
+	locale_id_bin               []u8
+	name                        string
 }
 
-fn model_product_option_value_translations_update(mut tx firebird.Transaction, product_option_value_id_bin []u8, p []ProductOptionValueTranslationUpdateParams) ! {
-	tx.execute('DELETE FROM product_option_value_translations WHERE product_option_value_id = ?',
-		product_option_value_id_bin)!
-
+fn model_product_option_value_translations_update(mut tx firebird.Transaction, p []ProductOptionValueTranslationUpdateParams) ! {
 	mut src := []string{len: p.len}
-	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
+	n_params := 3
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	mut product_option_value_ids_map := map[string][]u8{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
 		src[i] = 'SELECT
-				CAST(? AS BINARY(16)) AS product_option_value_id,
-				CAST(? AS BINARY(16)) AS locale_id,
-				CAST(? AS VARCHAR(63)) AS name
-				FROM RDB\$DATABASE'
-		params[i * 3] = product_option_value_id_bin
-		params[i * 3 + 1] = translation.locale_id_bin
-		params[i * 3 + 2] = translation.name
+			CAST(? AS BINARY(16)) AS product_option_value_id,
+			CAST(? AS BINARY(16)) AS locale_id,
+			CAST(? AS VARCHAR(63)) AS name
+			FROM RDB\$DATABASE'
+
+		params[i * n_params + 0] = translation.product_option_value_id_bin
+		params[i * n_params + 1] = translation.locale_id_bin
+		params[i * n_params + 2] = translation.name
+
+		product_option_value_ids_map[translation.product_option_value_id] = translation.product_option_value_id_bin
 	}
 
-	tx.execute('INSERT INTO product_option_value_translations (product_option_value_id, locale_id, name)
-		${get_merge_source(src)}',
-		...params)!
+	product_option_value_ids_bin := product_option_value_ids_map.values()
+	params = arrays.concat(params, ...workaround_24757(product_option_value_ids_bin))
+
+	query := 'MERGE INTO product_option_value_ids_map
+		USING (${get_merge_source(src)}) s
+		ON s.product_option_value_id = t.product_option_value_id AND s.locale_id = t.locale_id
+		WHEN MATCHED THEN UPDATE
+			SET t.name = s.name
+		WHEN NOT MATCHED THEN INSERT
+			(product_option_value_id, locale_id, name)
+			VALUES (s.product_option_value_id, s.locale_id, s.name)
+		WHEN NOT MATCHED BY SOURCE 
+			AND t.product_option_value_ids_bin IN (${get_placeholders(product_option_value_ids_bin)})
+			THEN DELETE'
+
+	tx.execute(query, ...params)!
 }
 
 fn model_product_option_value_delete(mut tx firebird.Transaction, product_option_value_id_bin []u8) ! {
@@ -432,7 +451,8 @@ fn model_product_option_update(mut tx firebird.Transaction, p []ProductOptionUpd
 		WHEN NOT MATCHED THEN INSERT
 			(id, product_id, option_rank, title)
 			VALUES (s.id, s.product_id, s.option_rank, s.title)
-		WHEN NOT MATCHED BY SOURCE AND t.product_id IN (${get_placeholders(product_ids_bin)})
+		WHEN NOT MATCHED BY SOURCE
+			AND t.product_id IN (${get_placeholders(product_ids_bin)})
 			THEN DELETE'
 
 	params = arrays.concat(params, ...workaround_24757(product_ids_bin))
@@ -480,7 +500,7 @@ fn model_product_option_translations_update(mut tx firebird.Transaction, p []Pro
 			VALUES (s.product_option_id, s.locale_id, s.title)
 		WHEN NOT MATCHED BY SOURCE
 			AND t.product_option_id IN (${get_placeholders(product_option_ids_bin)})
-		THEN DELETE'
+			THEN DELETE'
 
 	params = arrays.concat(params, ...workaround_24757(product_option_ids_bin))
 

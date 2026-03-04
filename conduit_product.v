@@ -954,6 +954,9 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				continue
 			}
 
+			// TODO if translations.len == 0 delete all translations for the option.
+			// this means model_product_option_translations_update has to be changed or another method call is needed
+
 			for j := 0; j < translations.len; j++ {
 				translation := translations[j]
 				option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
@@ -1069,7 +1072,39 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Could not update product_option_value', err.msg())
 		}
 
-		// TODO value translations
+		// value translations
+		mut n_value_translations := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			values := option.values or { continue }
+
+			for j := 0; j < values.len; j++ {
+				value := values[i]
+				translations := value.translations or { continue }
+				n_value_translations += translations.len
+			}
+		}
+
+		mut value_translations_diff := []ProductOptionValueTranslationUpdateParams{len: n_value_translations}
+		mut value_translations_added := 0
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			values := option.values or { continue }
+
+			for j := 0; j < values.len; j++ {
+				value := values[i]
+				translations := value.translations or { continue }
+				// if translations.len == 0 delete all translations for the value.
+				for k := 0; k < translations.len; k++ {
+					translation := translations[k]
+					// TODO diff
+				}
+			}
+		}
+
+		model_product_option_value_translations_update(mut tx, value_translations_diff) or {
+			return new_error_internal('Could not update option_value_translations', err.msg())
+		}
 	}
 
 	if variants := ph.variants {
