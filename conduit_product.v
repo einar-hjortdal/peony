@@ -179,7 +179,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		if n_option_translations > 0 {
-			mut translations_to_create := []ProductOptionTranslationCreateParams{len: n_option_translations}
+			mut translations_to_create := []ProductOptionTranslationParams{len: n_option_translations}
 			mut translations_added := 0
 			for i := 0; i < options.len; i++ {
 				option := options[i]
@@ -188,7 +188,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				translations := option.translations or { continue }
 				for j := 0; j < translations.len; j++ {
 					translation := translations[j]
-					translations_to_create[translations_added] = ProductOptionTranslationCreateParams{
+					translations_to_create[translations_added] = ProductOptionTranslationParams{
 						product_option_id:     option_id
 						product_option_id_bin: option_id_bin
 						locale_id:             translation.locale_id
@@ -206,7 +206,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		if n_value_translations > 0 {
-			mut translations_to_create := []ProductOptionValueTranslationCreateParams{len: n_value_translations}
+			mut translations_to_create := []ProductOptionValueTranslationParams{len: n_value_translations}
 			mut values_processed := 0
 			mut translations_added := 0
 			for i := 0; i < options.len; i++ {
@@ -218,7 +218,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 					translations := value.translations or { continue }
 					for k := 0; k < translations.len; k++ {
 						translation := translations[k]
-						translations_to_create[translations_added] = ProductOptionValueTranslationCreateParams{
+						translations_to_create[translations_added] = ProductOptionValueTranslationParams{
 							product_option_value_id:     value_id
 							product_option_value_id_bin: value_id_bin
 							locale_id:                   translation.locale_id
@@ -915,7 +915,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		mut option_translations_diff := []ProductOptionTranslationUpdateParams{len: n_translations}
+		mut option_translations_diff := []ProductOptionTranslationParams{len: n_translations}
 		mut translations_added := 0
 		for i := 0; i < options.len; i++ {
 			option := options[i]
@@ -925,7 +925,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				if translations := option.translations {
 					for j := 0; j < translations.len; j++ {
 						translation := translations[j]
-						option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
+						option_translations_diff[translations_added] = ProductOptionTranslationParams{
 							product_option_id:     new_option_id
 							product_option_id_bin: new_option_id_bin
 							locale_id:             translation.locale_id
@@ -942,7 +942,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				old_option_translations := option_translations_map[option_id]
 				for j := 0; j < old_option_translations.len; j++ {
 					old_translation := old_translations[j]
-					option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
+					option_translations_diff[translations_added] = ProductOptionTranslationParams{
 						product_option_id:     old_translation.product_option_id
 						product_option_id_bin: old_translation.product_option_id_bin
 						locale_id:             old_translation.locale_id
@@ -959,7 +959,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 
 			for j := 0; j < translations.len; j++ {
 				translation := translations[j]
-				option_translations_diff[translations_added] = ProductOptionTranslationUpdateParams{
+				option_translations_diff[translations_added] = ProductOptionTranslationParams{
 					product_option_id:     option_id
 					product_option_id_bin: option.id_bin
 					locale_id:             translation.locale_id
@@ -970,7 +970,20 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		model_product_option_translations_update(mut tx, option_translations_diff) or {
+		mut option_ids := []string{len: options_diff.len}
+		mut option_ids_bin := [][]u8{len: options_diff.len}
+		for i := 0; i < options_diff.len; i++ {
+			option_ids[i] = options_diff[i].id
+			option_ids_bin[i] = options_diff[i].id_bin
+		}
+
+		option_translations_update_params := ProductOptionTranslationUpdateParams{
+			product_option_ids:     option_ids
+			product_option_ids_bin: option_ids_bin
+			translations:           option_translations_diff
+		}
+
+		model_product_option_translations_update(mut tx, option_translations_update_params) or {
 			return new_error_internal('Could not update product_option_translations',
 				err.msg())
 		}
@@ -993,11 +1006,6 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 
 			n_values += values.len // replace old values with new ones
-		}
-
-		mut option_ids_bin := [][]u8{len: options_diff.len}
-		for i := 0; i < options_diff.len; i++ {
-			option_ids_bin[i] = options_diff[i].id_bin
 		}
 
 		old_values := model_product_option_values_retrieve(mut tx, option_ids_bin) or {
@@ -1085,7 +1093,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		mut value_translations_diff := []ProductOptionValueTranslationUpdateParams{len: n_value_translations}
+		mut value_translations_diff := []ProductOptionValueTranslationParams{len: n_value_translations}
 		mut value_translations_added := 0
 		for i := 0; i < options.len; i++ {
 			option := options[i]
@@ -1102,7 +1110,20 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		model_product_option_value_translations_update(mut tx, value_translations_diff) or {
+		mut value_ids := []string{len: values_diff.len}
+		mut value_ids_bin := [][]u8{len: values_diff.len}
+		for i := 0; i < values_diff.len; i++ {
+			value_ids[i] = values_diff[i].id
+			value_ids_bin[i] = values_diff[i].id_bin
+		}
+
+		option_value_translation_update_params := ProductOptionValueTranslationUpdateParams{
+			product_option_value_ids:     value_ids
+			product_option_value_ids_bin: value_ids_bin
+			translations:                 value_translations_diff
+		}
+
+		model_product_option_value_translations_update(mut tx, option_value_translation_update_params) or {
 			return new_error_internal('Could not update option_value_translations', err.msg())
 		}
 	}
