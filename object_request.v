@@ -935,7 +935,7 @@ struct ProductVariantUpdateRequestHygienised {
 	inventory_item ?InventoryItemUpdateRequestHygienised
 	option_values  ?[]i32
 	metadata       ?string
-	money_amounts  ?[]VariantMoneyAmountRequest
+	money_amounts  ?[]VariantMoneyAmountRequestHygienised
 }
 
 fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
@@ -997,7 +997,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		inventory_item: inventory_item
 		option_values:  p.option_values
 		metadata:       p.metadata
-		money_amounts:  p.money_amounts
+		money_amounts:  money_amounts
 	}
 }
 

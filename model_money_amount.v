@@ -98,12 +98,12 @@ fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMon
 
 	// delete all related money amount first
 	tx.execute('DELETE FROM money_amount
-		WHERE price_list_id IS NULL
-		AND id IN (
+		WHERE id IN (
 			SELECT money_amount_id
 			FROM product_variant_money_amount
 			WHERE variant_id IN (${get_placeholders(variant_ids_bin)})
-		)',
+		)
+		AND price_list_id IS NULL',
 		...workaround_24757(variant_ids_bin))!
 
 	mut n_params := 4

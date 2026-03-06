@@ -1135,7 +1135,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			values := option.values or { continue }
 
 			for j := 0; j < values.len; j++ {
-				value := values[i]
+				value := values[j]
 				// need value id
 				product_option_value_id := values_diff[current_value_index].id
 				product_option_value_id_bin := values_diff[current_value_index].id_bin
@@ -1327,11 +1327,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Failed to delete inventory items', err.msg())
 		}
 
-		// validity of references to existing or new option has been verified in the route handler.
-		// all that is left to do is to update product_option_value_product_variant table.
-		// if option_values is not provided, no changes are made to that variant's product_option_value_product_variant rows.
-		// if option_values is provided merge, but no need to diff: because option_values must reference all options, updates replace all previous records.
-
+		// product_option_value_product_variant
 		// get all options for the product, they're returned by firebird sorted by option_rank.
 		options := model_product_options_retrieve(mut tx, [
 			product_id_bin,
@@ -1359,41 +1355,94 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			options_map[option_id].values = arrays.concat(option_old, value)
 		}
 
-		// compute array length for preallocation
-		mut n_variants_option_value_updated := 0
-		for i := 0; i < variants.len; i++ {
-			variant := variants[i]
-			if variant.option_values != none {
-				n_variants_option_value_updated++
-			}
-		}
-
-		mut variant_ids := []string{len: n_variants_option_value_updated}
-		mut variant_ids_bin := [][]u8{len: n_variants_option_value_updated}
-		mut option_value_ids_bin := [][][]u8{len: n_variants_option_value_updated}
+		mut n_variants := 0
+		mut n_relations := 0
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			option_values := variant.option_values or { continue }
-			variant_diff := variants_diff[i]
-			variant_ids[i] = variant_diff.id
-			variant_ids_bin[i] = variant_diff.id_bin
+			n_variants++
+			n_relations += option_values.len
+		}
+
+		mut variant_ids := []string{len: n_variants}
+		mut variant_ids_bin := [][]u8{len: n_variants}
+		mut variants_added := 0
+		mut relations := []ProductOptionValueProductVariant{len: n_relations}
+		mut relations_added := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			option_values := variant.option_values or { continue }
+			variant_id := variants_diff[i].id
+			variant_id_bin := variants_diff[i].id_bin
+			variant_ids[variants_added] = variant_id
+			variant_ids_bin[variants_added] = variant_id_bin
 			for j := 0; j < option_values.len; j++ {
 				option_index := j
 				value_index := option_values[j] // bounds check in validation step
 				option := options[option_index] // bounds check in validation step
 				option_id := option.id
-				value := options_map[option_id].values[value_index] // bounds check in validation step
-				old_value_ids_bin := option_value_ids_bin[i] // bounds check in validation step
-				option_value_ids_bin[i] = arrays.concat(old_value_ids_bin, value.id_bin)
+				values_of_option := options_map[option_id].values // existance check in validation step
+				value := values_of_option[value_index]
+				relations[relations_added] = ProductOptionValueProductVariant{
+					variant_id:          variant_id
+					variant_id_bin:      variant_id_bin
+					option_value_id:     value.id
+					option_value_id_bin: value.id_bin
+				}
+				relations_added++
+			}
+			variants_added++
+		}
+
+		if n_variants > 0 {
+			model_product_option_value_variant_update(mut tx, ProductOptionValueProductVariantParams{
+				variant_ids:     variant_ids
+				variant_ids_bin: variant_ids_bin
+				relations:       relations
+			}) or {
+				return new_error_internal('Failed to update product_option_value_product_variant',
+					err.msg())
 			}
 		}
 
-		model_product_option_value_variant_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
-			return new_error_internal('Failed to update product_option_value_product_variant',
-				err.msg())
+		// product_variant_money_amount
+		mut n_money_amounts := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			money_amounts := variant.money_amounts or { continue }
+			n_money_amounts += money_amounts.len
 		}
 
-		// TODO product_variant_money_amount
+		mut variant_money_amounts := []VariantMoneyAmountUpdateParams{len: n_money_amounts}
+		mut money_amounts_added := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			variant_id := variants_diff[i].id
+			variant_id_bin := variants_diff[i].id_bin
+			money_amounts := variant.money_amounts or { continue }
+			for j := 0; j < money_amounts.len; j++ {
+				money_amount := money_amounts[j]
+				money_amount_id, money_amount_id_bin := app.new_id()
+				variant_money_amounts[money_amounts_added] = VariantMoneyAmountUpdateParams{
+					variant_id:          variant_id
+					variant_id_bin:      variant_id_bin
+					region_id:           money_amount.region_id
+					region_id_bin:       money_amount.region_id_bin
+					money_amount_id:     money_amount_id
+					money_amount_id_bin: money_amount_id_bin
+					amount:              money_amount.amount
+					is_original:         bool_or(money_amount.is_original, false)
+				}
+				money_amounts_added++
+			}
+		}
+
+		if n_money_amounts > 0 {
+			model_variant_money_amount_update(mut tx, variant_money_amounts) or {
+				return new_error_internal('Failed to update product_variant_money_amount',
+					err.msg())
+			}
+		}
 	}
 }
 
