@@ -897,17 +897,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 
 		for i := 0; i < options.len; i++ {
 			option := options[i]
-			if id := option.id {
-				old_option := old_options_map[id]
-				options_diff[i] = ProductOptionUpdateParams{
-					id:             id
-					id_bin:         option.id_bin
-					product_id:     product_id
-					product_id_bin: product_id_bin
-					option_rank:    i
-					title:          unwrap_option_or(option.title, old_option.title)
-				}
-			} else {
+			id := option.id or {
 				new_option_id, new_option_id_bin := app.new_id()
 				options_diff[i] = ProductOptionUpdateParams{
 					id:             new_option_id
@@ -917,6 +907,17 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 					option_rank:    i
 					title:          string_value(option.title)
 				}
+				continue
+			}
+
+			old_option := old_options_map[id]
+			options_diff[i] = ProductOptionUpdateParams{
+				id:             id
+				id_bin:         option.id_bin
+				product_id:     product_id
+				product_id_bin: product_id_bin
+				option_rank:    i
+				title:          unwrap_option_or(option.title, old_option.title)
 			}
 		}
 
@@ -944,11 +945,12 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		for i := 0; i < options.len; i++ {
 			option := options[i]
 			option_id := option.id or { options_diff[i].id }
-			if translations := option.translations {
-				n_translations += translations.len
-			} else {
+			translations := option.translations or {
 				n_translations += option_translations_map[option_id].len
+				continue
 			}
+
+			n_translations += translations.len
 		}
 
 		mut option_translations_diff := []ProductOptionTranslationParams{len: n_translations}

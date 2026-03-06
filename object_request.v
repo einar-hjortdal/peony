@@ -1813,6 +1813,15 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 			return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one option.')
 		}
 
+		// Reject creation of a product with an option with 0 values
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+
+			if option.values.len == 0 {
+				return new_error_unprocessable_entity(error_field_empty, 'A product option must have at least one value.')
+			}
+		}
+
 		if p.variants == none {
 			return new_error_unprocessable_entity(error_field_empty, 'Variants must be provided when options are specified')
 		}

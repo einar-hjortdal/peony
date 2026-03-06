@@ -811,7 +811,107 @@ fn handles_unique_product_handles(cookie_value string) ! {
 	// TODO create product with specified handle and already existing
 }
 
+fn creates_product_with_one_option(cookie_value string) ! {
+	println('creates_product_with_one_option')
+	new_product_title := luuid.v2()
+
+	mut new_product_data := peony.ProductCreateRequest{
+		title:   new_product_title
+		options: []peony.ProductOptionCreateRequest{}
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with explicitly no options')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:   new_product_title
+		options: [peony.ProductOptionCreateRequest{}]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with one option without title')!
+
+	new_option_title := luuid.v2()
+	new_product_data = peony.ProductCreateRequest{
+		title:   new_product_title
+		options: [peony.ProductOptionCreateRequest{
+			title: new_option_title
+		}]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with one option without values')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:   new_product_title
+		options: [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: []peony.ProductOptionValueRequest{}
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with one option with explicitly no values')!
+
+	new_value_title := luuid.v2()
+	new_product_data = peony.ProductCreateRequest{
+		title:   new_product_title
+		options: [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: [peony.ProductOptionValueRequest{
+					name: new_value_title
+				}]
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with one option but no variants')!
+	is_created(response)! // fast exit
+
+	// mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+	// 	json.encode(new_product_data))!
+	// is_created(response)!
+	// r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	// created_product := r.product
+
+	// response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
+	// 	cookie_value)!
+	// response_is_ok(response)!
+
+	// response = do_authenticated_get_request('${endpoint_admin_products}/${created_product.id}',
+	// 	cookie_value)!
+	// is_not_found(response)!
+}
+
 fn creates_product_with_options_and_values(cookie_value string) ! {
+	// println('creates_product_with_options_and_values')
+	// new_product_title := luuid.v2()
+	// new_option_0_title := luuid.v2()
+	// new_option_1_title := luuid.v2()
+	// new_options := [peony.ProductOptionCreateRequest{}]
+	// new_product_data := peony.ProductCreateRequest{
+	// 	title:   new_product_title
+	// 	options: none
+	// }
+	// mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+	// 	json.encode(new_product_data))!
+	// is_created(response)!
+	// r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	// created_product := r.product
+
+	// response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
+	// 	cookie_value)!
+	// response_is_ok(response)!
+
+	// response = do_authenticated_get_request('${endpoint_admin_products}/${created_product.id}',
+	// 	cookie_value)!
+	// is_not_found(response)!
+
 	// checkbox marks logic was written to handle case, test must be written.
 	// [x] TODO reject create a product with one option and no values
 	// [ ] TODO create a product with one option, one value and no explicit variants
@@ -1308,21 +1408,6 @@ fn store_regions() ! {
 	response_is_ok(response)!
 }
 
-fn testsuite_begin() ! {
-	// TODO make this start services and auth
-	// problem: need to share channel and cookie with rest of tests
-
-	// ch := run_app()!
-	// cookie_value := user_login()!
-}
-
-fn testsuite_end() ! {
-	// TODO make this stop services
-	// problem: need to have access to channel
-
-	// stop_app(ch)
-}
-
 fn test_peony() ! {
 	ch := run_app()!
 	defer {
@@ -1357,6 +1442,7 @@ fn test_peony() ! {
 		admin_products_handles_product_images,
 		admin_handles_product_translations,
 		handles_unique_product_handles,
+		creates_product_with_one_option,
 		creates_product_with_options_and_values,
 		creates_product_with_variants,
 		refuses_variant_with_same_values,
