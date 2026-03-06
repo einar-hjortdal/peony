@@ -848,7 +848,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 
 	if options := ph.options {
 		mut options_diff := []ProductOptionUpdateParams{len: options.len}
-		old_options := model_product_options_retrieve_by_product_ids(mut tx, [
+		old_options := model_product_options_retrieve(mut tx, [
 			product_id_bin,
 		]) or { return new_error_internal('Could not retrieve product_option', err.msg()) }
 
@@ -954,9 +954,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				continue
 			}
 
-			// TODO if translations.len == 0 delete all translations for the option.
-			// this means model_product_option_translations_update has to be changed or another method call is needed
-
+			// if translations.len == 0 all translations for the option will be deleted.
 			for j := 0; j < translations.len; j++ {
 				translation := translations[j]
 				option_translations_diff[translations_added] = ProductOptionTranslationParams{
@@ -1008,7 +1006,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			n_values += values.len // replace old values with new ones
 		}
 
-		old_values := model_product_option_values_retrieve(mut tx, option_ids_bin) or {
+		old_values := model_product_option_values_retrieve(mut tx, option_ids, option_ids_bin) or {
 			return new_error_internal('Could not retrieve product_option_values', err.msg())
 		}
 
@@ -1094,6 +1092,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		mut value_translations_diff := []ProductOptionValueTranslationParams{len: n_value_translations}
+		mut current_value_index := 0
 		mut value_translations_added := 0
 		for i := 0; i < options.len; i++ {
 			option := options[i]
@@ -1101,12 +1100,24 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 
 			for j := 0; j < values.len; j++ {
 				value := values[i]
+				// need value id
+				product_option_value_id := values_diff[current_value_index].id
+				product_option_value_id_bin := values_diff[current_value_index].id_bin
 				translations := value.translations or { continue }
-				// if translations.len == 0 delete all translations for the value.
+
+				// if translations.len == 0 all translations for the value will be deleted.
 				for k := 0; k < translations.len; k++ {
 					translation := translations[k]
-					// TODO diff
+					value_translations_diff[value_translations_added] = ProductOptionValueTranslationParams{
+						product_option_value_id:     product_option_value_id
+						product_option_value_id_bin: product_option_value_id_bin
+						locale_id:                   translation.locale_id
+						locale_id_bin:               translation.locale_id_bin
+						name:                        translation.name
+					}
+					value_translations_added++
 				}
+				current_value_index++
 			}
 		}
 
@@ -1280,7 +1291,71 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Failed to delete inventory items', err.msg())
 		}
 
-		// TODO product_option_value_product_variant
+		// validity of references to existing or new option has been verified in the route handler.
+		// all that is left to do is to update product_option_value_product_variant table.
+		// if option_values is not provided, no changes are made to that variant's product_option_value_product_variant rows.
+		// if option_values is provided merge, but no need to diff: because option_values must reference all options, updates replace all previous records.
+
+		// get all options for the product, they're returned by firebird sorted by option_rank.
+		options := model_product_options_retrieve(mut tx, [
+			product_id_bin,
+		]) or { return new_error_internal('Failed to retrieve product_option', err.msg()) }
+
+		mut options_map := map[string]ProductOption{}
+		mut product_option_ids := []string{len: options.len}
+		mut product_option_ids_bin := [][]u8{len: options.len}
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			options_map[option.id] = option
+			product_option_ids[i] = option.id
+			product_option_ids_bin[i] = option.id_bin
+		}
+
+		// get all values for the options, they're returned by firebird sorted by value_rank.
+		values := model_product_option_values_retrieve(mut tx, product_option_ids, product_option_ids_bin) or {
+			return new_error_internal('Failed to retrieve product_option_value', err.msg())
+		}
+
+		for i := 0; i < values.len; i++ {
+			value := values[i]
+			option_id := value.option_id
+			option_old := options_map[option_id].values
+			options_map[option_id].values = arrays.concat(option_old, value)
+		}
+
+		// compute array length for preallocation
+		mut n_variants_option_value_updated := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			if variant.option_values != none {
+				n_variants_option_value_updated++
+			}
+		}
+
+		mut variant_ids := []string{len: n_variants_option_value_updated}
+		mut variant_ids_bin := [][]u8{len: n_variants_option_value_updated}
+		mut option_value_ids_bin := [][][]u8{len: n_variants_option_value_updated}
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			option_values := variant.option_values or { continue }
+			variant_diff := variants_diff[i]
+			variant_ids[i] = variant_diff.id
+			variant_ids_bin[i] = variant_diff.id_bin
+			for j := 0; j < option_values.len; j++ {
+				option_index := j
+				value_index := option_values[j] // bounds check in validation step
+				option := options[option_index] // bounds check in validation step
+				option_id := option.id
+				value := options_map[option_id].values[value_index] // bounds check in validation step
+				old_value_ids_bin := option_value_ids_bin[i] // bounds check in validation step
+				option_value_ids_bin[i] = arrays.concat(old_value_ids_bin, value.id_bin)
+			}
+		}
+
+		model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
+			return new_error_internal('Failed to update product_option_value_product_variant',
+				err.msg())
+		}
 
 		// TODO product_variant_money_amount
 	}

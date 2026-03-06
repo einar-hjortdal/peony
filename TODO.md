@@ -82,11 +82,13 @@
 - [ ] Limit returned list items to 250 in all requests.
 - [ ] Return created resources on creation.
 - [ ] Return updated resources on update.
-- [ ] Product option endpoints.
-- [ ] Product option value endpoints.
-- [ ] Product images endpoints.
+- [ ] Add product variant endpoints.
+- [ ] Add product option endpoints.
+- [ ] Add product option value endpoints.
+- [ ] Add product images endpoints.
 - [x] Move cors handling to starter.
 - [ ] Return and accept translations as a map rather than an array.
+- [ ] Return and accept variant prices as a map rather than an array.
 
 ## Internals
 

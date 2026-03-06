@@ -46,16 +46,22 @@ struct ProductOptionValue {
 	id_bin        []u8
 	option_id     string
 	option_id_bin []u8
+	value_rank    i32
 	name          string
 mut:
 	translations []ProductOptionValueTranslation
 }
 
-fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionValue {
-	data := tx.execute('SELECT id, option_id, name FROM product_option_value
-		WHERE option_id IN (${get_placeholders(product_option_ids_bin)})',
-		...workaround_24757(product_option_ids_bin))!
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids []string, product_option_ids_bin [][]u8) ![]ProductOptionValue {
+	if product_option_ids_bin.len == 0 {
+		return []ProductOptionValue{}
+	}
 
+	query := 'SELECT id, option_id, value_rank, name FROM product_option_value
+		WHERE option_id IN (${get_placeholders(product_option_ids_bin)})
+		ORDER BY value_rank'
+	params := workaround_24757(product_option_ids_bin)
+	data := tx.execute(query, ...params)!
 	rows := data.rows()
 
 	mut product_option_values := []ProductOptionValue{len: rows.len}
@@ -64,7 +70,8 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 
 		id_bin, _ := v[0].get_array_u8()!
 		option_id_bin, _ := v[1].get_array_u8()!
-		name, _ := v[2].get_string()!
+		value_rank, _ := v[2].get_i32()!
+		name, _ := v[3].get_string()!
 
 		id := id_bin_to_string(id_bin)!
 		option_id := id_bin_to_string(option_id_bin)!
@@ -74,6 +81,7 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_opt
 			id_bin:        id_bin
 			option_id:     option_id
 			option_id_bin: option_id_bin
+			value_rank:    value_rank
 			name:          name
 		}
 	}
@@ -177,16 +185,21 @@ struct ProductOption {
 	id_bin         []u8
 	product_id     string
 	product_id_bin []u8
+	option_rank    i32
 	title          string
 mut:
 	values       []ProductOptionValue
 	translations []ProductOptionTranslation
 }
 
-fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductOption {
-	mut data := tx.execute('SELECT id, product_id, title FROM product_option
-		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...workaround_24757(product_ids_bin))!
+fn model_product_options_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductOption {
+	query := 'SELECT id, product_id, option_rank, title FROM product_option
+		WHERE product_id IN (${get_placeholders(product_ids_bin)})
+		ORDER BY option_rank'
+
+	params := workaround_24757(product_ids_bin)
+
+	mut data := tx.execute(query, ...params)!
 
 	rows := data.rows()
 
@@ -200,7 +213,8 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, pr
 
 		id_bin, _ := v[0].get_array_u8()!
 		product_id_bin, _ := v[1].get_array_u8()!
-		title, _ := v[2].get_string()!
+		option_rank, _ := v[2].get_i32()!
+		title, _ := v[3].get_string()!
 
 		id := id_bin_to_string(id_bin)!
 		product_id := id_bin_to_string(product_id_bin)!
@@ -210,6 +224,7 @@ fn model_product_options_retrieve_by_product_ids(mut tx firebird.Transaction, pr
 			id_bin:         id_bin
 			product_id:     product_id
 			product_id_bin: product_id_bin
+			option_rank:    option_rank
 			title:          title
 		}
 	}
@@ -549,6 +564,10 @@ fn model_product_option_value_product_variant_retrieve(mut tx firebird.Transacti
 		}
 	}
 	return product_option_value_product_variants
+}
+
+struct ProductOptionValueProductVariantParams {
+	relations []ProductOptionValueProductVariant
 }
 
 // TODO check no empty variants id array

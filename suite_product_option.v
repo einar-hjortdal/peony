@@ -17,7 +17,7 @@ mut:
 }
 
 fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !SuiteProductOptionData {
-	product_options := model_product_options_retrieve_by_product_ids(mut tx, product_ids_bin) or {
+	product_options := model_product_options_retrieve(mut tx, product_ids_bin) or {
 		return new_error_internal('Failed to retrieve product_option', err.msg())
 	}
 
@@ -27,12 +27,15 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin []
 		return SuiteProductOptionData{}
 	}
 
+	product_option_ids := product_options_map.keys()
+
 	product_option_translations := model_product_option_translations_retrieve(mut tx,
 		product_option_ids_bin) or {
 		return new_error_internal('Failed to retrieve product_option_translations', err.msg())
 	}
 
-	product_option_values := model_product_option_values_retrieve(mut tx, product_option_ids_bin) or {
+	product_option_values := model_product_option_values_retrieve(mut tx, product_option_ids,
+		product_option_ids_bin) or {
 		return new_error_internal('Failed to retrieve product_option_values', err.msg())
 	}
 
