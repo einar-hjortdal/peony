@@ -769,7 +769,7 @@ fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygieni
 // If provided:
 // - For each region, there must be exactly one money amount with is_original set to false or omitted (the base price).
 // - For each region, there may be at most one money amount with is_original set to true (the original price).
-struct ProductVariantCreateRequest {
+pub struct ProductVariantCreateRequest {
 pub:
 	title          ?string
 	ean            ?string

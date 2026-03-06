@@ -862,20 +862,58 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		options: [
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
-				values: [peony.ProductOptionValueRequest{
-					name: new_value_title
-				}]
+				values: [
+					peony.ProductOptionValueRequest{
+						name: new_value_title
+					},
+				]
 			},
 		]
 	}
 
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with one option but no variants')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:    new_product_title
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: [
+					peony.ProductOptionValueRequest{
+						name: new_value_title
+					},
+				]
+			},
+		]
+		variants: []peony.ProductVariantCreateRequest{}
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with explicitly no variants')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:    new_product_title
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: [
+					peony.ProductOptionValueRequest{
+						name: new_value_title
+					},
+				]
+			},
+		]
+		variants: [peony.ProductVariantCreateRequest{
+			option_values: []i32{}
+		}]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with one variant with explicitly no option values')!
+	println(response.body)
 	is_created(response)! // fast exit
 
-	// mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-	// 	json.encode(new_product_data))!
-	// is_created(response)!
 	// r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	// created_product := r.product
 
