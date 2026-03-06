@@ -571,8 +571,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id_bin,
-		ph)
+	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id,
+		variant_id_bin, ph)
 }
 
 // deletes a product variant

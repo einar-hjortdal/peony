@@ -127,7 +127,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id strin
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
+fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	// model_product_variant_update(mut tx, variant_id_bin, ph) or {
@@ -136,13 +136,19 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	// 	return ctx.handle_error(perr)
 	// }
 
-	if ph.option_value_ids_bin.len > 0 {
-		model_product_option_value_variant_update(mut tx, variant_id_bin, ph.option_value_ids_bin) or {
-			tx.rollback() or {}
-			perr := new_error_internal('Could not update product_option_value', err.msg())
-			return ctx.handle_error(perr)
-		}
-	}
+	// if ph.option_value_ids_bin.len > 0 {
+	// 	mut relations := []ProductOptionValueProductVariant{}
+
+	// 	model_product_option_value_variant_update(mut tx, ProductOptionValueProductVariantParams{
+	// 		variant_ids:     [variant_id]
+	// 		variant_ids_bin: [variant_id_bin]
+	// 		relations:       relations
+	// 	}) or {
+	// 		tx.rollback() or {}
+	// 		perr := new_error_internal('Could not update product_option_value', err.msg())
+	// 		return ctx.handle_error(perr)
+	// 	}
+	// }
 
 	// if inventory_item := ph.inventory_item {
 	// 	model_inventory_item_update(mut tx, variant_id_bin, inventory_item) or {

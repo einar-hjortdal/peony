@@ -152,7 +152,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				value := values[j]
 				value_id, value_id_bin := app.new_id()
 				option_values_to_create[values_added] = ProductOptionValueCreateParams{
-					id_string:     value_id
+					id:            value_id
 					id_bin:        value_id_bin
 					option_id:     option_id
 					option_id_bin: option_id_bin
@@ -213,7 +213,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				values := options[i].values
 				for j := 0; j < values.len; j++ {
 					value := values[j]
-					value_id := option_values_to_create[values_processed].id_string
+					value_id := option_values_to_create[values_processed].id
 					value_id_bin := option_values_to_create[values_processed].id_bin
 					translations := value.translations or { continue }
 					for k := 0; k < translations.len; k++ {
@@ -255,7 +255,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		option_value_id, option_value_id_bin := app.new_id()
 		option_values_to_create = [
 			ProductOptionValueCreateParams{
-				id_string:     option_value_id
+				id:            option_value_id
 				id_bin:        option_value_id_bin
 				option_id:     option_id
 				option_id_bin: option_id_bin
@@ -280,14 +280,15 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	}
 
 	if variants := ph.variants {
+		mut variant_ids := []string{len: variants.len}
 		mut variant_ids_bin := [][]u8{len: variants.len}
 		mut variants_to_create := []VariantCreateParams{len: variants.len}
-		mut option_value_ids_bin := [][][]u8{len: variants.len}
 		mut n_money_amounts := 0
 		mut inventory_items_to_create := []InventoryItemCreateParams{len: variants.len}
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			variant_id, variant_id_bin := app.new_id()
+			variant_ids[i] = variant_id
 			variant_ids_bin[i] = variant_id_bin
 			variants_to_create[i] = VariantCreateParams{
 				product_id:     product_id
@@ -302,27 +303,6 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				upc:            string_value(variant.upc)
 				metadata:       string_value(variant.metadata)
 				variant_rank:   i
-			}
-
-			option_values := variant.option_values or {
-				if variants.len != 1 {
-					return new_error_internal('Could not create variants', 'Missing option_values and more than one variant is to be created')
-				}
-
-				default_value_id_bin := option_index_to_value_ids[0][0]
-				option_value_ids_bin[0][0] = default_value_id_bin
-				continue
-			}
-
-			for j := 0; j < option_values.len; j++ {
-				option_index := j
-				values_index := option_values[j]
-				value_id_bin := option_index_to_value_ids[option_index][values_index]
-				if j == 0 {
-					// initialize array
-					option_value_ids_bin[i] = [][]u8{len: options_to_create.len}
-				}
-				option_value_ids_bin[i][j] = value_id_bin
 			}
 
 			if money_amounts := variant.money_amounts {
@@ -368,7 +348,53 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Could not create variants', err.msg())
 		}
 
-		model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
+		// product_option_value_product_variant
+		mut n_relations := 1 // if no option_values defined, one default option_value
+		if option_values := variants[0].option_values {
+			n_relations = option_values.len * variants.len // all variants must reference all options
+		}
+		mut relations := []ProductOptionValueProductVariant{len: n_relations}
+		mut relations_created := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			variant_id := variants_to_create[i].variant_id
+			variant_id_bin := variants_to_create[i].variant_id_bin
+			option_values := variant.option_values or {
+				if variants.len != 1 && n_relations != 1 {
+					return new_error_internal('Could not create product_option_value_product_variant',
+						'Missing option_values and more than one variant is to be created')
+				}
+
+				value_id_bin := option_index_to_value_ids[0][0] // default
+				relations[0] = ProductOptionValueProductVariant{
+					// option_value_id:
+					option_value_id_bin: value_id_bin
+					variant_id:          variant_id
+					variant_id_bin:      variant_id_bin
+				}
+
+				break
+			}
+
+			for j := 0; j < option_values.len; j++ {
+				option_index := j
+				value_index := option_values[j]
+				value_id_bin := option_index_to_value_ids[option_index][value_index]
+				relations[relations_created] = ProductOptionValueProductVariant{
+					// option_value_id:
+					option_value_id_bin: value_id_bin
+					variant_id:          variant_id
+					variant_id_bin:      variant_id_bin
+				}
+				relations_created++
+			}
+		}
+
+		model_product_option_value_variant_update(mut tx, ProductOptionValueProductVariantParams{
+			variant_ids:     variant_ids
+			variant_ids_bin: variant_ids_bin
+			relations:       relations
+		}) or {
 			return new_error_internal('Failed to create relations in product_option_value_product_variant',
 				err.msg())
 		}
@@ -438,8 +464,18 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		default_option_value := option_values_to_create[0]
-		value_ids_bin := [default_option_value.id_bin]
-		model_product_option_value_variant_update(mut tx, variant_id_bin, value_ids_bin) or {
+		model_product_option_value_variant_update(mut tx, ProductOptionValueProductVariantParams{
+			variant_ids:     [variant_id]
+			variant_ids_bin: [variant_id_bin]
+			relations:       [
+				ProductOptionValueProductVariant{
+					variant_id:          variant_id
+					variant_id_bin:      variant_id_bin
+					option_value_id:     default_option_value.id
+					option_value_id_bin: default_option_value.id_bin
+				},
+			]
+		}) or {
 			return new_error_internal('Could not associate new default variant to the new default option_value',
 				err.msg())
 		}
@@ -1352,7 +1388,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		model_product_option_value_variants_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
+		model_product_option_value_variant_update(mut tx, variant_ids_bin, option_value_ids_bin) or {
 			return new_error_internal('Failed to update product_option_value_product_variant',
 				err.msg())
 		}
