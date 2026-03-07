@@ -1813,17 +1813,32 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 			return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one option.')
 		}
 
-		// Reject creation of a product with an option with 0 values
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-
-			if option.values.len == 0 {
-				return new_error_unprocessable_entity(error_field_empty, 'A product option must have at least one value.')
-			}
+		variants := p.variants or {
+			return new_error_unprocessable_entity(error_field_empty, 'variants must be provided when options are specified')
 		}
 
-		if p.variants == none {
-			return new_error_unprocessable_entity(error_field_empty, 'Variants must be provided when options are specified')
+		if variants.len == 0 {
+			return new_error_unprocessable_entity(error_field_empty, 'At least one variant must be provided when options are specified')
+		}
+
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			option_values := variant.option_values or {
+				return new_error_unprocessable_entity(error_field_empty, 'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
+			}
+
+			if option_values.len != options.len {
+				return new_error_unprocessable_entity(error_reference_invalid, 'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
+			}
+
+			for j := 0; j < options.len; j++ {
+				option := options[j]
+				values := option.values
+				value_index := option_values[j]
+				if values.len <= value_index {
+					return new_error_unprocessable_entity(error_reference_invalid, 'Out of bounds: the option at index `${j}` has a total of `${values.len}` values, there cannot be a value at index `${value_index}`')
+				}
+			}
 		}
 	}
 

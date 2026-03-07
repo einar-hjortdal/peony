@@ -40,6 +40,7 @@ pub const max_length_material = 191
 pub const default_thumbnail = 0
 
 const error_database_data_malformed = 'Data retrieved from database is malformed'
+const error_reference_invalid = 'Field references invalid object'
 const error_field_empty = 'Field cannot be empty'
 const error_field_too_long = 'Field too long'
 const error_field_explicit_empty = 'Field explicitly empty'

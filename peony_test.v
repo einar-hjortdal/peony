@@ -835,9 +835,11 @@ fn creates_product_with_one_option(cookie_value string) ! {
 	new_option_title := luuid.v2()
 	new_product_data = peony.ProductCreateRequest{
 		title:   new_product_title
-		options: [peony.ProductOptionCreateRequest{
-			title: new_option_title
-		}]
+		options: [
+			peony.ProductOptionCreateRequest{
+				title: new_option_title
+			},
+		]
 	}
 
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
@@ -856,7 +858,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with one option with explicitly no values')!
 
-	new_value_title := luuid.v2()
+	new_value_name := luuid.v2()
 	new_product_data = peony.ProductCreateRequest{
 		title:   new_product_title
 		options: [
@@ -864,7 +866,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 				title:  new_option_title
 				values: [
 					peony.ProductOptionValueRequest{
-						name: new_value_title
+						name: new_value_name
 					},
 				]
 			},
@@ -881,7 +883,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 				title:  new_option_title
 				values: [
 					peony.ProductOptionValueRequest{
-						name: new_value_title
+						name: new_value_name
 					},
 				]
 			},
@@ -899,31 +901,118 @@ fn creates_product_with_one_option(cookie_value string) ! {
 				title:  new_option_title
 				values: [
 					peony.ProductOptionValueRequest{
-						name: new_value_title
+						name: new_value_name
 					},
 				]
 			},
 		]
-		variants: [peony.ProductVariantCreateRequest{
-			option_values: []i32{}
-		}]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: []i32{}
+			},
+		]
 	}
 
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with one variant with explicitly no option values')!
-	println(response.body)
-	is_created(response)! // fast exit
 
-	// r := json.decode(peony.ProductResponseEnvelope, response.body)!
-	// created_product := r.product
+	new_product_data = peony.ProductCreateRequest{
+		title:    new_product_title
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: [
+					peony.ProductOptionValueRequest{
+						name: new_value_name
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0), 1]
+			},
+		]
+	}
 
-	// response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
-	// 	cookie_value)!
-	// response_is_ok(response)!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with option_values referencing too many options')!
 
-	// response = do_authenticated_get_request('${endpoint_admin_products}/${created_product.id}',
-	// 	cookie_value)!
-	// is_not_found(response)!
+	new_product_data = peony.ProductCreateRequest{
+		title:    new_product_title
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: [
+					peony.ProductOptionValueRequest{
+						name: new_value_name
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1)]
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with option_values referencing non-existing options')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:    new_product_title
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  new_option_title
+				values: [
+					peony.ProductOptionValueRequest{
+						name: new_value_name
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0)]
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := r.product
+	options := product.options
+	expect(options.len == 1, 'Product contains too many options: expected 1, got ${options.len}')!
+
+	option := options[0]
+	expect(option.title == new_option_title, 'Created option has the wrong title.')!
+
+	values := option.values
+	expect(values.len == 1, 'Created option has too many values: expected 1, got ${values.len}')!
+
+	value := values[0]
+	expect(value.name == new_value_name, 'Created value has the wrong name')!
+
+	variants := product.variants
+	expect(variants.len == 1, 'Product contains too many variants')!
+
+	variant := variants[0]
+	option_values := variant.option_values
+	expect(option_values.len == 1, 'Variant references too many values')!
+
+	option_value := option_values[0]
+	expect(option_value.option_id == option.id, 'Variant references wrong option')!
+	expect(option_value.id == value.id, 'Variant references wrong value')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+
+	response = do_authenticated_get_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	is_not_found(response)!
 }
 
 fn creates_product_with_options_and_values(cookie_value string) ! {
