@@ -1088,7 +1088,7 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 fn refuses_product_creation_with_variants_with_same_values(cookie_value string) ! {
 	println('refuses_product_creation_with_one_option_and_many_variants_with_same_values')
 	// 1 option, 1 value, 2 variants
-	new_product_data := peony.ProductCreateRequest{
+	mut new_product_data := peony.ProductCreateRequest{
 		title:    luuid.v2()
 		options:  [
 			peony.ProductOptionCreateRequest{
@@ -1110,10 +1110,72 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 		]
 	}
 
-	response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with 1 option, 1 value and 2 variants with the same values')!
 
 	// 1 option, 2 values, 2 variants
+	new_product_data = peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1)]
+			},
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1)]
+			},
+		]
+	}
+
+	// 2 options, 1 value each, 2 variants
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with 1 option, 2 value and 2 variants with the same values')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0), 0]
+			},
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0), 0]
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with 2 options, 1 value each and 2 variants with the same values')!
 }
 
 fn admin_products_updates_product(cookie_value string) ! {
