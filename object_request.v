@@ -785,14 +785,15 @@ pub:
 }
 
 struct ProductVariantCreateRequestHygienised {
-	title          ?string
-	ean            ?string
-	upc            ?string
-	barcode        ?string
-	image          ?i32
+	title         ?string
+	ean           ?string
+	upc           ?string
+	barcode       ?string
+	image         ?i32
+	option_values ?[]i32
+	metadata      ?string
+mut:
 	inventory_item ?InventoryItemCreateRequestHygienised
-	option_values  ?[]i32
-	metadata       ?string
 	money_amounts  ?[]VariantMoneyAmountRequestHygienised
 }
 
@@ -825,23 +826,6 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 		}
 	}
 
-	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
-	if mas := p.money_amounts {
-		if mas.len == 0 {
-			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
-		}
-
-		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
-		for i := 0; i < mas.len; i++ {
-			money_amounts[i] = mas[i].hygienise()!
-		}
-	}
-
-	mut inventory_item := InventoryItemCreateRequestHygienised{}
-	if ii := p.inventory_item {
-		inventory_item = ii.hygienise()!
-	}
-
 	// Reject creation of a variant with 0 option values
 	if option_values := p.option_values {
 		if option_values.len == 0 {
@@ -850,14 +834,28 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 	}
 
 	mut ph := ProductVariantCreateRequestHygienised{
-		title:          p.title
-		ean:            p.ean
-		upc:            p.upc
-		barcode:        p.barcode
-		inventory_item: inventory_item
-		option_values:  p.option_values
-		metadata:       p.metadata
-		money_amounts:  money_amounts
+		title:         p.title
+		ean:           p.ean
+		upc:           p.upc
+		barcode:       p.barcode
+		option_values: p.option_values
+		metadata:      p.metadata
+	}
+
+	if inventory_item := p.inventory_item {
+		ph.inventory_item = inventory_item.hygienise()!
+	}
+
+	if money_amounts := p.money_amounts {
+		if money_amounts.len == 0 {
+			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
+		}
+
+		mut m := []VariantMoneyAmountRequestHygienised{len: money_amounts.len}
+		for i := 0; i < money_amounts.len; i++ {
+			m[i] = money_amounts[i].hygienise()!
+		}
+		ph.money_amounts = m
 	}
 
 	return ph
@@ -1868,7 +1866,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if variants := p.variants {
 		// Reject creation of a product with 0 variants
 		if variants.len == 0 {
-			return new_error_unprocessable_entity(error_field_explicit_empty, 'A product must have one at least one variant.')
+			return new_error_unprocessable_entity(error_field_explicit_empty, 'A product must have at least one variant.')
 		}
 
 		if images := p.images {
@@ -1916,6 +1914,14 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 			h[i] = options[i].hygienise()!
 		}
 		ph.options = h
+	}
+
+	if variants := p.variants {
+		mut v := []ProductVariantCreateRequestHygienised{len: variants.len}
+		for i := 0; i < variants.len; i++ {
+			v[i] = variants[i].hygienise()!
+		}
+		ph.variants = v
 	}
 
 	if translations := p.translations {

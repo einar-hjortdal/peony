@@ -193,8 +193,8 @@ struct InventoryItemCreateParams {
 // TODO validate params
 fn model_inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCreateParams) ! {
 	mut src := []string{len: p.len}
-	n_params := p.len * 14
-	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
+	n_params := 14
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
 
 	for i := 0; i < p.len; i++ {
 		item := p[i]
