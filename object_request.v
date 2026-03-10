@@ -92,7 +92,6 @@ struct ImageTranslationRequestHygienised {
 	alt           string
 }
 
-// TODO check alt.len <= 191
 fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 	locale_id_bin := id_string_to_bin(i.locale_id) or {
 		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
@@ -749,6 +748,9 @@ fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygieni
 // ## barcode
 // Generic barcode field.
 //
+// ## image
+// Index of the product image related to this variant.
+//
 // ## inventory_item
 // See InventoryItemUpdateRequest.
 //
@@ -775,6 +777,7 @@ pub:
 	ean            ?string
 	upc            ?string
 	barcode        ?string
+	image          ?i32
 	inventory_item ?InventoryItemCreateRequest  @[json: 'inventoryItem']
 	option_values  ?[]i32                       @[json: 'optionValues']
 	metadata       ?string                      @[raw]
@@ -786,6 +789,7 @@ struct ProductVariantCreateRequestHygienised {
 	ean            ?string
 	upc            ?string
 	barcode        ?string
+	image          ?i32
 	inventory_item ?InventoryItemCreateRequestHygienised
 	option_values  ?[]i32
 	metadata       ?string
@@ -888,6 +892,11 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 // If omitted, the barcode is not changed.
 // If an empty string is provided, the barcode is deleted (set to empty).
 //
+// ## image
+// Index of the product image related to the variant.
+// If omitted, the image is not changed.
+// To remove the relation, delete the related image.
+//
 // ## inventory_item
 // See InventoryItemUpdateRequest.
 // If omitted, inventory fields are not changed.
@@ -919,6 +928,7 @@ pub:
 	ean            ?string
 	upc            ?string
 	barcode        ?string
+	image          ?i32
 	inventory_item ?InventoryItemUpdateRequest  @[json: 'inventoryItem']
 	option_values  ?[]i32                       @[json: 'optionValues']
 	metadata       ?string                      @[raw]
@@ -932,6 +942,7 @@ struct ProductVariantUpdateRequestHygienised {
 	ean            ?string
 	upc            ?string
 	barcode        ?string
+	image          ?i32
 	inventory_item ?InventoryItemUpdateRequestHygienised
 	option_values  ?[]i32
 	metadata       ?string
@@ -1017,6 +1028,9 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 // ## barcode
 // Generic barcode field.
 //
+// ## image
+// The id of the product image related to the variant.
+//
 // ## inventory_item
 // See InventoryItemCreateRequest.
 //
@@ -1041,6 +1055,7 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
+	image            ?string
 	inventory_item   ?InventoryItemCreateRequest  @[json: 'inventoryItem']
 	option_value_ids []string                     @[json: 'optionValueIds']
 	metadata         ?string                      @[raw]
@@ -1052,6 +1067,7 @@ struct VariantCreateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
+	image                ?string
 	option_value_ids     []string
 	option_value_ids_bin [][]u8
 	metadata             ?string
@@ -1128,6 +1144,11 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 // If an empty string is provided, the barcode is deleted.
 // If omitted, the barcode is not changed.
 //
+// ## image
+// The id of the product image related to the variant.
+// If omitted, the image is not changed.
+// To remove the relation, delete the related image.
+//
 // ## inventory_item
 // See InventoryItemUpdateRequest.
 // If omitted, inventory fields are not changed.
@@ -1158,6 +1179,7 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
+	image            ?string
 	inventory_item   ?InventoryItemUpdateRequest  @[json: 'inventoryItem']
 	option_value_ids ?[]string                    @[json: 'optionValueIds']
 	metadata         ?string                      @[raw]
@@ -1169,6 +1191,7 @@ struct VariantUpdateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
+	image                ?string
 	inventory_item       ?InventoryItemUpdateRequest
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
@@ -1847,6 +1870,24 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		if variants.len == 0 {
 			return new_error_unprocessable_entity(error_field_explicit_empty, 'A product must have one at least one variant.')
 		}
+
+		if images := p.images {
+			max_image_index := images.len - 1
+			for i := 0; i < variants.len; i++ {
+				variant := variants[i]
+				if variant_image := variant.image {
+					if variant_image < 0 {
+						return new_error_unprocessable_entity(error_reference_invalid,
+							'Negative index')
+					}
+
+					if variant_image > max_image_index {
+						return new_error_unprocessable_entity(error_reference_invalid,
+							'Out of bounds: the product has a total of ${images.len} images, but the variant references an image at index `${variant_image}`')
+					}
+				}
+			}
+		}
 	}
 
 	mut ph := ProductCreateRequestHygienised{
@@ -2006,11 +2047,6 @@ pub:
 	variants          ?[]ProductVariantUpdateRequest
 }
 
-// TODO verify title != ''
-// TODO handle '' subtitle and description
-// TODO verify title.len <= 63
-// TODO verify subtitle.len <= 191
-// TODO handle '' handle
 struct ProductUpdateRequestHygienised {
 	title                 ?string
 	subtitle              ?string
@@ -2096,6 +2132,61 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		return new_error_unprocessable_entity(error_id_invalid, 'category_id')
 	}
 
+	if options := p.options {
+		// Reject deleting all options
+		if options.len == 0 {
+			return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one option.')
+		}
+
+		// When a new option is created, variants must be defined.
+		mut has_new_options := false
+		for i := 0; i < options.len; i++ {
+			option := options[i]
+			if option.id != none {
+				has_new_options = true
+				break
+			}
+		}
+
+		if has_new_options && p.variants == none {
+			return new_error_unprocessable_entity(error_field_empty, 'variants must be provided when new options are specified')
+		}
+
+		if variants := p.variants {
+			// reject deleting all variants
+			if variants.len == 0 {
+				return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one variant')
+			}
+
+			for i := 0; i < variants.len; i++ {
+				variant := variants[i]
+				option_values := variant.option_values or {
+					return new_error_unprocessable_entity(error_field_empty, 'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
+				}
+
+				if option_values.len != options.len {
+					return new_error_unprocessable_entity(error_reference_invalid, 'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
+				}
+
+				for j := 0; j < options.len; j++ {
+					option := options[j]
+					values := option.values or {
+						if variant.id == none {
+							return new_error_unprocessable_entity(error_field_empty, 'A new variant must reference all product options. The variant at index `${j}` has no option_values.')
+						}
+						continue
+					}
+
+					value_index := option_values[j]
+					if values.len <= value_index {
+						return new_error_unprocessable_entity(error_reference_invalid,
+							'Out of bounds: the option at index `${j}` has a total of `${values.len}` values, there cannot be a value at index `${value_index}`')
+					}
+				}
+			}
+		}
+	}
+
 	mut ph := ProductUpdateRequestHygienised{
 		title:                 p.title
 		subtitle:              p.subtitle
@@ -2134,6 +2225,22 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 
 	if seo := p.seo {
 		ph.seo = seo.hygienise()!
+	}
+
+	if options := p.options {
+		mut o := []ProductOptionUpdateRequestHygienised{len: options.len}
+		for i := 0; i < options.len; i++ {
+			o[i] = options[i].hygienise()!
+		}
+		ph.options = o
+	}
+
+	if variants := p.variants {
+		mut v := []ProductVariantUpdateRequestHygienised{len: variants.len}
+		for i := 0; i < variants.len; i++ {
+			v[i] = variants[i].hygienise()!
+		}
+		ph.variants = v
 	}
 
 	return ph
