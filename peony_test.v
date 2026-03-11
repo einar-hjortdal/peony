@@ -1045,7 +1045,39 @@ fn creates_product_with_many_options(cookie_value string) ! {
 
 fn creates_product_without_options_with_variant(cookie_value string) ! {
 	println('creates_product_without_options_with_variant')
-	// TODO create a product with no options but with variant data
+	new_product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		variants: [
+			peony.ProductVariantCreateRequest{
+				title:    luuid.v2()
+				ean:      rand.ascii(peony.max_length_ean)
+				upc:      rand.ascii(peony.max_length_upc)
+				barcode:  rand.ascii(peony.max_length_barcode)
+				metadata: '{"everyone":"applied","golden":false,"plane":[false,true,true,false,{"caught":"bag","send":false,"play":170874771,"lips":"factory","rapidly":997234369,"greater":true},-1230624692],"doll":true,"crew":false,"held":81753149.38483429}'
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	is_created(response)!
+
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := r.product
+
+	variants := product.variants
+	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
+
+	variant := variants[0]
+	expect(variant.title != '', 'Variant title was not set')!
+	expect(variant.ean != '', 'Variant ean was not set')!
+	expect(variant.upc != '', 'Variant upc was not set')!
+	expect(variant.barcode != '', 'Variant barcode was not set')!
+	expect(variant.metadata != '', 'Variant metadata was not set')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
 }
 
 fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
@@ -1075,7 +1107,10 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 		]
 	}
 
-	response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	is_created(response)!
+
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := r.product
 	options := product.options
@@ -1083,6 +1118,65 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 
 	variants := product.variants
 	expect(variants.len == 2, 'Product contains unexpected number of variants: expected 2, got ${variants.len}')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
+fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
+	println('creates_product_with_many_options')
+	new_product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0), 1]
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	is_created(response)!
+
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := r.product
+	options := product.options
+	expect(options.len == 2, 'Product contains unexpected number of options: expected 2, got ${options.len}')!
+
+	variants := product.variants
+	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
+
+	println(options)
+	println(variants)
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
 }
 
 fn refuses_product_creation_with_variants_with_same_values(cookie_value string) ! {
@@ -1170,6 +1264,49 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			},
 			peony.ProductVariantCreateRequest{
 				option_values: [i32(0), 0]
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with 2 options, 1 value each and 2 variants with the same values')!
+
+	// 2 options, 2 values each, 2 variants
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	expect(response.status_code == 422, 'Product was created with 1 option, 2 value and 2 variants with the same values')!
+
+	new_product_data = peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1), 0]
+			},
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1), 0]
 			},
 		]
 	}
@@ -1691,7 +1828,9 @@ fn test_peony() ! {
 		handles_unique_product_handles,
 		creates_product_with_one_option,
 		// creates_product_with_many_options,
+		creates_product_without_options_with_variant,
 		creates_product_with_one_option_and_many_variants,
+		creates_product_with_many_options_and_one_variant,
 		refuses_product_creation_with_variants_with_same_values,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
