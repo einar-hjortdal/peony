@@ -495,7 +495,9 @@ mut:
 
 fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
 	mut ph := ProductOptionUpdateRequestHygienised{
-		title: p.title
+		id:     p.id
+		id_bin: option_id_string_to_id_bin(p.id)!
+		title:  p.title
 	}
 
 	if translations := p.translations {
@@ -2148,7 +2150,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		mut has_new_options := false
 		for i := 0; i < options.len; i++ {
 			option := options[i]
-			if option.id != none {
+			if option.id == none {
 				has_new_options = true
 				break
 			}

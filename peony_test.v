@@ -1012,37 +1012,6 @@ fn creates_product_with_one_option(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
-fn creates_product_with_many_options(cookie_value string) ! {
-	// println('creates_product_with_options_and_values')
-	// new_product_title := luuid.v2()
-	// new_option_0_title := luuid.v2()
-	// new_option_1_title := luuid.v2()
-	// new_options := [peony.ProductOptionCreateRequest{}]
-	// new_product_data := peony.ProductCreateRequest{
-	// 	title:   new_product_title
-	// 	options: none
-	// }
-	// mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-	// 	json.encode(new_product_data))!
-	// is_created(response)!
-	// r := json.decode(peony.ProductResponseEnvelope, response.body)!
-	// created_product := r.product
-
-	// response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
-	// 	cookie_value)!
-	// response_is_ok(response)!
-
-	// response = do_authenticated_get_request('${endpoint_admin_products}/${created_product.id}',
-	// 	cookie_value)!
-	// is_not_found(response)!
-
-	// checkbox marks logic was written to handle case, test must be written.
-	// [x] TODO reject create a product with one option and no values
-	// [ ] TODO create a product with one option, one value and no explicit variants
-	// [ ] TODO create a product with 2 options and 2 values for each option, and no explicit variants
-	// [ ] TODO create a product with 2 options and 2 values for each option, and 3 explicit variants
-}
-
 fn creates_product_without_options_with_variant(cookie_value string) ! {
 	println('creates_product_without_options_with_variant')
 	new_product_data := peony.ProductCreateRequest{
@@ -1378,6 +1347,77 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	}
 	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created despite request having empty title')!
+}
+
+fn updates_product_options_ranking(cookie_value string) ! {
+	println('updates_product_options_ranking')
+	mut new_product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0), 0]
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	is_created(response)!
+
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	mut product := r.product
+	old_options := product.options
+	expect(old_options.len == 2, 'Product contains unexpected number of options: expected 2, got ${old_options.len}')!
+
+	old_option_0 := old_options[0]
+	old_option_1 := old_options[1]
+
+	updated_product_data := peony.ProductUpdateRequest{
+		options: [
+			peony.ProductOptionUpdateRequest{
+				id: old_option_1.id
+			},
+			peony.ProductOptionUpdateRequest{
+				id: old_option_0.id
+			},
+		]
+	}
+
+	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
+		cookie_value, json.encode(updated_product_data))!
+	response_is_ok(response)!
+
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	product = r.product
+	new_options := product.options
+	expect(new_options.len == 2, 'Product contains unexpected number of options: expected 2, got ${new_options.len}')!
+
+	new_option_0 := new_options[0]
+	new_option_1 := new_options[1]
+	expect(new_option_0.id == old_option_1.id, 'Option ranking was not updated')!
+	expect(new_option_1.id == old_option_0.id, 'Option ranking was not updated')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
 }
 
 fn get_category_translation(locale_id string, r peony.CategoryResponse) !peony.CategoryTranslationResponse {
@@ -1824,11 +1864,11 @@ fn test_peony() ! {
 		admin_handles_product_translations,
 		handles_unique_product_handles,
 		creates_product_with_one_option,
-		// creates_product_with_many_options,
 		creates_product_without_options_with_variant,
 		creates_product_with_one_option_and_many_variants,
 		creates_product_with_many_options_and_one_variant,
 		refuses_product_creation_with_variants_with_same_values,
+		updates_product_options_ranking,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//

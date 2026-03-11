@@ -884,6 +884,9 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 
 	if options := ph.options {
 		mut options_diff := []ProductOptionUpdateParams{len: options.len}
+		mut option_ids := []string{len: options_diff.len}
+		mut option_ids_bin := [][]u8{len: options_diff.len}
+
 		old_options := model_product_options_retrieve(mut tx, [
 			product_id_bin,
 		]) or { return new_error_internal('Could not retrieve product_option', err.msg()) }
@@ -907,6 +910,9 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 					option_rank:    i
 					title:          string_value(option.title)
 				}
+
+				option_ids[i] = new_option_id
+				option_ids_bin[i] = new_option_id_bin
 				continue
 			}
 
@@ -919,261 +925,280 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				option_rank:    i
 				title:          unwrap_option_or(option.title, old_option.title)
 			}
+
+			option_ids[i] = id
+			option_ids_bin[i] = option.id_bin
 		}
 
 		model_product_option_update(mut tx, options_diff) or {
 			return new_error_internal('Could not update product_option', err.msg())
 		}
 
-		old_translations := model_product_option_translations_retrieve(mut tx, [
-			product_id_bin,
-		]) or {
-			return new_error_internal('Could not retrieve product_option_translations',
-				err.msg())
-		}
-
-		mut option_translations_map := map[string][]ProductOptionTranslation{}
-		for i := 0; i < old_translations.len; i++ {
-			old_translation := old_translations[i]
-			option_id := old_translation.product_option_id
-			old_array := option_translations_map[option_id]
-			option_translations_map[option_id] = arrays.concat(old_array, old_translation)
-		}
-
-		// preallocate
-		mut n_translations := 0
+		// update translations if any option contains a translations object
+		mut should_update_translations := false
 		for i := 0; i < options.len; i++ {
 			option := options[i]
-			option_id := option.id or { options_diff[i].id }
-			translations := option.translations or {
-				n_translations += option_translations_map[option_id].len
-				continue
+			if option.translations != none {
+				should_update_translations = true
+				break
+			}
+		}
+
+		if should_update_translations {
+			old_translations := model_product_option_translations_retrieve(mut tx, [
+				product_id_bin,
+			]) or {
+				return new_error_internal('Could not retrieve product_option_translations',
+					err.msg())
 			}
 
-			n_translations += translations.len
-		}
+			mut option_translations_map := map[string][]ProductOptionTranslation{}
+			for i := 0; i < old_translations.len; i++ {
+				old_translation := old_translations[i]
+				option_id := old_translation.product_option_id
+				old_array := option_translations_map[option_id]
+				option_translations_map[option_id] = arrays.concat(old_array, old_translation)
+			}
 
-		mut option_translations_diff := []ProductOptionTranslationParams{len: n_translations}
-		mut translations_added := 0
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-			option_id := option.id or {
-				new_option_id := options_diff[i].id
-				new_option_id_bin := options_diff[i].id_bin
-				if translations := option.translations {
-					for j := 0; j < translations.len; j++ {
-						translation := translations[j]
+			// preallocate
+			mut n_translations := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				option_id := option.id or { options_diff[i].id }
+				translations := option.translations or {
+					n_translations += option_translations_map[option_id].len
+					continue
+				}
+
+				n_translations += translations.len
+			}
+
+			mut option_translations_diff := []ProductOptionTranslationParams{len: n_translations}
+			mut translations_added := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				option_id := option.id or {
+					new_option_id := options_diff[i].id
+					new_option_id_bin := options_diff[i].id_bin
+					if translations := option.translations {
+						for j := 0; j < translations.len; j++ {
+							translation := translations[j]
+							option_translations_diff[translations_added] = ProductOptionTranslationParams{
+								product_option_id:     new_option_id
+								product_option_id_bin: new_option_id_bin
+								locale_id:             translation.locale_id
+								locale_id_bin:         translation.locale_id_bin
+								title:                 translation.title
+							}
+							translations_added++
+						}
+					}
+					continue
+				}
+
+				translations := option.translations or {
+					old_option_translations := option_translations_map[option_id]
+					for j := 0; j < old_option_translations.len; j++ {
+						old_translation := old_translations[j]
 						option_translations_diff[translations_added] = ProductOptionTranslationParams{
-							product_option_id:     new_option_id
-							product_option_id_bin: new_option_id_bin
-							locale_id:             translation.locale_id
-							locale_id_bin:         translation.locale_id_bin
-							title:                 translation.title
+							product_option_id:     old_translation.product_option_id
+							product_option_id_bin: old_translation.product_option_id_bin
+							locale_id:             old_translation.locale_id
+							locale_id_bin:         old_translation.locale_id_bin
+							title:                 old_translation.title
 						}
 						translations_added++
 					}
+					continue
 				}
-				continue
-			}
 
-			translations := option.translations or {
-				old_option_translations := option_translations_map[option_id]
-				for j := 0; j < old_option_translations.len; j++ {
-					old_translation := old_translations[j]
+				// if translations.len == 0 all translations for the option will be deleted.
+				for j := 0; j < translations.len; j++ {
+					translation := translations[j]
 					option_translations_diff[translations_added] = ProductOptionTranslationParams{
-						product_option_id:     old_translation.product_option_id
-						product_option_id_bin: old_translation.product_option_id_bin
-						locale_id:             old_translation.locale_id
-						locale_id_bin:         old_translation.locale_id_bin
-						title:                 old_translation.title
+						product_option_id:     option_id
+						product_option_id_bin: option.id_bin
+						locale_id:             translation.locale_id
+						locale_id_bin:         translation.locale_id_bin
+						title:                 translation.title
 					}
 					translations_added++
 				}
-				continue
 			}
 
-			// if translations.len == 0 all translations for the option will be deleted.
-			for j := 0; j < translations.len; j++ {
-				translation := translations[j]
-				option_translations_diff[translations_added] = ProductOptionTranslationParams{
-					product_option_id:     option_id
-					product_option_id_bin: option.id_bin
-					locale_id:             translation.locale_id
-					locale_id_bin:         translation.locale_id_bin
-					title:                 translation.title
-				}
-				translations_added++
+			option_translations_update_params := ProductOptionTranslationUpdateParams{
+				product_option_ids:     option_ids
+				product_option_ids_bin: option_ids_bin
+				translations:           option_translations_diff
+			}
+
+			model_product_option_translations_update(mut tx, option_translations_update_params) or {
+				return new_error_internal('Could not update product_option_translations',
+					err.msg())
 			}
 		}
 
-		mut option_ids := []string{len: options_diff.len}
-		mut option_ids_bin := [][]u8{len: options_diff.len}
-		for i := 0; i < options_diff.len; i++ {
-			option_ids[i] = options_diff[i].id
-			option_ids_bin[i] = options_diff[i].id_bin
-		}
-
-		option_translations_update_params := ProductOptionTranslationUpdateParams{
-			product_option_ids:     option_ids
-			product_option_ids_bin: option_ids_bin
-			translations:           option_translations_diff
-		}
-
-		model_product_option_translations_update(mut tx, option_translations_update_params) or {
-			return new_error_internal('Could not update product_option_translations',
-				err.msg())
-		}
-
-		// preallocate
-		mut n_values := 0
+		mut should_update_values := false
 		for i := 0; i < options.len; i++ {
 			option := options[i]
-			_ := option.id or { // new option, must have new values
-				values := option.values or {
-					return new_error_internal('New option has no values', 'option.values == none')
-				}
-
-				n_values += values.len
-				continue
+			if option.values != none {
+				should_update_values = true
 			}
-
-			values := option.values or {
-				continue // no changes for this option
-			}
-
-			n_values += values.len // replace old values with new ones
 		}
 
-		old_values := model_product_option_values_retrieve(mut tx, option_ids, option_ids_bin) or {
-			return new_error_internal('Could not retrieve product_option_values', err.msg())
-		}
-
-		mut old_values_map := map[string]ProductOptionValue{}
-		for i := 0; i < old_values.len; i++ {
-			old_value := old_values[i]
-			old_value_id := old_value.id
-			old_values_map[old_value_id] = old_value
-		}
-
-		mut values_diff := []ProductOptionValueUpdateParams{len: n_values}
-		mut values_added := 0
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-			option_id := option.id or {
-				new_option := options_diff[i]
-				values := option.values or {
-					return new_error_internal('New option has no values', 'option.values == none')
-				}
-
-				for j := 0; j < values.len; j++ {
-					value := values[j]
-					new_value_id, new_value_id_bin := app.new_id()
-					values_diff[values_added] = ProductOptionValueUpdateParams{
-						id:            new_value_id
-						id_bin:        new_value_id_bin
-						option_id:     new_option.id
-						option_id_bin: new_option.id_bin
-						value_rank:    j
-						name:          string_value(value.name)
+		if should_update_values {
+			mut n_values := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				if option.id == none { // new option, must have new values
+					values := option.values or {
+						return new_error_internal('New option has no values', 'option.values == none')
 					}
+
+					n_values += values.len
+					continue
 				}
-				values_added++
-				continue
+
+				values := option.values or {
+					continue // no changes for this option
+				}
+
+				n_values += values.len // replace old values with new ones
 			}
 
-			values := option.values or { continue }
+			old_values := model_product_option_values_retrieve(mut tx, option_ids, option_ids_bin) or {
+				return new_error_internal('Could not retrieve product_option_values',
+					err.msg())
+			}
 
-			for j := 0; j < values.len; j++ {
-				value := values[j]
-				value_id := value.id or {
-					new_value_id, new_value_id_bin := app.new_id()
-					values_diff[values_added] = ProductOptionValueUpdateParams{
-						id:            new_value_id
-						id_bin:        new_value_id_bin
-						option_id:     option_id
-						option_id_bin: option.id_bin
-						value_rank:    j
-						name:          string_value(value.name)
+			mut old_values_map := map[string]ProductOptionValue{}
+			for i := 0; i < old_values.len; i++ {
+				old_value := old_values[i]
+				old_value_id := old_value.id
+				old_values_map[old_value_id] = old_value
+			}
+
+			mut values_diff := []ProductOptionValueUpdateParams{len: n_values}
+			mut values_added := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				option_id := option.id or {
+					new_option := options_diff[i]
+					values := option.values or {
+						return new_error_internal('New option has no values', 'option.values == none')
+					}
+
+					for j := 0; j < values.len; j++ {
+						value := values[j]
+						new_value_id, new_value_id_bin := app.new_id()
+						values_diff[values_added] = ProductOptionValueUpdateParams{
+							id:            new_value_id
+							id_bin:        new_value_id_bin
+							option_id:     new_option.id
+							option_id_bin: new_option.id_bin
+							value_rank:    j
+							name:          string_value(value.name)
+						}
 					}
 					values_added++
 					continue
 				}
 
-				old_value := old_values_map[value_id]
-				values_diff[values_added] = ProductOptionValueUpdateParams{
-					id:            value_id
-					id_bin:        value.id_bin
-					option_id:     option_id
-					option_id_bin: option.id_bin
-					value_rank:    j
-					name:          unwrap_option_or(value.name, old_value.name)
-				}
-				values_added++
-			}
-		}
+				values := option.values or { continue }
 
-		model_product_option_value_update(mut tx, values_diff) or {
-			return new_error_internal('Could not update product_option_value', err.msg())
-		}
-
-		// value translations
-		mut n_value_translations := 0
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-			values := option.values or { continue }
-
-			for j := 0; j < values.len; j++ {
-				value := values[i]
-				translations := value.translations or { continue }
-				n_value_translations += translations.len
-			}
-		}
-
-		mut value_translations_diff := []ProductOptionValueTranslationParams{len: n_value_translations}
-		mut current_value_index := 0
-		mut value_translations_added := 0
-		for i := 0; i < options.len; i++ {
-			option := options[i]
-			values := option.values or { continue }
-
-			for j := 0; j < values.len; j++ {
-				value := values[j]
-				// need value id
-				product_option_value_id := values_diff[current_value_index].id
-				product_option_value_id_bin := values_diff[current_value_index].id_bin
-				translations := value.translations or { continue }
-
-				// if translations.len == 0 all translations for the value will be deleted.
-				for k := 0; k < translations.len; k++ {
-					translation := translations[k]
-					value_translations_diff[value_translations_added] = ProductOptionValueTranslationParams{
-						product_option_value_id:     product_option_value_id
-						product_option_value_id_bin: product_option_value_id_bin
-						locale_id:                   translation.locale_id
-						locale_id_bin:               translation.locale_id_bin
-						name:                        translation.name
+				for j := 0; j < values.len; j++ {
+					value := values[j]
+					value_id := value.id or {
+						new_value_id, new_value_id_bin := app.new_id()
+						values_diff[values_added] = ProductOptionValueUpdateParams{
+							id:            new_value_id
+							id_bin:        new_value_id_bin
+							option_id:     option_id
+							option_id_bin: option.id_bin
+							value_rank:    j
+							name:          string_value(value.name)
+						}
+						values_added++
+						continue
 					}
-					value_translations_added++
+
+					old_value := old_values_map[value_id]
+					values_diff[values_added] = ProductOptionValueUpdateParams{
+						id:            value_id
+						id_bin:        value.id_bin
+						option_id:     option_id
+						option_id_bin: option.id_bin
+						value_rank:    j
+						name:          unwrap_option_or(value.name, old_value.name)
+					}
+					values_added++
 				}
-				current_value_index++
 			}
-		}
 
-		mut value_ids := []string{len: values_diff.len}
-		mut value_ids_bin := [][]u8{len: values_diff.len}
-		for i := 0; i < values_diff.len; i++ {
-			value_ids[i] = values_diff[i].id
-			value_ids_bin[i] = values_diff[i].id_bin
-		}
+			model_product_option_value_update(mut tx, values_diff) or {
+				return new_error_internal('Could not update product_option_value', err.msg())
+			}
 
-		option_value_translation_update_params := ProductOptionValueTranslationUpdateParams{
-			product_option_value_ids:     value_ids
-			product_option_value_ids_bin: value_ids_bin
-			translations:                 value_translations_diff
-		}
+			// value translations
+			mut n_value_translations := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				values := option.values or { continue }
 
-		model_product_option_value_translations_update(mut tx, option_value_translation_update_params) or {
-			return new_error_internal('Could not update option_value_translations', err.msg())
+				for j := 0; j < values.len; j++ {
+					value := values[i]
+					translations := value.translations or { continue }
+					n_value_translations += translations.len
+				}
+			}
+
+			mut value_translations_diff := []ProductOptionValueTranslationParams{len: n_value_translations}
+			mut current_value_index := 0
+			mut value_translations_added := 0
+			for i := 0; i < options.len; i++ {
+				option := options[i]
+				values := option.values or { continue }
+
+				for j := 0; j < values.len; j++ {
+					value := values[j]
+					// need value id
+					product_option_value_id := values_diff[current_value_index].id
+					product_option_value_id_bin := values_diff[current_value_index].id_bin
+					translations := value.translations or { continue }
+
+					// if translations.len == 0 all translations for the value will be deleted.
+					for k := 0; k < translations.len; k++ {
+						translation := translations[k]
+						value_translations_diff[value_translations_added] = ProductOptionValueTranslationParams{
+							product_option_value_id:     product_option_value_id
+							product_option_value_id_bin: product_option_value_id_bin
+							locale_id:                   translation.locale_id
+							locale_id_bin:               translation.locale_id_bin
+							name:                        translation.name
+						}
+						value_translations_added++
+					}
+					current_value_index++
+				}
+			}
+
+			mut value_ids := []string{len: values_diff.len}
+			mut value_ids_bin := [][]u8{len: values_diff.len}
+			for i := 0; i < values_diff.len; i++ {
+				value_ids[i] = values_diff[i].id
+				value_ids_bin[i] = values_diff[i].id_bin
+			}
+
+			option_value_translation_update_params := ProductOptionValueTranslationUpdateParams{
+				product_option_value_ids:     value_ids
+				product_option_value_ids_bin: value_ids_bin
+				translations:                 value_translations_diff
+			}
+
+			model_product_option_value_translations_update(mut tx, option_value_translation_update_params) or {
+				return new_error_internal('Could not update option_value_translations',
+					err.msg())
+			}
 		}
 	}
 
