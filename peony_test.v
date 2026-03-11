@@ -1420,6 +1420,75 @@ fn updates_product_options_ranking(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
+fn updates_variants_ranking(cookie_value string) ! {
+	println('updates_variants_ranking')
+	mut new_product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0)]
+			},
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1)]
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	is_created(response)!
+
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	mut product := r.product
+	old_variants := product.variants
+	expect(old_variants.len == 2, 'Product contains unexpected number of variants: expected 2, got ${old_variants.len}')!
+
+	variant_0_id := old_variants[0].id
+	variant_1_id := old_variants[1].id
+
+	updated_product_data := peony.ProductUpdateRequest{
+		variants: [
+			peony.ProductVariantUpdateRequest{
+				id: variant_1_id
+			},
+			peony.ProductVariantUpdateRequest{
+				id: variant_0_id
+			},
+		]
+	}
+
+	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
+		cookie_value, json.encode(updated_product_data))!
+	response_is_ok(response)!
+
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	product = r.product
+	new_variants := product.variants
+	expect(new_variants.len == 2, 'Product contains unexpected number of variants: expected 2, got ${new_variants.len}')!
+
+	new_variant_0_id := new_variants[0].id
+	new_variant_1_id := new_variants[1].id
+	expect(new_variant_0_id == variant_1_id, 'Variant ranking was not updated')!
+	expect(new_variant_1_id == variant_0_id, 'Variant ranking was not updated')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
 fn get_category_translation(locale_id string, r peony.CategoryResponse) !peony.CategoryTranslationResponse {
 	for i := 0; i < r.translations.len; i++ {
 		t := r.translations[i]
@@ -1869,6 +1938,7 @@ fn test_peony() ! {
 		creates_product_with_many_options_and_one_variant,
 		refuses_product_creation_with_variants_with_same_values,
 		updates_product_options_ranking,
+		updates_variants_ranking,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//

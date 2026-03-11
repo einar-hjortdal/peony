@@ -287,9 +287,18 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 			params[i * n_params + 3] = variant.title
 		}
 
-		params[i * n_params + 4] = variant.barcode
-		params[i * n_params + 5] = variant.ean
-		params[i * n_params + 6] = variant.upc
+		if variant.barcode != '' {
+			params[i * n_params + 4] = variant.barcode
+		}
+
+		if variant.ean != '' {
+			params[i * n_params + 5] = variant.ean
+		}
+
+		if variant.upc != '' {
+			params[i * n_params + 6] = variant.upc
+		}
+
 		params[i * n_params + 7] = variant.variant_rank
 		params[i * n_params + 8] = variant.metadata
 	}
