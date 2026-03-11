@@ -270,6 +270,7 @@ pub:
 	id           string
 	option_id    string @[json: 'optionId']
 	name         string
+	value_rank   i32 @[json: 'valueRank']
 	translations []ProductOptionValueTranslationResponse @[omitempty]
 }
 
@@ -283,6 +284,7 @@ fn format_product_option_value_response(p ProductOptionValue) ProductOptionValue
 		id:           p.id
 		option_id:    p.option_id
 		name:         p.name
+		value_rank:   p.value_rank
 		translations: translations
 	}
 }
@@ -307,6 +309,7 @@ pub:
 	id           string
 	product_id   string @[json: 'productId']
 	title        string
+	option_rank  i32 @[json: 'optionRank']
 	values       []ProductOptionValueResponse
 	translations []ProductOptionTranslationResponse @[omitempty]
 }
@@ -325,8 +328,9 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 	return ProductOptionResponse{
 		id:           p.id
 		product_id:   p.product_id
-		values:       values
 		title:        p.title
+		option_rank:  p.option_rank
+		values:       values
 		translations: translations
 	}
 }

@@ -1171,9 +1171,6 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 	variants := product.variants
 	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
 
-	println(options)
-	println(variants)
-
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
 	response_is_ok(response)!
