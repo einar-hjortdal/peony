@@ -1145,6 +1145,59 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
+fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
+	println('creates_product_with_regional_prices')
+	mut response := do_authenticated_get_request(endpoint_admin_regions, cookie_value)!
+	regions_list := json.decode(peony.RegionResponseListEnvelope, response.body)!
+	regions := regions_list.regions
+
+	mut regional_prices := map[string]peony.VariantPriceRequest{}
+	for i := 0; i < regions.len; i++ {
+		region := regions[i]
+		regional_prices[region.id] = peony.VariantPriceRequest{
+			base_price:     rand.i32_in_range(0, max_i32)!
+			original_price: rand.i32_in_range(0, max_i32)!
+		}
+	}
+
+	new_product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		variants: [
+			peony.ProductVariantCreateRequest{
+				regional_prices: regional_prices
+			},
+		]
+	}
+
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	is_created(response)!
+
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := r.product
+	variants := product.variants
+	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
+
+	variant := variants[0]
+	expect(variant.regional_prices.len == regions.len, 'Variant contains unexpected number of regional prices, expected ${regions.len}, got ${variant.regional_prices.len}')!
+
+	region_ids := variant.regional_prices.keys()
+	for i := 0; i < region_ids.len; i++ {
+		region_id := region_ids[i]
+		base_expected := regional_prices[region_id].base_price
+		base_received := variant.regional_prices[region_id].base_price
+		expect(base_expected == base_received, 'regional base_price does not match: expected ${base_expected}, received ${base_received}')!
+
+		if original_expected := regional_prices[region_id].original_price {
+			original_received := variant.regional_prices[region_id].original_price
+			expect(original_expected == original_received, 'regional base_price does not match: expected ${original_expected}, received ${original_received}')!
+		}
+	}
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
 fn refuses_product_creation_with_variants_with_same_values(cookie_value string) ! {
 	println('refuses_product_creation_with_one_option_and_many_variants_with_same_values')
 	// 1 option, 1 value, 2 variants
@@ -1937,6 +1990,7 @@ fn test_peony() ! {
 		creates_product_with_one_option_and_many_variants,
 		creates_product_with_many_options_and_one_variant,
 		refuses_product_creation_with_variants_with_same_values,
+		creates_product_with_variant_with_regional_prices,
 		updates_product_options_ranking,
 		updates_variants_ranking,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)

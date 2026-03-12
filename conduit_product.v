@@ -283,7 +283,6 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		mut variant_ids := []string{len: variants.len}
 		mut variant_ids_bin := [][]u8{len: variants.len}
 		mut variants_to_create := []VariantCreateParams{len: variants.len}
-		mut n_money_amounts := 0
 		mut inventory_items_to_create := []InventoryItemCreateParams{len: variants.len}
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
@@ -303,12 +302,6 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				upc:            string_value(variant.upc)
 				metadata:       string_value(variant.metadata)
 				variant_rank:   i
-			}
-
-			if money_amounts := variant.money_amounts {
-				n_money_amounts += money_amounts.len
-			} else {
-				n_money_amounts += regions.len
 			}
 
 			inventory_item_id, inventory_item_id_bin := app.new_id()
@@ -397,6 +390,16 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		}) or {
 			return new_error_internal('Failed to create relations in product_option_value_product_variant',
 				err.msg())
+		}
+
+		mut n_money_amounts := 0
+		for i := 0; i < variants.len; i++ {
+			variant := variants[i]
+			if money_amounts := variant.money_amounts {
+				n_money_amounts += money_amounts.len
+				continue
+			}
+			n_money_amounts += regions.len
 		}
 
 		mut money_amounts_to_create := []VariantMoneyAmountUpdateParams{len: n_money_amounts}

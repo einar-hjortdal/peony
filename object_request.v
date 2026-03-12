@@ -1,5 +1,7 @@
 module peony
 
+import arrays
+
 pub struct AuthRequest {
 pub:
 	email    string
@@ -525,26 +527,39 @@ struct VariantMoneyAmountRequestHygienised {
 }
 
 fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]VariantMoneyAmountRequestHygienised {
-	mut money_amounts := []VariantMoneyAmountRequestHygienised{len: p.len}
+	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
 	region_ids := p.keys()
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
 		region_id_bin := id_string_to_bin(region_id)!
 		price := p[region_id]
-		mut is_original := false
-		mut amount := price.base_price
-		if original_price := price.original_price {
-			is_original = true
-			amount = original_price
+
+		base_price := price.base_price
+		if base_price < 0 {
+			return new_error_unprocessable_entity('invalid money amount', 'A price cannot be negative')
 		}
 
-		money_amounts[i] = VariantMoneyAmountRequestHygienised{
+		money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
 			region_id:     region_id
 			region_id_bin: region_id_bin
-			amount:        amount
-			is_original:   is_original
+			amount:        base_price
+			is_original:   false
+		})
+
+		if original_price := price.original_price {
+			if original_price < 0 {
+				return new_error_unprocessable_entity('invalid money amount', 'A price cannot be negative')
+			}
+
+			money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
+				region_id:     region_id
+				region_id_bin: region_id_bin
+				amount:        original_price
+				is_original:   true
+			})
 		}
 	}
+
 	return money_amounts
 }
 
