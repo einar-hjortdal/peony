@@ -511,30 +511,41 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 	return ph
 }
 
-pub struct VariantMoneyAmountRequest {
+pub struct VariantPriceRequest {
 pub:
-	amount      i32
-	region_id   string @[json: 'regionId']
-	is_original ?bool  @[json: 'isOriginal']
+	original_price ?i32 @[json: 'originalPrice']
+	base_price     i32  @[json: 'basePrice']
 }
 
 struct VariantMoneyAmountRequestHygienised {
 	amount        i32
 	region_id     string
 	region_id_bin []u8
-	is_original   ?bool
+	is_original   bool
 }
 
-fn (p VariantMoneyAmountRequest) hygienise() !VariantMoneyAmountRequestHygienised {
-	region_id_bin := option_id_string_to_id_bin(p.region_id) or {
-		return new_error_bad_request(error_id_invalid, 'region_id')
-	}
+fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]VariantMoneyAmountRequestHygienised {
+	mut money_amounts := []VariantMoneyAmountRequestHygienised{len: p.len}
+	region_ids := p.keys()
+	for i := 0; i < region_ids.len; i++ {
+		region_id := region_ids[i]
+		region_id_bin := id_string_to_bin(region_id)!
+		price := p[region_id]
+		mut is_original := false
+		mut amount := price.base_price
+		if original_price := price.original_price {
+			is_original = true
+			amount = original_price
+		}
 
-	return VariantMoneyAmountRequestHygienised{
-		amount:        p.amount
-		region_id:     p.region_id
-		region_id_bin: region_id_bin
+		money_amounts[i] = VariantMoneyAmountRequestHygienised{
+			region_id:     region_id
+			region_id_bin: region_id_bin
+			amount:        amount
+			is_original:   is_original
+		}
 	}
+	return money_amounts
 }
 
 // used during product and product_variant creation
@@ -767,23 +778,23 @@ fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygieni
 // ## metadata
 // Raw metadata stored as a string. Use for arbitrary user-defined data.
 //
-// ## money_amounts
-// Array of region money amounts for this variant.
+// ## prices
+// Regional prices for the variant. The keys of the map are the region ids.
 // If omitted, a base price of 0 will be created for each region.
 // If provided:
-// - For each region, there must be exactly one money amount with is_original set to false or omitted (the base price).
-// - For each region, there may be at most one money amount with is_original set to true (the original price).
+// - For each region, there must be exactly one `base_price`.
+// - For each region, there may be one `original price`.
 pub struct ProductVariantCreateRequest {
 pub:
-	title          ?string
-	ean            ?string
-	upc            ?string
-	barcode        ?string
-	image          ?i32
-	inventory_item ?InventoryItemCreateRequest  @[json: 'inventoryItem']
-	option_values  ?[]i32                       @[json: 'optionValues']
-	metadata       ?string                      @[raw]
-	money_amounts  ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
+	title           ?string
+	ean             ?string
+	upc             ?string
+	barcode         ?string
+	image           ?i32
+	inventory_item  ?InventoryItemCreateRequest     @[json: 'inventoryItem']
+	option_values   ?[]i32                          @[json: 'optionValues']
+	metadata        ?string                         @[raw]
+	regional_prices ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
 struct ProductVariantCreateRequestHygienised {
@@ -848,16 +859,12 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 		ph.inventory_item = inventory_item.hygienise()!
 	}
 
-	if money_amounts := p.money_amounts {
-		if money_amounts.len == 0 {
-			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
+	if prices := p.regional_prices {
+		if prices.len == 0 {
+			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
-		mut m := []VariantMoneyAmountRequestHygienised{len: money_amounts.len}
-		for i := 0; i < money_amounts.len; i++ {
-			m[i] = money_amounts[i].hygienise()!
-		}
-		ph.money_amounts = m
+		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
 	}
 
 	return ph
@@ -923,16 +930,16 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 // When omitted, `money_amounts` are not changed.
 pub struct ProductVariantUpdateRequest {
 pub:
-	id             ?string
-	title          ?string
-	ean            ?string
-	upc            ?string
-	barcode        ?string
-	image          ?i32
-	inventory_item ?InventoryItemUpdateRequest  @[json: 'inventoryItem']
-	option_values  ?[]i32                       @[json: 'optionValues']
-	metadata       ?string                      @[raw]
-	money_amounts  ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
+	id              ?string
+	title           ?string
+	ean             ?string
+	upc             ?string
+	barcode         ?string
+	image           ?i32
+	inventory_item  ?InventoryItemUpdateRequest     @[json: 'inventoryItem']
+	option_values   ?[]i32                          @[json: 'optionValues']
+	metadata        ?string                         @[raw]
+	regional_prices ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
 struct ProductVariantUpdateRequestHygienised {
@@ -946,7 +953,8 @@ struct ProductVariantUpdateRequestHygienised {
 	inventory_item ?InventoryItemUpdateRequestHygienised
 	option_values  ?[]i32
 	metadata       ?string
-	money_amounts  ?[]VariantMoneyAmountRequestHygienised
+mut:
+	money_amounts ?[]VariantMoneyAmountRequestHygienised
 }
 
 fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
@@ -975,18 +983,6 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		}
 	}
 
-	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
-	if mas := p.money_amounts {
-		if mas.len == 0 {
-			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
-		}
-
-		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
-		for i := 0; i < mas.len; i++ {
-			money_amounts[i] = mas[i].hygienise()!
-		}
-	}
-
 	mut inventory_item := InventoryItemUpdateRequestHygienised{}
 	if ii := p.inventory_item {
 		inventory_item = ii.hygienise()!
@@ -998,7 +994,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		}
 	}
 
-	return ProductVariantUpdateRequestHygienised{
+	mut ph := ProductVariantUpdateRequestHygienised{
 		id:             p.id
 		id_bin:         id_bin
 		title:          p.title
@@ -1008,8 +1004,17 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		inventory_item: inventory_item
 		option_values:  p.option_values
 		metadata:       p.metadata
-		money_amounts:  money_amounts
 	}
+
+	if prices := p.regional_prices {
+		if prices.len == 0 {
+			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
+		}
+
+		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
+	}
+
+	return ph
 }
 
 // VariantCreateRequest describes the body of the request to create a new product variant.
@@ -1056,10 +1061,10 @@ pub:
 	upc              ?string
 	barcode          ?string
 	image            ?string
-	inventory_item   ?InventoryItemCreateRequest  @[json: 'inventoryItem']
-	option_value_ids []string                     @[json: 'optionValueIds']
-	metadata         ?string                      @[raw]
-	money_amounts    ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
+	inventory_item   ?InventoryItemCreateRequest     @[json: 'inventoryItem']
+	option_value_ids []string                        @[json: 'optionValueIds']
+	metadata         ?string                         @[raw]
+	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
 struct VariantCreateRequestHygienised {
@@ -1071,8 +1076,8 @@ struct VariantCreateRequestHygienised {
 	option_value_ids     []string
 	option_value_ids_bin [][]u8
 	metadata             ?string
-	money_amounts        ?[]VariantMoneyAmountRequestHygienised
 mut:
+	money_amounts  ?[]VariantMoneyAmountRequestHygienised
 	inventory_item ?InventoryItemCreateRequestHygienised
 }
 
@@ -1090,18 +1095,6 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 		option_value_ids_bin[i] = id_bin
 	}
 
-	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
-	if mas := p.money_amounts {
-		if mas.len == 0 {
-			new_error_bad_request(error_field_empty, 'money_amounts cannot be an empty array')
-		}
-
-		money_amounts = []VariantMoneyAmountRequestHygienised{len: mas.len}
-		for i := 0; i < mas.len; i++ {
-			money_amounts[i] = mas[i].hygienise()!
-		}
-	}
-
 	mut ph := VariantCreateRequestHygienised{
 		title:                p.title
 		ean:                  p.ean
@@ -1110,7 +1103,14 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
 		metadata:             p.metadata
-		money_amounts:        money_amounts
+	}
+
+	if prices := p.regional_prices {
+		if prices.len == 0 {
+			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
+		}
+
+		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
 	}
 
 	if inventory_item := p.inventory_item {
@@ -1180,10 +1180,10 @@ pub:
 	upc              ?string
 	barcode          ?string
 	image            ?string
-	inventory_item   ?InventoryItemUpdateRequest  @[json: 'inventoryItem']
-	option_value_ids ?[]string                    @[json: 'optionValueIds']
-	metadata         ?string                      @[raw]
-	money_amounts    ?[]VariantMoneyAmountRequest @[json: 'moneyAmounts']
+	inventory_item   ?InventoryItemUpdateRequest     @[json: 'inventoryItem']
+	option_value_ids ?[]string                       @[json: 'optionValueIds']
+	metadata         ?string                         @[raw]
+	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
 struct VariantUpdateRequestHygienised {
@@ -1216,12 +1216,12 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 		metadata:             p.metadata
 	}
 
-	if money_amounts := p.money_amounts {
-		mut h := []VariantMoneyAmountRequestHygienised{len: money_amounts.len}
-		for i := 0; i < money_amounts.len; i++ {
-			h[i] = money_amounts[i].hygienise()!
+	if prices := p.regional_prices {
+		if prices.len == 0 {
+			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
-		ph.money_amounts = h
+
+		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
 	}
 
 	return ph

@@ -372,10 +372,11 @@ fn format_tax_rate_response(t TaxRate) TaxRateResponse {
 	}
 }
 
-// VariantPriceResponseStore represents the price of a variant.
-// This is calculated utilizing the context of the request coming from the /store/ endpoints.
+// VariantPriceResponse represents a regional price of a variant.
+// Each variant has one `base_price` for each region, and may have one `original_price` for each region.
+// A /store/ consumer may display the original_price in comparison with the base_price (eg: was x, now y).
 pub struct VariantPriceResponse {
-pub:
+pub mut:
 	currency_code  string @[json: 'currencyCode']
 	includes_tax   bool   @[json: 'includesTax']
 	original_price i32    @[json: 'originalPrice'; omitempty]
@@ -391,25 +392,35 @@ fn format_variant_price_response(p VariantPrice) VariantPriceResponse {
 	}
 }
 
-// VariantMoneyAmountResponse represents a regional price of a variant.
-// Each variant has one price for each region, and may have one additional price for each region.
-// The mandatory price is the `base_price` and the optional additional price is the `original_price`.
-// A /store/ consumer may display the original_price in comparison with the base_price (eg: was x, now y).
-pub struct VariantMoneyAmountResponse {
-pub:
-	region_id     string @[json: 'regionId']
-	currency_code string @[json: 'currencyCode']
-	is_original   bool   @[json: 'isOriginal'; omitempty]
-	amount        i32
-}
+fn format_regional_prices(p []VariantMoneyAmount) map[string]VariantPriceResponse {
+	mut res := map[string]VariantPriceResponse{}
+	for i := 0; i < p.len; i++ {
+		money_amount := p[i]
+		region_id := money_amount.region_id
+		if region_id in res {
+			if money_amount.is_original {
+				res[region_id].original_price = money_amount.amount
+				continue
+			}
 
-fn format_variant_money_amount_response(p VariantMoneyAmount) VariantMoneyAmountResponse {
-	return VariantMoneyAmountResponse{
-		region_id:     p.region_id
-		currency_code: p.currency_code
-		is_original:   p.is_original
-		amount:        p.amount
+			res[region_id].base_price = money_amount.amount
+			continue
+		}
+
+		res[region_id] = VariantPriceResponse{
+			currency_code: money_amount.currency_code
+			includes_tax:  money_amount.includes_tax
+		}
+
+		if money_amount.is_original {
+			res[region_id].original_price = money_amount.amount
+			continue
+		}
+
+		res[region_id].base_price = money_amount.amount
 	}
+
+	return res
 }
 
 pub struct RegionResponse {
@@ -529,20 +540,20 @@ fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
 pub struct VariantResponse {
 pub:
 	id                 string
-	created_at         time.Time                    @[json: 'createdAt']
-	updated_at         time.Time                    @[json: 'updatedAt']
-	deleted_at         time.Time                    @[json: 'deletedAt'; omitempty]
-	product_id         string                       @[json: 'productId']
-	title              string                       @[omitempty]
-	barcode            string                       @[omitempty]
-	ean                string                       @[omitempty]
-	upc                string                       @[omitempty]
-	variant_rank       i32                          @[json: 'variantRank']
-	metadata           string                       @[omitempty]
-	image              string                       @[omitempty]
-	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	money_amounts      []VariantMoneyAmountResponse @[json: 'moneyAmounts']
-	inventory_item     InventoryItemResponse        @[json: 'inventoryItem'; omitempty]
+	created_at         time.Time                       @[json: 'createdAt']
+	updated_at         time.Time                       @[json: 'updatedAt']
+	deleted_at         time.Time                       @[json: 'deletedAt'; omitempty]
+	product_id         string                          @[json: 'productId']
+	title              string                          @[omitempty]
+	barcode            string                          @[omitempty]
+	ean                string                          @[omitempty]
+	upc                string                          @[omitempty]
+	variant_rank       i32                             @[json: 'variantRank']
+	metadata           string                          @[omitempty]
+	image              string                          @[omitempty]
+	option_values      []ProductOptionValueResponse    @[json: 'optionValues'; omitempty]
+	regional_prices    map[string]VariantPriceResponse @[json: 'regionalPrices']
+	inventory_item     InventoryItemResponse           @[json: 'inventoryItem'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 }
 
@@ -550,12 +561,6 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
-	}
-
-	mut money_amounts := []VariantMoneyAmountResponse{len: v.money_amounts.len}
-	for i := 0; i < v.money_amounts.len; i++ {
-		ma := v.money_amounts[i]
-		money_amounts[i] = format_variant_money_amount_response(ma)
 	}
 
 	return VariantResponse{
@@ -574,7 +579,7 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 		inventory_item:     format_inventory_item_response(v.inventory_item)
 		inventory_quantity: get_inventory_quantity(v.inventory_item)
 		option_values:      option_values
-		money_amounts:      money_amounts
+		regional_prices:    format_regional_prices(v.money_amounts)
 	}
 }
 
@@ -1020,8 +1025,6 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 			}
 		}
 	}
-
-	// TODO tags
 
 	return ProductResponseStore{
 		id:           p.id

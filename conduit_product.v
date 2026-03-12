@@ -427,7 +427,6 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			for j := 0; j < money_amounts.len; j++ {
 				money_amount := money_amounts[j]
 				money_amount_id, money_amount_id_bin := app.new_id()
-				is_original := money_amount.is_original or { false }
 				money_amounts_to_create[money_amounts_added] = VariantMoneyAmountUpdateParams{
 					variant_id:          variant_id
 					variant_id_bin:      variant_id_bin
@@ -435,7 +434,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 					region_id_bin:       money_amount.region_id_bin
 					money_amount_id:     money_amount_id
 					money_amount_id_bin: money_amount_id_bin
-					is_original:         is_original
+					is_original:         money_amount.is_original
 					amount:              money_amount.amount
 				}
 				money_amounts_added++

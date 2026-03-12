@@ -560,17 +560,14 @@ fn verify_money_amounts(money_amounts []VariantMoneyAmountRequestHygienised, exi
 			return new_error_bad_request(error_id_invalid, 'There exists no region with id ${region_id}')
 		}
 
-		if is_original := money_amount.is_original {
-			if is_original {
-				if region_id in region_map_original_prices {
-					return new_error_bad_request('Multiple original_prices per region',
-						'At most one original_price per region is allowed, received 2 for the same region.')
-				}
-
-				original_prices_count++
-				region_map_original_prices[region_id] = true
-				continue
+		if money_amount.is_original {
+			if region_id in region_map_original_prices {
+				return new_error_bad_request('Multiple original_prices per region', 'At most one original_price per region is allowed, received 2 for the same region.')
 			}
+
+			original_prices_count++
+			region_map_original_prices[region_id] = true
+			continue
 		}
 
 		if region_id in region_map_base_prices {
