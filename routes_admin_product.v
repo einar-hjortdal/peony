@@ -453,10 +453,22 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(perr)
 	}
 
-	if money_amounts := ph.money_amounts {
-		verify_money_amounts(money_amounts, regions) or {
-			tx.rollback() or {}
-			return ctx.handle_error(err)
+	if regional_prices := p.regional_prices {
+		// verify region ids exist
+		mut regions_map := map[string]bool{}
+		for i := 0; i < regions.len; i++ {
+			region := regions[i]
+			regions_map[region.id] = true
+		}
+
+		region_ids := regional_prices.keys()
+		for i := 0; i < region_ids.len; i++ {
+			region_id := region_ids[i]
+			if regions_map[region_id] {
+				continue
+			}
+			perr := new_error_unprocessable_entity(error_id_invalid, 'regional_prices contains a region id that does not exist')
+			return ctx.handle_error(perr)
 		}
 	}
 
@@ -540,16 +552,29 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	if money_amounts := ph.money_amounts {
+	if regional_prices := p.regional_prices {
 		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Failed to retrieve region', err.msg())
 			return ctx.handle_error(perr)
 		}
 
-		verify_money_amounts(money_amounts, regions) or {
+		// verify region ids exist
+		mut regions_map := map[string]bool{}
+		for i := 0; i < regions.len; i++ {
+			region := regions[i]
+			regions_map[region.id] = true
+		}
+
+		region_ids := regional_prices.keys()
+		for i := 0; i < region_ids.len; i++ {
+			region_id := region_ids[i]
+			if regions_map[region_id] {
+				continue
+			}
 			tx.rollback() or {}
-			return ctx.handle_error(err)
+			perr := new_error_unprocessable_entity(error_id_invalid, 'regional_prices contains a region id that does not exist')
+			return ctx.handle_error(perr)
 		}
 	}
 
