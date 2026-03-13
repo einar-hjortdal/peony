@@ -212,6 +212,7 @@ pub struct ProductImageResponse {
 pub:
 	id           string
 	url          string
+	image_rank   i32
 	product_id   string @[json: 'productId']
 	alt          string @[omitempty]
 	translations map[string]ImageTranslationResponse @[omitempty]
@@ -221,6 +222,7 @@ fn format_product_image_response(p ProductImage) ProductImageResponse {
 	return ProductImageResponse{
 		id:           p.id
 		url:          p.url
+		image_rank:   p.image_rank
 		product_id:   p.product_id
 		alt:          p.alt.value
 		translations: format_image_translation_response(p.translations)
@@ -548,7 +550,7 @@ pub:
 	upc                string                          @[omitempty]
 	variant_rank       i32                             @[json: 'variantRank']
 	metadata           string                          @[omitempty]
-	image              string                          @[omitempty]
+	image_id           string                          @[omitempty]
 	option_values      []ProductOptionValueResponse    @[json: 'optionValues'; omitempty]
 	regional_prices    map[string]VariantPriceResponse @[json: 'regionalPrices']
 	inventory_item     InventoryItemResponse           @[json: 'inventoryItem'; omitempty]
@@ -562,18 +564,18 @@ fn format_variant_response(v ProductVariant) VariantResponse {
 	}
 
 	return VariantResponse{
-		id:           v.id
-		created_at:   v.created_at.Time
-		updated_at:   v.updated_at.Time
-		deleted_at:   v.deleted_at.value.Time
-		product_id:   v.product_id
-		title:        v.title.value
-		barcode:      v.barcode.value
-		ean:          v.ean.value
-		upc:          v.upc.value
-		variant_rank: v.variant_rank
-		metadata:     v.metadata.value
-		// TODO images
+		id:                 v.id
+		created_at:         v.created_at.Time
+		updated_at:         v.updated_at.Time
+		deleted_at:         v.deleted_at.value.Time
+		product_id:         v.product_id
+		title:              v.title.value
+		barcode:            v.barcode.value
+		ean:                v.ean.value
+		upc:                v.upc.value
+		variant_rank:       v.variant_rank
+		metadata:           v.metadata.value
+		image_id:           v.image_id
 		inventory_item:     format_inventory_item_response(v.inventory_item)
 		inventory_quantity: get_inventory_quantity(v.inventory_item)
 		option_values:      option_values
@@ -594,7 +596,7 @@ pub:
 	upc                string                       @[omitempty]
 	variant_rank       i32                          @[json: 'variantRank']
 	metadata           string                       @[omitempty]
-	image              string                       @[omitempty]
+	image_id           string                       @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 	purchasable        bool
@@ -610,18 +612,18 @@ fn format_variant_response_store(v ProductVariant, p VariantPrice, product_varia
 	}
 
 	return VariantResponseStore{
-		id:           v.id
-		created_at:   v.created_at.Time
-		updated_at:   v.updated_at.Time
-		deleted_at:   v.deleted_at.value.Time
-		product_id:   v.product_id
-		title:        v.title.value
-		barcode:      v.barcode.value
-		ean:          v.ean.value
-		upc:          v.upc.value
-		variant_rank: v.variant_rank
-		metadata:     v.metadata.value
-		// TODO images
+		id:                 v.id
+		created_at:         v.created_at.Time
+		updated_at:         v.updated_at.Time
+		deleted_at:         v.deleted_at.value.Time
+		product_id:         v.product_id
+		title:              v.title.value
+		barcode:            v.barcode.value
+		ean:                v.ean.value
+		upc:                v.upc.value
+		variant_rank:       v.variant_rank
+		metadata:           v.metadata.value
+		image_id:           v.image_id
 		inventory_quantity: product_variant_availability.inventory_quantity
 		option_values:      option_values
 		price:              format_variant_price_response(p)

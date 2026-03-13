@@ -35,7 +35,6 @@
 ### Soon to be implemented
 
 - [ ] Cache
-- [ ] Variant image
 
 ### To be implement
 

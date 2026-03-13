@@ -15,13 +15,14 @@ struct ProductVariant {
 	deleted_at     firebird.NullDateTime
 	product_id     string
 	product_id_bin []u8
+	image_id       string
+	image_id_bin   []u8
 	title          firebird.NullString
 	barcode        firebird.NullString
 	ean            firebird.NullString
 	upc            firebird.NullString
 	variant_rank   i32
 	metadata       firebird.NullString
-	// image              firebird.NullString // from variant_image TODO
 mut:
 	inventory_item InventoryItem
 	money_amounts  []VariantMoneyAmount
@@ -89,6 +90,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		updated_at,
 		deleted_at,
 		product_id,
+		image_id,
 		title,
 		barcode,
 		ean,
@@ -115,15 +117,21 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		updated_at, _ := v[2].get_date_time()!
 		deleted_at := v[3].get_null_date_time()!
 		product_id_bin, _ := v[4].get_array_u8()!
-		title := v[5].get_null_string()!
-		barcode := v[6].get_null_string()!
-		ean := v[7].get_null_string()!
-		upc := v[8].get_null_string()!
-		variant_rank, _ := v[9].get_i32()!
-		metadata := v[10].get_null_string()!
+		image_id_bin, _ := v[5].get_array_u8()!
+		title := v[6].get_null_string()!
+		barcode := v[7].get_null_string()!
+		ean := v[8].get_null_string()!
+		upc := v[9].get_null_string()!
+		variant_rank, _ := v[10].get_i32()!
+		metadata := v[11].get_null_string()!
 
 		id := id_bin_to_string(id_bin)!
 		product_id := id_bin_to_string(product_id_bin)!
+
+		mut image_id := ''
+		if image_id_bin.len > 0 {
+			image_id = id_bin_to_string(image_id_bin)!
+		}
 
 		variants[i] = ProductVariant{
 			id:             id
@@ -133,6 +141,8 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 			deleted_at:     deleted_at
 			product_id:     product_id
 			product_id_bin: product_id_bin
+			image_id:       image_id
+			image_id_bin:   image_id_bin
 			title:          title
 			barcode:        barcode
 			ean:            ean
@@ -169,7 +179,7 @@ struct VariantCreateParams {
 	product_id_bin []u8
 	variant_id     string
 	variant_id_bin []u8
-	image_id       string // TODO
+	image_id       string
 	image_id_bin   []u8
 	title          string
 	barcode        string
@@ -229,7 +239,7 @@ fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! 
 		}
 	}
 
-	tx.execute('INSERT INTO product_variant
+	query := 'INSERT INTO product_variant
 		(
 			id,
 			product_id,
@@ -240,8 +250,9 @@ fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! 
 			upc,
 			variant_rank,
 			metadata
-		) (${get_merge_source(src)})',
-		...params)!
+		) (${get_merge_source(src)})'
+
+	tx.execute(query, ...params)!
 }
 
 struct VariantUpdateParams {

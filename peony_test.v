@@ -1145,6 +1145,108 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
+fn creates_product_with_variant_image(cookie_value string) ! {
+	println('creates_product_with_variant_image')
+	new_product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		images:   [
+			peony.ImageCreateRequest{
+				url: rand.ascii(63)
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				image: 0
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	is_created(response)!
+
+	r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := r.product
+	images := product.images
+	expect(images.len == 1, 'Product created with an unexpected number of images. Expected 1, got ${images.len}')!
+
+	variants := product.variants
+	expect(variants.len == 1, 'Product created with an unexpected number of variants. Expected 1, got ${variants.len}')!
+
+	image := images[0]
+	variant := variants[0]
+	expect(image.id == variant.image_id, 'variant image_id does not match the expected image id')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
+fn updates_product_with_variant_image(cookie_value string) ! {
+	println('updates_product_with_variant_image')
+	product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		images:   [
+			peony.ImageCreateRequest{
+				url: rand.ascii(63)
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				image: 0
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(product_data))!
+	is_created(response)!
+
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	mut product := r.product
+	expect(product.images.len == 1, 'Product created with an unexpected number of images. Expected 1, got ${product.images.len}')!
+
+	expect(product.variants.len == 1, 'Product created with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
+
+	mut image := product.images[0]
+	mut variant := product.variants[0]
+
+	new_product_data := peony.ProductUpdateRequest{
+		title:    luuid.v2()
+		images:   [
+			peony.ImageUpdateRequest{
+				url: rand.ascii(63)
+			},
+			peony.ImageUpdateRequest{
+				id: image.id
+			},
+		]
+		variants: [
+			peony.ProductVariantUpdateRequest{
+				id:    variant.id // without id causes inventory item update error TODO isolate test case
+				image: 0
+			},
+		]
+	}
+
+	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
+		cookie_value, json.encode(new_product_data))!
+	response_is_ok(response)!
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	product = r.product
+
+	expect(product.images.len == 2, 'Product created with an unexpected number of images. Expected 2, got ${product.images.len}')!
+	expect(product.variants.len == 1, 'Product created with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
+
+	variant = product.variants[0]
+	new_image_id := product.images[0].id
+	expect(new_image_id == variant.image_id, 'Updated variant references wrong image')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
 fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
 	println('creates_product_with_regional_prices')
 	mut response := do_authenticated_get_request(endpoint_admin_regions, cookie_value)!
@@ -1946,6 +2048,8 @@ fn test_peony() ! {
 		creates_product_with_variant_with_regional_prices,
 		updates_product_options_ranking,
 		updates_variants_ranking,
+		creates_product_with_variant_image,
+		updates_product_with_variant_image,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//

@@ -56,8 +56,10 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		// TODO
 	}
 
+	// images array is kept at the top level so that it can be used later with variant images
+	mut images_to_create := []ProductImageCreateParams{}
 	if images := ph.images {
-		mut images_to_create := []ProductImageCreateParams{len: images.len}
+		images_to_create = []ProductImageCreateParams{len: images.len}
 		for i := 0; i < images.len; i++ {
 			image := images[i]
 			id, id_bin := app.new_id()
@@ -66,7 +68,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				id_bin:       id_bin
 				url:          image.url
 				alt:          image.alt
-				image_rank:   i32(i)
+				image_rank:   i
 				translations: image.translations
 			}
 		}
@@ -289,13 +291,21 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			variant_id, variant_id_bin := app.new_id()
 			variant_ids[i] = variant_id
 			variant_ids_bin[i] = variant_id_bin
+
+			mut image_id := ''
+			mut image_id_bin := []u8{}
+			if image := variant.image {
+				image_id = images_to_create[image].id
+				image_id_bin = &images_to_create[image].id_bin // reference the id
+			}
+
 			variants_to_create[i] = VariantCreateParams{
 				product_id:     product_id
 				product_id_bin: product_id_bin
 				variant_id:     variant_id
 				variant_id_bin: variant_id_bin
-				image_id:       '' // TODO
-				image_id_bin:   [] // TODO
+				image_id:       image_id
+				image_id_bin:   image_id_bin
 				title:          string_value(variant.title)
 				barcode:        string_value(variant.barcode)
 				ean:            string_value(variant.ean)
@@ -1237,12 +1247,21 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			if variant_id := variant.id {
+				// update variant
 				old_variant := old_variants_map[variant_id]
+
+				mut image_id := old_variant.image_id
+				mut image_id_bin := &old_variant.image_id_bin // reference
+				if image := variant.image {
+					image_id = images_diff[image].id
+					image_id_bin = &images_diff[image].id_bin // reference
+				}
+
 				variants_diff[i] = VariantUpdateParams{
-					id:     variant_id
-					id_bin: variant.id_bin
-					// image_id:
-					// image_id_bin:
+					id:           variant_id
+					id_bin:       variant.id_bin
+					image_id:     image_id
+					image_id_bin: image_id_bin
 					title:        unwrap_option_or(variant.title, old_variant.title.value)
 					barcode:      unwrap_option_or(variant.barcode, old_variant.barcode.value)
 					ean:          unwrap_option_or(variant.ean, old_variant.ean.value)
@@ -1297,11 +1316,19 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				}
 			} else {
 				new_variant_id, new_variant_id_bin := app.new_id()
+
+				mut image_id := ''
+				mut image_id_bin := []u8{}
+				if image := variant.image {
+					image_id = images_diff[image].id
+					image_id_bin = &images_diff[image].id_bin // reference
+				}
+
 				variants_diff[i] = VariantUpdateParams{
-					id:     new_variant_id
-					id_bin: new_variant_id_bin
-					// image_id:
-					// image_id_bin:
+					id:           new_variant_id
+					id_bin:       new_variant_id_bin
+					image_id:     image_id
+					image_id_bin: image_id_bin
 					title:        string_value(variant.title)
 					barcode:      string_value(variant.barcode)
 					ean:          string_value(variant.ean)

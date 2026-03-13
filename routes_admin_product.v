@@ -308,24 +308,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 			for i := 0; i < images.len; i++ {
 				image := images[i]
-				if id := image.id {
-					// handle update existing
-					// if id in images does not exist return bad request
-					if id !in existing_images_map {
-						tx.rollback() or {}
-						perr := new_error_bad_request(error_id_invalid, 'image with id ${id} does not exist')
-						return ctx.handle_error(perr)
-					}
-
-					existing_image := existing_images_map[id]
-					images_diff[i] = ProductImageUpdateParams{
-						id:           id
-						id_bin:       image.id_bin
-						url:          existing_image.url
-						alt:          image.alt // TODO string_value(image.alt)
-						translations: image.translations
-					}
-				} else {
+				id := image.id or {
 					// handle new image
 					id, id_bin := app.new_id()
 					url := image.url or {
@@ -339,8 +322,28 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 						id_bin:       id_bin
 						url:          url
 						alt:          image.alt // TODO string_value(image.alt)
+						image_rank:   i
 						translations: image.translations
 					}
+					continue
+				}
+
+				// handle update existing
+				// if id in images does not exist return bad request
+				if id !in existing_images_map {
+					tx.rollback() or {}
+					perr := new_error_bad_request(error_id_invalid, 'image with id ${id} does not exist')
+					return ctx.handle_error(perr)
+				}
+
+				existing_image := existing_images_map[id]
+				images_diff[i] = ProductImageUpdateParams{
+					id:           id
+					id_bin:       image.id_bin
+					url:          existing_image.url
+					alt:          image.alt // TODO string_value(image.alt)
+					image_rank:   i
+					translations: image.translations
 				}
 			}
 		}

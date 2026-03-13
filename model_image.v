@@ -206,6 +206,7 @@ struct ProductImageUpdateParams {
 	id_bin       []u8
 	url          string
 	alt          ?string // TODO remove option. if alt == '' is null.
+	image_rank   i32
 	translations ?[]ImageTranslationRequestHygienised // TODO remove option. if translations.len == 0 is none
 }
 
@@ -281,7 +282,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 
 		params[i * 3] = product_id_bin
 		params[i * 3 + 1] = image.id_bin
-		params[i * 3 + 2] = i32(i)
+		params[i * 3 + 2] = image.image_rank
 	}
 
 	query = 'INSERT INTO product_image (product_id, image_id, image_rank) ${get_merge_source(src)}'

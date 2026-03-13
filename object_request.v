@@ -857,6 +857,7 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 		ean:           p.ean
 		upc:           p.upc
 		barcode:       p.barcode
+		image:         p.image
 		option_values: p.option_values
 		metadata:      p.metadata
 	}
@@ -1007,6 +1008,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		ean:            p.ean
 		upc:            p.upc
 		barcode:        p.barcode
+		image:          p.image
 		inventory_item: inventory_item
 		option_values:  p.option_values
 		metadata:       p.metadata
@@ -1596,7 +1598,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 //
 // ## images
 // Images to associate with the product.
-// Images preserve sorting order.
+// Array order is preserved.
 pub struct ProductCreateRequest {
 pub:
 	title             string
@@ -1792,6 +1794,27 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 	}
 }
 
+fn (p ProductCreateRequestHygienised) validate_variant_image() ! {
+	variants := p.variants or { return }
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		variant_image := variant.image or { continue }
+		if variant_image < 0 {
+			return new_error_unprocessable_entity(error_reference_invalid, 'The variant image index cannot be negative')
+		}
+
+		product_images := p.images or {
+			return new_error_unprocessable_entity(error_reference_invalid, 'A variant image is defined but the product has no images. A variant image is a reference to a product image, therefore a variant cannot have an image if the product has no images.')
+		}
+
+		if variant_image >= product_images.len {
+			return new_error_unprocessable_entity(error_reference_invalid, 'Out of bounds:
+				variant image: `${variant_image}`
+				product_images.len: `${product_images.len}`')
+		}
+	}
+}
+
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if p.title == '' {
 		return new_error_unprocessable_entity(error_field_empty, 'title')
@@ -1967,6 +1990,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	ph.validate_variants_reference_valid_values()!
 	ph.validate_no_too_many_variants()!
 	ph.validate_no_duplicate_variants()!
+	ph.validate_variant_image()!
 
 	return ph
 }
