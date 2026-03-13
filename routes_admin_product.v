@@ -117,7 +117,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 			option := options[i]
 			option_values := option.values
 
-			if translations := p.translations {
+			if translations := option.translations {
 				for j := 0; j < translations.len; j++ {
 					translation := translations[j]
 					locale_id := translation.locale_id

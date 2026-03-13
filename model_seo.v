@@ -12,6 +12,13 @@ struct SEOTranslation {
 	description   firebird.NullString
 }
 
+struct SEO {
+	title       firebird.NullString
+	description firebird.NullString
+mut:
+	translations []SEOTranslation
+}
+
 fn model_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_bin [][]u8) ![]SEOTranslation {
 	data := tx.execute('SELECT seo_id, locale_id, title, description
 		FROM seo_translations
@@ -46,14 +53,11 @@ fn model_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_bin [][]u
 }
 
 struct ProductSEO {
+	SEO
 	id             string
 	id_bin         []u8
 	product_id     string
 	product_id_bin []u8
-	title          firebird.NullString
-	description    firebird.NullString
-mut:
-	translations []SEOTranslation
 }
 
 fn model_product_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u8, product_id_bin []u8) ! {
@@ -180,14 +184,11 @@ fn model_seo_translations_create(mut tx firebird.Transaction, seo_id_bin []u8, t
 }
 
 struct CategorySEO {
+	SEO
 	id              string
 	id_bin          []u8
 	category_id     string
 	category_id_bin []u8
-	title           firebird.NullString
-	description     firebird.NullString
-mut:
-	translations []SEOTranslation
 }
 
 fn model_category_seo_create_default(mut tx firebird.Transaction, seo_id_bin []u8, category_id_bin []u8) ! {

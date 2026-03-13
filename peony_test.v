@@ -1542,36 +1542,6 @@ fn updates_variants_ranking(cookie_value string) ! {
 	response_is_ok(response)!
 }
 
-fn get_category_translation(locale_id string, r peony.CategoryResponse) !peony.CategoryTranslationResponse {
-	for i := 0; i < r.translations.len; i++ {
-		t := r.translations[i]
-		if t.locale_id == locale_id {
-			return t
-		}
-	}
-	return error('seo translation not found')
-}
-
-fn get_product_translation(locale_id string, r peony.ProductResponse) !peony.ProductTranslationResponse {
-	for i := 0; i < r.translations.len; i++ {
-		t := r.translations[i]
-		if t.locale_id == locale_id {
-			return t
-		}
-	}
-	return error('seo translation not found')
-}
-
-fn get_seo_translation(locale_id string, r peony.SEOResponse) !peony.SEOTranslationResponse {
-	for i := 0; i < r.translations.len; i++ {
-		t := r.translations[i]
-		if t.locale_id == locale_id {
-			return t
-		}
-	}
-	return error('seo translation not found')
-}
-
 fn add_random_locales(cookie_value string, locales_amount i32) ![]peony.LocaleResponse {
 	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
 	r := json.decode(peony.StoreResponseEnvelope, response.body)!
@@ -1634,13 +1604,12 @@ fn remove_secondary_locales(cookie_value string) ! {
 }
 
 fn get_random_image_create_request(secondary_locales []peony.LocaleResponse) peony.ImageCreateRequest {
-	mut translations := []peony.ImageTranslationRequest{len: secondary_locales.len}
+	mut translations := map[string]peony.ImageTranslationRequest{}
 	if secondary_locales.len > 0 {
 		for i := 0; i < secondary_locales.len; i++ {
-			l := secondary_locales[i]
-			translations[i] = peony.ImageTranslationRequest{
-				locale_id: l.id
-				alt:       luuid.v2()
+			locale := secondary_locales[i]
+			translations[locale.id] = peony.ImageTranslationRequest{
+				alt: luuid.v2()
 			}
 		}
 	}
@@ -1691,15 +1660,7 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 			expect(new_image.translations.len == requested_image_translations.len, 'image ${i} translations differ in number')!
 			for j := 0; j < secondary_locales.len; j++ {
 				locale := secondary_locales[j]
-				mut found := false
-				for k := 0; k < new_image.translations.len; k++ {
-					translation := new_image.translations[k]
-					if translation.locale_id == locale.id {
-						found = true
-						break
-					}
-				}
-				expect(found, 'secondary locale not found in image ${i} translations')!
+				expect(locale.id in new_image.translations, 'secondary locale not found in image ${i} translations')!
 			}
 		}
 	}
@@ -1761,33 +1722,29 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	category_data := json.encode(peony.CategoryCreateRequest{
 		name:         category_name
 		description:  category_description
-		translations: [
-			peony.CategoryTranslationRequest{
-				locale_id:   secondary_locale_1.id
+		translations: {
+			secondary_locale_1.id: peony.CategoryTranslationRequest{
 				name:        category_translation_1_name
 				description: category_translation_1_description
-			},
-			peony.CategoryTranslationRequest{
-				locale_id:   secondary_locale_2.id
+			}
+			secondary_locale_2.id: peony.CategoryTranslationRequest{
 				name:        category_translation_2_name
 				description: category_translation_2_description
-			},
-		]
+			}
+		}
 		seo:          peony.SEORequest{
 			title:        category_seo_title
 			description:  category_seo_description
-			translations: [
-				peony.SEOTranslationRequest{
-					locale_id:   secondary_locale_1.id
+			translations: {
+				secondary_locale_1.id: peony.SEOTranslationRequest{
 					title:       category_seo_translation_1_title
 					description: category_seo_translation_1_description
-				},
-				peony.SEOTranslationRequest{
-					locale_id:   secondary_locale_2.id
+				}
+				secondary_locale_2.id: peony.SEOTranslationRequest{
 					title:       category_seo_translation_2_title
 					description: category_seo_translation_2_description
-				},
-			]
+				}
+			}
 		}
 	})
 	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
@@ -1806,10 +1763,10 @@ fn admin_handles_category_translations(cookie_value string) ! {
 		}
 	}
 
-	category_translation_1 := get_category_translation(secondary_locale_1.id, new_category)!
-	category_translation_2 := get_category_translation(secondary_locale_2.id, new_category)!
-	mut seo_translation_1 := get_seo_translation(secondary_locale_1.id, new_category.seo)!
-	mut seo_translation_2 := get_seo_translation(secondary_locale_2.id, new_category.seo)!
+	category_translation_1 := new_category.translations[secondary_locale_1.id]
+	category_translation_2 := new_category.translations[secondary_locale_2.id]
+	mut seo_translation_1 := new_category.seo.translations[secondary_locale_1.id]
+	mut seo_translation_2 := new_category.seo.translations[secondary_locale_2.id]
 	expect(category_translation_1.name == category_translation_1_name, 'category translation 1 title does not match')!
 	expect(category_translation_1.description == category_translation_1_description, 'category translation 1 description does not match')!
 	expect(category_translation_2.name == category_translation_2_name, 'category translation 2 title does not match')!
@@ -1820,11 +1777,11 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	expect(seo_translation_2.description == category_seo_translation_2_description, 'seo translation 2 description does not match')!
 
 	new_category_data := json.encode(peony.CategoryUpdateRequest{
-		translations: []peony.CategoryTranslationRequest{}
+		translations: map[string]peony.CategoryTranslationRequest{}
 		seo:          peony.SEORequest{
 			title:        category_seo_title
 			description:  category_seo_description
-			translations: []peony.SEOTranslationRequest{}
+			translations: map[string]peony.SEOTranslationRequest{}
 		}
 	})
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
@@ -1865,35 +1822,31 @@ fn admin_handles_product_translations(cookie_value string) ! {
 		title:        product_title
 		subtitle:     product_subtitle
 		description:  product_description
-		translations: [
-			peony.ProductTranslationRequest{
-				locale_id:   secondary_locale_1.id
+		translations: {
+			secondary_locale_1.id: peony.ProductTranslationRequest{
 				title:       product_translation_1_title
 				subtitle:    product_translation_1_subtitle
 				description: product_translation_1_description
-			},
-			peony.ProductTranslationRequest{
-				locale_id:   secondary_locale_2.id
+			}
+			secondary_locale_2.id: peony.ProductTranslationRequest{
 				title:       product_translation_2_title
 				subtitle:    product_translation_2_subtitle
 				description: product_translation_2_description
-			},
-		]
+			}
+		}
 		seo:          peony.SEORequest{
 			title:        product_seo_title
 			description:  product_seo_description
-			translations: [
-				peony.SEOTranslationRequest{
-					locale_id:   secondary_locale_1.id
+			translations: {
+				secondary_locale_1.id: peony.SEOTranslationRequest{
 					title:       product_seo_translation_1_title
 					description: product_seo_translation_1_description
-				},
-				peony.SEOTranslationRequest{
-					locale_id:   secondary_locale_2.id
+				}
+				secondary_locale_2.id: peony.SEOTranslationRequest{
 					title:       product_seo_translation_2_title
 					description: product_seo_translation_2_description
-				},
-			]
+				}
+			}
 		}
 	}
 
@@ -1903,10 +1856,10 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	new_product := r.product
 
-	product_translation_1 := get_product_translation(secondary_locale_1.id, new_product)!
-	product_translation_2 := get_product_translation(secondary_locale_2.id, new_product)!
-	seo_translation_1 := get_seo_translation(secondary_locale_1.id, new_product.seo)!
-	seo_translation_2 := get_seo_translation(secondary_locale_2.id, new_product.seo)!
+	product_translation_1 := new_product.translations[secondary_locale_1.id]
+	product_translation_2 := new_product.translations[secondary_locale_2.id]
+	seo_translation_1 := new_product.seo.translations[secondary_locale_1.id]
+	seo_translation_2 := new_product.seo.translations[secondary_locale_2.id]
 	expect(product_translation_1.title == product_translation_1_title, 'product translation 1 title does not match')!
 	expect(product_translation_1.subtitle == product_translation_1_subtitle, 'product translation 1 subtitle does not match')!
 	expect(product_translation_1.description == product_translation_1_description, 'product translation 1 description does not match')!

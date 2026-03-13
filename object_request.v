@@ -84,34 +84,31 @@ pub:
 
 pub struct ImageTranslationRequest {
 pub:
-	locale_id string @[json: 'localeId']
-	alt       string
+	alt string
+}
+
+fn hygienise_image_translations(p map[string]ImageTranslationRequest) ![]ImageTranslationRequestHygienised {
+	mut res := []ImageTranslationRequestHygienised{len: p.len}
+	mut i := 0
+	for locale_id, translation in p {
+		locale_id_bin := id_string_to_bin(locale_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+		}
+
+		res[i] = ImageTranslationRequestHygienised{
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			alt:           translation.alt
+		}
+		i++
+	}
+	return res
 }
 
 struct ImageTranslationRequestHygienised {
 	locale_id     string
 	locale_id_bin []u8
 	alt           string
-}
-
-fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(i.locale_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
-	}
-
-	if i.alt == '' {
-		return new_error_unprocessable_entity(error_field_empty, 'alt')
-	}
-
-	if utf8_str_visible_length(i.alt) > max_length_alt {
-		return new_error_unprocessable_entity('alt too long', 'alt can be at most ${max_length_alt} UTF8 characters long')
-	}
-
-	return ImageTranslationRequestHygienised{
-		locale_id:     i.locale_id
-		locale_id_bin: locale_id_bin
-		alt:           i.alt
-	}
 }
 
 // ImageCreateRequest describes the body of the request to create a new product image.
@@ -125,12 +122,12 @@ fn (i ImageTranslationRequest) hygienise() !ImageTranslationRequestHygienised {
 // Alternative text for the image. If omitted, no alt text is set.
 //
 // ## translations
-// Localized versions of image fields. To remove all translations, submit an empty array.
+// Localized versions of image fields. The keys of the map are the locale id.
 pub struct ImageCreateRequest {
 pub:
 	url          string
 	alt          ?string
-	translations ?[]ImageTranslationRequest
+	translations ?map[string]ImageTranslationRequest
 }
 
 struct ImageCreateRequestHygienised {
@@ -153,11 +150,7 @@ fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut itrh := []ImageTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			itrh[i] = translations[i].hygienise()!
-		}
-		image.translations = itrh
+		image.translations = hygienise_image_translations(translations)!
 	}
 	return image
 }
@@ -177,14 +170,14 @@ fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
 // Alternative text for the image. If omitted during update, the existing alt text is preserved.
 //
 // ## translations
-// Localized versions of image fields. If omitted during update, existing translations are preserved.
-// To remove all translations, submit an empty array.
+// Localized versions of image fields. The keys of the map are the locale id.
+// To remove all translations, submit an empty map.
 pub struct ImageUpdateRequest {
 pub:
 	id           ?string
 	url          ?string
 	alt          ?string
-	translations ?[]ImageTranslationRequest
+	translations ?map[string]ImageTranslationRequest
 }
 
 struct ImageUpdateRequestHygienised {
@@ -219,11 +212,7 @@ fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut itrh := []ImageTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			itrh[i] = translations[i].hygienise()!
-		}
-		image.translations = itrh
+		image.translations = hygienise_image_translations(translations)!
 	}
 	return image
 }
@@ -251,7 +240,6 @@ pub:
 
 pub struct ProductTranslationRequest {
 pub:
-	locale_id   string @[json: 'localeId']
 	title       ?string
 	subtitle    ?string
 	description ?string
@@ -265,24 +253,47 @@ struct ProductTranslationRequestHygienised {
 	description   ?string
 }
 
-fn (p ProductTranslationRequest) hygienise() !ProductTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
-	}
+fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]ProductTranslationRequestHygienised {
+	mut res := []ProductTranslationRequestHygienised{len: p.len}
+	mut i := 0
+	for locale_id, translation in p {
+		locale_id_bin := id_string_to_bin(locale_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+		}
 
-	return ProductTranslationRequestHygienised{
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-		title:         p.title
-		subtitle:      p.subtitle
-		description:   p.description
+		res[i] = ProductTranslationRequestHygienised{
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			title:         translation.title
+			subtitle:      translation.subtitle
+			description:   translation.description
+		}
+		i++
 	}
+	return res
 }
 
 pub struct ProductOptionValueTranslationRequest {
 pub:
-	locale_id string @[json: 'localeId']
-	name      string
+	name string
+}
+
+fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTranslationRequest) ![]ProductOptionValueTranslationRequestHygienised {
+	mut res := []ProductOptionValueTranslationRequestHygienised{len: p.len}
+	mut i := 0
+	for locale_id, translation in p {
+		locale_id_bin := id_string_to_bin(locale_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+		}
+
+		res[i] = ProductOptionValueTranslationRequestHygienised{
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			name:          translation.name
+		}
+		i++
+	}
+	return res
 }
 
 struct ProductOptionValueTranslationRequestHygienised {
@@ -291,22 +302,10 @@ struct ProductOptionValueTranslationRequestHygienised {
 	name          string
 }
 
-fn (p ProductOptionValueTranslationRequest) hygienise() !ProductOptionValueTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
-	}
-
-	return ProductOptionValueTranslationRequestHygienised{
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-		name:          p.name
-	}
-}
-
 pub struct ProductOptionValueRequest {
 pub:
 	name         string
-	translations ?[]ProductOptionValueTranslationRequest
+	translations ?map[string]ProductOptionValueTranslationRequest
 }
 
 struct ProductOptionValueRequestHygienised {
@@ -320,18 +319,15 @@ fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienise
 		return new_error_bad_request(error_field_empty, 'product_option_value name is required')
 	}
 
-	mut res := ProductOptionValueRequestHygienised{
+	mut ph := ProductOptionValueRequestHygienised{
 		name: p.name
 	}
 
 	if translations := p.translations {
-		mut ts := []ProductOptionValueTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			ts[i] = translations[i].hygienise()!
-		}
+		ph.translations = hygienise_product_option_value_translations(translations)!
 	}
 
-	return res
+	return ph
 }
 
 // ProductOptionValueUpdateRequest describes an option value object used in option update requests.
@@ -357,7 +353,7 @@ pub struct ProductOptionValueUpdateRequest {
 pub:
 	id           ?string
 	name         ?string
-	translations ?[]ProductOptionValueTranslationRequest
+	translations ?map[string]ProductOptionValueTranslationRequest
 }
 
 struct ProductOptionValueUpdateRequestHygienised {
@@ -373,24 +369,20 @@ fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequ
 		return new_error_bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
 	}
 
-	mut res := ProductOptionValueUpdateRequestHygienised{
+	mut ph := ProductOptionValueUpdateRequestHygienised{
 		name: p.name
 	}
 
 	if translations := p.translations {
-		mut ts := []ProductOptionValueTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			ts[i] = translations[i].hygienise()!
-		}
+		ph.translations = hygienise_product_option_value_translations(translations)!
 	}
 
-	return res
+	return ph
 }
 
 pub struct ProductOptionTranslationRequest {
 pub:
-	title     string
-	locale_id string @[json: 'localeId']
+	title string
 }
 
 struct ProductOptionTranslationRequestHygienised {
@@ -399,21 +391,28 @@ struct ProductOptionTranslationRequestHygienised {
 	locale_id_bin []u8
 }
 
-fn (p ProductOptionTranslationRequest) hygienise() !ProductOptionTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
+fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRequest) ![]ProductOptionTranslationRequestHygienised {
+	mut res := []ProductOptionTranslationRequestHygienised{len: p.len}
+	mut i := 0
+	for locale_id, translation in p {
+		locale_id_bin := id_string_to_bin(locale_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+		}
+
+		res[i] = ProductOptionTranslationRequestHygienised{
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			title:         translation.title
+		}
+		i++
 	}
-	return ProductOptionTranslationRequestHygienised{
-		title:         p.title
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-	}
+	return res
 }
 
 pub struct ProductOptionCreateRequest {
 pub:
 	title        string
-	translations ?[]ProductOptionTranslationRequest
+	translations ?map[string]ProductOptionTranslationRequest
 	values       []ProductOptionValueRequest
 }
 
@@ -438,20 +437,16 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 		values[i] = p.values[i].hygienise()!
 	}
 
-	mut res := ProductOptionCreateRequestHygienised{
+	mut ph := ProductOptionCreateRequestHygienised{
 		title:  p.title
 		values: values
 	}
 
 	if translations := p.translations {
-		mut ts := []ProductOptionTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			ts[i] = translations[i].hygienise()!
-		}
-		res.translations = ts
+		ph.translations = hygienise_product_option_translations(translations)!
 	}
 
-	return res
+	return ph
 }
 
 // ProductOptionUpdateRequest describes a product option object used in product update requests.
@@ -469,8 +464,8 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 // If omitted, the option's title is not changed.
 //
 // ## translations
-// When provided, `translations` is a replacement array for the option's translations.
-// If omitted, translations are left unchanged.
+// Localized versions of product option fields. The keys of the map are the locale id.
+// To remove all translations, submit an empty object.
 //
 // values
 // When provided, `values` is a replacement array for the option's values.
@@ -482,7 +477,7 @@ pub struct ProductOptionUpdateRequest {
 pub:
 	id           ?string
 	title        ?string
-	translations ?[]ProductOptionTranslationRequest
+	translations ?map[string]ProductOptionTranslationRequest
 	values       ?[]ProductOptionValueUpdateRequest
 }
 
@@ -503,11 +498,7 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 	}
 
 	if translations := p.translations {
-		mut ts := []ProductOptionTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			ts[i] = translations[i].hygienise()!
-		}
-		ph.translations = ts
+		ph.translations = hygienise_product_option_translations(translations)!
 	}
 
 	return ph
@@ -1266,7 +1257,6 @@ pub:
 
 pub struct CategoryTranslationRequest {
 pub:
-	locale_id   string @[json: 'localeId']
 	name        ?string
 	description ?string
 }
@@ -1278,9 +1268,27 @@ struct CategoryTranslationRequestHygienised {
 	description   ?string
 }
 
+fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]CategoryTranslationRequestHygienised {
+	mut res := []CategoryTranslationRequestHygienised{len: p.len}
+	mut i := 0
+	for locale_id, translation in p {
+		locale_id_bin := id_string_to_bin(locale_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+		}
+
+		res[i] = CategoryTranslationRequestHygienised{
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			name:          translation.name
+			description:   translation.description
+		}
+		i++
+	}
+	return res
+}
+
 pub struct SEOTranslationRequest {
 pub:
-	locale_id   string @[json: 'localeId']
 	title       ?string
 	description ?string
 }
@@ -1292,21 +1300,27 @@ struct SEOTranslationRequestHygienised {
 	description   ?string
 }
 
-fn (r SEOTranslationRequestHygienised) locale_id() string {
-	return r.locale_id
+fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]SEOTranslationRequestHygienised {
+	mut res := []SEOTranslationRequestHygienised{len: p.len}
+	mut i := 0
+	for locale_id, translation in p {
+		locale_id_bin := id_string_to_bin(locale_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+		}
+
+		res[i] = SEOTranslationRequestHygienised{
+			locale_id:     locale_id
+			locale_id_bin: locale_id_bin
+			title:         translation.title
+			description:   translation.description
+		}
+		i++
+	}
+	return res
 }
 
-fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
-	locale_id_bin := id_string_to_bin(p.locale_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
-	}
-
-	return SEOTranslationRequestHygienised{
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-		title:         p.title
-		description:   p.description
-	}
+fn (r SEOTranslationRequestHygienised) locale_id() string {
+	return r.locale_id
 }
 
 // SEORequest describes the body of the request to create SEO metadata.
@@ -1320,12 +1334,13 @@ fn (p SEOTranslationRequest) hygienise() !SEOTranslationRequestHygienised {
 // The SEO description. If provided as an empty string, the existing description is removed.
 //
 // ## translations
-// Localized versions of SEO fields. To remove all translations, submit an empty array.
+// Localized versions of seo fields. The keys of the map are the locale id.
+// To remove all translations, submit an empty object.
 pub struct SEORequest {
 pub:
 	title        ?string
 	description  ?string
-	translations ?[]SEOTranslationRequest
+	translations ?map[string]SEOTranslationRequest
 }
 
 struct SEORequestHygienised {
@@ -1344,23 +1359,36 @@ fn (p SEORequest) hygienise() !SEORequestHygienised {
 		return new_error_unprocessable_entity(error_empty_object, 'SEORequest')
 	}
 
-	mut r := SEORequestHygienised{
+	mut ph := SEORequestHygienised{
 		title:       p.title
 		description: p.description
 	}
 
 	if translations := p.translations {
-		mut hygienised := []SEOTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			hygienised[i] = translation.hygienise()!
-		}
-		r.translations = hygienised
+		ph.translations = hygienise_seo_translations(translations)!
 	}
 
-	return r
+	return ph
 }
 
+// CategoryCreateRequest describes the body of the request to create a new category.
+//
+// # Fields
+//
+// ## name
+// Category name. Required.
+//
+// ## description
+// Category description.
+//
+// ## handle
+// Category handle. If not provided, a new handle will be derived from the name.
+//
+// ## translations
+// Localized versions of category fields. The keys of the map are the locale id.
+//
+// ## seo
+// SEO metadata.
 pub struct CategoryCreateRequest {
 pub:
 	name               string
@@ -1370,7 +1398,7 @@ pub:
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
 	metadata           ?string @[raw]
-	translations       ?[]CategoryTranslationRequest
+	translations       ?map[string]CategoryTranslationRequest
 	seo                ?SEORequest
 }
 
@@ -1408,20 +1436,7 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut ts := []CategoryTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_error_bad_request(error_id_invalid, 'locale_id')
-			}
-			ts[i] = CategoryTranslationRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				name:          translation.name
-				description:   translation.description
-			}
-		}
-		ph.translations = ts
+		ph.translations = hygienise_category_translations(translations)!
 	}
 
 	if seo := p.seo {
@@ -1445,7 +1460,8 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 // Category handle. If provided as an empty string, a new handle will be derived from the name.
 //
 // ## translations
-// Localized versions of category fields. To remove all translations, submit an empty array.
+// Localized versions of category fields. The keys of the map are the locale id.
+// To remove all translations, submit an empty object.
 //
 // ## seo
 // SEO metadata.
@@ -1458,7 +1474,7 @@ pub:
 	is_active          ?bool   @[json: 'isActive']
 	parent_category_id ?string @[json: 'parentCategoryId']
 	metadata           ?string @[raw]
-	translations       ?[]CategoryTranslationRequest
+	translations       ?map[string]CategoryTranslationRequest
 	seo                ?SEORequest
 }
 
@@ -1501,20 +1517,7 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut t := []CategoryTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			translation := translations[i]
-			locale_id_bin := id_string_to_bin(translation.locale_id) or {
-				return new_error_bad_request(error_id_invalid, 'locale_id')
-			}
-			t[i] = CategoryTranslationRequestHygienised{
-				locale_id:     translation.locale_id
-				locale_id_bin: locale_id_bin
-				name:          translation.name
-				description:   translation.description
-			}
-		}
-		ph.translations = t
+		ph.translations = hygienise_category_translations(translations)!
 	}
 
 	if seo := p.seo {
@@ -1565,7 +1568,8 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // Categories the product belongs to.
 //
 // ## translations
-// Localized versions of product fields.
+// Localized versions of product fields. The keys of the map are the locale id.
+// To remove all translations, submit an empty object.
 //
 // ## seo
 // SEO metadata.
@@ -1607,7 +1611,7 @@ pub:
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
-	translations      ?[]ProductTranslationRequest
+	translations      ?map[string]ProductTranslationRequest
 	seo               ?SEORequest
 	options           ?[]ProductOptionCreateRequest
 	variants          ?[]ProductVariantCreateRequest
@@ -1942,11 +1946,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut h := []ProductTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			h[i] = translations[i].hygienise()!
-		}
-		ph.translations = h
+		ph.translations = hygienise_product_translations(translations)!
 	}
 
 	if seo := p.seo {
@@ -2012,7 +2012,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // Categories the product belongs to. To remove the product from all categories, submit an empty array.
 //
 // ## translations
-// Localized versions of product fields. To remove all translations, submit an empty array.
+// Localized versions of product fields. The keys of the map are the locale id.
 //
 // ## thumbnail
 // Logic depends on the `images` field:
@@ -2062,7 +2062,7 @@ pub:
 	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
-	translations      ?[]ProductTranslationRequest
+	translations      ?map[string]ProductTranslationRequest
 	thumbnail         ?i32
 	images            ?[]ImageUpdateRequest
 	seo               ?SEORequest
@@ -2231,11 +2231,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	}
 
 	if translations := p.translations {
-		mut h := []ProductTranslationRequestHygienised{len: translations.len}
-		for i := 0; i < translations.len; i++ {
-			h[i] = translations[i].hygienise()!
-		}
-		ph.translations = h
+		ph.translations = hygienise_product_translations(translations)!
 	}
 
 	if images := p.images {

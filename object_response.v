@@ -191,78 +191,82 @@ pub:
 
 pub struct ImageTranslationResponse {
 pub:
-	image_id  string @[json: 'imageId']
-	locale_id string @[json: 'localeId']
-	alt       string
+	image_id string @[json: 'imageId']
+	alt      string
 }
 
-fn format_image_translation_response(p ImageTranslation) ImageTranslationResponse {
-	return ImageTranslationResponse{
-		image_id:  p.image_id
-		locale_id: p.locale_id
-		alt:       p.alt
+fn format_image_translation_response(p []ImageTranslation) map[string]ImageTranslationResponse {
+	mut res := map[string]ImageTranslationResponse{}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		locale_id := translation.locale_id
+		res[locale_id] = ImageTranslationResponse{
+			image_id: translation.image_id
+			alt:      translation.alt
+		}
 	}
+	return res
 }
 
 pub struct ProductImageResponse {
 pub:
 	id           string
 	url          string
-	product_id   string                     @[json: 'productId']
-	alt          string                     @[omitempty]
-	translations []ImageTranslationResponse @[omitempty]
+	product_id   string @[json: 'productId']
+	alt          string @[omitempty]
+	translations map[string]ImageTranslationResponse @[omitempty]
 }
 
 fn format_product_image_response(p ProductImage) ProductImageResponse {
-	mut translations := []ImageTranslationResponse{}
-	if p.translations.len > 0 {
-		translations = []ImageTranslationResponse{len: p.translations.len}
-		for i := 0; i < p.translations.len; i++ {
-			translations[i] = format_image_translation_response(p.translations[i])
-		}
-	}
-
 	return ProductImageResponse{
 		id:           p.id
 		url:          p.url
 		product_id:   p.product_id
 		alt:          p.alt.value
-		translations: translations
+		translations: format_image_translation_response(p.translations)
 	}
 }
 
 pub struct ProductTranslationResponse {
 pub:
 	product_id  string @[json: 'productId']
-	locale_id   string @[json: 'localeId']
 	title       string @[omitempty]
 	subtitle    string @[omitempty]
 	description string @[omitempty]
 }
 
-fn format_product_translation_response(p ProductTranslation) ProductTranslationResponse {
-	return ProductTranslationResponse{
-		product_id:  p.product_id
-		locale_id:   p.locale_id
-		title:       p.title
-		subtitle:    p.subtitle
-		description: p.description
+fn format_product_translations(p []ProductTranslation) map[string]ProductTranslationResponse {
+	mut res := map[string]ProductTranslationResponse{}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		locale_id := translation.locale_id
+		res[locale_id] = ProductTranslationResponse{
+			product_id:  translation.product_id
+			title:       translation.title
+			subtitle:    translation.subtitle
+			description: translation.description
+		}
 	}
+	return res
 }
 
 pub struct ProductOptionValueTranslationResponse {
 pub:
 	option_value_id string @[json: 'optionValueId']
-	locale_id       string @[json: 'localeId']
 	name            string
 }
 
-fn format_product_option_value_translation_response(p ProductOptionValueTranslation) ProductOptionValueTranslationResponse {
-	return ProductOptionValueTranslationResponse{
-		option_value_id: p.option_value_id
-		locale_id:       p.locale_id
-		name:            p.name
+fn format_product_option_value_translations(p []ProductOptionValueTranslation) map[string]ProductOptionValueTranslationResponse {
+	mut res := map[string]ProductOptionValueTranslationResponse{}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		locale_id := translation.locale_id
+		res[locale_id] = ProductOptionValueTranslationResponse{
+			option_value_id: translation.option_value_id
+			name:            translation.name
+		}
 	}
+	return res
 }
 
 pub struct ProductOptionValueResponse {
@@ -271,37 +275,36 @@ pub:
 	option_id    string @[json: 'optionId']
 	name         string
 	value_rank   i32 @[json: 'valueRank']
-	translations []ProductOptionValueTranslationResponse @[omitempty]
+	translations map[string]ProductOptionValueTranslationResponse @[omitempty]
 }
 
 fn format_product_option_value_response(p ProductOptionValue) ProductOptionValueResponse {
-	mut translations := []ProductOptionValueTranslationResponse{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = format_product_option_value_translation_response(p.translations[i])
-	}
-
 	return ProductOptionValueResponse{
 		id:           p.id
 		option_id:    p.option_id
 		name:         p.name
 		value_rank:   p.value_rank
-		translations: translations
+		translations: format_product_option_value_translations(p.translations)
 	}
 }
 
 pub struct ProductOptionTranslationResponse {
 pub:
-	product_option_id string @[json: 'productOptionId']
-	locale_id         string @[json: 'localeId']
-	title             string
+	option_id string @[json: 'optionId']
+	title     string
 }
 
-fn format_product_option_translation_response(p ProductOptionTranslation) ProductOptionTranslationResponse {
-	return ProductOptionTranslationResponse{
-		product_option_id: p.product_option_id
-		locale_id:         p.locale_id
-		title:             p.title
+fn format_product_option_translations(p []ProductOptionTranslation) map[string]ProductOptionTranslationResponse {
+	mut res := map[string]ProductOptionTranslationResponse{}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		locale_id := translation.locale_id
+		res[locale_id] = ProductOptionTranslationResponse{
+			option_id: translation.product_option_id
+			title:     translation.title
+		}
 	}
+	return res
 }
 
 pub struct ProductOptionResponse {
@@ -311,7 +314,7 @@ pub:
 	title        string
 	option_rank  i32 @[json: 'optionRank']
 	values       []ProductOptionValueResponse
-	translations []ProductOptionTranslationResponse @[omitempty]
+	translations map[string]ProductOptionTranslationResponse @[omitempty]
 }
 
 fn format_product_option_response(p ProductOption) ProductOptionResponse {
@@ -320,18 +323,13 @@ fn format_product_option_response(p ProductOption) ProductOptionResponse {
 		values[i] = format_product_option_value_response(p.values[i])
 	}
 
-	mut translations := []ProductOptionTranslationResponse{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = format_product_option_translation_response(p.translations[i])
-	}
-
 	return ProductOptionResponse{
 		id:           p.id
 		product_id:   p.product_id
 		title:        p.title
 		option_rank:  p.option_rank
 		values:       values
-		translations: translations
+		translations: format_product_option_translations(p.translations)
 	}
 }
 
@@ -646,26 +644,37 @@ fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 pub struct SEOTranslationResponse {
 pub:
 	seo_id      string
-	locale_id   string @[json: 'localeId']
 	title       string @[omitempty]
 	description string @[omitempty]
 }
 
-fn format_seo_translation_response(t SEOTranslation) SEOTranslationResponse {
-	return SEOTranslationResponse{
-		seo_id:      t.seo_id
-		locale_id:   t.locale_id
-		title:       t.title.value
-		description: t.description.value
+fn format_seo_translations(p []SEOTranslation) map[string]SEOTranslationResponse {
+	mut res := map[string]SEOTranslationResponse{}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		locale_id := translation.locale_id
+		res[locale_id] = SEOTranslationResponse{
+			seo_id:      translation.seo_id
+			title:       translation.title.value
+			description: translation.description.value
+		}
 	}
+	return res
 }
 
 pub struct SEOResponse {
 pub:
-	title       string @[omitempty]
-	description string @[omitempty]
-pub mut:
-	translations []SEOTranslationResponse @[omitempty]
+	title        string @[omitempty]
+	description  string @[omitempty]
+	translations map[string]SEOTranslationResponse @[omitempty]
+}
+
+fn format_seo_response(p SEO) SEOResponse {
+	return SEOResponse{
+		title:        p.title.value
+		description:  p.description.value
+		translations: format_seo_translations(p.translations)
+	}
 }
 
 pub struct SEOResponseStore {
@@ -677,9 +686,22 @@ pub:
 pub struct CategoryTranslationResponse {
 pub:
 	category_id string @[json: 'productCategoryId']
-	locale_id   string @[json: 'localeId']
 	name        string @[omitempty]
 	description string @[omitempty]
+}
+
+fn format_category_translations(p []CategoryTranslation) map[string]CategoryTranslationResponse {
+	mut res := map[string]CategoryTranslationResponse{}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
+		locale_id := translation.locale_id
+		res[locale_id] = CategoryTranslationResponse{
+			category_id: translation.category_id
+			name:        translation.name.value
+			description: translation.description.value
+		}
+	}
+	return res
 }
 
 pub struct CategoryResponse {
@@ -689,40 +711,17 @@ pub:
 	updated_at         time.Time @[json: 'updatedAt']
 	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
 	handle             string
-	parent_category_id string                        @[json: 'parentCategoryId'; omitempty]
-	is_active          bool                          @[json: 'isActive']
-	is_internal        bool                          @[json: 'isInternal']
-	metadata           string                        @[omitempty]
-	name               string                        @[omitempty]
-	description        string                        @[omitempty]
-	translations       []CategoryTranslationResponse @[omitempty]
-	seo                SEOResponse                   @[omitempty]
+	parent_category_id string      @[json: 'parentCategoryId'; omitempty]
+	is_active          bool        @[json: 'isActive']
+	is_internal        bool        @[json: 'isInternal']
+	metadata           string      @[omitempty]
+	name               string      @[omitempty]
+	description        string      @[omitempty]
+	seo                SEOResponse @[omitempty]
+	translations       map[string]CategoryTranslationResponse @[omitempty]
 }
 
 fn format_category_response(p Category) CategoryResponse {
-	mut tr := []CategoryTranslationResponse{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
-		tr[i] = CategoryTranslationResponse{
-			category_id: translation.category_id
-			locale_id:   translation.locale_id
-			name:        translation.name.value
-			description: translation.description.value
-		}
-	}
-
-	mut seo_translations := []SEOTranslationResponse{len: p.seo.translations.len}
-	for i := 0; i < p.seo.translations.len; i++ {
-		translation := p.seo.translations[i]
-		seo_translations[i] = format_seo_translation_response(translation)
-	}
-
-	seo := SEOResponse{
-		title:        p.seo.title.value
-		description:  p.seo.description.value
-		translations: seo_translations
-	}
-
 	return CategoryResponse{
 		id:                 p.id
 		created_at:         p.created_at.Time
@@ -735,8 +734,8 @@ fn format_category_response(p Category) CategoryResponse {
 		metadata:           p.metadata.value
 		name:               p.name
 		description:        p.description.value
-		translations:       tr
-		seo:                seo
+		translations:       format_category_translations(p.translations)
+		seo:                format_seo_response(p.seo.SEO)
 	}
 }
 
@@ -858,16 +857,16 @@ pub:
 	discountable      bool
 	metadata          string @[omitempty]
 	title             string
-	subtitle          string                       @[omitempty]
-	description       string                       @[omitempty]
-	category_ids      []string                     @[json: 'categoryIds'; omitempty]
-	thumbnail         ProductImageResponse         @[omitempty]
-	images            []ProductImageResponse       @[omitempty]
-	options           []ProductOptionResponse      @[omitempty]
-	variants          []VariantResponse            @[omitempty]
-	sales_channel_ids []string                     @[json: 'salesChannels']
-	translations      []ProductTranslationResponse @[omitempty]
-	seo               SEOResponse                  @[omitempty]
+	subtitle          string                                @[omitempty]
+	description       string                                @[omitempty]
+	category_ids      []string                              @[json: 'categoryIds'; omitempty]
+	thumbnail         ProductImageResponse                  @[omitempty]
+	images            []ProductImageResponse                @[omitempty]
+	options           []ProductOptionResponse               @[omitempty]
+	variants          []VariantResponse                     @[omitempty]
+	sales_channel_ids []string                              @[json: 'salesChannels']
+	translations      map[string]ProductTranslationResponse @[omitempty]
+	seo               SEOResponse @[omitempty]
 	// tags         []Tag                       @[omitempty] // return ids only
 }
 
@@ -893,23 +892,6 @@ fn format_product_response(p Product) ProductResponse {
 		variants[i] = format_variant_response(p.variants[i])
 	}
 
-	mut translations := []ProductTranslationResponse{len: p.translations.len}
-	for i := 0; i < p.translations.len; i++ {
-		translations[i] = format_product_translation_response(p.translations[i])
-	}
-
-	mut seo_translations := []SEOTranslationResponse{len: p.seo.translations.len}
-	for i := 0; i < p.seo.translations.len; i++ {
-		translation := p.seo.translations[i]
-		seo_translations[i] = format_seo_translation_response(translation)
-	}
-
-	seo := SEOResponse{
-		title:        p.seo.title.value
-		description:  p.seo.description.value
-		translations: seo_translations
-	}
-
 	return ProductResponse{
 		id:                p.id
 		created_at:        p.created_at.Time
@@ -930,8 +912,8 @@ fn format_product_response(p Product) ProductResponse {
 		variants:          variants
 		category_ids:      p.category_ids
 		sales_channel_ids: p.sales_channels_ids
-		translations:      translations
-		seo:               seo
+		translations:      format_product_translations(p.translations)
+		seo:               format_seo_response(p.seo.SEO)
 		// tags:          tags
 	}
 }
