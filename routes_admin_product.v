@@ -583,7 +583,7 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 	return ctx.handle_error(perr)
 }
 
-// updates a product variant
+// updates a variant
 @['/admin/products/:product_id/variants/:variant_id'; post]
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {

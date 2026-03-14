@@ -1053,7 +1053,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 // ## barcode
 // Generic barcode field.
 //
-// ## image
+// ## image_id
 // The id of the product image related to the variant.
 //
 // ## inventory_item
@@ -1080,7 +1080,7 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	image            ?string
+	image_id         ?string                         @[json: 'imageId']
 	inventory_item   ?InventoryItemCreateRequest     @[json: 'inventoryItem']
 	option_value_ids []string                        @[json: 'optionValueIds']
 	metadata         ?string                         @[raw]
@@ -1092,7 +1092,8 @@ struct VariantCreateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
-	image                ?string
+	image_id             ?string
+	image_id_bin         []u8
 	option_value_ids     []string
 	option_value_ids_bin [][]u8
 	metadata             ?string
@@ -1103,16 +1104,20 @@ mut:
 
 fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	if p.option_value_ids.len == 0 {
-		return new_error_bad_request(error_field_empty, 'option_value_ids cannot be an empty array')
+		return new_error_unprocessable_entity(error_field_empty, 'option_value_ids cannot be an empty array')
 	}
 
 	mut option_value_ids_bin := [][]u8{len: p.option_value_ids.len}
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
 		id_bin := id_string_to_bin(id) or {
-			return new_error_bad_request(error_id_invalid, 'option_value_ids')
+			return new_error_unprocessable_entity(error_id_invalid, 'option_value_ids')
 		}
 		option_value_ids_bin[i] = id_bin
+	}
+
+	image_id_bin := option_id_string_to_id_bin(p.image_id) or {
+		return new_error_unprocessable_entity(error_id_invalid, 'image_id')
 	}
 
 	mut ph := VariantCreateRequestHygienised{
@@ -1120,6 +1125,8 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 		ean:                  p.ean
 		upc:                  p.upc
 		barcode:              p.barcode
+		image_id:             p.image_id
+		image_id_bin:         image_id_bin
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
 		metadata:             p.metadata
@@ -1164,7 +1171,7 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 // If an empty string is provided, the barcode is deleted.
 // If omitted, the barcode is not changed.
 //
-// ## image
+// ## image_id
 // The id of the product image related to the variant.
 // If omitted, the image is not changed.
 // To remove the relation, delete the related image.
@@ -1199,7 +1206,7 @@ pub:
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	image            ?string
+	image_id         ?string                         @[json: 'imageId']
 	inventory_item   ?InventoryItemUpdateRequest     @[json: 'inventoryItem']
 	option_value_ids ?[]string                       @[json: 'optionValueIds']
 	metadata         ?string                         @[raw]
@@ -1211,7 +1218,8 @@ struct VariantUpdateRequestHygienised {
 	ean                  ?string
 	upc                  ?string
 	barcode              ?string
-	image                ?string
+	image_id             ?string
+	image_id_bin         []u8
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
@@ -1225,11 +1233,17 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 		return new_error_bad_request(error_id_invalid, 'option_value_ids')
 	}
 
+	image_id_bin := option_id_string_to_id_bin(p.image_id) or {
+		return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+	}
+
 	mut ph := VariantUpdateRequestHygienised{
 		title:                p.title
 		ean:                  p.ean
 		upc:                  p.upc
 		barcode:              p.barcode
+		image_id:             p.image_id
+		image_id_bin:         image_id_bin
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
 		metadata:             p.metadata
