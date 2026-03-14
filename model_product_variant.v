@@ -354,7 +354,7 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 				)
 		WHEN NOT MATCHED BY SOURCE
 			AND product_id = ? 
-			AND deleted_at IS NOT NULL
+			AND deleted_at IS NULL
 			THEN UPDATE
 				SET deleted_at = CURRENT_TIMESTAMP'
 

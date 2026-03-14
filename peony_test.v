@@ -1223,7 +1223,7 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 		]
 		variants: [
 			peony.ProductVariantUpdateRequest{
-				id:    variant.id // without id causes inventory item update error TODO isolate test case
+				id:    variant.id
 				image: 0
 			},
 		]
@@ -1241,6 +1241,47 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 	variant = product.variants[0]
 	new_image_id := product.images[0].id
 	expect(new_image_id == variant.image_id, 'Updated variant references wrong image')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	response_is_ok(response)!
+}
+
+fn updates_product_variants_replaces_default_variant(cookie_value string) ! {
+	println('updates_product_variants_replaces_default_variant')
+	product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		variants: [
+			peony.ProductVariantCreateRequest{},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(product_data))!
+	is_created(response)!
+	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
+	mut product := r.product
+	old_variant_id := product.variants[0].id
+
+	new_product_data := peony.ProductUpdateRequest{
+		title:    luuid.v2()
+		variants: [
+			// no old variant => delete old variant
+			peony.ProductVariantUpdateRequest{
+				// no variant id => create new variant
+			},
+		]
+	}
+
+	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
+		cookie_value, json.encode(new_product_data))!
+	response_is_ok(response)!
+	r = json.decode(peony.ProductResponseEnvelope, response.body)!
+	product = r.product
+
+	expect(product.variants.len == 1, 'Product updated with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
+	new_variant_id := product.variants[0].id
+	expect(old_variant_id != new_variant_id, 'Old variant was not deleted, the new variant shares its same id.')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -2050,6 +2091,7 @@ fn test_peony() ! {
 		updates_variants_ranking,
 		creates_product_with_variant_image,
 		updates_product_with_variant_image,
+		updates_product_variants_replaces_default_variant,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//

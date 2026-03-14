@@ -323,7 +323,7 @@ fn model_inventory_item_update(mut tx firebird.Transaction, p []InventoryItemUpd
 			FROM RDB\$DATABASE'
 
 		params[i * n_params + 0] = item.id_bin
-		params[i * n_params + 1] = item.id_bin
+		params[i * n_params + 1] = item.variant_id_bin
 
 		if item.sku != '' {
 			params[i * n_params + 2] = item.sku
