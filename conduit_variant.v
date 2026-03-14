@@ -70,12 +70,7 @@ fn conduit_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantPa
 	})
 }
 
-fn conduit_variant_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph VariantCreateRequestHygienised) veb.Result {
-	variant_id, variant_id_bin := app.new_id()
-	// inventory_item_id, inventory_item_id_bin := app.new_id()
-
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
+fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id string, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantCreateRequestHygienised) ! {
 	variant_to_create := VariantCreateParams{
 		product_id:     product_id
 		product_id_bin: product_id_bin
@@ -92,9 +87,7 @@ fn conduit_variant_create(mut app App, mut ctx Context, product_id string, produ
 	}
 	variants_to_create := [variant_to_create]
 	model_variant_create(mut tx, variants_to_create) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Could not create product_variant', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Could not create product_variant', err.msg())
 	}
 
 	if _ := ph.inventory_item {
@@ -119,13 +112,6 @@ fn conduit_variant_create(mut app App, mut ctx Context, product_id string, produ
 	} else {
 		// TODO	create default variant money amounts
 	}
-
-	tx.commit() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	return success(mut ctx)
 }
 
 fn conduit_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {

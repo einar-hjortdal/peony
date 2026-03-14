@@ -413,7 +413,7 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 
 // creates a product variant
 @['/admin/products/:product_id/variants/'; post]
-pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) veb.Result {
+pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
 		return ctx.handle_error(perr)
@@ -487,7 +487,42 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_variant_create(mut app, mut ctx, product_id, product_id_bin, ph)
+	variant_id, variant_id_bin := app.new_id()
+	conduit_variant_create(mut app, mut ctx, mut tx, variant_id, variant_id_bin, product_id,
+		product_id_bin, ph) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	rvph := RetrieveProductVariantParamsHygienised{
+		ids:     ZeroArrayString{
+			is_set: true
+		}
+		ids_bin: [variant_id_bin]
+	}
+
+	variants := model_product_variants_retrieve(mut tx, rvph) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not retrieve variants after creation', err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	if variants.len != 1 {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not retrieve created variant', 'varaints.len != 1')
+		return ctx.handle_error(perr)
+	}
+
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	variant := variants[0]
+	external_variant := format_variant_response(variant)
+	return ctx.handle_created(VariantResponseEnvelope{
+		variant: external_variant
+	})
 }
 
 // retrieves a variant by its id
