@@ -437,12 +437,7 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 	}
 
 	if inventory_item := ph.inventory_item {
-		if inventory_item.sku == none && inventory_item.origin_country == none
-			&& inventory_item.hs_code == none && inventory_item.mid_code == none
-			&& inventory_item.material == none && inventory_item.weight == none
-			&& inventory_item.length == none && inventory_item.height == none
-			&& inventory_item.width == none && inventory_item.manage_inventory == none
-			&& inventory_item.requires_shipping == none {
+		if inventory_item.is_empty() {
 			perr := new_error_bad_request(error_empty_object, 'InventoryItemCreateRequest')
 			return ctx.handle_error(perr)
 		}
@@ -574,12 +569,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
 
 	if inventory_item := ph.inventory_item {
-		if inventory_item.sku == none && inventory_item.origin_country == none
-			&& inventory_item.hs_code == none && inventory_item.mid_code == none
-			&& inventory_item.material == none && inventory_item.weight == none
-			&& inventory_item.length == none && inventory_item.height == none
-			&& inventory_item.width == none && inventory_item.manage_inventory == none
-			&& inventory_item.requires_shipping == none {
+		if inventory_item.is_empty() {
 			perr := new_error_bad_request(error_empty_object, 'InventoryItemUpdateRequest')
 			return ctx.handle_error(perr)
 		}

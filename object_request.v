@@ -667,6 +667,12 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 	return inventory_item
 }
 
+fn (p InventoryItemCreateRequestHygienised) is_empty() bool {
+	return p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
+		&& p.material == none && p.weight == none && p.length == none && p.height == none
+		&& p.width == none && p.manage_inventory == none && p.requires_shipping == none
+}
+
 pub struct InventoryItemUpdateRequest {
 pub:
 	sku               ?string
@@ -749,6 +755,12 @@ fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygieni
 	}
 
 	return inventory_item
+}
+
+fn (p InventoryItemUpdateRequestHygienised) is_empty() bool {
+	return p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
+		&& p.material == none && p.weight == none && p.length == none && p.height == none
+		&& p.width == none && p.manage_inventory == none && p.requires_shipping == none
 }
 
 // ProductVariantCreateRequest describes the variant to create during product creation.
@@ -1200,12 +1212,12 @@ struct VariantUpdateRequestHygienised {
 	upc                  ?string
 	barcode              ?string
 	image                ?string
-	inventory_item       ?InventoryItemUpdateRequest
 	option_value_ids     ?[]string
 	option_value_ids_bin [][]u8
 	metadata             ?string
 mut:
-	money_amounts ?[]VariantMoneyAmountRequestHygienised
+	inventory_item ?InventoryItemUpdateRequestHygienised
+	money_amounts  ?[]VariantMoneyAmountRequestHygienised
 }
 
 fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
@@ -1218,7 +1230,6 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 		ean:                  p.ean
 		upc:                  p.upc
 		barcode:              p.barcode
-		inventory_item:       p.inventory_item
 		option_value_ids:     p.option_value_ids
 		option_value_ids_bin: option_value_ids_bin
 		metadata:             p.metadata
@@ -1230,6 +1241,10 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 		}
 
 		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
+	}
+
+	if inventory_item := p.inventory_item {
+		ph.inventory_item = inventory_item.hygienise()!
 	}
 
 	return ph
