@@ -492,11 +492,10 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_product_variant_create(mut app, mut ctx, product_id, product_id_bin,
-		ph)
+	return conduit_variant_create(mut app, mut ctx, product_id, product_id_bin, ph)
 }
 
-// retrieves a product_variant by its id
+// retrieves a variant by its id
 @['/admin/products/:product_id/variants/:variant_id'; get]
 pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, variant_id string) veb.Result {
 	_ := id_string_to_bin(product_id) or {
@@ -518,7 +517,7 @@ pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, v
 		ids_bin: [variant_id_bin]
 	}
 
-	return conduit_product_variant_get(mut app, mut ctx, ph)
+	return conduit_variant_get(mut app, mut ctx, ph)
 }
 
 // updates a product variant
@@ -599,13 +598,13 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_product_variant_update(mut app, mut ctx, product_id_bin, variant_id,
-		variant_id_bin, ph)
+	return conduit_variant_update(mut app, mut ctx, product_id_bin, variant_id, variant_id_bin,
+		ph)
 }
 
-// deletes a product variant
+// deletes a variant
 @['/admin/products/:product_id/variants/:variant_id'; delete]
-pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
+pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
@@ -632,39 +631,25 @@ pub fn (mut app App) admin_variants_id_delete(mut ctx Context, product_id string
 	}
 
 	if count == 0 {
-		tx.rollback() or {
-			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_error(perr)
-		}
-		perr := new_error_internal('product_variant does not exist', 'count == 0')
-		return ctx.handle_error(perr)
-	}
-
-	product_variants := model_product_variants_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve product_variant', err.msg())
+		perr := new_error_internal('variant does not exist', 'count == 0')
 		return ctx.handle_error(perr)
 	}
 
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
+	if count == 1 {
+		perr := new_error_bad_request('cannot delete last variant', 'count == 1')
 		return ctx.handle_error(perr)
 	}
 
-	for i := 0; i < product_variants.len; i++ {
-		if product_variants[i].id_bin != variant_id_bin {
-			continue
-		}
-
-		if product_variants.len == 1 {
-			perr := new_error_bad_request('Cannot delete product_variant', 'A product must have at least 1 variant')
-			return ctx.handle_error(perr)
-		}
-
-		inventory_item_id_bin := product_variants[i].inventory_item.id_bin
-		return conduit_product_variant_delete(mut app, mut ctx, variant_id_bin, inventory_item_id_bin)
+	conduit_variant_delete(mut app, mut ctx, mut tx, variant_id_bin) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
 	}
 
-	perr := new_error_not_found('no product_variant exists with given id', 'not found in variants')
-	return ctx.handle_error(perr)
+	tx.commit() or {
+		perr := new_error_internal(error_transaction_commit, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	return success(mut ctx)
 }

@@ -1,8 +1,9 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 
-fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
+fn conduit_variant_get(mut app App, mut ctx Context, ph RetrieveProductVariantParamsHygienised) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_product_variants_retrieve_count(mut tx, ph) or {
@@ -69,7 +70,7 @@ fn conduit_product_variant_get(mut app App, mut ctx Context, ph RetrieveProductV
 	})
 }
 
-fn conduit_product_variant_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph VariantCreateRequestHygienised) veb.Result {
+fn conduit_variant_create(mut app App, mut ctx Context, product_id string, product_id_bin []u8, ph VariantCreateRequestHygienised) veb.Result {
 	variant_id, variant_id_bin := app.new_id()
 	// inventory_item_id, inventory_item_id_bin := app.new_id()
 
@@ -127,7 +128,7 @@ fn conduit_product_variant_create(mut app App, mut ctx Context, product_id strin
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
+fn conduit_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	// model_product_variant_update(mut tx, variant_id_bin, ph) or {
@@ -170,25 +171,8 @@ fn conduit_product_variant_update(mut app App, mut ctx Context, product_id_bin [
 	return success(mut ctx)
 }
 
-fn conduit_product_variant_delete(mut app App, mut ctx Context, variant_id_bin []u8, inventory_item_id_bin []u8) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	model_product_variant_delete(mut tx, variant_id_bin) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Could not delete product_variant', err.msg())
-		return ctx.handle_error(perr)
+fn conduit_variant_delete(mut app App, mut ctx Context, mut tx firebird.Transaction, variant_id_bin []u8) ! {
+	model_variant_delete(mut tx, variant_id_bin) or {
+		return new_error_internal('Could not delete variant', err.msg())
 	}
-
-	// model_inventory_item_delete(mut tx, inventory_item_id_bin) or {
-	// 	tx.rollback() or {}
-	// 	perr := new_error_internal('Could not delete inventory_item', err.msg())
-	// 	return ctx.handle_error(perr)
-	// }
-
-	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	return success(mut ctx)
 }

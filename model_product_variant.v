@@ -363,6 +363,8 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 	tx.execute(query, ...params)!
 }
 
-fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
+fn model_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
 	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id_bin)!
+	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
+		variant_id_bin)!
 }
