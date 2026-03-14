@@ -497,27 +497,60 @@ pub fn (mut app App) admin_variant_create(mut ctx Context, product_id string) ve
 
 // retrieves a variant by its id
 @['/admin/products/:product_id/variants/:variant_id'; get]
-pub fn (mut app App) admin_variants_id_get(mut ctx Context, product_id string, variant_id string) veb.Result {
-	_ := id_string_to_bin(product_id) or {
+pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id string) veb.Result {
+	product_id_bin := id_string_to_bin(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
-	variant_id_bin := id_string_to_bin(variant_id) or {
+	_ := id_string_to_bin(variant_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'variant_id')
 		return ctx.handle_error(perr)
 	}
 
-	// TODO is variant of product?
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	ph := RetrieveProductVariantParamsHygienised{
-		ids:     ZeroArrayString{
+		product_ids:     ZeroArrayString{
 			is_set: true
 		}
-		ids_bin: [variant_id_bin]
+		product_ids_bin: [product_id_bin]
 	}
 
-	return conduit_variant_get(mut app, mut ctx, ph)
+	count := model_product_variants_retrieve_count(mut tx, ph) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not retrieve variants', err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	if count == 0 {
+		tx.rollback() or {}
+		perr := new_error_internal('variants for the product do not exist', 'count == 0')
+		return ctx.handle_error(perr)
+	}
+
+	variants := model_product_variants_retrieve(mut tx, ph) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not retrieve variants', err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	tx.rollback() or {}
+
+	for i := 0; i < variants.len; i++ {
+		variant := variants[i]
+		if variant.id != variant_id {
+			continue
+		}
+
+		external_variant := format_variant_response(variant)
+		return ctx.handle_ok(VariantResponseEnvelope{
+			variant: external_variant
+		})
+	}
+
+	perr := new_error_not_found('variant does not exist with the given id', 'not found in existing variants for the product')
+	return ctx.handle_error(perr)
 }
 
 // updates a product variant
@@ -673,5 +706,5 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 		return ctx.handle_error(perr)
 	}
 
-	return success(mut ctx)
+	return ctx.handle_deleted()
 }
