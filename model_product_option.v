@@ -538,15 +538,15 @@ struct ProductOptionValueProductVariant {
 	variant_id_bin      []u8
 }
 
-fn model_product_option_value_product_variant_retrieve(mut tx firebird.Transaction, option_value_ids_bin [][]u8) ![]ProductOptionValueProductVariant {
+fn model_product_option_value_variant_retrieve(mut tx firebird.Transaction, option_value_ids_bin [][]u8) ![]ProductOptionValueProductVariant {
 	data := tx.execute('SELECT option_value_id, variant_id
-		FROM product_option_value_product_variant
+		FROM product_option_value_variant
 		WHERE option_value_id IN (${get_placeholders(option_value_ids_bin)})',
 		...workaround_24757(option_value_ids_bin))!
 
 	rows := data.rows()
 
-	mut product_option_value_product_variants := []ProductOptionValueProductVariant{len: rows.len}
+	mut product_option_value_variants := []ProductOptionValueProductVariant{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
 
@@ -556,14 +556,14 @@ fn model_product_option_value_product_variant_retrieve(mut tx firebird.Transacti
 		option_value_id := id_bin_to_string(option_value_id_bin)!
 		variant_id := id_bin_to_string(variant_id_bin)!
 
-		product_option_value_product_variants[i] = ProductOptionValueProductVariant{
+		product_option_value_variants[i] = ProductOptionValueProductVariant{
 			option_value_id:     option_value_id
 			option_value_id_bin: option_value_id_bin
 			variant_id:          variant_id
 			variant_id_bin:      variant_id_bin
 		}
 	}
-	return product_option_value_product_variants
+	return product_option_value_variants
 }
 
 struct ProductOptionValueProductVariantParams {
@@ -589,7 +589,7 @@ fn model_product_option_value_variant_update(mut tx firebird.Transaction, p Prod
 		params[i * n_params + 1] = r.variant_id_bin
 	}
 
-	query := 'MERGE INTO product_option_value_product_variant t
+	query := 'MERGE INTO product_option_value_variant t
 		USING (${get_merge_source(src)}) s
 		ON t.option_value_id = s.option_value_id AND t.variant_id = s.variant_id
 		WHEN NOT MATCHED THEN

@@ -49,9 +49,9 @@ A `topic` groups posts that have content related to the same subject. A post may
 
 ### product
 
-#### product_option, product_option_value and product_variant
+#### product_option, product_option_value and variant
 
-Each `product` must have at least one `product_variant`. Each product variant must have at least one `product_option`. Each `product_option` must have at least one `product_option_value`.
+Each `product` must have at least one `variant`. Each product variant must have at least one `product_option`. Each `product_option` must have at least one `product_option_value`.
 
 ### metadata
 
@@ -76,25 +76,25 @@ By default, a `store` has one `region`, this region determines the default `curr
 
 There can be many `region` with the same `currency`.
 
-A `product_variant` may have a `money_amount` that is related to a `region`.
+A `variant` may have a `money_amount` that is related to a `region`.
 
-Whenever a `product_variant` is requested, the request may contain a `region_id` parameter.
+Whenever a `variant` is requested, the request may contain a `region_id` parameter.
 
 If it does: the returned `money_amount` will be the ones related to the `region` of the matching `region_id`, and the prices in the `prices` object will be in the `currency` of this `region`.
 
 If the request does not contain a `region_id` parameter, the returned `money_amount` will be related to the default `region`, and the prices of the `prices` object  will be in the default `currency`.
 
-WIP: a sub-division of a country is a `Zone`. These are used to handle taxes for locations that require special handling.
+WIP: a sub-division of a country is a `Zone`. These are used to handle taxes for locations that require special handling. How to define a zone? zip codes do not exist in all countries. Municipalities is too broad, for example: in Italy, Livigno is in the municipality of Sondrio, Livigno is more expensive to ship to, but the rest of Sondrio isn't. Should we concern ourselves with this or should we let the provider handle it?
 
 ### Prices
 
-Each `product_variant` must have at least 1 `money_amount` per `region`. This is the *base price*.
+Each `variant` must have at least 1 `money_amount` per `region`. This is the *base price*.
 
-A `product_variant` may have one more price if the optional `is_original` flag is set. The `money_amount` marked with `is_original` is the *original price*. The original price is used from frontends to display a price before any adjustment or sale.
+A `variant` may have one more price if the optional `is_original` flag is set. The `money_amount` marked with `is_original` is the *original price*. The original price is used from frontends to display a price before any adjustment or sale.
 
 One or more additional prices are set using `price_list`.
 
-Note: whenever a new `region` is created, all existing `product_variant` will have no base price for the new `region`.
+Note: whenever a new `region` is created, all existing `variant` will have no base price for the new `region`.
 
 Note: `is_original` is never `true` when the `money_amount` is part of a `price_list`.
 
@@ -113,7 +113,7 @@ property set on `region`.
 
 ### price_list (WIP)
 
-A `price_list` allows to assign prices and taxes to `product_variant` that modify or override their 
+A `price_list` allows to assign prices and taxes to `variant` that modify or override their 
 regional price and tax settings.
 
 `price_list` are used to set volume pricing: prices only valid when a specific number of variants is 
@@ -135,14 +135,14 @@ a certain number of products or variants are added to the cart (buy X get Y).
 
 Other `cart_rule` conditions: they may only be applied on some products, variants, require minimum amount of one item in the cart, have a per-customer usage limit, have a time-window, or reserved only to some channel and/or customers.
 
-### `product`, `product_variant`, `inventory_item` and `inventory_level`
+### `product`, `variant`, `inventory_item` and `inventory_level`
 
 A `product` represents a good or service offered by the `store`
 
-A `product_variant` represents a version of a `product` that has one or more `option`. A `product_variant` 
+A `variant` represents a version of a `product` that has one or more `option`. A `variant` 
 is available to the `/store/` endpoints.
 
-A `inventory_item` represents a the physical attributes of a `product_variant`. These attributes are 
+A `inventory_item` represents a the physical attributes of a `variant`. These attributes are 
 used for inventory tracking and fulfillment. The `manage_inventory` field specifies whether the inventory 
 of this item is tracked. A `inventory_item` is not available to the `/store/` endpoints.
 
@@ -156,14 +156,14 @@ Note: filtering products by availability should be handled by the frontend (eg. 
 
 ### Inventory management
 
-By default, peony manages the inventory of each `product_variant`.
-- A `product_variant` is always considered *purchasable* if peony does not manage its inventory.
-- A `product_variant` is considered *purchasable* if `stocked_quantity` is more than its `reserved_quantity`.
+By default, peony manages the inventory of each `variant`.
+- A `variant` is always considered *purchasable* if peony does not manage its inventory.
+- A `variant` is considered *purchasable* if `stocked_quantity` is more than its `reserved_quantity`.
 
 A `reservation_item` is one `inventory_item` that is part of a `reserved_quantity`. This is used when 
   an order has been created but has not been fulfilled yet.
 
-Each `product_variant` has exactly one `inventory_item`.
+Each `variant` has exactly one `inventory_item`.
 
 ### Content Management System (WIP)
 

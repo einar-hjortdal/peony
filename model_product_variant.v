@@ -63,7 +63,7 @@ fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygi
 
 fn model_product_variants_retrieve_count(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !i64 {
 	conditions, mut params := model_product_variants_retrieve_conditions(p)
-	data := tx.execute('SELECT COUNT(*) FROM product_variant ${conditions}', ...params)!
+	data := tx.execute('SELECT COUNT(*) FROM variant ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
@@ -97,7 +97,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		upc,
 		variant_rank,
 		metadata
-		FROM product_variant
+		FROM variant
 		${conditions}
 		${sorting}',
 		...params)!
@@ -239,7 +239,7 @@ fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! 
 		}
 	}
 
-	query := 'INSERT INTO product_variant
+	query := 'INSERT INTO variant
 		(
 			id,
 			product_id,
@@ -314,7 +314,7 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 		params[i * n_params + 8] = variant.metadata
 	}
 
-	query := 'MERGE INTO product_variant t
+	query := 'MERGE INTO variant t
 		USING (${get_merge_source(src)}) s
 		ON s.id = t.id
 		WHEN MATCHED THEN UPDATE
@@ -364,6 +364,5 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 }
 
 fn model_product_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
-	tx.execute('UPDATE product_variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
-		variant_id_bin)!
+	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id_bin)!
 }

@@ -351,7 +351,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Could not create variants', err.msg())
 		}
 
-		// product_option_value_product_variant
+		// product_option_value_variant
 		mut n_relations := 1 // if no option_values defined, one default option_value
 		if option_values := variants[0].option_values {
 			n_relations = option_values.len * variants.len // all variants must reference all options
@@ -364,7 +364,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			variant_id_bin := variants_to_create[i].variant_id_bin
 			option_values := variant.option_values or {
 				if variants.len != 1 && n_relations != 1 {
-					return new_error_internal('Could not create product_option_value_product_variant',
+					return new_error_internal('Could not create product_option_value_variant',
 						'Missing option_values and more than one variant is to be created')
 				}
 
@@ -398,7 +398,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			variant_ids_bin: variant_ids_bin
 			relations:       relations
 		}) or {
-			return new_error_internal('Failed to create relations in product_option_value_product_variant',
+			return new_error_internal('Failed to create relations in product_option_value_variant',
 				err.msg())
 		}
 
@@ -633,7 +633,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 		return ctx.handle_error(err)
 	}
 
-	// product_variants_availability
+	// variants_availability
 	// TODO use sales_channel id from request context created in the route handler
 	// For now just use default sales_channel.id_bin
 	store := model_store_retrieve(mut tx) or {
@@ -669,17 +669,17 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 		complete_products[i] = products_map[id]
 	}
 
-	// product_variants_availability + prices
+	// variants_availability + prices
 	mut variant_prices_map := map[string]VariantPrice{}
-	mut complete_product_variants := []ProductVariant{len: products_data.product_variants.len}
-	for i := 0; i < products_data.product_variants.len; i++ {
-		variant := products_data.product_variants[i]
-		complete_product_variants[i] = products_data.product_variants_map[variant.id]
+	mut complete_variants := []ProductVariant{len: products_data.variants.len}
+	for i := 0; i < products_data.variants.len; i++ {
+		variant := products_data.variants[i]
+		complete_variants[i] = products_data.variants_map[variant.id]
 		variant_prices_map[variant.id] = calculate_price(variant, 1, pctx)
 	}
 
-	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
-		product_variants:              complete_product_variants
+	variants_availability := get_variants_availability(GetProductVariantsAvailabilityParams{
+		variants:                      complete_variants
 		sales_channel_ids_bin:         ph.sales_channel_ids_bin
 		product_sales_channels:        products_data.product_sales_channels
 		sales_channel_stock_locations: sales_channel_stock_locations
@@ -688,7 +688,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	mut external_products := []ProductResponseStore{len: complete_products.len}
 	for i := 0; i < complete_products.len; i++ {
 		external_products[i] = format_product_response_store(complete_products[i], pctx,
-			product_variants_availability, ph.locale_id.v)
+			variants_availability, ph.locale_id.v)
 	}
 
 	return ctx.json(ProductResponseStoreListEnvelope{
@@ -722,12 +722,14 @@ fn conduit_product_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPar
 
 	assign_product_data(mut product_data, mut product)
 
-	// product_variants_availability
-	mut complete_product_variants := []ProductVariant{len: product_data.product_variants.len}
-	for i := 0; i < product_data.product_variants.len; i++ {
-		variant_id := product_data.product_variants[i].id
-		complete_product_variants[i] = product_data.product_variants_map[variant_id]
+	// variants_availability
+	mut complete_variants := []ProductVariant{len: product_data.variants.len}
+	for i := 0; i < product_data.variants.len; i++ {
+		variant_id := product_data.variants[i].id
+		complete_variants[i] = product_data.variants_map[variant_id]
 	}
+
+	product.variants = complete_variants
 
 	external_product := format_product_response(product)
 
@@ -754,7 +756,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 		return ctx.handle_error(err)
 	}
 
-	// product_variants_availability
+	// variants_availability
 	// TODO use sales_channel id from request context created in the route handler
 	// For now just use default sales_channel.id_bin
 	store := model_store_retrieve(mut tx) or {
@@ -787,21 +789,21 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	}
 
 	mut variant_prices_map := map[string]VariantPrice{}
-	mut complete_product_variants := []ProductVariant{len: product_data.product_variants.len}
-	for i := 0; i < product_data.product_variants.len; i++ {
-		variant := product_data.product_variants[i]
-		complete_product_variants[i] = product_data.product_variants_map[variant.id]
+	mut complete_variants := []ProductVariant{len: product_data.variants.len}
+	for i := 0; i < product_data.variants.len; i++ {
+		variant := product_data.variants[i]
+		complete_variants[i] = product_data.variants_map[variant.id]
 		variant_prices_map[variant.id] = calculate_price(variant, 1, pctx)
 	}
 
-	product_variants_availability := get_product_variants_availability(GetProductVariantsAvailabilityParams{
-		product_variants:              complete_product_variants
+	variants_availability := get_variants_availability(GetProductVariantsAvailabilityParams{
+		variants:                      complete_variants
 		sales_channel_ids_bin:         ph.sales_channel_ids_bin
 		product_sales_channels:        product_data.product_sales_channels
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
 
-	external_product := format_product_response_store(product, pctx, product_variants_availability,
+	external_product := format_product_response_store(product, pctx, variants_availability,
 		ph.locale_id.v)
 
 	return ctx.json(ProductResponseStoreEnvelope{
@@ -1383,7 +1385,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			return new_error_internal('Failed to delete inventory items', err.msg())
 		}
 
-		// product_option_value_product_variant
+		// product_option_value_variant
 		// get all options for the product, they're returned by firebird sorted by option_rank.
 		options := model_product_options_retrieve(mut tx, [
 			product_id_bin,
@@ -1461,7 +1463,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		// product_variant_money_amount
+		// variant_money_amount
 		mut n_money_amounts := 0
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
@@ -1495,8 +1497,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 
 		if n_money_amounts > 0 {
 			model_variant_money_amount_update(mut tx, variant_money_amounts) or {
-				return new_error_internal('Failed to update product_variant_money_amount',
-					err.msg())
+				return new_error_internal('Failed to update variant_money_amount', err.msg())
 			}
 		}
 	}

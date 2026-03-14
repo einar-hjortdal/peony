@@ -50,7 +50,7 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin []
 				err.msg())
 		}
 
-		product_option_value_product_variant = model_product_option_value_product_variant_retrieve(mut tx,
+		product_option_value_product_variant = model_product_option_value_variant_retrieve(mut tx,
 			product_option_value_ids_bin) or {
 			return new_error_internal('Failed to retrieve product_option_value_product_variant',
 				err.msg())

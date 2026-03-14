@@ -8,7 +8,7 @@ struct VariantMoneyAmount {
 	id             string
 	id_bin         []u8
 	variant_id     string
-	variant_id_bin []u8 // from product_variant_money_amount
+	variant_id_bin []u8 // from variant_money_amount
 	amount         i32
 	is_original    bool
 	region_id      string
@@ -25,12 +25,12 @@ fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_
 		ma.region_id,
 		r.currency_code,
 		r.includes_tax,
-		pvma.variant_id
+		vma.variant_id
 		FROM money_amount ma
 		LEFT JOIN region r
 			ON ma.region_id = r.id
-		LEFT JOIN product_variant_money_amount pvma
-			ON ma.id = pvma.money_amount_id
+		LEFT JOIN variant_money_amount vma
+			ON ma.id = vma.money_amount_id
 		WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
 		...workaround_24757(variant_ids_bin))!
 
@@ -100,7 +100,7 @@ fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMon
 	tx.execute('DELETE FROM money_amount
 		WHERE id IN (
 			SELECT money_amount_id
-			FROM product_variant_money_amount
+			FROM variant_money_amount
 			WHERE variant_id IN (${get_placeholders(variant_ids_bin)})
 		)
 		AND price_list_id IS NULL',
@@ -138,7 +138,7 @@ fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMon
 		params[i * n_params + 1] = p[i].money_amount_id_bin
 	}
 
-	tx.execute('INSERT INTO product_variant_money_amount (variant_id, money_amount_id)
+	tx.execute('INSERT INTO variant_money_amount (variant_id, money_amount_id)
 		${get_merge_source(src)}',
 		...params)!
 }

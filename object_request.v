@@ -554,7 +554,7 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 	return money_amounts
 }
 
-// used during product and product_variant creation
+// used during product and variant creation
 pub struct InventoryLevelCreateRequest {
 pub:
 	stock_location_id string @[json: 'stockLocationId']
@@ -581,7 +581,7 @@ pub:
 	stocked_quantity i32 @[json: 'stockedQuantity']
 }
 
-// used during product and product_variant creation
+// used during product and variant creation
 pub struct InventoryItemCreateRequest {
 pub:
 	sku               ?string

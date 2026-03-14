@@ -26,9 +26,9 @@ struct ProductVariantAvailability {
 }
 
 // used by store endpoints
-fn get_product_variant_availability(product_variant ProductVariant,
+fn get_variant_availability(variant ProductVariant,
 	allowed_stock_locations [][]u8) ProductVariantAvailability {
-	inventory_item := product_variant.inventory_item
+	inventory_item := variant.inventory_item
 	if !inventory_item.manage_inventory {
 		return ProductVariantAvailability{
 			purchasable:        true
@@ -73,16 +73,16 @@ fn get_product_variant_availability(product_variant ProductVariant,
 
 // TODO should only accept one sales_channel_id_bin
 struct GetProductVariantsAvailabilityParams {
-	product_variants              []ProductVariant
+	variants                      []ProductVariant
 	sales_channel_ids_bin         [][]u8
 	product_sales_channels        []ProductSalesChannel
 	sales_channel_stock_locations []SalesChannelStockLocation
 }
 
-// get_product_variants_availability:
+// get_variants_availability:
 //  1. Gathers all p.product_sales_channels entries where sales_channel_id_bin matches.
 //  2. Gathers all p.sales_channel_stock_locations entries where sales_channel_id_bin matches.
-//  3. For each v in product_variants:
+//  3. For each v in variants:
 //     a) If v.product_id_bin not in products_in_channel:
 //          result[v.id] = ProductVariantAvailability{ purchasable: false, inventory_quantity: 0 }
 //     b) Else if v.inventory_item.manage_inventory == false:
@@ -99,7 +99,7 @@ struct GetProductVariantsAvailabilityParams {
 //         vi.  Else:
 //               result[v.id] = ProductVariantAvailability{ purchasable: true, inventory_quantity: total_qty }
 //  4. Return the result map.
-fn get_product_variants_availability(p GetProductVariantsAvailabilityParams) map[string]ProductVariantAvailability {
+fn get_variants_availability(p GetProductVariantsAvailabilityParams) map[string]ProductVariantAvailability {
 	mut products_in_sales_channels := [][]u8{}
 	for i := 0; i < p.product_sales_channels.len; i++ {
 		psc := p.product_sales_channels[i]
@@ -119,13 +119,12 @@ fn get_product_variants_availability(p GetProductVariantsAvailabilityParams) map
 	}
 
 	mut res := map[string]ProductVariantAvailability{}
-	for i := 0; i < p.product_variants.len; i++ {
-		product_variant := p.product_variants[i]
-		if products_in_sales_channels.contains(product_variant.product_id_bin) {
-			res[product_variant.id] = get_product_variant_availability(product_variant,
-				allowed_stock_locations)
+	for i := 0; i < p.variants.len; i++ {
+		variant := p.variants[i]
+		if products_in_sales_channels.contains(variant.product_id_bin) {
+			res[variant.id] = get_variant_availability(variant, allowed_stock_locations)
 		} else {
-			res[product_variant.id] = ProductVariantAvailability{
+			res[variant.id] = ProductVariantAvailability{
 				purchasable:        false
 				inventory_quantity: 0
 			}

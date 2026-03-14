@@ -11,15 +11,15 @@ struct SuiteProductData {
 	product_image_ids_bin      [][]u8
 	product_image_translations []ImageTranslation
 	product_sales_channels     []ProductSalesChannel
-	product_variants           []ProductVariant
-	product_variant_ids_bin    [][]u8
+	variants                   []ProductVariant
+	variant_ids_bin            [][]u8
 	product_seo                []ProductSEO
 	product_seo_ids_bin        [][]u8
 	product_seo_translations   []SEOTranslation
 mut:
-	product_images_map   map[string]ProductImage
-	product_variants_map map[string]ProductVariant
-	product_seo_map      map[string]ProductSEO
+	product_images_map map[string]ProductImage
+	variants_map       map[string]ProductVariant
+	product_seo_map    map[string]ProductSEO
 }
 
 fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !SuiteProductData {
@@ -69,12 +69,12 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		return new_error_internal('Failed to retrieve product_sales_channel', err.msg())
 	}
 
-	product_variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
+	variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
 		return new_error_internal('Failed to retrieve product_variant', err.msg())
 	}
 
-	product_variants_map, product_variant_ids_bin := make_product_variant_map(product_variants)
-	variants_data := suite_product_variant_data_get(mut tx, product_variant_ids_bin)!
+	variants_map, variant_ids_bin := make_product_variant_map(variants)
+	variants_data := suite_product_variant_data_get(mut tx, variant_ids_bin)!
 
 	seo := model_product_seo_retrieve(mut tx, product_ids_bin) or {
 		return new_error_internal('Failed to retrieve seo', err.msg())
@@ -103,9 +103,9 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		product_images_map:         images_map
 		product_image_translations: image_translations
 		product_sales_channels:     product_sales_channels
-		product_variants:           product_variants
-		product_variants_map:       product_variants_map
-		product_variant_ids_bin:    product_variant_ids_bin
+		variants:                   variants
+		variants_map:               variants_map
+		variant_ids_bin:            variant_ids_bin
 		product_seo:                seo
 		product_seo_map:            seo_map
 		product_seo_ids_bin:        seo_ids_bin

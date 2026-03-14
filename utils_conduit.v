@@ -137,10 +137,10 @@ fn assign_inventory_items(inventory_items []InventoryItem, mut product_variants_
 	}
 }
 
-fn assign_product_variants(product_variants []ProductVariant, product_variants_map map[string]ProductVariant, mut products_map map[string]Product) {
-	for i := 0; i < product_variants.len; i++ {
-		variant_id := product_variants[i].id
-		variant := product_variants_map[variant_id]
+fn assign_product_variants(variants []ProductVariant, variants_map map[string]ProductVariant, mut products_map map[string]Product) {
+	for i := 0; i < variants.len; i++ {
+		variant_id := variants[i].id
+		variant := variants_map[variant_id]
 		product_id := variant.product_id
 		old := products_map[product_id].variants
 		products_map[product_id].variants = arrays.concat(old, variant)
@@ -166,8 +166,8 @@ fn assign_seo(product_seo []ProductSEO, product_seo_map map[string]ProductSEO, m
 }
 
 fn assign_products_data(mut products_data SuiteProductData, mut products_map map[string]Product) {
-	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.product_variants_map)
-	assign_inventory_items(products_data.inventory_items, mut products_data.product_variants_map)
+	assign_product_variant_money_amounts(products_data.money_amounts, mut products_data.variants_map)
+	assign_inventory_items(products_data.inventory_items, mut products_data.variants_map)
 
 	// TODO variant_image
 
@@ -178,7 +178,7 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 
 	assign_product_option_values(products_data.product_option_values, products_data.product_option_value_product_variant,
 		products_data.product_option_values_map, mut products_data.product_options_map, mut
-		products_data.product_variants_map)
+		products_data.variants_map)
 
 	assign_product_options(products_data.product_options, products_data.product_options_map, mut
 		products_map)
@@ -194,8 +194,7 @@ fn assign_products_data(mut products_data SuiteProductData, mut products_map map
 
 	assign_product_sales_channel_ids(products_data.product_sales_channels, mut products_map)
 
-	assign_product_variants(products_data.product_variants, products_data.product_variants_map, mut
-		products_map)
+	assign_product_variants(products_data.variants, products_data.variants_map, mut products_map)
 
 	assign_seo_translations(mut products_data.product_seo_map, products_data.product_seo_translations)
 

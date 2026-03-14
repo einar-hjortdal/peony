@@ -90,14 +90,14 @@ mut:
 	inventory_levels []InventoryLevel
 }
 
-// Whenever a product_variant is created, a related inventory_item is also created.
+// Whenever a variant is created, a related inventory_item is also created.
 // A inventory_item may have 0 or more inventory_level.
-// When sending a product_variant response, calculate:
+// When sending a variant response, calculate:
 // - inventory_quantity (sum of all sellable iventory_item)
 // - purchasable (!manage_inventory || iventory_quantity > 0 || allow_backorder)
 // The frontend can assume the variant can be backordered if (inventoryQuantity === 0 && purchasable)
 
-fn model_inventory_item_retrieve(mut tx firebird.Transaction, product_variant_ids_bin [][]u8) ![]InventoryItem {
+fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids_bin [][]u8) ![]InventoryItem {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -117,8 +117,8 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, product_variant_id
 		manage_inventory,
 		allow_backorder
 		FROM inventory_item
-		WHERE variant_id IN (${get_placeholders(product_variant_ids_bin)})',
-		...workaround_24757(product_variant_ids_bin))!
+		WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
+		...workaround_24757(variant_ids_bin))!
 
 	rows := data.rows()
 	mut inventory_items := []InventoryItem{len: rows.len}
@@ -437,7 +437,7 @@ fn model_inventory_item_sync_delete(mut tx firebird.Transaction, product_id_bin 
 				SELECT 
 					id AS variant_id,
 					deleted_at
-				FROM product_variant
+				FROM variant
 				WHERE product_id = ?
 					AND deleted_at IS NOT NULL
 			) s

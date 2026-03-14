@@ -167,7 +167,7 @@ CREATE TABLE product (
 
 CREATE UNIQUE INDEX "0681493b-ad81-1d84-d400-02dd9406cda2" ON product (handle) WHERE deleted_at IS NULL;
 
-CREATE TABLE product_variant (
+CREATE TABLE variant (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -185,10 +185,10 @@ CREATE TABLE product_variant (
   CONSTRAINT "06828532-0de3-10ad-b400-c1a3196a0c89" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE SET NULL
 );
 
-CREATE INDEX "0681493b-ad82-16da-7000-61fe4483229d" ON product_variant (product_id);
-CREATE UNIQUE INDEX "0681493b-ad82-1799-4800-7aba05e57f99" ON product_variant (barcode) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX "0681493b-ad82-1802-d000-454acce626f6" ON product_variant (ean) WHERE deleted_at IS NULL;
-CREATE UNIQUE INDEX "0681493b-ad82-186b-2800-015e1c02ca35" ON product_variant (upc) WHERE deleted_at IS NULL;
+CREATE INDEX "0681493b-ad82-16da-7000-61fe4483229d" ON variant (product_id);
+CREATE UNIQUE INDEX "0681493b-ad82-1799-4800-7aba05e57f99" ON variant (barcode) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX "0681493b-ad82-1802-d000-454acce626f6" ON variant (ean) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX "0681493b-ad82-186b-2800-015e1c02ca35" ON variant (upc) WHERE deleted_at IS NULL;
 
 CREATE TABLE inventory_item (
   id BINARY(16) NOT NULL,
@@ -209,22 +209,22 @@ CREATE TABLE inventory_item (
   manage_inventory BOOLEAN DEFAULT true NOT NULL,
   allow_backorder BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT "06828532-0de1-11a7-a000-6f71f973f8bf" PRIMARY KEY (id),
-  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+  CONSTRAINT "06828532-0de0-1e7a-6000-78a1d15c4ff1" FOREIGN KEY (variant_id) REFERENCES variant (id) ON DELETE CASCADE,
   CONSTRAINT "0681493b-ad82-15ff-8400-59a26da86c3d" FOREIGN KEY (origin_country) REFERENCES country (code)
 );
 
 CREATE UNIQUE INDEX "06828532-0de0-1d21-f800-7309e0f7c125" ON inventory_item (variant_id);
 CREATE UNIQUE INDEX "0681493b-ad82-1729-cc00-081f57f16e27" ON inventory_item (sku) WHERE deleted_at IS NULL;
 
-CREATE TABLE product_variant_money_amount (
+CREATE TABLE variant_money_amount (
   variant_id BINARY(16) NOT NULL,
   money_amount_id BINARY(16) NOT NULL,
   CONSTRAINT "06828532-0dde-11b1-bc00-ed787ddb3a8a" PRIMARY KEY (variant_id, money_amount_id),
-  CONSTRAINT "0681493b-ad80-1918-6c00-b3e1e39d7298" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE,
+  CONSTRAINT "0681493b-ad80-1918-6c00-b3e1e39d7298" FOREIGN KEY (variant_id) REFERENCES variant (id) ON DELETE CASCADE,
   CONSTRAINT "06828532-0de2-16cc-0c00-cf4ad2b29958" FOREIGN KEY (money_amount_id) REFERENCES money_amount (id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX "06828532-0dde-1256-9c00-c34b44f8e9c4" ON product_variant_money_amount (money_amount_id);
+CREATE UNIQUE INDEX "06828532-0dde-1256-9c00-c34b44f8e9c4" ON variant_money_amount (money_amount_id);
 
 CREATE TABLE product_option (
   id BINARY(16) NOT NULL,
@@ -248,15 +248,15 @@ CREATE TABLE product_option_value (
 
 CREATE INDEX "0681493b-ad83-1296-6c00-1cc6ce4f275a" ON product_option_value (option_id);
 
-CREATE TABLE product_option_value_product_variant (
+CREATE TABLE product_option_value_variant (
   option_value_id BINARY(16) NOT NULL,
   variant_id BINARY(16) NOT NULL,
   CONSTRAINT "0686cd40-3323-1b78-a800-0cc5d4486b6f" PRIMARY KEY (option_value_id, variant_id),
   CONSTRAINT "0686cd40-3323-17d3-6000-fc3b4739d2f9" FOREIGN KEY (option_value_id) REFERENCES product_option_value (id) ON DELETE CASCADE,
-  CONSTRAINT "0686cd40-3323-1f6e-9800-afb257a57fd7" FOREIGN KEY (variant_id) REFERENCES product_variant (id) ON DELETE CASCADE
+  CONSTRAINT "0686cd40-3323-1f6e-9800-afb257a57fd7" FOREIGN KEY (variant_id) REFERENCES variant (id) ON DELETE CASCADE
 );
 
-CREATE INDEX "0686cd40-3323-1fcc-2400-0cc6d0092801" ON product_option_value_product_variant (variant_id);
+CREATE INDEX "0686cd40-3323-1fcc-2400-0cc6d0092801" ON product_option_value_variant (variant_id);
 
 CREATE TABLE category (
   id BINARY(16) NOT NULL,

@@ -209,7 +209,7 @@ fn do_authenticated_delete_request(path string, cookie_value string) !http.Respo
 	return do_authenticated_request(path, cookie_value, '', http.Method.delete)
 }
 
-fn response_is_ok(r http.Response) ! {
+fn is_ok(r http.Response) ! {
 	if r.status_code != 200 {
 		return error('status ${r.status_code} (${r.status_msg}): ${r.body}')
 	}
@@ -273,15 +273,15 @@ fn auth_middleware_allows_logins_and_logouts() ! {
 		password: default_user_password
 	})
 	mut response := do_post_request(endpoint_admin_auth, body)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	cookie_value := extract_cookie_from_set_cookie(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_delete_request(endpoint_admin_auth, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
 	expect(response.status_code == 401, 'Expired session was accepted, but it should have not been.')!
@@ -290,7 +290,7 @@ fn auth_middleware_allows_logins_and_logouts() ! {
 fn admin_auth_returns_user_data(cookie_value string) ! {
 	println('admin_auth_returns_user_data')
 	response := do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	r := json.decode(peony.UserResponseEnvelope, response.body)!
 	user := r.user
@@ -313,7 +313,7 @@ fn admin_auth_rejects_login_when_already_logged_in(cookie_value string) ! {
 fn admin_users_list_users(cookie_value string) ! {
 	println('admin_users_list_users')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	mut r := json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count != 0, 'Unexpected count: ${r.count}')!
 	expect(r.users.len != 0, 'No users returned')!
@@ -359,10 +359,10 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 		password: 'new user password'
 	}
 	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json.encode(valid_new_user))!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count == old_count + 1, 'Unexpected count. Count does not include new user')!
 	expect(r.users.len == old_users_len + 1, 'Unexpected users.len. Count does not include new user')!
@@ -382,10 +382,10 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_users}/${new_user.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count == old_count, 'Unexpected count. Count includes deleted user')!
 	expect(r.users.len == old_users_len, 'Unexpected users.len. Response includes deleted user')!
@@ -397,7 +397,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 fn admin_locales_lists_locales(cookie_value string) ! {
 	println('admin_locales')
 	mut response := do_authenticated_get_request(endpoint_admin_locales, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	r := json.decode(peony.LocaleResponseListEnvelope, response.body)!
 	locale_codes_file := os.read_file('${os.getwd()}/migrations/seed-locale-codes.txt')!
 	lines := locale_codes_file.split('\n')
@@ -415,11 +415,10 @@ fn admin_locales_lists_locales(cookie_value string) ! {
 fn admin_store(cookie_value string) ! {
 	println('admin_store')
 	mut response := do_authenticated_get_request(endpoint_admin_store, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	mut r := json.decode(peony.StoreResponseEnvelope, response.body)!
 	mut store := r.store
-	// TODO check values
 
 	old_updated_at := store.updated_at
 
@@ -431,12 +430,13 @@ fn admin_store(cookie_value string) ! {
 		// default_stock_location_id
 		// default_sales_channel_id
 	}
+	time.sleep(1 * time.second) // for updated_at
 	response = do_authenticated_post_request('${endpoint_admin_store}/${r.store.id}',
 		cookie_value, json.encode(new_store_data))!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	r = json.decode(peony.StoreResponseEnvelope, response.body)!
 	store = r.store
@@ -469,7 +469,7 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 	})
 	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
 		cookie_value, new_store_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
 	r = json.decode(peony.StoreResponseEnvelope, response.body)!
@@ -481,13 +481,13 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 	})
 	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
 		cookie_value, restore_old_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn admin_categories_create_minimal_category(cookie_value string) ! {
 	println('admin_categories_create_minimal_category')
 	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	mut r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_categories_len := r.categories.len
@@ -500,7 +500,7 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 	})
 	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		new_category_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
@@ -523,10 +523,10 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_categories}/${category_to_delete.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	expect(r.count == old_count, 'Count includes deleted category')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
@@ -537,7 +537,7 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 fn admin_categories_create_complex_category(cookie_value string) ! {
 	println('admin_categories_create_complex_category')
 	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	mut r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_categories_len := r.categories.len
@@ -566,7 +566,7 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	})
 	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		category_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
@@ -597,10 +597,10 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
 	expect(r.count == old_count, 'Count includes deleted category')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
@@ -645,7 +645,7 @@ fn admin_categories_updates_category(cookie_value string) ! {
 	time.sleep(1 * time.second) // needed to check updated_at
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value, updated_category_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
@@ -697,7 +697,7 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
@@ -771,7 +771,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn handles_unique_product_handles(cookie_value string) ! {
@@ -1009,7 +1009,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn creates_product_without_options_with_variant(cookie_value string) ! {
@@ -1046,7 +1046,7 @@ fn creates_product_without_options_with_variant(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
@@ -1090,7 +1090,7 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
@@ -1142,7 +1142,7 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn creates_product_with_variant_image(cookie_value string) ! {
@@ -1179,7 +1179,7 @@ fn creates_product_with_variant_image(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn updates_product_with_variant_image(cookie_value string) ! {
@@ -1231,7 +1231,7 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 
 	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
 		cookie_value, json.encode(new_product_data))!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
 
@@ -1244,11 +1244,11 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
-fn updates_product_variants_replaces_default_variant(cookie_value string) ! {
-	println('updates_product_variants_replaces_default_variant')
+fn updates_product_replaces_default_variant(cookie_value string) ! {
+	println('updates_product_replaces_default_variant')
 	product_data := peony.ProductCreateRequest{
 		title:    luuid.v2()
 		variants: [
@@ -1275,7 +1275,7 @@ fn updates_product_variants_replaces_default_variant(cookie_value string) ! {
 
 	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
 		cookie_value, json.encode(new_product_data))!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
 
@@ -1285,7 +1285,7 @@ fn updates_product_variants_replaces_default_variant(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
@@ -1338,7 +1338,7 @@ fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn refuses_product_creation_with_variants_with_same_values(cookie_value string) ! {
@@ -1515,7 +1515,7 @@ fn admin_products_updates_product(cookie_value string) ! {
 	time.sleep(1 * time.second) // needed to check updated_at
 	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, updated_product_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	updated_product := r.product
 
@@ -1599,7 +1599,7 @@ fn updates_product_options_ranking(cookie_value string) ! {
 
 	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
 		cookie_value, json.encode(updated_product_data))!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
@@ -1613,7 +1613,7 @@ fn updates_product_options_ranking(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn updates_variants_ranking(cookie_value string) ! {
@@ -1668,7 +1668,7 @@ fn updates_variants_ranking(cookie_value string) ! {
 
 	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}',
 		cookie_value, json.encode(updated_product_data))!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
@@ -1682,7 +1682,7 @@ fn updates_variants_ranking(cookie_value string) ! {
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn add_random_locales(cookie_value string, locales_amount i32) ![]peony.LocaleResponse {
@@ -1728,7 +1728,7 @@ fn add_random_locales(cookie_value string, locales_amount i32) ![]peony.LocaleRe
 	})
 	response = do_authenticated_post_request('${endpoint_admin_store}/${store.id}', cookie_value,
 		new_store_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 	return locales
 }
 
@@ -1743,7 +1743,7 @@ fn remove_secondary_locales(cookie_value string) ! {
 	})
 	response = do_authenticated_post_request('${endpoint_admin_store}/${store.id}', cookie_value,
 		new_store_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn get_random_image_create_request(secondary_locales []peony.LocaleResponse) peony.ImageCreateRequest {
@@ -1826,7 +1826,7 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 
 	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, json.encode(product_update))!
-	response_is_ok(response)!
+	is_ok(response)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	updated_product := r.product
 	updated_images := updated_product.images
@@ -1892,7 +1892,7 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	})
 	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		category_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	mut category_r := json.decode(peony.CategoryResponseListEnvelope, response.body)!
@@ -1929,7 +1929,7 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	})
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value, new_category_data)!
-	response_is_ok(response)!
+	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
 	category_r = json.decode(peony.CategoryResponseListEnvelope, response.body)!
@@ -2035,7 +2035,7 @@ fn store_regions() ! {
 	println('store_regions')
 	// list regions
 	mut response := do_get_request('/store/regions')!
-	response_is_ok(response)!
+	is_ok(response)!
 	regions := json.decode(peony.RegionResponseListEnvelope, response.body)!
 	default_region := regions.regions[0]
 	default_region_id := default_region.id
@@ -2044,7 +2044,7 @@ fn store_regions() ! {
 
 	// get region by id
 	response = do_get_request('/store/regions/${default_region_id}')!
-	response_is_ok(response)!
+	is_ok(response)!
 }
 
 fn test_peony() ! {
@@ -2066,7 +2066,6 @@ fn test_peony() ! {
 		// admin_regions,
 		admin_store,
 		admin_store_updates_store_locales,
-		// TODO test store update updated_at
 		admin_categories_create_minimal_category,
 		admin_categories_create_complex_category,
 		admin_categories_updates_category,
@@ -2091,7 +2090,7 @@ fn test_peony() ! {
 		updates_variants_ranking,
 		creates_product_with_variant_image,
 		updates_product_with_variant_image,
-		updates_product_variants_replaces_default_variant,
+		updates_product_replaces_default_variant,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//
