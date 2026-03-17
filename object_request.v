@@ -1067,13 +1067,12 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 // ## metadata
 // Raw metadata stored as a string. Use for arbitrary user-defined data.
 //
-// ## money_amounts
-// Optional array of region money amounts for this variant.
+// ## regional_prices
+// Optional regional prices for this variant.
 // When provided:
-// - For each region, there must be at least one money amount with is_original set to false or omitted. This is the base_price of the variant.
-// - For each region, there may be at most one money amount with is_original set to true. This is the original_price.
-// When omitted:
-// All region money amounts will be initialized to a default value of 0.
+// - For each region, there must be a base_price.
+// - For each region, there may be an original_price.
+// When omitted, all regional base_price will be initialized to a default value of 0.
 pub struct VariantCreateRequest {
 pub:
 	title            ?string
@@ -1192,14 +1191,12 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 // If an empty string is provided, the metadata is deleted.
 // If omitted, metadata is not changed.
 //
-// ## money_amounts
-// Optional array of region money amounts for this variant.
+// ## regional_prices
+// Optional regional prices for this variant.
 // When provided:
-// - For each region, there must be at least one money amount with is_original set to false or omitted (the base price).
-// - For each region, there may be at most one money amount with is_original set to true (the original price).
-// - If a previously stored original price for a region is not included, that original price will be removed.
-// When omitted:
-//  money_amounts are not changed.
+// - For each region, there must be a base_price.
+// - For each region, there may be an original_price.
+// When omitted, regional prices are not changed.
 pub struct VariantUpdateRequest {
 pub:
 	title            ?string

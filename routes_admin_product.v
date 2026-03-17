@@ -411,7 +411,7 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 	return ctx.handle_deleted()
 }
 
-// creates a product variant
+// creates a variant
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
@@ -699,13 +699,31 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		}
 	}
 
-	tx.rollback() or {
+	conduit_variant_update(mut app, mut ctx, mut tx, product_id_bin, variant_id, variant_id_bin,
+		variant, ph) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, RetrieveProductVariantParamsHygienised{
+		ids:     ZeroArrayString{
+			v:      [variant_id]
+			is_set: true
+		}
+		ids_bin: [variant_id_bin]
+	}) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	tx.commit() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_variant_update(mut app, mut ctx, product_id_bin, variant_id, variant_id_bin,
-		variant, ph)
+	return ctx.handle_ok(VariantResponseEnvelope{
+		variant: format_variant_response(updated_variant)
+	})
 }
 
 // deletes a variant

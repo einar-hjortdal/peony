@@ -79,7 +79,7 @@
 - [ ] Limit returned list items to 250 in all requests.
 - [ ] Return created resources on creation.
 - [ ] Return updated resources on update.
-- [ ] Add product variant endpoints.
+- [x] Add product variant endpoints.
 - [ ] Add product option endpoints.
 - [ ] Add product option value endpoints.
 - [ ] Add product images endpoints.
