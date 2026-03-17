@@ -114,14 +114,31 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	}
 }
 
-fn conduit_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantUpdateRequestHygienised) veb.Result {
+fn conduit_variant_update(mut app App, mut ctx Context, product_id_bin []u8, variant_id string, variant_id_bin []u8, variant ProductVariant, ph VariantUpdateRequestHygienised) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	// model_product_variant_update(mut tx, variant_id_bin, ph) or {
-	// 	tx.rollback() or {} // ignore error		
-	// 	perr := new_error_internal('Could not update product_variant', err.msg())
-	// 	return ctx.handle_error(perr)
-	// }
+	mut image_id_bin := &variant.image_id_bin
+	if ph.image_id != none {
+		image_id_bin = &ph.image_id_bin
+	}
+
+	variant_diff := VariantUpdateParams{
+		id:           variant_id
+		id_bin:       variant_id_bin
+		image_id:     unwrap_option_or(ph.image_id, variant.image_id)
+		image_id_bin: image_id_bin
+		title:        unwrap_option_or(ph.title, variant.title.value)
+		barcode:      unwrap_option_or(ph.barcode, variant.barcode.value)
+		ean:          unwrap_option_or(ph.ean, variant.ean.value)
+		upc:          unwrap_option_or(ph.upc, variant.upc.value)
+		variant_rank: variant.variant_rank
+		metadata:     unwrap_option_or(ph.metadata, variant.metadata.value)
+	}
+	model_variant_update(mut tx, variant_id_bin, variant_diff) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not update product_variant', err.msg())
+		return ctx.handle_error(perr)
+	}
 
 	// if ph.option_value_ids_bin.len > 0 {
 	// 	mut relations := []ProductOptionValueProductVariant{}

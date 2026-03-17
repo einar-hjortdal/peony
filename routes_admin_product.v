@@ -612,6 +612,54 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
+	rpvph := RetrieveProductVariantParamsHygienised{
+		product_ids:     ZeroArrayString{
+			is_set: true
+		}
+		product_ids_bin: [product_id_bin]
+	}
+
+	count := model_product_variants_retrieve_count(mut tx, rpvph) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not retrieve variants', err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	if count == 0 {
+		tx.rollback() or {}
+		perr := new_error_internal('variants for the product do not exist', 'count == 0')
+		return ctx.handle_error(perr)
+	}
+
+	if count == 1 {
+		tx.rollback() or {}
+		perr := new_error_bad_request('cannot delete last variant', 'count == 1')
+		return ctx.handle_error(perr)
+	}
+
+	variants := model_product_variants_retrieve(mut tx, rpvph) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Could not retrieve variants', err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	mut found := false
+	mut variant := ProductVariant{}
+	for i := 0; i < variants.len; i++ {
+		v := variants[i]
+		if v.id != variant_id {
+			continue
+		}
+		found = true
+		variant = v
+		break
+	}
+
+	if !found {
+		perr := new_error_not_found('variant does not exist with the given id', 'not found in existing variants for the product')
+		return ctx.handle_error(perr)
+	}
+
 	if regional_prices := p.regional_prices {
 		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 			tx.rollback() or {}
@@ -657,7 +705,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	return conduit_variant_update(mut app, mut ctx, product_id_bin, variant_id, variant_id_bin,
-		ph)
+		variant, ph)
 }
 
 // deletes a variant
@@ -727,6 +775,7 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 	}
 
 	tx.commit() or {
+		tx.rollback() or {}
 		perr := new_error_internal(error_transaction_commit, err.msg())
 		return ctx.handle_error(perr)
 	}

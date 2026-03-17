@@ -268,6 +268,53 @@ struct VariantUpdateParams {
 	metadata     string
 }
 
+fn model_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p VariantUpdateParams) ! {
+	columns := [
+		'image_id',
+		'title',
+		'barcode',
+		'ean',
+		'upc',
+		'variant_rank',
+		'metadata',
+	]
+
+	n_params := 8
+	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
+
+	if p.image_id_bin.len > 0 {
+		params[0] = p.image_id_bin
+	}
+
+	if p.title != '' {
+		params[1] = p.title
+	}
+
+	if p.barcode != '' {
+		params[2] = p.barcode
+	}
+
+	if p.ean != '' {
+		params[3] = p.ean
+	}
+
+	if p.upc != '' {
+		params[4] = p.upc
+	}
+
+	params[5] = p.variant_rank
+
+	if p.metadata != '' {
+		params[6] = p.metadata
+	}
+
+	params[7] = p.id_bin
+
+	query := 'UPDATE variant SET ${get_set_columns(columns)} WHERE id = ?'
+	tx.execute(query, ...params)!
+}
+
+// used in product endpoints
 fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p []VariantUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 9
