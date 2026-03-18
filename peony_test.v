@@ -1370,9 +1370,93 @@ fn creates_a_variant(cookie_value string) ! {
 }
 
 fn updates_a_variant(cookie_value string) ! {
+	println('updates_a_variant')
+	product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		images:   [
+			peony.ImageCreateRequest{
+				url: luuid.v2()
+			},
+			peony.ImageCreateRequest{
+				url: luuid.v2()
+			},
+		]
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0)]
+				image:         0
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(product_data))!
+	is_created(response)!
+	pr := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := pr.product
+	expect(product.variants.len == 1, 'Unexpected number of variants: expected 1, got ${product.variants.len}')!
+	expect(product.images.len == 2, 'Unexpected number of images: expected 2, got ${product.images.len}')!
+	expect(product.options.len == 1, 'Unexpected number of options: expected 1, got ${product.options.len}')!
+
+	default_variant := product.variants[0]
+	image_1 := product.images[1]
+	option := product.options[0]
+	expect(option.values.len == 2, 'Unexpected number of option_value: expected 2, got ${option.values.len}')!
+
+	value_1 := option.values[1]
+	expect(value_1.value_rank == 1, 'Unexpected value_rank for value at index 1: expected 1, got ${value_1.value_rank}')!
+
+	title := luuid.v2()
+	ean := rand.ascii(peony.max_length_ean)
+	upc := rand.ascii(peony.max_length_upc)
+	barcode := rand.ascii(peony.max_length_barcode)
+	variant_data := peony.VariantUpdateRequest{
+		title:    title
+		ean:      ean
+		upc:      upc
+		barcode:  barcode
+		image_id: image_1.id
+		// inventory_item:
+		option_value_ids: [value_1.id]
+		// metadata:
+		// regional_prices:
+	}
+	response = do_authenticated_post_request('${endpoint_admin_products}/${product.id}/variants/${default_variant.id}',
+		cookie_value, json.encode(variant_data))!
+	is_ok(response)!
+	vr := json.decode(peony.VariantResponseEnvelope, response.body)!
+	variant := vr.variant
+
+	expect(variant.title == title, 'Variant title does not match: expected ${title}, got ${variant.title}')!
+	expect(variant.ean == ean, 'Variant ean does not match: expected ${ean}, got ${variant.ean}')!
+	expect(variant.upc == upc, 'Variant upc does not match: expected ${upc}, got ${variant.upc}')!
+	expect(variant.barcode == barcode, 'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
+	expect(variant.image_id == image_1.id, 'Variant image_id does not match')!
+	expect(variant.option_values.len == 1, 'Unexpected number of option_values: expected 1, got ${variant.option_values.len}')!
+
+	option_value := variant.option_values[0]
+	expect(option_value.id == value_1.id, 'option_value id does not match')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	is_ok(response)!
 }
 
 fn deletes_a_variant(cookie_value string) ! {
+	println('deletes_a_variant')
 }
 
 fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
@@ -2179,6 +2263,8 @@ fn test_peony() ! {
 		updates_product_with_variant_image,
 		updates_product_replaces_default_variant,
 		creates_a_variant,
+		updates_a_variant,
+		deletes_a_variant,
 		// /admin/product/:product_id images update (empty array, re-arrnaged array, complex mix)
 		// /admin/product/:product_id variants create, update (ranking too)
 		//

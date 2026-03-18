@@ -2,7 +2,7 @@ module peony
 
 import einar_hjortdal.firebird
 
-fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction, ph RetrieveProductVariantParamsHygienised) !ProductVariant {
+fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id string, product_id_bin []u8, ph RetrieveProductVariantParamsHygienised) !ProductVariant {
 	count := model_product_variants_retrieve_count(mut tx, ph) or {
 		return new_error_internal('Could not retrieve product_variant count', err.msg())
 	}
@@ -36,6 +36,37 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 	inventory_item.inventory_levels = inventory_levels
 	variant.money_amounts = money_amounts
 	variant.inventory_item = inventory_item
+
+	option_value_variants := model_product_option_value_variant_retrieve(mut tx, ProductOptionValueProductVariantRetrieveParams{
+		variant_ids:     [variant.id]
+		variant_ids_bin: [variant.id_bin]
+	}) or {
+		return new_error_internal('Could not retrieve product_option_value_variant', err.msg())
+	}
+
+	mut option_value_ids := []string{len: option_value_variants.len}
+	mut option_value_ids_bin := [][]u8{len: option_value_variants.len}
+	for i := 0; i < option_value_variants.len; i++ {
+		option_value_variant := option_value_variants[i]
+		option_value_ids[i] = option_value_variant.option_value_id
+		option_value_ids_bin[i] = option_value_variant.option_value_id_bin
+	}
+
+	// TODO
+	// option_values := model_product_option_values_retrieve(mut tx) or {
+	// 	return new_error_internal('Could not retrieve product_option_value', err.msg())
+	// }
+
+	option_value_translations := model_product_option_value_translations_retrieve(mut tx,
+		option_value_ids_bin) or {
+		return new_error_internal('Could not retrieve product_option_value_translations',
+			err.msg())
+	}
+	println(option_value_translations)
+
+	// mut complete_option_values := []ProductOptionValue{len: option_value_ids.len}
+
+	// variant.option_values = complete_option_values
 
 	return variant
 }

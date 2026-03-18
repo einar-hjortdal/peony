@@ -3,14 +3,6 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-// a region will eventually affect:
-// - discounts
-// - gift cards
-// - payment providers
-// - fulfillment providers
-// and will be associated with:
-// - carts
-// - orders
 struct Region {
 	id                 string
 	id_bin             []u8

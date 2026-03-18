@@ -192,7 +192,7 @@ mut:
 	translations []ProductOptionTranslation
 }
 
-fn model_product_options_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductOption {
+fn model_product_option_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductOption {
 	query := 'SELECT id, product_id, option_rank, title FROM product_option
 		WHERE product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY option_rank'
@@ -538,11 +538,35 @@ struct ProductOptionValueProductVariant {
 	variant_id_bin      []u8
 }
 
-fn model_product_option_value_variant_retrieve(mut tx firebird.Transaction, option_value_ids_bin [][]u8) ![]ProductOptionValueProductVariant {
-	data := tx.execute('SELECT option_value_id, variant_id
-		FROM product_option_value_variant
-		WHERE option_value_id IN (${get_placeholders(option_value_ids_bin)})',
-		...workaround_24757(option_value_ids_bin))!
+struct ProductOptionValueProductVariantRetrieveParams {
+	option_value_ids     []string
+	option_value_ids_bin [][]u8
+	variant_ids          []string
+	variant_ids_bin      [][]u8
+}
+
+fn model_product_option_value_variant_retrieve(mut tx firebird.Transaction, p ProductOptionValueProductVariantRetrieveParams) ![]ProductOptionValueProductVariant {
+	if p.option_value_ids.len == 0 && p.variant_ids.len == 0 {
+		return error('Cannot retrieve product_option_value_variant: neither option_value_ids nor variant_ids provided')
+	}
+
+	if p.option_value_ids.len > 0 && p.variant_ids.len > 0 {
+		return error('Cannot retrieve product_option_value_variant: both option_value_ids and variant_ids provided')
+	}
+
+	mut query := 'SELECT option_value_id, variant_id FROM product_option_value_variant'
+	mut params := []firebird.Value{}
+	if p.option_value_ids.len > 0 {
+		query = '${query} WHERE option_value_id IN (${get_placeholders(p.option_value_ids_bin)})'
+		params = workaround_24757(p.option_value_ids_bin)
+	}
+
+	if p.variant_ids.len > 0 {
+		query = '${query} WHERE variant_id IN (${get_placeholders(p.variant_ids_bin)})'
+		params = workaround_24757(p.variant_ids_bin)
+	}
+
+	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
 

@@ -114,8 +114,6 @@
   - Problem: impossible to modify variables outside of closures without using unsafe blocks.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 - Refactor, abstract, reduce boilerplating, separate concerns, but only after minimal viable product works.
-  - What if: instead of separating input validation without database access and with database access, all validation is done with database access, and retrieved data is put in some struct that is also passed to the conduit functions so that retrieval of data from the database is more efficient and all validation of each field is grouped per field.
-  - Efficiency with admin endpoints operations is not that important as those operations aren't happening frequently enough to pose performance issues.
 
 ## Documentation
 

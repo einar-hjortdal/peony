@@ -551,7 +551,7 @@ pub:
 	variant_rank       i32                             @[json: 'variantRank']
 	metadata           string                          @[omitempty]
 	image_id           string                          @[omitempty]
-	option_values      []ProductOptionValueResponse    @[json: 'optionValues'; omitempty]
+	option_values      []ProductOptionValueResponse    @[json: 'optionValues']
 	regional_prices    map[string]VariantPriceResponse @[json: 'regionalPrices']
 	inventory_item     InventoryItemResponse           @[json: 'inventoryItem'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']

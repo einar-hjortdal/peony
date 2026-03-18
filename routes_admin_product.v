@@ -626,12 +626,6 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(perr)
 	}
 
-	if count == 1 {
-		tx.rollback() or {}
-		perr := new_error_bad_request('cannot delete last variant', 'count == 1')
-		return ctx.handle_error(perr)
-	}
-
 	variants := model_product_variants_retrieve(mut tx, rpvph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
@@ -700,7 +694,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(err)
 	}
 
-	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, RetrieveProductVariantParamsHygienised{
+	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, product_id, product_id_bin,
+		RetrieveProductVariantParamsHygienised{
 		ids:     ZeroArrayString{
 			v:      [variant_id]
 			is_set: true
