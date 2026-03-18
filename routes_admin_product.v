@@ -482,14 +482,9 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 		return ctx.handle_error(err)
 	}
 
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
-
 	variant_id, variant_id_bin := app.new_id()
-	conduit_variant_create(mut app, mut ctx, mut tx, variant_id, variant_id_bin, product_id,
-		product_id_bin, ph) or {
+	conduit_variant_create(mut app, mut ctx, mut tx, product_id, product_id_bin, variant_id,
+		variant_id_bin, ph) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}

@@ -41,13 +41,18 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 }
 
 fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id string, product_id_bin []u8, variant_id string, variant_id_bin []u8, ph VariantCreateRequestHygienised) ! {
+	mut image_id_bin := []u8{}
+	if ph.image_id_bin.len > 0 {
+		image_id_bin = &ph.image_id_bin
+	}
+
 	variant_to_create := VariantCreateParams{
 		product_id:     product_id
 		product_id_bin: product_id_bin
 		variant_id:     variant_id
 		variant_id_bin: variant_id_bin
-		image_id:       '' // TODO
-		image_id_bin:   [] // TODO
+		image_id:       string_value(ph.image_id)
+		image_id_bin:   image_id_bin
 		title:          string_value(ph.title)
 		barcode:        string_value(ph.barcode)
 		ean:            string_value(ph.ean)
@@ -121,9 +126,9 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				return new_error_internal('Could not update money_amounts', err.msg())
 			}
 		} else {
-			regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
-				return new_error_internal('Could not retrieve regions', err.msg())
-			}
+			regions := model_region_retrieve(mut tx, RegionRetriveParams{
+				fetch: max_fetch
+			}) or { return new_error_internal('Could not retrieve regions', err.msg()) }
 
 			if regions.len == 0 {
 				return new_error_internal('Database contains no regions', err.msg())
