@@ -1080,7 +1080,10 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				n_values += values.len // replace old values with new ones
 			}
 
-			old_values := model_product_option_values_retrieve(mut tx, option_ids, option_ids_bin) or {
+			old_values := model_product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+				option_ids:     option_ids
+				option_ids_bin: option_ids_bin
+			}) or {
 				return new_error_internal('Could not retrieve product_option_values',
 					err.msg())
 			}
@@ -1402,9 +1405,10 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		// get all values for the options, they're returned by firebird sorted by value_rank.
-		values := model_product_option_values_retrieve(mut tx, product_option_ids, product_option_ids_bin) or {
-			return new_error_internal('Failed to retrieve product_option_value', err.msg())
-		}
+		values := model_product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+			option_ids:     product_option_ids
+			option_ids_bin: product_option_ids_bin
+		}) or { return new_error_internal('Failed to retrieve product_option_value', err.msg()) }
 
 		for i := 0; i < values.len; i++ {
 			value := values[i]

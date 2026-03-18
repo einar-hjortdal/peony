@@ -34,10 +34,10 @@ fn suite_product_option_data_get(mut tx firebird.Transaction, product_ids_bin []
 		return new_error_internal('Failed to retrieve product_option_translations', err.msg())
 	}
 
-	product_option_values := model_product_option_values_retrieve(mut tx, product_option_ids,
-		product_option_ids_bin) or {
-		return new_error_internal('Failed to retrieve product_option_values', err.msg())
-	}
+	product_option_values := model_product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+		option_ids:     product_option_ids
+		option_ids_bin: product_option_ids_bin
+	}) or { return new_error_internal('Failed to retrieve product_option_values', err.msg()) }
 
 	mut product_option_value_ids := []string{len: product_option_values.len}
 	for i := 0; i < product_option_values.len; i++ {

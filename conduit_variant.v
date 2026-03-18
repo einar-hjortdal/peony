@@ -1,5 +1,6 @@
 module peony
 
+import arrays
 import einar_hjortdal.firebird
 
 fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id string, product_id_bin []u8, ph RetrieveProductVariantParamsHygienised) !ProductVariant {
@@ -52,21 +53,37 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 		option_value_ids_bin[i] = option_value_variant.option_value_id_bin
 	}
 
-	// TODO
-	// option_values := model_product_option_values_retrieve(mut tx) or {
-	// 	return new_error_internal('Could not retrieve product_option_value', err.msg())
-	// }
+	option_values := model_product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+		ids:     option_value_ids
+		ids_bin: option_value_ids_bin
+	}) or { return new_error_internal('Could not retrieve product_option_value', err.msg()) }
 
 	option_value_translations := model_product_option_value_translations_retrieve(mut tx,
 		option_value_ids_bin) or {
 		return new_error_internal('Could not retrieve product_option_value_translations',
 			err.msg())
 	}
-	println(option_value_translations)
 
-	// mut complete_option_values := []ProductOptionValue{len: option_value_ids.len}
+	mut option_values_map := map[string]ProductOptionValue{}
+	for i := 0; i < option_values.len; i++ {
+		option_value := option_values[i]
+		option_values_map[option_value.id] = option_value
+	}
 
-	// variant.option_values = complete_option_values
+	for i := 0; i < option_value_translations.len; i++ {
+		translation := option_value_translations[i]
+		option_value_id := translation.option_value_id
+		old := option_values_map[option_value_id].translations
+		option_values_map[option_value_id].translations = arrays.concat(old, translation)
+	}
+
+	mut complete_option_values := []ProductOptionValue{len: option_value_ids.len}
+	for i := 0; i < option_value_ids.len; i++ {
+		option_value_id := option_value_ids[i]
+		complete_option_values[i] = option_values_map[option_value_id]
+	}
+
+	variant.option_values = complete_option_values
 
 	return variant
 }

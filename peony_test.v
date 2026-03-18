@@ -1457,6 +1457,52 @@ fn updates_a_variant(cookie_value string) ! {
 
 fn deletes_a_variant(cookie_value string) ! {
 	println('deletes_a_variant')
+	product_data := peony.ProductCreateRequest{
+		title:    luuid.v2()
+		options:  [
+			peony.ProductOptionCreateRequest{
+				title:  luuid.v2()
+				values: [
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+					peony.ProductOptionValueRequest{
+						name: luuid.v2()
+					},
+				]
+			},
+		]
+		variants: [
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(0)]
+			},
+			peony.ProductVariantCreateRequest{
+				option_values: [i32(1)]
+			},
+		]
+	}
+
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(product_data))!
+	is_created(response)!
+	pr := json.decode(peony.ProductResponseEnvelope, response.body)!
+	product := pr.product
+	expect(product.variants.len == 2, 'Unexpected number of variants: expected 1, got ${product.variants.len}')!
+
+	variant_0 := product.variants[0]
+	variant_1 := product.variants[1]
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}/variants/${variant_0.id}',
+		cookie_value)!
+	is_ok(response)!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}/variants/${variant_1.id}',
+		cookie_value)!
+	expect(response.status_code == 400, 'Deleted last variant')!
+
+	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
+		cookie_value)!
+	is_ok(response)!
 }
 
 fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {

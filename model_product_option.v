@@ -52,15 +52,36 @@ mut:
 	translations []ProductOptionValueTranslation
 }
 
-fn model_product_option_values_retrieve(mut tx firebird.Transaction, product_option_ids []string, product_option_ids_bin [][]u8) ![]ProductOptionValue {
-	if product_option_ids_bin.len == 0 {
+struct ProductOptionValueRetrieveParams {
+	ids            []string
+	ids_bin        [][]u8
+	option_ids     []string
+	option_ids_bin [][]u8
+}
+
+fn model_product_option_values_retrieve(mut tx firebird.Transaction, p ProductOptionValueRetrieveParams) ![]ProductOptionValue {
+	if p.ids.len > 0 && p.option_ids.len > 0 {
+		return error('Could not retrieve product_option_value: received both ids and option_ids')
+	}
+
+	if p.ids.len == 0 && p.option_ids.len == 0 {
 		return []ProductOptionValue{}
 	}
 
-	query := 'SELECT id, option_id, value_rank, name FROM product_option_value
-		WHERE option_id IN (${get_placeholders(product_option_ids_bin)})
-		ORDER BY value_rank'
-	params := workaround_24757(product_option_ids_bin)
+	mut query := 'SELECT id, option_id, value_rank, name FROM product_option_value'
+	mut params := []firebird.Value{}
+	if p.ids.len > 0 {
+		query = appendln(query, 'WHERE id IN (${get_placeholders(p.ids_bin)})')
+		params = workaround_24757(p.ids_bin)
+	}
+
+	if p.option_ids.len > 0 {
+		query = appendln(query, 'WHERE option_id IN (${get_placeholders(p.option_ids_bin)})')
+		params = workaround_24757(p.option_ids_bin)
+	}
+
+	query = appendln(query, 'ORDER BY value_rank')
+
 	data := tx.execute(query, ...params)!
 	rows := data.rows()
 
