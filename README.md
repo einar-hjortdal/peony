@@ -21,35 +21,28 @@ This graph represents how peony works on a single-server deployment. This setup 
 by deploying each box on its own independent server.
 
 ```
-                                                                      ┌──────────────────────┐                      
-                                                                      │        peony         │    ┌────────────────┐
-                                                                      │                      │    │                │
-                     ┌───────────────────┐                            │                      ┼────►    providers   │
-                     │                   │                            │                      │    │                │
-                     │ Admin browser app ◄────────────────────────────►       /admin/        │    └────────────────┘
-                     │                   │                            │                      │                      
-                     └─────────▲─────────┘                            │                      │     ┌────────────┐   
-                               │                                      │                      │     │            │   
-                               │                                      │                      ┼─────►   Redict   │   
-┌───────────────────┐   ┌──────┼──────┐   ┌───────────────────────┐   │                      │     │            │   
-│                   │   │             │   │                       │   │                      │     └────────────┘   
-│ Store browser app ◄───►  freenginx  ◄───► Store frontend server ◄───┼                      │                      
-│                   │   │             │   │                       │   │       /store/        │    ┌────────────────┐
-└───────────────────┘   └─────────────┘   └───────────────────────┘   │                      │    │                │
-                                                                      │                      ┼────►    Firebird    │
-                                                                      │                      │    │                │
-                                                                      │                      │    └────────────────┘
-                                                                      └──────────────────────┘                      
+                                                                                        
+                               ┌──────────┐ ┌──────────────────────┐ ┌────────────────┐ 
+                               │          │ │        peony         │ │                │ 
+                               │  Admin   │ │                      ◄─►    providers   │ 
+                               │ frontend ◄─►     ┌─────────┐      │ │                │ 
+                               │   app    │ │     │         │      │ └────────────────┘ 
+                               │          │ │     │   API   │      │  ┌────────────┐    
+                               └──────────┘ │     │         │      │  │            │    
+                                            │     └─────────┘      ◄──►   Redict   │    
+ ┌──────────┐                  ┌──────────┐ │                      │  │            │    
+ │          │  ┌─────────────┐ │          │ │     ┌─────────┐      │  └────────────┘    
+ │  Store   │  │             │ │  Admin   │ │     │         │      │ ┌────────────────┐ 
+ │ browser  ◄──►  freenginx  ◄─► frontend ◄─►     │  worker │      │ │                │ 
+ │   app    │  │             │ │  server  │ │     │         │      ◄─►    Firebird    │ 
+ │          │  └─────────────┘ │          │ │     └─────────┘      │ │                │ 
+ └──────────┘                  └──────────┘ └──────────────────────┘ └────────────────┘ 
+                                                                                        
 ```
 
-peony uses a cloud architecture. It can run on several backend servers sharing a connection to the database 
-servers.
+peony is a commerce backend. It consists of an API and a worker. The API and worker portions may be combined (for example, in a single-server deployment) or separated (for example, in a horizontally scaled system).
 
-- BLOBs (such as images and files) are uploaded from the admin frontend to peony which passes the data 
-  through to a service of your choice: build your own integration by satisfying the `BlobProvider` interface.
-
-The Store API routes are all prefixed with `/store/`, while the Admin API routes are all prefixed with 
-`/admin/`.
+Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
 
 ### Environment variables
 

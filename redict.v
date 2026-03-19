@@ -13,3 +13,5 @@ module peony
 // when requesting locales, all locales can be sent without db queries
 // when updating translations: accept map with locale_code keys, match to id at validation.
 // accepting a map makes more sense than accepting an array, as translations have no order.
+
+// Distributed FIFO queue for "important" operations (orders, etc)

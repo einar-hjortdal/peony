@@ -79,7 +79,7 @@
 - [ ] Limit returned list items to 250 in all requests.
 - [ ] Return created resources on creation.
 - [ ] Return updated resources on update.
-- [x] Add product variant endpoints.
+- [x] Add variant endpoints.
 - [ ] Add product option endpoints.
 - [ ] Add product option value endpoints.
 - [ ] Add product images endpoints.
@@ -102,6 +102,7 @@
 - [x] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Attach function name to each error. Nested hygienise functions may return same error messages right now, making it difficult to identify which struct is malformed.
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
+- [ ] Worker mode
 
 ## Upstream
 

@@ -2,6 +2,20 @@
 
 ## Design
 
+*WIP*
+### Tasks performed by the worker:
+
+- sending emails
+- order post-processing (invoices, fulfillment...)
+- scheduled tasks (database cleanup...)
+- search engine indexing (TODO decide: leave it up to users or integrate one with worker?)
+
+*WIP*
+### Data layers abstractions
+
+We are not looking for flexibility: tight coupling with the database is not an issue as we are always going to be using FirebirdSQL. We do not mock the database because we write raw queries and mistakes must be caught by the database. This means that we are not going to be using a repository pattern.
+
+We want a low level layer that contains the insert/update/delete SQL statements on individual tables, and a higher level layer that orchestrates these operations. We already have something similar to this: model_* functions and conduit_* functions respectively.
 ### Translations
 
 Translation tables define presentation content exposed by the `/store/` API.
