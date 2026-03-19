@@ -541,33 +541,3 @@ fn get_order_direction(zs ZeroString) !string {
 fn get_header_content_type(mut ctx Context) !string {
 	return ctx.get_header(http.CommonHeader.content_type)
 }
-
-// WIP
-// last time I tried something like this it wouldn't work out. That is because I attempted to change variables outside of closures, which is not possible in V without using unsafe blocks.
-// need a version without return of !T for when nothing is to be returned?
-fn (mut app App) with_transaction[T](func [T]fn (mut t firebird.Transaction) !T, commit bool) !T {
-	mut tx := app.start_transaction()!
-	res := func(mut tx) or {
-		tx.rollback() or {}
-		return err
-	}
-
-	if commit {
-		tx.commit() or {
-			tx.rollback() or {}
-			return new_error_internal(error_transaction_commit, err.msg())
-		}
-		return res
-	}
-
-	tx.rollback() or { return new_error_internal(error_transaction_rollback, err.msg()) }
-	return res
-}
-
-fn (mut app App) with_commit[T](func [T]fn (mut t firebird.Transaction) !T) !T {
-	return app.with_transaction(func, true)
-}
-
-fn (mut app App) with_rollback[T](func [T]fn (mut t firebird.Transaction) !T) !T {
-	return app.with_transaction(func, false)
-}
