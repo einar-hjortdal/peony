@@ -165,6 +165,28 @@ fn zero_bool(m map[string]string, k string) ZeroBool {
 	return ZeroBool{}
 }
 
+fn get_none_string(m map[string]string, k string) ?string {
+	if k in m {
+		return m[k]
+	}
+	return none
+}
+
+fn get_none_array_string(m map[string]string, k string) ?[]string {
+	s := get_none_string(m, k) or { return none }
+	return s.split(',')
+}
+
+fn get_none_i32(m map[string]string, k string) ?i32 {
+	s := get_none_string(m, k) or { return none }
+	return s.i32()
+}
+
+fn get_none_bool(m map[string]string, k string) ?bool {
+	s := get_none_string(m, k) or { return none }
+	return parse_bool(s)
+}
+
 fn hygienise_fetch_amount(zi32 ZeroI32) !i32 {
 	if !zi32.is_set {
 		return max_fetch
@@ -541,3 +563,4 @@ fn get_order_direction(zs ZeroString) !string {
 fn get_header_content_type(mut ctx Context) !string {
 	return ctx.get_header(http.CommonHeader.content_type)
 }
+

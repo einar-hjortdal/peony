@@ -33,13 +33,13 @@
 ### Soon to be implemented
 
 - [ ] Cache
+- [ ] Unit pricing
 
 ### To be implement
 
 - [ ] Reservations
 - [ ] Cart rules
 - [ ] Price lists
-- [ ] Unit pricing
 - [ ] Product tags
 - [ ] Product types
 - [ ] Product bundles
