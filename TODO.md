@@ -100,9 +100,10 @@
 - [x] Return count, offset and fetch values with lists
 - [ ] Soft-delete only where needed
 - [x] Remove all unnecessary `product_` prefixes from database, structs and function names.
-- [ ] Attach function name to each error. Nested hygienise functions may return same error messages right now, making it difficult to identify which struct is malformed.
+- [ ] Attach function name to each error.
+- [ ] Transaction management.
+- [ ] Worker mode.
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
-- [ ] Worker mode
 
 ## Upstream
 
@@ -111,8 +112,6 @@
 
 ## Considerations
 
-- Create higher order to provide tx by wraping blocks that need tx.
-  - Problem: impossible to modify variables outside of closures without using unsafe blocks.
 - Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 - Refactor, abstract, reduce boilerplating, separate concerns, but only after minimal viable product works.
 

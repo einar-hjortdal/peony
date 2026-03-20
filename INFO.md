@@ -16,7 +16,12 @@
 
 We are not looking for flexibility: tight coupling with the database is not an issue as we are always going to be using FirebirdSQL. We do not mock the database because we write raw queries and mistakes must be caught by the database. This means that we are not going to be using a repository pattern.
 
-We want a low level layer that contains the insert/update/delete SQL statements on individual tables, and a higher level layer that orchestrates these operations. We already have something similar to this: model_* functions and conduit_* functions respectively.
+We want:
+
+- a low level layer that contains the insert/update/delete SQL statements (model_* functions).
+- a higher level layer that orchestrates the lower level operations (conduit_* functions).
+
+TODO: should route handlers call either, or should it only be allowed to call conduit functions? Soemtimes it is more efficient to call model functions directly.
 
 ### Translations
 
@@ -30,8 +35,6 @@ Example:
 3. Peony retrieves the translation rows from the product_translations table.
 4. Peony checks if a translation for the requested locale_id was retrieved, if was: its values override the default values.
 5. Peony returns the product objects with the overridden values.
-
-Note: A translation should never be set as an empty string. If a `_translations` table contains only one translation column, this column should not be nullable. If a translations table contains many translation columns, these columns should be nullable. If all of them are null, the row should be deleted.
 
 ### Classification
 

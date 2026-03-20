@@ -1,5 +1,3 @@
-<span style="background-color: #226f54; font-size: 125%; padding-top: 1.25%; padding-right: 2.5%; padding-bottom: 1.25%; padding-left: 2.5%; border-radius: 25px;">This project is active: new features are being developed, bugs are being fixed.</span>
-
 # peony
 
 A content management system and shoping cart API.
@@ -21,23 +19,23 @@ This graph represents how peony works on a single-server deployment. This setup 
 by deploying each box on its own independent server.
 
 ```
-                                                                                        
-                               ┌──────────┐ ┌──────────────────────┐ ┌────────────────┐ 
-                               │          │ │        peony         │ │                │ 
-                               │  Admin   │ │                      ◄─►    providers   │ 
-                               │ frontend ◄─►     ┌─────────┐      │ │                │ 
-                               │   app    │ │     │         │      │ └────────────────┘ 
-                               │          │ │     │   API   │      │  ┌────────────┐    
-                               └──────────┘ │     │         │      │  │            │    
-                                            │     └─────────┘      ◄──►   Redict   │    
- ┌──────────┐                  ┌──────────┐ │                      │  │            │    
- │          │  ┌─────────────┐ │          │ │     ┌─────────┐      │  └────────────┘    
- │  Store   │  │             │ │  Admin   │ │     │         │      │ ┌────────────────┐ 
- │ browser  ◄──►  freenginx  ◄─► frontend ◄─►     │  worker │      │ │                │ 
- │   app    │  │             │ │  server  │ │     │         │      ◄─►    Firebird    │ 
- │          │  └─────────────┘ │          │ │     └─────────┘      │ │                │ 
- └──────────┘                  └──────────┘ └──────────────────────┘ └────────────────┘ 
-                                                                                        
+                                                                                 
+                              ┌──────────┐ ┌──────────────────────┐ ┌───────────┐ 
+                              │          │ │        peony         │ │           │ 
+                              │  Admin   │ │                      ◄─► providers │ 
+                              │ frontend ◄─►     ┌─────────┐      │ │           │ 
+                              │   app    │ │     │         │      │ └───────────┘ 
+                              │          │ │     │   API   │      │  ┌────────┐   
+                              └──────────┘ │     │         │      │  │        │   
+                                           │     └─────────┘      ◄──► Redict │   
+ ┌──────────┐                 ┌──────────┐ │                      │  │        │   
+ │          │ ┌─────────────┐ │          │ │     ┌──────────┐     │  └────────┘   
+ │  Store   │ │             │ │  Admin   │ │     │          │     │ ┌──────────┐  
+ │ browser  ◄─►  freenginx  ◄─► frontend ◄─►     │  worker  │     │ │          │  
+ │   app    │ │             │ │  server  │ │     │          │     ◄─► Firebird │  
+ │          │ └─────────────┘ │          │ │     └──────────┘     │ │          │  
+ └──────────┘                 └──────────┘ └──────────────────────┘ └──────────┘  
+                                                                                  
 ```
 
 peony is a commerce backend. It consists of an API and a worker. The API and worker portions may be combined (for example, in a single-server deployment) or separated (for example, in a horizontally scaled system).
