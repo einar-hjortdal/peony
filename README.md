@@ -19,23 +19,21 @@ This graph represents how peony works on a single-server deployment. This setup 
 by deploying each box on its own independent server.
 
 ```
-                                                                                 
-                              ┌──────────┐ ┌──────────────────────┐ ┌───────────┐ 
-                              │          │ │        peony         │ │           │ 
-                              │  Admin   │ │                      ◄─► providers │ 
-                              │ frontend ◄─►     ┌─────────┐      │ │           │ 
-                              │   app    │ │     │         │      │ └───────────┘ 
-                              │          │ │     │   API   │      │  ┌────────┐   
-                              └──────────┘ │     │         │      │  │        │   
-                                           │     └─────────┘      ◄──► Redict │   
- ┌──────────┐                 ┌──────────┐ │                      │  │        │   
- │          │ ┌─────────────┐ │          │ │     ┌──────────┐     │  └────────┘   
- │  Store   │ │             │ │  Admin   │ │     │          │     │ ┌──────────┐  
- │ browser  ◄─►  freenginx  ◄─► frontend ◄─►     │  worker  │     │ │          │  
- │   app    │ │             │ │  server  │ │     │          │     ◄─► Firebird │  
- │          │ └─────────────┘ │          │ │     └──────────┘     │ │          │  
- └──────────┘                 └──────────┘ └──────────────────────┘ └──────────┘  
-                                                                                  
+                    ┌──────────────────────┐ ┌───────────┐
+ ┌────────────────┐ │        peony         │ │           │
+ │                │ │                      ◄─► providers │
+ │ Admin frontend ◄─►     ┌─────────┐      │ │           │
+ │                │ │     │         │      │ └───────────┘
+ └────────────────┘ │     │   API   │      │ ┌────────┐   
+                    │     │         │      │ │        │   
+                    │     └─────────┘      ◄─► Redict │   
+                    │                      │ │        │   
+ ┌────────────────┐ │     ┌──────────┐     │ └────────┘   
+ │                │ │     │          │     │ ┌──────────┐ 
+ │ Store frontend ◄─►     │  worker  │     │ │          │ 
+ │                │ │     │          │     ◄─► Firebird │ 
+ └────────────────┘ │     └──────────┘     │ │          │ 
+                    └──────────────────────┘ └──────────┘ 
 ```
 
 peony is a commerce backend. It consists of an API and a worker. The API and worker portions may be combined (for example, in a single-server deployment) or separated (for example, in a horizontally scaled system).
