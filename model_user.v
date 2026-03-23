@@ -105,6 +105,7 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 	conditions, params := model_user_list_conditions(p)
 	query := 'SELECT COUNT(*) FROM app_user ${conditions}'
+	dump(params)
 	data := tx.execute(query, ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
