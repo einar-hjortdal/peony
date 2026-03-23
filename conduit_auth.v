@@ -5,9 +5,8 @@ import veb
 
 fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	up := UserListParams{
-		filter_by_email: true
-		email:           p.email
-		fetch:           1
+		email: p.email
+		fetch: 1
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -39,9 +38,9 @@ fn conduit_auth_user(mut app App, mut ctx Context, p AuthRequest) veb.Result {
 	}
 
 	ctx.user_session_values = UserSessionValues{
-		id:     user.id
-		id_bin: user.id_bin
+		id: user.id
 	}
 
 	return success(mut ctx)
 }
+

@@ -1,55 +1,44 @@
 module peony
 
-// TODO query string parameters are not object_, they're route_
 pub struct UserListRequestQuery {
 pub:
-	ids          ZeroArrayString
-	email        ZeroString
-	handle       ZeroString
-	with_deleted ZeroBool
-	offset       ZeroI32
-	fetch        ZeroI32
-	order        ZeroString
+	ids          ?[]string
+	email        ?string
+	handle       ?string
+	with_deleted ?bool
+	offset       ?i32
+	fetch        ?i32
+	order        ?string
 }
 
 fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
 	p := extract_user_list_request_query(m)
 
-	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return new_error_bad_request(error_id_invalid, 'ids')
-	}
-
-	include_deleted := p.with_deleted.is_set && p.with_deleted.v
-
-	order_direction := get_order_direction(p.order) or {
-		return new_error_bad_request(error_order_direction_invalid, details_order_direction_invalid)
+	mut ids := []ID{}
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
 	}
 
 	return UserListParams{
-		filter_by_id:        p.ids.is_set
-		ids_bin:             ids_bin
-		filter_by_email:     p.email.is_set
-		email:               p.email.v
-		filter_by_handle:    p.handle.is_set
-		handle:              p.handle.v
-		include_deleted:     include_deleted
-		use_offset:          p.offset.is_set
-		offset:              p.offset.v
-		fetch:               hygienise_fetch_amount(p.fetch)!
-		use_order_direction: p.order.is_set
-		order_direction:     order_direction
+		ids:          ids
+		email:        p.email
+		handle:       p.handle
+		with_deleted: p.with_deleted
+		offset:       get_offset_or_default(p.offset)!
+		fetch:        get_fetch_or_default(p.fetch)!
+		order:        get_order_direction_or_default(p.order)!
 	}
 }
 
 fn extract_user_list_request_query(m map[string]string) UserListRequestQuery {
 	return UserListRequestQuery{
-		ids:          zero_array_string(m, 'ids')
-		email:        zero_string(m, 'email')
-		handle:       zero_string(m, 'handle')
-		with_deleted: zero_bool(m, 'with_deleted')
-		offset:       zero_i32(m, 'offset')
-		fetch:        zero_i32(m, 'fetch')
-		order:        zero_string(m, 'order')
+		ids:          get_none_array_string(m, 'ids')
+		email:        get_none_string(m, 'email')
+		handle:       get_none_string(m, 'handle')
+		with_deleted: get_none_bool(m, 'with_deleted')
+		offset:       get_none_i32(m, 'offset')
+		fetch:        get_none_i32(m, 'fetch')
+		order:        get_none_string(m, 'order')
 	}
 }
 
@@ -615,3 +604,4 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 		locale_id_bin:         locale_id_bin
 	}
 }
+

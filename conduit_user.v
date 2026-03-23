@@ -108,11 +108,10 @@ fn conduit_user_list(mut app App, mut ctx Context, p UserListParams) veb.Result 
 	})
 }
 
-fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Result {
+fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id ID) veb.Result {
 	p := UserListParams{
-		filter_by_id: true
-		ids_bin:      [user_id_bin]
-		fetch:        1
+		ids:   [user_id]
+		fetch: 1
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -145,3 +144,4 @@ fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id_bin []u8) veb.Re
 		user: format_user_response(user)
 	})
 }
+

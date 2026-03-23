@@ -44,7 +44,7 @@ pub:
 
 fn format_user_response(u User) UserResponse {
 	return UserResponse{
-		id:         u.id
+		id:         u.id.id_string()
 		handle:     u.handle
 		email:      u.email
 		role:       u.role

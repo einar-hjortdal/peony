@@ -6,13 +6,13 @@ import veb
 // returns details about the user that performed the request
 @['/admin/auth'; get]
 pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
-	return conduit_user_get_by_id(mut app, mut ctx, ctx.user_session_values.id_bin)
+	return conduit_user_get_by_id(mut app, mut ctx, ctx.user_session_values.id)
 }
 
 // logs in user
 @['/admin/auth'; post]
 pub fn (mut app App) admin_auth_post(mut ctx Context) veb.Result {
-	if ctx.user_session_values.id != '' {
+	if !ctx.user_session_values.id.is_null() {
 		perr := new_error_bad_request('Already logged in', 'user session exists')
 		return ctx.handle_error(perr)
 	}
@@ -48,3 +48,4 @@ pub fn (mut app App) admin_auth_del(mut ctx Context) veb.Result {
 	ctx.user_session.to_prune = true
 	return success(mut ctx)
 }
+

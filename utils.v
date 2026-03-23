@@ -8,8 +8,7 @@ import einar_hjortdal.firebird
 
 pub const min_fetch = i32(1)
 pub const max_fetch = i32(250)
-pub const default_offset = i32(0)
-
+pub const offset_default = i32(0)
 pub const order_direction_asc = 'ASC'
 pub const order_direction_desc = 'DESC'
 pub const order_direction_default = order_direction_asc
@@ -232,6 +231,10 @@ fn (id ID) id_bytes() []u8 {
 	return id.b
 }
 
+fn (id ID) is_null() bool {
+	return id.s == '' && id.b.len == 0
+}
+
 fn id_from_string(s string) !ID {
 	return ID{
 		s: s
@@ -246,12 +249,30 @@ fn id_from_bytes(b []u8) !ID {
 	}
 }
 
-// for Firebird's `BINARY(16)` columns
+// to parse Firebird's `BINARY(16)` columns
 fn id_from_nullable_bytes(nb firebird.NullArrayU8) !ID {
 	if nb.is_null {
 		return ID{}
 	}
 	return id_from_bytes(nb.value)
+}
+
+// to parse query strings
+fn ids_from_array_string(ids_string []string) ![]ID {
+	mut ids := []ID{len: ids_string.len}
+	for i := 0; i < ids_string.len; i++ {
+		ids[i] = id_from_string(ids_string[i])!
+	}
+	return ids
+}
+
+// for Firebird queries
+fn ids_bytes(ids []ID) [][]u8 {
+	mut res := [][]u8{len: ids.len}
+	for i := 0; i < ids.len; i++ {
+		res[i] = ids[i].id_bytes()
+	}
+	return res
 }
 
 fn (mut app App) gen_id() ID {
@@ -550,7 +571,7 @@ fn parse_order_direction(s string) !string {
 		return order_direction_desc
 	}
 
-	return error(error_order_direction_invalid)
+	return new_error_unprocessable_entity(error_order_direction_invalid, details_order_direction_invalid)
 }
 
 fn get_order_direction(zs ZeroString) !string {
@@ -562,5 +583,33 @@ fn get_order_direction(zs ZeroString) !string {
 
 fn get_header_content_type(mut ctx Context) !string {
 	return ctx.get_header(http.CommonHeader.content_type)
+}
+
+fn get_fetch_or_default(fetch ?i32) !i32 {
+	f := fetch or { return max_fetch }
+	if f < min_fetch {
+		return new_error_unprocessable_entity('Too few objects requested. Minimum ${min_fetch} must be requested',
+			'requested ${f}')
+	}
+
+	if f > max_fetch {
+		return new_error_unprocessable_entity('Too many objects requested. Maximum ${max_fetch} can be requested',
+			'requested ${f}')
+	}
+
+	return f
+}
+
+fn get_offset_or_default(offset ?i32) !i32 {
+	o := offset or { return offset_default }
+	if o < offset_default {
+		return new_error_unprocessable_entity('Minimum offset is ${offset_default}', 'requested ${o}')
+	}
+	return o
+}
+
+fn get_order_direction_or_default(direction ?string) !string {
+	d := direction or { return order_direction_default }
+	return parse_order_direction(d)
 }
 

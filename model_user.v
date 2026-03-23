@@ -10,8 +10,7 @@ pub const role_author = 'author'
 pub const role_contributor = 'contributor'
 
 struct User {
-	id            string
-	id_bin        []u8
+	id            ID
 	handle        string
 	email         string
 	password_hash []u8
@@ -58,47 +57,45 @@ fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id s
 }
 
 struct UserListParams {
-	filter_by_id        bool
-	ids_bin             [][]u8
-	filter_by_handle    bool
-	handle              string
-	filter_by_email     bool
-	email               string
-	filter_by_role      bool
-	roles               []string
-	include_deleted     bool
-	use_offset          bool
-	offset              i32
-	fetch               i32
-	use_order_direction bool
-	order_direction     string
+	ids          ?[]ID
+	handle       ?string
+	email        ?string
+	roles        ?[]string
+	with_deleted ?bool
+	offset       i32
+	fetch        i32
+	order        string
 }
 
 fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if p.filter_by_id {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
 	}
 
-	if p.filter_by_handle {
+	if handle := p.handle {
 		conditions = arrays.concat(conditions, 'handle = ?')
-		params = arrays.concat(params, p.handle)
+		params = arrays.concat(params, handle)
 	}
 
-	if p.filter_by_email {
+	if email := p.email {
 		conditions = arrays.concat(conditions, 'email = ?')
-		params = arrays.concat(params, p.email)
+		params = arrays.concat(params, email)
 	}
 
-	if p.filter_by_role {
-		conditions = arrays.concat(conditions, 'role IN (${get_placeholders(p.roles)})')
-		params = arrays.concat(params, ...p.roles)
+	if roles := p.roles {
+		conditions = arrays.concat(conditions, 'role IN (${get_placeholders(roles)})')
+		params = arrays.concat(params, ...roles)
 	}
 
-	if !p.include_deleted {
+	if with_deleted := p.with_deleted {
+		if !with_deleted {
+			conditions = arrays.concat(conditions, 'deleted_at IS NULL')
+		}
+	} else {
 		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 
@@ -107,7 +104,8 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 
 fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 	conditions, params := model_user_list_conditions(p)
-	data := tx.execute('SELECT COUNT(*) FROM app_user ${conditions}', ...params)!
+	query := 'SELECT COUNT(*) FROM app_user ${conditions}'
+	data := tx.execute(query, ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
@@ -117,22 +115,12 @@ fn model_user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 	conditions, mut params := model_user_list_conditions(p)
 
-	mut order_direction := order_direction_default
-	if p.use_order_direction {
-		order_direction = p.order_direction
-	}
+	mut sorting := 'ORDER BY created_at ${p.order} 
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
-	mut sorting := 'ORDER BY created_at ${order_direction}'
-
-	if p.use_offset {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset)
-	}
-
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, p.fetch)
-
-	data := tx.execute('SELECT
+	query := 'SELECT
 		id,
 		handle,
 		email,
@@ -145,8 +133,9 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		first_name,
 		last_name,
 		metadata
-		FROM app_user ${conditions} ${sorting}',
-		...params)!
+		FROM app_user ${conditions} ${sorting}'
+
+	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
 	mut users := []User{len: rows.len}
@@ -166,11 +155,10 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		last_name, _ := v[10].get_string()!
 		metadata := v[11].get_null_string()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
 		users[i] = User{
 			id:            id
-			id_bin:        id_bin
 			handle:        handle
 			email:         email
 			password_hash: password_hash
@@ -221,3 +209,4 @@ fn model_user_update(mut tx firebird.Transaction, user_id_bin []u8, p UserUpdate
 fn model_user_delete(mut tx firebird.Transaction, user_id_bin []u8) ! {
 	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id_bin)!
 }
+

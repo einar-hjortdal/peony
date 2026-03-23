@@ -77,11 +77,11 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 // retrieves a user details
 @['/admin/users/:user_id'; get]
 pub fn (mut app App) admin_users_id_get(mut ctx Context, user_id string) veb.Result {
-	user_id_bin := id_string_to_bin(user_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'user_id')
+	parsed_user_id := id_from_string(user_id) or {
+		perr := new_error_unprocessable_entity(error_id_invalid, 'user_id')
 		return ctx.handle_error(perr)
 	}
-	return conduit_user_get_by_id(mut app, mut ctx, user_id_bin)
+	return conduit_user_get_by_id(mut app, mut ctx, parsed_user_id)
 }
 
 // updates a user

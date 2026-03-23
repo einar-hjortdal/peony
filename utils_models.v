@@ -96,12 +96,12 @@ fn if_true_then_a_else_b(condition bool, a string, b string) string {
 	return b
 }
 
-// TODO deprecate
+// TODO delete
 fn is_order_desc(s string) bool {
 	return s.to_upper() == order_desc
 }
 
-// TODO deprecate
+// TODO delete
 fn get_sorting_order(zs ZeroString) string {
 	if zs.is_set && is_order_desc(zs.v) {
 		return order_desc
@@ -109,13 +109,15 @@ fn get_sorting_order(zs ZeroString) string {
 	return order_asc
 }
 
+// TODO delete
 fn get_offset_amount(zi32 ZeroI32) i32 {
 	if zi32.is_set {
 		return zi32.v
 	}
-	return default_offset
+	return offset_default
 }
 
+// TODO delete
 fn get_fetch_amount(zi32 ZeroI32) i32 {
 	if zi32.is_set {
 		return zi32.v
