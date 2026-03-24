@@ -1,6 +1,6 @@
 module peony
 
 struct UserSessionValues {
-	id ID
+	id ?ID
 }
 

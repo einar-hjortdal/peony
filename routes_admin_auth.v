@@ -9,7 +9,12 @@ import veb
 pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	user := conduit_user_get_by_id(mut app, mut tx, ctx.user_session_values.id) or {
+	user_id := ctx.user_session_values.id or {
+		perr := new_error_internal('User is not authorized', 'user session has no user id')
+		return ctx.handle_error(perr)
+	}
+
+	user := conduit_user_get_by_id(mut app, mut tx, user_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -27,7 +32,7 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 // logs in user
 @['/admin/auth'; post]
 pub fn (mut app App) user_login(mut ctx Context) veb.Result {
-	if !ctx.user_session_values.id.is_null() {
+	if ctx.user_session_values.id != none {
 		perr := new_error_bad_request('Already logged in', 'user session exists')
 		return ctx.handle_error(perr)
 	}
