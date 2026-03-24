@@ -76,12 +76,27 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 
 // retrieves a user details
 @['/admin/users/:user_id'; get]
-pub fn (mut app App) admin_users_id_get(mut ctx Context, user_id string) veb.Result {
+pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
 		perr := new_error_unprocessable_entity(error_id_invalid, 'user_id')
 		return ctx.handle_error(perr)
 	}
-	return conduit_user_get_by_id(mut app, mut ctx, parsed_user_id)
+
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+
+	user := conduit_user_get_by_id(mut app, mut tx, parsed_user_id) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	return ctx.handle_ok(UserResponseEnvelope{
+		user: format_user_response(user)
+	})
 }
 
 // updates a user
@@ -142,3 +157,4 @@ pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.
 
 	return conduit_user_delete(mut app, mut ctx, user_id_bin)
 }
+

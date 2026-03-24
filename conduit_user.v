@@ -1,6 +1,8 @@
 module peony
 
+import log
 import veb
+import einar_hjortdal.firebird
 
 fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -108,40 +110,50 @@ fn conduit_user_list(mut app App, mut ctx Context, p UserListParams) veb.Result 
 	})
 }
 
-fn conduit_user_get_by_id(mut app App, mut ctx Context, user_id ID) veb.Result {
+fn conduit_user_get_by_id(mut app App, mut tx firebird.Transaction, user_id ID) !User {
 	p := UserListParams{
 		ids:   [user_id]
 		fetch: 1
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
 	count := model_user_list_count(mut tx, p) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve user count', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to retrieve user count', err.msg())
 	}
 
 	if count == 0 {
-		tx.rollback() or {}
-		perr := new_error_not_found('No user found with the given id.', 'count == 0')
-		return ctx.handle_error(perr)
+		return new_error_not_found('No user found with the given id.', 'count == 0')
 	}
 
 	users := model_user_list(mut tx, p) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve users', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to retrieve users', err.msg())
 	}
 
 	user := users[0]
-	return ctx.json(UserResponseEnvelope{
-		user: format_user_response(user)
-	})
+	return user
+}
+
+fn conduit_user_get_by_email(mut app App, mut tx firebird.Transaction, email string) !User {
+	p := UserListParams{
+		email: email
+		fetch: 1
+	}
+
+	count := model_user_list_count(mut tx, p) or {
+		return new_error_internal('Failed to retrieve user count', err.msg())
+	}
+
+	if count == 0 {
+		log.debug('user count == 0')
+		return new_error_login()
+	}
+
+	users := model_user_list(mut tx, p) or {
+		log.debug(err.msg())
+		return new_error_login()
+	}
+
+	user := users[0]
+	return user
 }
 
