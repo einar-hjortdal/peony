@@ -61,7 +61,9 @@ fn extract_region_list_request_query(m map[string]string) RegionListRequestQuery
 	}
 }
 
-fn hygienise_region_list_request_query(p RegionListRequestQuery) !RegionRetriveParams {
+fn hygienise_region_list_request_query(m map[string]string) !RegionRetriveParams {
+	p := extract_region_list_request_query(m)
+
 	mut ids := []ID{}
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!

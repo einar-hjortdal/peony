@@ -6,11 +6,42 @@ import json
 // lists regions
 @['/admin/regions'; get]
 pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
-	p := extract_region_list_request_query(ctx.query)
+	p := hygienise_region_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
-	ph := hygienise_region_list_request_query(p) or { return ctx.handle_error(err) }
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	return conduit_region_list(mut app, mut ctx, ph)
+	count := model_region_retrieve_count(mut tx, p) or {
+		tx.rollback() or {}
+		perr := new_error_internal('Failed to retrieve region count', err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	if count == 0 {
+		tx.rollback() or {}
+		return ctx.json(RegionResponseListEnvelope{
+			offset: p.offset
+			fetch:  p.fetch
+		})
+	}
+
+	regions := conduit_region_list(mut app, mut tx, p) or { return ctx.handle_error(err) }
+
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	mut external_regions := []RegionResponse{len: regions.len}
+	for i := 0; i < regions.len; i++ {
+		external_regions[i] = format_region_response(regions[i])
+	}
+
+	return ctx.handle_ok(RegionResponseListEnvelope{
+		regions: external_regions
+		count:   count
+		offset:  p.offset
+		fetch:   p.fetch
+	})
 }
 
 // creates a region

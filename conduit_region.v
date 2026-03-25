@@ -1,51 +1,15 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 
-fn conduit_region_list(mut app App, mut ctx Context, p RegionRetriveParams) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	count := model_region_retrieve_count(mut tx, p) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve region count', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if count == 0 {
-		tx.rollback() or {
-			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_error(perr)
-		}
-		return ctx.json(RegionResponseListEnvelope{
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
-
+fn conduit_region_list(mut app App, mut tx firebird.Transaction, p RegionRetriveParams) ![]Region {
 	mut regions := model_region_retrieve(mut tx, p) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve regions', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Failed to retrieve regions', err.msg())
 	}
 
 	// TODO fetch taxes
-
-	mut external_regions := []RegionResponse{len: regions.len}
-	for i := 0; i < regions.len; i++ {
-		external_regions[i] = format_region_response(regions[i])
-	}
-
-	return ctx.json(RegionResponseListEnvelope{
-		regions: external_regions
-		count:   count
-		offset:  p.offset
-		fetch:   p.fetch
-	})
+	return regions
 }
 
 fn conduit_region_get_by_id(mut app App, mut ctx Context, region_id ID) veb.Result {
