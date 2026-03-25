@@ -14,7 +14,7 @@ pub:
 fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
 	p := extract_user_list_request_query(m)
 
-	mut ids := []ID{}
+	mut ids := ?[]ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
@@ -64,7 +64,7 @@ fn extract_region_list_request_query(m map[string]string) RegionListRequestQuery
 fn hygienise_region_list_request_query(m map[string]string) !RegionRetriveParams {
 	p := extract_region_list_request_query(m)
 
-	mut ids := []ID{}
+	mut ids := ?[]ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
