@@ -55,7 +55,7 @@ fn model_region_retrieve_count(mut tx firebird.Transaction, p RegionRetriveParam
 }
 
 fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]Region {
-	base_query := 'SELECT
+	query := 'SELECT
 		id,
 		name,
 		created_at,
@@ -74,7 +74,7 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]
 		FETCH NEXT ? ROWS ONLY'
 	params = arrays.concat(params, p.offset, p.fetch)
 
-	data := tx.execute('${base_query} ${conditions} ${sorting}', ...params)!
+	data := tx.execute('${query} ${conditions} ${sorting}', ...params)!
 
 	rows := data.rows()
 

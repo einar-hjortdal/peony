@@ -76,18 +76,30 @@ fn hygienise_region_list_request_query(p RegionListRequestQuery) !RegionRetriveP
 	}
 }
 
-struct ListCountriesParams {
+struct ListCountriesQueryParams {
 pub:
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
+	codes  ?[]string
+	offset ?i32
+	fetch  ?i32
+	order  ?string
 }
 
-fn extract_retrieve_countries_params(p map[string]string) ListCountriesParams {
-	return ListCountriesParams{
-		offset: zero_i32(p, 'offset')
-		fetch:  zero_i32(p, 'fetch')
-		order:  zero_string(p, 'order')
+fn extract_retrieve_countries_params(p map[string]string) ListCountriesQueryParams {
+	return ListCountriesQueryParams{
+		codes:  get_none_array_string(p, 'codes')
+		offset: get_none_i32(p, 'offset')
+		fetch:  get_none_i32(p, 'fetch')
+		order:  get_none_string(p, 'order')
+	}
+}
+
+fn hygienise_country_list_query(m map[string]string) !CountryRetrieveParams {
+	p := extract_retrieve_countries_params(m)
+	return CountryRetrieveParams{
+		codes:  p.codes
+		offset: get_offset_or_default(p.offset)!
+		fetch:  get_fetch_or_default(p.fetch)!
+		order:  get_order_direction_or_default(p.order)!
 	}
 }
 
