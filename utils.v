@@ -204,10 +204,8 @@ fn hygienise_fetch_amount(zi32 ZeroI32) !i32 {
 	return zi32.v
 }
 
-// WIP
 interface Identifiable {
-	id_string() string
-	id_bytes() []u8
+	id() ID
 }
 
 struct ID {
@@ -223,11 +221,11 @@ fn new_id(mut g luuid.Generator) ID {
 	}
 }
 
-fn (id ID) id_string() string {
+fn (id ID) string() string {
 	return id.s
 }
 
-fn (id ID) id_bytes() []u8 {
+fn (id ID) bytes() []u8 {
 	return id.b
 }
 
@@ -270,7 +268,7 @@ fn ids_from_array_string(ids_string []string) ![]ID {
 fn ids_bytes(ids []ID) [][]u8 {
 	mut res := [][]u8{len: ids.len}
 	for i := 0; i < ids.len; i++ {
-		res[i] = ids[i].id_bytes()
+		res[i] = ids[i].bytes()
 	}
 	return res
 }

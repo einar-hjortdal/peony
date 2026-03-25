@@ -4,8 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Region {
-	id                 string
-	id_bin             []u8
+	id                 ID
 	name               string
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
@@ -18,28 +17,28 @@ mut:
 	tax_rates []TaxRate
 }
 
+fn (r Region) id() ID {
+	return r.id
+}
+
 struct RegionRetriveParams {
-	filter_by_id        bool
-	ids_bin             [][]u8
-	filter_by_name      bool
-	include_deleted     bool
-	use_offset          bool
-	offset              i32
-	fetch               i32
-	use_order_direction bool
-	order_direction     string
+	ids          ?[]ID
+	with_deleted bool
+	offset       i32
+	fetch        i32
+	order        string
 }
 
 fn conditions_region_retrieve(p RegionRetriveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if p.filter_by_id {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
 	}
 
-	if !p.include_deleted {
+	if !p.with_deleted {
 		conditions = arrays.concat(conditions, 'deleted_at is NULL')
 	}
 
@@ -70,20 +69,10 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]
 
 	mut conditions, mut params := conditions_region_retrieve(p)
 
-	mut order_direction := order_direction_default
-	if p.use_order_direction {
-		order_direction = p.order_direction
-	}
-
-	mut sorting := 'ORDER BY name ${order_direction}'
-
-	if p.use_offset {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset)
-	}
-
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, p.fetch)
+	mut sorting := 'ORDER BY created_at ${p.order} 
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
 	data := tx.execute('${base_query} ${conditions} ${sorting}', ...params)!
 
@@ -103,11 +92,10 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]
 		gift_cards_taxable, _ := v[7].get_bool()!
 		automatic_taxes, _ := v[8].get_bool()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
 		regions[i] = Region{
 			id:                 id
-			id_bin:             id_bin
 			name:               name
 			created_at:         created_at
 			updated_at:         updated_at
@@ -189,6 +177,7 @@ fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d Region
 	}
 }
 
-fn model_region_delete(mut tx firebird.Transaction, region_id_bin []u8) ! {
-	tx.execute('UPDATE region SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', region_id_bin)!
+fn model_region_delete(mut tx firebird.Transaction, region_id ID) ! {
+	tx.execute('UPDATE region SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', region_id.bytes())!
 }
+

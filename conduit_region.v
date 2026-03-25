@@ -48,11 +48,11 @@ fn conduit_region_list(mut app App, mut ctx Context, p RegionRetriveParams) veb.
 	})
 }
 
-fn conduit_region_get_by_id(mut app App, mut ctx Context, id_bin []u8) veb.Result {
+fn conduit_region_get_by_id(mut app App, mut ctx Context, region_id ID) veb.Result {
 	p := RegionRetriveParams{
-		filter_by_id: true
-		ids_bin:      [id_bin]
-		fetch:        1
+		ids:   [region_id]
+		fetch: 1
+		order: order_direction_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -125,10 +125,10 @@ fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d Reg
 	return success(mut ctx)
 }
 
-fn conduit_region_delete(mut app App, mut ctx Context, region_id_bin []u8) veb.Result {
+fn conduit_region_delete(mut app App, mut ctx Context, region_id ID) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_region_delete(mut tx, region_id_bin) or {
+	model_region_delete(mut tx, region_id) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not delete region', err.msg())
 		return ctx.handle_error(perr)
@@ -141,3 +141,4 @@ fn conduit_region_delete(mut app App, mut ctx Context, region_id_bin []u8) veb.R
 
 	return success(mut ctx)
 }
+

@@ -44,7 +44,7 @@ pub:
 
 fn format_user_response(u User) UserResponse {
 	return UserResponse{
-		id:         u.id.id_string()
+		id:         u.id.string()
 		handle:     u.handle
 		email:      u.email
 		role:       u.role
@@ -444,7 +444,7 @@ fn format_region_response(r Region) RegionResponse {
 	}
 
 	return RegionResponse{
-		id:                 r.id
+		id:                 r.id.string()
 		name:               r.name
 		created_at:         r.created_at.Time
 		updated_at:         r.updated_at.Time

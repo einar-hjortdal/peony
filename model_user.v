@@ -26,6 +26,10 @@ mut:
 	image UserImage
 }
 
+fn (u User) id() ID {
+	return u.id
+}
+
 fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id string, user_id_bin []u8) ! {
 	password_salt, password_hash := hash_password(p.password)!
 
@@ -61,7 +65,7 @@ struct UserListParams {
 	handle       ?string
 	email        ?string
 	roles        ?[]string
-	with_deleted ?bool
+	with_deleted bool
 	offset       i32
 	fetch        i32
 	order        string
@@ -91,11 +95,7 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 		params = arrays.concat(params, ...roles)
 	}
 
-	if with_deleted := p.with_deleted {
-		if !with_deleted {
-			conditions = arrays.concat(conditions, 'deleted_at IS NULL')
-		}
-	} else {
+	if !p.with_deleted {
 		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 

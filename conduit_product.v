@@ -48,9 +48,10 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	}
 
 	// TODO potentially loop fetch if there are more than max_fetch regions (unlikely)
-	regions := model_region_retrieve(mut tx, RegionRetriveParams{ fetch: max_fetch }) or {
-		return new_error_internal('Failed to retrieve regions', err.msg())
-	}
+	regions := model_region_retrieve(mut tx, RegionRetriveParams{
+		fetch: max_fetch
+		order: order_direction_default
+	}) or { return new_error_internal('Failed to retrieve regions', err.msg()) }
 
 	if _ := ph.tag_ids {
 		// TODO
@@ -277,7 +278,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	mut region_ids_bin := [][]u8{len: regions.len}
 	mut money_amount_ids_bin := [][]u8{len: regions.len}
 	for i := 0; i < regions.len; i++ {
-		region_ids_bin[i] = regions[i].id_bin
+		region_ids_bin[i] = regions[i].id.bytes()
 		_, money_amount_ids_bin[i] = app.new_id()
 	}
 
@@ -425,8 +426,8 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 					money_amounts_to_create[money_amounts_added] = VariantMoneyAmountUpdateParams{
 						variant_id:          variant_id
 						variant_id_bin:      variant_id_bin
-						region_id:           region.id
-						region_id_bin:       region.id_bin
+						region_id:           region.id.string()
+						region_id_bin:       region.id.bytes()
 						money_amount_id:     money_amount_id
 						money_amount_id_bin: money_amount_id_bin
 						is_original:         false
@@ -499,8 +500,8 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			money_amounts_to_create[i] = VariantMoneyAmountUpdateParams{
 				variant_id:          variant_id
 				variant_id_bin:      variant_id_bin
-				region_id:           region.id
-				region_id_bin:       region.id_bin
+				region_id:           region.id.string()
+				region_id_bin:       region.id.bytes()
 				money_amount_id:     money_amount_id
 				money_amount_id_bin: money_amount_id_bin
 				is_original:         false
@@ -1517,3 +1518,4 @@ fn conduit_product_delete(mut app App, mut ctx Context, product_id_bin []u8) ! {
 
 	tx.commit() or { return new_error_internal(error_transaction_commit, err.msg()) }
 }
+

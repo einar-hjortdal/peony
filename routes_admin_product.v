@@ -445,7 +445,10 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
+	regions := model_region_retrieve(mut tx, RegionRetriveParams{
+		fetch: max_fetch
+		order: order_direction_default
+	}) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve region', err.msg())
 		return ctx.handle_error(perr)
@@ -456,7 +459,7 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 		mut regions_map := map[string]bool{}
 		for i := 0; i < regions.len; i++ {
 			region := regions[i]
-			regions_map[region.id] = true
+			regions_map[region.id.string()] = true
 		}
 
 		region_ids := regional_prices.keys()
@@ -660,7 +663,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		mut regions_map := map[string]bool{}
 		for i := 0; i < regions.len; i++ {
 			region := regions[i]
-			regions_map[region.id] = true
+			regions_map[region.id.string()] = true
 		}
 
 		region_ids := regional_prices.keys()
@@ -790,3 +793,4 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 
 	return ctx.handle_deleted()
 }
+

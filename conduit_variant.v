@@ -176,6 +176,7 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		} else {
 			regions := model_region_retrieve(mut tx, RegionRetriveParams{
 				fetch: max_fetch
+				order: order_direction_default
 			}) or { return new_error_internal('Could not retrieve regions', err.msg()) }
 
 			if regions.len == 0 {
@@ -189,8 +190,8 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				variant_money_amount_update_params[i] = VariantMoneyAmountUpdateParams{
 					variant_id:          variant_id
 					variant_id_bin:      variant_id_bin
-					region_id:           region.id
-					region_id_bin:       region.id_bin
+					region_id:           region.id.string()
+					region_id_bin:       region.id.bytes()
 					money_amount_id:     id
 					money_amount_id_bin: id_bin
 					amount:              0
@@ -307,3 +308,4 @@ fn conduit_variant_delete(mut app App, mut ctx Context, mut tx firebird.Transact
 		return new_error_internal('Could not delete variant', err.msg())
 	}
 }
+

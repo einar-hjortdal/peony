@@ -39,11 +39,11 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 // TODO add query params
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
-	id_bin := id_string_to_bin(region_id) or {
+	id := id_from_string(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
 		return ctx.handle_error(perr)
 	}
-	return conduit_region_get_by_id(mut app, mut ctx, id_bin)
+	return conduit_region_get_by_id(mut app, mut ctx, id)
 }
 
 // updates a region
@@ -72,13 +72,15 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 // deletes a region
 @['/admin/regions/:region_id'; delete]
 pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
-	region_id_bin := id_string_to_bin(region_id) or {
+	id := id_from_string(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	p := RegionRetriveParams{
-		ids_bin: [region_id_bin]
+		ids:   [id]
+		fetch: max_fetch
+		order: order_direction_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -100,7 +102,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(perr)
 	}
 
-	if store.default_region_id_bin == region_id_bin {
+	if store.default_region_id == id.string() {
 		perr := new_error_bad_request('Could not delete region', 'Cannot delete default region')
 		return ctx.handle_error(perr)
 	}
@@ -110,5 +112,6 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_region_delete(mut app, mut ctx, region_id_bin)
+	return conduit_region_delete(mut app, mut ctx, id)
 }
+
