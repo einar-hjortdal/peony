@@ -14,9 +14,10 @@ fn conduit_region_list(mut app App, mut tx firebird.Transaction, p RegionRetrive
 
 fn conduit_region_get_by_id(mut app App, mut ctx Context, region_id ID) veb.Result {
 	p := RegionRetriveParams{
-		ids:   [region_id]
-		fetch: 1
-		order: order_direction_default
+		ids:    [region_id]
+		offset: offset_default
+		fetch:  1
+		order:  order_direction_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }

@@ -82,7 +82,7 @@ pub:
 
 fn format_locale_response(l Locale) LocaleResponse {
 	return LocaleResponse{
-		id:   l.id
+		id:   l.id.string()
 		code: l.code
 	}
 }

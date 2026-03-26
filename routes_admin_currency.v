@@ -47,8 +47,8 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 // get currency by code
 @['/admin/currencies/:code'; get]
 pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) veb.Result {
-	if code.len != 3 {
-		perr := new_error_bad_request(error_id_invalid, 'currency code too long or too short')
+	if utf8_str_visible_length(code) > length_currency_code {
+		perr := new_error_unprocessable_entity(error_field_too_long, 'currency code must be exactly ${length_currency_code} UTF8 characters long')
 		return ctx.handle_error(perr)
 	}
 

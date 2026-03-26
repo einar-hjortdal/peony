@@ -2,10 +2,10 @@ module peony
 
 import veb
 
-fn conduit_locale_list(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygienised) veb.Result {
+fn conduit_locale_list(mut app App, mut ctx Context, p LocaleRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_locale_retrieve_count(mut tx, ph) or {
+	count := model_locale_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve locale count', err.msg())
 		return ctx.handle_error(perr)
@@ -17,14 +17,12 @@ fn conduit_locale_list(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygi
 			return ctx.handle_error(perr)
 		}
 		return ctx.json(LocaleResponseListEnvelope{
-			locales: []LocaleResponse{}
-			count:   count
-			offset:  get_offset_amount(ph.offset)
-			fetch:   get_fetch_amount(ph.fetch)
+			offset: p.offset
+			fetch:  p.fetch
 		})
 	}
 
-	locales := model_locale_retrieve(mut tx, ph) or {
+	locales := model_locale_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve locale', err.msg())
 		return ctx.handle_error(perr)
@@ -43,15 +41,15 @@ fn conduit_locale_list(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygi
 	return ctx.json(LocaleResponseListEnvelope{
 		locales: external_locales
 		count:   count
-		offset:  get_offset_amount(ph.offset)
-		fetch:   get_fetch_amount(ph.fetch)
+		offset:  p.offset
+		fetch:   p.fetch
 	})
 }
 
-fn conduit_locale_get(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygienised) veb.Result {
+fn conduit_locale_get(mut app App, mut ctx Context, p LocaleRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	locales := model_locale_retrieve(mut tx, ph) or {
+	locales := model_locale_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve locale', err.msg())
 		return ctx.handle_error(perr)
@@ -68,3 +66,4 @@ fn conduit_locale_get(mut app App, mut ctx Context, ph LocaleRetrieveParamsHygie
 		locale: format_locale_response(locales[0])
 	})
 }
+

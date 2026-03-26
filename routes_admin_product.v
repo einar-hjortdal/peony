@@ -64,7 +64,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	mut store_locales_exist := map[string]bool{}
 	for i := 0; i < store_locales.len; i++ {
 		locale := store_locales[i]
-		store_locales_exist[locale.id] = true
+		store_locales_exist[locale.id.string()] = true
 	}
 
 	// TODO the loop to check translation locale_id exists is the same in all translatable objects. Abstract?

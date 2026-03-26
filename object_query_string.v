@@ -152,26 +152,36 @@ fn hygienise_currency_list_query(m map[string]string) !CurrencyRetrieveParams {
 	}
 }
 
-struct LocaleRetrieveParams {
+struct LocaleRetrieveQueryParams {
 pub:
-	ids    ZeroArrayString
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
+	ids    ?[]string
+	offset ?i32
+	fetch  ?i32
+	order  ?string
 }
 
-fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParamsHygienised {
-	ids := zero_array_string(m, 'ids')
-	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
-		return new_error_bad_request(error_id_invalid, 'ids')
+fn extract_locale_retrieve_params(m map[string]string) LocaleRetrieveQueryParams {
+	return LocaleRetrieveQueryParams{
+		ids:    get_none_array_string(m, 'ids')
+		offset: get_none_i32(m, 'offset')
+		fetch:  get_none_i32(m, 'fetch')
+		order:  get_none_string(m, 'order')
+	}
+}
+
+fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParams {
+	p := extract_locale_retrieve_params(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
 	}
 
-	return LocaleRetrieveParamsHygienised{
-		ids:     ids
-		ids_bin: ids_bin
-		offset:  zero_i32(m, 'offset')
-		fetch:   zero_i32(m, 'fetch')
-		order:   zero_string(m, 'order')
+	return LocaleRetrieveParams{
+		ids:    ids
+		offset: get_offset_or_default(p.offset)!
+		fetch:  get_fetch_or_default(p.fetch)!
+		order:  get_order_direction_or_default(p.order)!
 	}
 }
 
@@ -447,14 +457,6 @@ fn hygienise_category_get_request_query(p ProductCategoryGetRequestQuery, catego
 		ids_bin:       [category_id_bin]
 		locale_id_bin: locale_id_bin
 	}
-}
-
-struct LocaleRetrieveParamsHygienised {
-	ids     ZeroArrayString
-	ids_bin [][]u8
-	offset  ZeroI32
-	fetch   ZeroI32
-	order   ZeroString
 }
 
 // handles expects a string that is a single handle, or many comma-separated handles.

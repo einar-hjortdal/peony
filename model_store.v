@@ -86,12 +86,11 @@ fn model_store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
 		id_bin, _ := v[0].get_array_u8()!
 		code, _ := v[1].get_string()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
 		locales[i] = Locale{
-			id:     id
-			id_bin: id_bin
-			code:   code
+			id:   id
+			code: code
 		}
 	}
 
@@ -165,3 +164,4 @@ fn model_store_update(mut tx firebird.Transaction, id_bin []u8, ph StoreUpdateRe
 	tx.execute('UPDATE store SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
 }
+
