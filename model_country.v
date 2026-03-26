@@ -20,8 +20,13 @@ fn conditions_countries_retrieve(p CountryRetrieveParams) (string, []firebird.Va
 	mut params := []firebird.Value{}
 
 	if codes := p.codes {
+		// workaround_24757() but for strings
+		mut c := []firebird.Value{len: codes.len, init: firebird.Null{}}
+		for i := 0; i < codes.len; i++ {
+			c[i] = firebird.Value(codes[i])
+		}
 		conditions = arrays.concat(conditions, 'code IN (${get_placeholders(codes)})')
-		params = arrays.concat(params, ...codes)
+		params = arrays.concat(params, ...c)
 	}
 
 	return get_where_conditions(conditions), params
@@ -38,14 +43,14 @@ fn model_country_retrieve_count(mut tx firebird.Transaction, p CountryRetrievePa
 
 fn model_country_retrieve(mut tx firebird.Transaction, p CountryRetrieveParams) ![]Country {
 	conditions, mut params := conditions_countries_retrieve(p)
-	query := 'SELECT code, region_id FROM country'
 
 	mut sorting := 'ORDER BY created_at ${p.order} 
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY'
 	params = arrays.concat(params, p.offset, p.fetch)
 
-	data := tx.execute('${query} ${conditions} ${sorting}', ...params)!
+	query := 'SELECT code, region_id FROM country ${conditions} ${sorting}'
+	data := tx.execute(query, ...params)!
 	rows := data.rows()
 
 	mut countries := []Country{len: rows.len}

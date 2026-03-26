@@ -13,6 +13,9 @@ pub const order_direction_asc = 'ASC'
 pub const order_direction_desc = 'DESC'
 pub const order_direction_default = order_direction_asc
 
+pub const length_currency_code = 3
+pub const length_country_code = 2
+
 pub const max_length_first_name = 63
 pub const max_length_last_name = 63
 pub const max_length_alt = 191

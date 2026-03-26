@@ -1,57 +1,22 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 
-fn conduit_currency_list(mut app App, mut ctx Context, p RetrieveCurrenciesParams) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	count := model_currency_retrieve_count(mut tx, p) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve currency count', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if count == 0 {
-		tx.rollback() or {
-			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_error(perr)
-		}
-		return ctx.json(CurrencyResponseListEnvelope{
-			offset: get_offset_amount(p.offset)
-			fetch:  p.fetch.v
-		})
-	}
-
+fn conduit_currency_list(mut app App, mut tx firebird.Transaction, p CurrencyRetrieveParams) ![]Currency {
 	currencies := model_currency_retrieve(mut tx, p) or {
-		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve currencies from database', err.msg())
-		return ctx.handle_error(perr)
+		return new_error_internal('Could not retrieve currencies from database', err.msg())
 	}
 
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	mut external_currencies := []CurrencyResponse{len: currencies.len}
-	for i := 0; i < currencies.len; i++ {
-		external_currencies[i] = format_currency_response(currencies[i])
-	}
-
-	return ctx.json(CurrencyResponseListEnvelope{
-		currencies: external_currencies
-		count:      count
-		offset:     get_offset_amount(p.offset)
-		fetch:      p.fetch.v
-	})
+	return currencies
 }
 
 fn conduit_currency_get(mut app App, mut ctx Context, code string) veb.Result {
-	p := RetrieveCurrenciesParams{
-		codes: ZeroArrayString{
-			is_set: true
-			v:      [code]
-		}
+	p := CurrencyRetrieveParams{
+		codes:  [code]
+		offset: offset_default
+		fetch:  1
+		order:  order_direction_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -88,3 +53,4 @@ fn conduit_currency_get(mut app App, mut ctx Context, code string) veb.Result {
 		currency: external_currency
 	})
 }
+

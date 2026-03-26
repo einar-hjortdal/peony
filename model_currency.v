@@ -8,27 +8,31 @@ struct Currency {
 	decimal_digits firebird.NullI32
 }
 
-fn conditions_currency_retrieve(p RetrieveCurrenciesParams) (string, []firebird.Value) {
+struct CurrencyRetrieveParams {
+	codes  ?[]string
+	offset i32
+	fetch  i32
+	order  string
+}
+
+fn conditions_currency_retrieve(p CurrencyRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if p.codes.is_set {
+	if codes := p.codes {
 		// workaround_24757() but for strings
-		mut c := []firebird.Value{len: p.codes.v.len, init: firebird.Null{}}
-		for i := 0; i < p.codes.v.len; i++ {
-			c[i] = firebird.Value(p.codes.v[i])
+		mut c := []firebird.Value{len: codes.len, init: firebird.Null{}}
+		for i := 0; i < codes.len; i++ {
+			c[i] = firebird.Value(codes[i])
 		}
-		conditions = arrays.concat(conditions, 'code IN (${get_placeholders(p.codes.v)})')
-		// v: ['EUR']
-		// firebird.Value(5395781)
-		// params = arrays.concat(params, ...p.code.v)
+		conditions = arrays.concat(conditions, 'code IN (${get_placeholders(codes)})')
 		params = arrays.concat(params, ...c)
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_currency_retrieve_count(mut tx firebird.Transaction, p RetrieveCurrenciesParams) !i64 {
+fn model_currency_retrieve_count(mut tx firebird.Transaction, p CurrencyRetrieveParams) !i64 {
 	conditions, params := conditions_currency_retrieve(p)
 	data := tx.execute('SELECT COUNT(*) FROM currency ${conditions}', ...params)!
 	rows := data.rows()
@@ -37,24 +41,16 @@ fn model_currency_retrieve_count(mut tx firebird.Transaction, p RetrieveCurrenci
 	return count
 }
 
-fn model_currency_retrieve(mut tx firebird.Transaction, p RetrieveCurrenciesParams) ![]Currency {
+fn model_currency_retrieve(mut tx firebird.Transaction, p CurrencyRetrieveParams) ![]Currency {
 	conditions, mut params := conditions_currency_retrieve(p)
 
-	mut sorting := ''
-	sorting = appendln(sorting, 'ORDER BY code ${get_sorting_order(p.order)}')
+	mut sorting := 'ORDER BY created_at ${p.order} 
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
-	if p.offset.is_set {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
-	}
-
-	if p.fetch.is_set {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch.v)
-	}
-
-	data := tx.execute('SELECT code, decimal_digits FROM currency ${conditions} ${sorting}',
-		...params)!
+	query := 'SELECT code, decimal_digits FROM currency ${conditions} ${sorting}'
+	data := tx.execute(query, ...params)!
 	rows := data.rows()
 
 	mut currencies := []Currency{len: rows.len}
@@ -72,3 +68,4 @@ fn model_currency_retrieve(mut tx firebird.Transaction, p RetrieveCurrenciesPara
 
 	return currencies
 }
+

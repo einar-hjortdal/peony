@@ -78,7 +78,7 @@ fn hygienise_region_list_request_query(m map[string]string) !RegionRetriveParams
 	}
 }
 
-struct ListCountriesQueryParams {
+struct CountryListQueryParams {
 pub:
 	codes  ?[]string
 	offset ?i32
@@ -86,8 +86,8 @@ pub:
 	order  ?string
 }
 
-fn extract_retrieve_countries_params(p map[string]string) ListCountriesQueryParams {
-	return ListCountriesQueryParams{
+fn extract_retrieve_countries_params(p map[string]string) CountryListQueryParams {
+	return CountryListQueryParams{
 		codes:  get_none_array_string(p, 'codes')
 		offset: get_none_i32(p, 'offset')
 		fetch:  get_none_i32(p, 'fetch')
@@ -97,6 +97,16 @@ fn extract_retrieve_countries_params(p map[string]string) ListCountriesQueryPara
 
 fn hygienise_country_list_query(m map[string]string) !CountryRetrieveParams {
 	p := extract_retrieve_countries_params(m)
+
+	if codes := p.codes {
+		for i := 0; i < codes.len; i++ {
+			code := codes[i]
+			if utf8_str_visible_length(code) > length_country_code {
+				return new_error_unprocessable_entity(error_field_too_long, 'country code must be exactly ${length_country_code} UTF8 characters long')
+			}
+		}
+	}
+
 	return CountryRetrieveParams{
 		codes:  p.codes
 		offset: get_offset_or_default(p.offset)!
@@ -105,20 +115,40 @@ fn hygienise_country_list_query(m map[string]string) !CountryRetrieveParams {
 	}
 }
 
-struct RetrieveCurrenciesParams {
+struct CurrencyListQueryParams {
 pub:
-	codes  ZeroArrayString
-	offset ZeroI32
-	fetch  ZeroI32
-	order  ZeroString
+	codes  ?[]string
+	offset ?i32
+	fetch  ?i32
+	order  ?string
 }
 
-fn extract_retrieve_currencies_params(m map[string]string) RetrieveCurrenciesParams {
-	return RetrieveCurrenciesParams{
-		codes:  zero_array_string(m, 'codes')
-		offset: zero_i32(m, 'offset')
-		fetch:  zero_i32(m, 'fetch')
-		order:  zero_string(m, 'order')
+fn extract_retrieve_currencies_params(m map[string]string) CurrencyListQueryParams {
+	return CurrencyListQueryParams{
+		codes:  get_none_array_string(m, 'codes')
+		offset: get_none_i32(m, 'offset')
+		fetch:  get_none_i32(m, 'fetch')
+		order:  get_none_string(m, 'order')
+	}
+}
+
+fn hygienise_currency_list_query(m map[string]string) !CurrencyRetrieveParams {
+	p := extract_retrieve_currencies_params(m)
+
+	if codes := p.codes {
+		for i := 0; i < codes.len; i++ {
+			code := codes[i]
+			if utf8_str_visible_length(code) > length_currency_code {
+				return new_error_unprocessable_entity(error_field_too_long, 'currency code must be exactly ${length_currency_code} UTF8 characters long')
+			}
+		}
+	}
+
+	return CurrencyRetrieveParams{
+		codes:  p.codes
+		offset: get_offset_or_default(p.offset)!
+		fetch:  get_fetch_or_default(p.fetch)!
+		order:  get_order_direction_or_default(p.order)!
 	}
 }
 
