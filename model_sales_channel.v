@@ -4,8 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 
 struct SalesChannel {
-	id          string
-	id_bin      []u8
+	id          ID
 	created_at  firebird.DateTime
 	updated_at  firebird.DateTime
 	deleted_at  firebird.DateTime
@@ -16,50 +15,47 @@ struct SalesChannel {
 	// stock_locations []StockLocation
 }
 
-fn model_sales_channel_retrieve_conditions(ph ListSalesChannelsParamsHygienised) (string, []firebird.Value) {
-	mut params := []firebird.Value{}
-	mut conditions := []string{}
-	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
-	}
+fn (sc SalesChannel) id() ID {
+	return sc.id
+}
 
-	if ph.product_ids.is_set {
-		conditions = arrays.concat(conditions, 'EXISTS (
-			SELECT 1 FROM product_sales_channel psc
-			WHERE psc.sales_channel_id = sales_channel.id
-				AND product_id IN (${get_placeholders(ph.product_ids_bin)})
-			)')
-		params = arrays.concat(params, ...workaround_24757(ph.product_ids_bin))
+struct SalesChannelRetrieveParams {
+	ids    ?[]ID
+	offset i32
+	fetch  i32
+	order  string
+}
+
+fn model_sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, []firebird.Value) {
+	mut conditions := []string{}
+	mut params := []firebird.Value{}
+
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_sales_channel_retrieve_count(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) !i64 {
-	conditions, params := model_sales_channel_retrieve_conditions(ph)
-	data := tx.execute('SELECT COUNT(*) FROM sales_channel ${conditions}', ...params)!
+fn model_sales_channel_retrieve_count(mut tx firebird.Transaction, p SalesChannelRetrieveParams) !i64 {
+	conditions, params := model_sales_channel_retrieve_conditions(p)
+	query := 'SELECT COUNT(*) FROM sales_channel ${conditions}'
+	data := tx.execute(query, ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
 	count, _ := values[0].get_i64()! // should always return one column
 	return count
 }
 
-fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannelsParamsHygienised) ![]SalesChannel {
-	conditions, mut params := model_sales_channel_retrieve_conditions(ph)
-	mut sorting := 'ORDER BY name ${get_sorting_order(ph.order)}'
+fn model_sales_channel_retrieve(mut tx firebird.Transaction, p SalesChannelRetrieveParams) ![]SalesChannel {
+	conditions, mut params := model_sales_channel_retrieve_conditions(p)
+	mut sorting := 'ORDER BY created_at ${p.order}
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
-	if ph.offset.is_set {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, ph.offset.v)
-	}
-
-	if ph.fetch.is_set {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, ph.fetch.v)
-	}
-
-	data := tx.execute('SELECT
+	query := 'SELECT
 		id,
 		created_at,
 		updated_at,
@@ -69,14 +65,10 @@ fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannel
 		is_disabled
 		FROM sales_channel
 		${conditions}
-		${sorting}',
-		...params)!
+		${sorting}'
+	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
-
-	if rows.len == 0 {
-		return []SalesChannel{}
-	}
 
 	mut sales_channels := []SalesChannel{len: rows.len}
 	for i := 0; i < rows.len; i++ {
@@ -90,11 +82,10 @@ fn model_sales_channel_retrieve(mut tx firebird.Transaction, ph ListSalesChannel
 		description, _ := v[5].get_string()!
 		is_disabled, _ := v[6].get_bool()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
 		sales_channels[i] = SalesChannel{
 			id:          id
-			id_bin:      id_bin
 			created_at:  created_at
 			updated_at:  updated_at
 			deleted_at:  deleted_at
@@ -288,3 +279,4 @@ fn model_sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_
 	tx.execute('DELETE FROM sales_channel_stock_location WHERE sales_channel_id = ? AND stock_location_id = ?)',
 		sales_channel_id_bin, stock_location_id_bin)!
 }
+

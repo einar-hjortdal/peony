@@ -6,43 +6,25 @@ import json
 // lists sales channels
 @['/admin/sales-channels'; get]
 pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
-	p := extract_retrieve_sales_channels_params(ctx.query)
-	if p.fetch.is_set && p.fetch.v == 0 {
-		err := new_error_fetch_zero()
-		return ctx.handle_error(err)
-	}
+	p := hygienise_sales_channels_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		perr := new_error_bad_request(error_id_invalid, 'ids')
-		return ctx.handle_error(perr)
-	}
-
-	ph := ListSalesChannelsParamsHygienised{
-		ids:     p.ids
-		ids_bin: ids_bin
-		offset:  p.offset
-		fetch:   p.fetch
-		order:   p.order
-	}
-
-	return conduit_sales_channels_get(mut app, mut ctx, ph)
+	return conduit_sales_channels_get(mut app, mut ctx, p)
 }
 
 // retrieves a sales channel by id
 @['/admin/sales-channels/:sales_channel_id'; get]
 pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_id string) veb.Result {
-	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
+	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
 		return ctx.handle_error(perr)
 	}
 
-	ph := ListSalesChannelsParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [sales_channel_id_bin]
-	}
-	return conduit_sales_channels_get(mut app, mut ctx, ph)
+	return conduit_sales_channels_get(mut app, mut ctx, SalesChannelRetrieveParams{
+		ids:    [parsed_sales_channel_id]
+		offset: offset_default
+		fetch:  1
+		order:  order_direction_default
+	})
 }
 
 // creates a sales channel
@@ -148,3 +130,4 @@ pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales
 	return conduit_sales_channel_stock_location_delete(mut app, mut ctx, sales_channel_id_bin,
 		stock_location_id_bin)
 }
+

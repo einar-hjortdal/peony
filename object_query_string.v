@@ -152,7 +152,7 @@ fn hygienise_currency_list_query(m map[string]string) !CurrencyRetrieveParams {
 	}
 }
 
-struct LocaleRetrieveQueryParams {
+struct LocaleListQueryParams {
 pub:
 	ids    ?[]string
 	offset ?i32
@@ -160,8 +160,8 @@ pub:
 	order  ?string
 }
 
-fn extract_locale_retrieve_params(m map[string]string) LocaleRetrieveQueryParams {
-	return LocaleRetrieveQueryParams{
+fn extract_locale_retrieve_params(m map[string]string) LocaleListQueryParams {
+	return LocaleListQueryParams{
 		ids:    get_none_array_string(m, 'ids')
 		offset: get_none_i32(m, 'offset')
 		fetch:  get_none_i32(m, 'fetch')
@@ -185,34 +185,36 @@ fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParams {
 	}
 }
 
-struct ListSalesChannelsParams {
+struct SalesChannelListQueryParams {
 pub:
-	ids         ZeroArrayString
-	name        ZeroString
-	description ZeroString
-	product_ids ZeroArrayString
-	offset      ZeroI32
-	fetch       ZeroI32
-	order       ZeroString
+	ids    ?[]string
+	offset ?i32
+	fetch  ?i32
+	order  ?string
 }
 
-struct ListSalesChannelsParamsHygienised {
-	ids             ZeroArrayString
-	ids_bin         [][]u8
-	product_ids     ZeroArrayString
-	product_ids_bin [][]u8
-	offset          ZeroI32
-	fetch           ZeroI32
-	order           ZeroString
+fn extract_sales_channels_list_query_params(m map[string]string) SalesChannelListQueryParams {
+	return SalesChannelListQueryParams{
+		ids:    get_none_array_string(m, 'ids')
+		offset: get_none_i32(m, 'offset')
+		fetch:  get_none_i32(m, 'fetch')
+		order:  get_none_string(m, 'order')
+	}
 }
 
-fn extract_retrieve_sales_channels_params(p map[string]string) ListSalesChannelsParams {
-	return ListSalesChannelsParams{
-		ids:         zero_array_string(p, 'ids')
-		product_ids: zero_array_string(p, 'product_ids')
-		offset:      zero_i32(p, 'offset')
-		fetch:       zero_i32(p, 'fetch')
-		order:       zero_string(p, 'order')
+fn hygienise_sales_channels_list_query_params(m map[string]string) !SalesChannelRetrieveParams {
+	p := extract_sales_channels_list_query_params(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
+	}
+
+	return SalesChannelRetrieveParams{
+		ids:    ids
+		offset: get_offset_or_default(p.offset)!
+		fetch:  get_fetch_or_default(p.fetch)!
+		order:  get_order_direction_or_default(p.order)!
 	}
 }
 

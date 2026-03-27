@@ -280,6 +280,18 @@ fn (mut app App) gen_id() ID {
 	return new_id(mut app.luuid_generator)
 }
 
+fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
+	mut map_res := map[string]T{}
+	mut arr_res := []ID{len: identifiables.len}
+	for i := 0; i < identifiables.len; i++ {
+		identifiable := identifiables[i]
+		id := identifiable.id()
+		map_res[id.string()] = identifiable
+		arr_res[i] = id.bytes()
+	}
+	return map_res, arr_res
+}
+
 // WIP
 interface Translation {
 	locale_id() string
@@ -438,18 +450,6 @@ fn make_category_map(p []Category) (map[string]Category, [][]u8) {
 	return m, a
 }
 
-fn make_sales_channel_map(p []SalesChannel) (map[string]SalesChannel, [][]u8) {
-	mut m := map[string]SalesChannel{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
-}
-
 fn make_product_option_map(p []ProductOption) (map[string]ProductOption, [][]u8) {
 	mut m := map[string]ProductOption{}
 	mut a := [][]u8{len: p.len}
@@ -472,14 +472,6 @@ fn make_product_option_value_map(p []ProductOptionValue) (map[string]ProductOpti
 		a[i] = id_bin
 	}
 	return m, a
-}
-
-fn get_sales_channel_ids_bin(sales_channels []SalesChannel) [][]u8 {
-	mut sales_channel_ids_bin := [][]u8{len: sales_channels.len}
-	for i := 0; i < sales_channels.len; i++ {
-		sales_channel_ids_bin[i] = sales_channels[i].id_bin
-	}
-	return sales_channel_ids_bin
 }
 
 fn format_field_too_long_details(field_name string, max_utf8_length i32) string {

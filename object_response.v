@@ -633,7 +633,7 @@ fn format_variant_response_store(v ProductVariant, p VariantPrice, product_varia
 
 fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
 	return SalesChannelResponse{
-		id:          v.id
+		id:          v.id.string()
 		created_at:  v.created_at.Time
 		updated_at:  v.updated_at.Time
 		deleted_at:  v.deleted_at.Time

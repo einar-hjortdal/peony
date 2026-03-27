@@ -40,16 +40,23 @@ fn conduit_sales_channel_update(mut app App, mut ctx Context, sales_channel_id_b
 	return success(mut ctx)
 }
 
-fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannelsParamsHygienised) veb.Result {
+fn conduit_sales_channels_get(mut app App, mut ctx Context, p SalesChannelRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_sales_channel_retrieve_count(mut tx, ph) or {
+	count := model_sales_channel_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve sales channels count', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	sales_channels := model_sales_channel_retrieve(mut tx, ph) or {
+	if count == 0 {
+		return ctx.json(SalesChannelResponseEnvelope{
+			offset: p.offset
+			fetch:  p.fetch
+		})
+	}
+
+	sales_channels := model_sales_channel_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve sales channels', err.msg())
 		return ctx.handle_error(perr)
@@ -65,13 +72,12 @@ fn conduit_sales_channels_get(mut app App, mut ctx Context, ph ListSalesChannels
 		external_sales_channels[i] = format_sales_channel_response(sales_channels[i])
 	}
 
-	r := SalesChannelResponseEnvelope{
+	return ctx.json(SalesChannelResponseEnvelope{
 		sales_channels: external_sales_channels
 		count:          count
-		offset:         get_offset_amount(ph.offset)
-		fetch:          ph.fetch.v
-	}
-	return ctx.json(r)
+		offset:         p.offset
+		fetch:          p.fetch
+	})
 }
 
 fn conduit_sales_channel_stock_location_add(mut app App, mut ctx Context, sales_channel_id_bin []u8, stock_location_id_bin []u8) veb.Result {
@@ -110,3 +116,4 @@ fn conduit_sales_channel_stock_location_delete(mut app App, mut ctx Context, sal
 
 	return success(mut ctx)
 }
+
