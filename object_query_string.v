@@ -284,42 +284,64 @@ fn hygienise_sales_channels_list_query_params(m map[string]string) !SalesChannel
 	}
 }
 
-struct RetrieveProductVariantParams {
+pub struct CategoryListQueryParams {
 pub:
-	ids             ZeroArrayString
-	product_ids     ZeroArrayString
-	allow_backorder ZeroBool
-	region_id       ZeroString
-	title           ZeroString
-	with_deleted    ZeroBool
-	offset          ZeroI32
-	fetch           ZeroI32
-	order           ZeroString
+	ids                ?[]string
+	handle             ?string
+	is_active          ?bool
+	is_internal        ?bool
+	product_ids        ?[]string
+	parent_category_id ?string
+	with_deleted       ?bool
+	offset             ?i32
+	fetch              ?i32
+	order              ?string
 }
 
-struct RetrieveProductVariantParamsHygienised {
-	ids             ZeroArrayString
-	ids_bin         [][]u8
-	product_ids     ZeroArrayString
-	product_ids_bin [][]u8
-	allow_backorder ZeroBool
-	region_id       ZeroString
-	region_id_bin   []u8
-	with_deleted    ZeroBool
-	offset          ZeroI32
-	fetch           ZeroI32
-	order           ZeroString
+fn extract_category_list_request_query(m map[string]string) CategoryListQueryParams {
+	return CategoryListQueryParams{
+		ids:                get_none_array_string(m, 'ids')
+		handle:             get_none_string(m, 'handle')
+		is_active:          get_none_bool(m, 'is_active')
+		is_internal:        get_none_bool(m, 'is_internal')
+		product_ids:        get_none_array_string(m, 'product_ids')
+		parent_category_id: get_none_string(m, 'parent_category_id')
+		with_deleted:       get_none_bool(m, 'with_deleted')
+		offset:             get_none_i32(m, 'offset')
+		fetch:              get_none_i32(m, 'fetch')
+		order:              get_none_string(m, 'order')
+	}
 }
 
-fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductVariantParams {
-	return RetrieveProductVariantParams{
-		ids:             zero_array_string(m, 'ids')
-		product_ids:     zero_array_string(m, 'product_ids')
-		allow_backorder: zero_bool(m, 'allow_backorder')
-		region_id:       zero_string(m, 'region_id')
-		offset:          zero_i32(m, 'offset')
-		fetch:           zero_i32(m, 'fetch')
-		order:           zero_string(m, 'order')
+fn hygienise_category_list_request_query(m map[string]string) !CategoryRetrieveParams {
+	p := extract_category_list_request_query(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
+	}
+
+	mut parent_category_id := ?ID(none)
+	if id_string := p.parent_category_id {
+		parent_category_id = id_from_string(id_string)!
+	}
+
+	mut product_ids := ?[]ID(none)
+	if ids_string := p.product_ids {
+		product_ids = ids_from_array_string(ids_string)!
+	}
+
+	return CategoryRetrieveParams{
+		ids:                ids
+		handle:             p.handle
+		is_active:          p.is_active
+		is_internal:        p.is_active
+		product_ids:        product_ids
+		parent_category_id: parent_category_id
+		with_deleted:       bool_or(p.with_deleted, false)
+		offset:             get_offset_or_default(p.offset)!
+		fetch:              get_fetch_or_default(p.fetch)!
+		order:              get_order_direction_or_default(p.order)!
 	}
 }
 
@@ -479,68 +501,6 @@ fn hygienise_product_get_request_query_store(m map[string]string, product_id str
 	}
 }
 
-// handles expects a string that is a single handle, or many comma-separated handles.
-pub struct CategoryListQueryParams {
-pub:
-	ids                ?[]string
-	handle             ?string
-	is_active          ?bool
-	is_internal        ?bool
-	product_ids        ?[]string
-	parent_category_id ?string
-	with_deleted       ?bool
-	offset             ?i32
-	fetch              ?i32
-	order              ?string
-}
-
-fn extract_category_list_request_query(m map[string]string) CategoryListQueryParams {
-	return CategoryListQueryParams{
-		ids:                get_none_array_string(m, 'ids')
-		handle:             get_none_string(m, 'handle')
-		is_active:          get_none_bool(m, 'is_active')
-		is_internal:        get_none_bool(m, 'is_internal')
-		product_ids:        get_none_array_string(m, 'product_ids')
-		parent_category_id: get_none_string(m, 'parent_category_id')
-		with_deleted:       get_none_bool(m, 'with_deleted')
-		offset:             get_none_i32(m, 'offset')
-		fetch:              get_none_i32(m, 'fetch')
-		order:              get_none_string(m, 'order')
-	}
-}
-
-fn hygienise_category_list_request_query(m map[string]string) !CategoryRetrieveParams {
-	p := extract_category_list_request_query(m)
-
-	mut ids := ?[]ID(none)
-	if ids_string := p.ids {
-		ids = ids_from_array_string(ids_string)!
-	}
-
-	mut parent_category_id := ?ID(none)
-	if id_string := p.parent_category_id {
-		parent_category_id = id_from_string(id_string)!
-	}
-
-	mut product_ids := ?[]ID(none)
-	if ids_string := p.product_ids {
-		product_ids = ids_from_array_string(ids_string)!
-	}
-
-	return CategoryRetrieveParams{
-		ids:                ids
-		handle:             p.handle
-		is_active:          p.is_active
-		is_internal:        p.is_active
-		product_ids:        product_ids
-		parent_category_id: parent_category_id
-		with_deleted:       bool_or(p.with_deleted, false)
-		offset:             get_offset_or_default(p.offset)!
-		fetch:              get_fetch_or_default(p.fetch)!
-		order:              get_order_direction_or_default(p.order)!
-	}
-}
-
 struct RetrieveProductParamsHygienised {
 	ids                   ZeroArrayString
 	ids_bin               [][]u8
@@ -614,6 +574,45 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 		offset:                zero_i32(m, 'offset')
 		fetch:                 zero_i32(m, 'fetch')
 		order:                 zero_string(m, 'order')
+	}
+}
+
+struct RetrieveProductVariantParams {
+pub:
+	ids             ZeroArrayString
+	product_ids     ZeroArrayString
+	allow_backorder ZeroBool
+	region_id       ZeroString
+	title           ZeroString
+	with_deleted    ZeroBool
+	offset          ZeroI32
+	fetch           ZeroI32
+	order           ZeroString
+}
+
+struct RetrieveProductVariantParamsHygienised {
+	ids             ZeroArrayString
+	ids_bin         [][]u8
+	product_ids     ZeroArrayString
+	product_ids_bin [][]u8
+	allow_backorder ZeroBool
+	region_id       ZeroString
+	region_id_bin   []u8
+	with_deleted    ZeroBool
+	offset          ZeroI32
+	fetch           ZeroI32
+	order           ZeroString
+}
+
+fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductVariantParams {
+	return RetrieveProductVariantParams{
+		ids:             zero_array_string(m, 'ids')
+		product_ids:     zero_array_string(m, 'product_ids')
+		allow_backorder: zero_bool(m, 'allow_backorder')
+		region_id:       zero_string(m, 'region_id')
+		offset:          zero_i32(m, 'offset')
+		fetch:           zero_i32(m, 'fetch')
+		order:           zero_string(m, 'order')
 	}
 }
 
