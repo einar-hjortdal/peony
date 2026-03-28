@@ -1,6 +1,6 @@
 module peony
 
-pub struct UserListRequestQuery {
+pub struct UserListQueryParams {
 pub:
 	ids          ?[]string
 	email        ?string
@@ -9,6 +9,18 @@ pub:
 	offset       ?i32
 	fetch        ?i32
 	order        ?string
+}
+
+fn extract_user_list_request_query(m map[string]string) UserListQueryParams {
+	return UserListQueryParams{
+		ids:          get_none_array_string(m, 'ids')
+		email:        get_none_string(m, 'email')
+		handle:       get_none_string(m, 'handle')
+		with_deleted: get_none_bool(m, 'with_deleted')
+		offset:       get_none_i32(m, 'offset')
+		fetch:        get_none_i32(m, 'fetch')
+		order:        get_none_string(m, 'order')
+	}
 }
 
 fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
@@ -30,19 +42,7 @@ fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
 	}
 }
 
-fn extract_user_list_request_query(m map[string]string) UserListRequestQuery {
-	return UserListRequestQuery{
-		ids:          get_none_array_string(m, 'ids')
-		email:        get_none_string(m, 'email')
-		handle:       get_none_string(m, 'handle')
-		with_deleted: get_none_bool(m, 'with_deleted')
-		offset:       get_none_i32(m, 'offset')
-		fetch:        get_none_i32(m, 'fetch')
-		order:        get_none_string(m, 'order')
-	}
-}
-
-pub struct RegionListRequestQuery {
+pub struct RegionListQueryParams {
 pub:
 	ids          ?[]string
 	with_deleted ?bool
@@ -51,8 +51,8 @@ pub:
 	order        ?string
 }
 
-fn extract_region_list_request_query(m map[string]string) RegionListRequestQuery {
-	return RegionListRequestQuery{
+fn extract_region_list_request_query(m map[string]string) RegionListQueryParams {
+	return RegionListQueryParams{
 		ids:          get_none_array_string(m, 'ids')
 		with_deleted: get_none_bool(m, 'with_deleted')
 		offset:       get_none_i32(m, 'offset')
