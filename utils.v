@@ -232,10 +232,6 @@ fn (id ID) bytes() []u8 {
 	return id.b
 }
 
-fn (id ID) is_null() bool {
-	return id.s == '' && id.b.len == 0
-}
-
 fn id_from_string(s string) !ID {
 	return ID{
 		s: s
@@ -248,14 +244,6 @@ fn id_from_bytes(b []u8) !ID {
 		s: luuid.from_bytes(b)!
 		b: b
 	}
-}
-
-// to parse Firebird's `BINARY(16)` columns
-fn id_from_nullable_bytes(nb firebird.NullArrayU8) !ID {
-	if nb.is_null {
-		return ID{}
-	}
-	return id_from_bytes(nb.value)
 }
 
 // to parse query strings
@@ -438,18 +426,6 @@ fn make_inventory_item_map(p []InventoryItem) (map[string]InventoryItem, [][]u8)
 	return m, a
 }
 
-fn make_category_map(p []Category) (map[string]Category, [][]u8) {
-	mut m := map[string]Category{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
-}
-
 fn make_product_option_map(p []ProductOption) (map[string]ProductOption, [][]u8) {
 	mut m := map[string]ProductOption{}
 	mut a := [][]u8{len: p.len}
@@ -609,3 +585,4 @@ fn get_order_direction_or_default(direction ?string) !string {
 struct LocaleContext {
 	locale_id ?ID
 }
+

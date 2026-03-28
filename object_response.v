@@ -696,9 +696,9 @@ fn format_category_translations(p []CategoryTranslation) map[string]CategoryTran
 	mut res := map[string]CategoryTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
-		locale_id := translation.locale_id
+		locale_id := translation.locale_id.string()
 		res[locale_id] = CategoryTranslationResponse{
-			category_id: translation.category_id
+			category_id: translation.category_id.string()
 			name:        translation.name.value
 			description: translation.description.value
 		}
@@ -724,13 +724,18 @@ pub:
 }
 
 fn format_category_response(p Category) CategoryResponse {
+	mut parent_category_id_string := ''
+	if parent_category_id := p.parent_category_id {
+		parent_category_id_string = parent_category_id.string()
+	}
+
 	return CategoryResponse{
-		id:                 p.id
+		id:                 p.id.string()
 		created_at:         p.created_at.Time
 		updated_at:         p.updated_at.Time
 		deleted_at:         p.deleted_at.value.Time
 		handle:             p.handle
-		parent_category_id: p.parent_category_id
+		parent_category_id: parent_category_id_string
 		is_active:          p.is_active
 		is_internal:        p.is_internal
 		metadata:           p.metadata.value
@@ -768,6 +773,11 @@ pub:
 }
 
 fn format_category_response_store(p Category, locale_id string) CategoryResponseStore {
+	mut parent_category_id_string := ''
+	if parent_category_id := p.parent_category_id {
+		parent_category_id_string = parent_category_id.string()
+	}
+
 	mut seo := SEOResponseStore{
 		title:       p.seo.title.value
 		description: p.seo.description.value
@@ -797,11 +807,11 @@ fn format_category_response_store(p Category, locale_id string) CategoryResponse
 	}
 
 	return CategoryResponseStore{
-		id:                 p.id
+		id:                 p.id.string()
 		created_at:         p.created_at.Time
 		updated_at:         p.updated_at.Time
 		handle:             p.handle
-		parent_category_id: p.parent_category_id
+		parent_category_id: parent_category_id_string
 		metadata:           p.metadata.value
 		name:               p.name
 		description:        p.description.value

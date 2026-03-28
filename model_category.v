@@ -4,12 +4,10 @@ import arrays
 import einar_hjortdal.firebird
 
 struct CategoryTranslation {
-	category_id     string
-	category_id_bin []u8
-	locale_id       string
-	locale_id_bin   []u8
-	name            firebird.NullString
-	description     firebird.NullString
+	category_id ID
+	locale_id   ID
+	name        firebird.NullString
+	description firebird.NullString
 }
 
 fn model_category_translations_delete(mut tx firebird.Transaction, category_id_bin []u8) ! {
@@ -64,35 +62,31 @@ fn model_category_translations_get(mut tx firebird.Transaction, category_ids_bin
 		name := translation[2].get_null_string()!
 		description := translation[3].get_null_string()!
 
-		category_id := id_bin_to_string(category_id_bin)!
-		locale_id := id_bin_to_string(locale_id_bin)!
+		category_id := id_from_bytes(category_id_bin)!
+		locale_id := id_from_bytes(locale_id_bin)!
 
 		category_translations[i] = CategoryTranslation{
-			category_id:     category_id
-			category_id_bin: category_id_bin
-			locale_id:       locale_id
-			locale_id_bin:   locale_id_bin
-			name:            name
-			description:     description
+			category_id: category_id
+			locale_id:   locale_id
+			name:        name
+			description: description
 		}
 	}
 	return category_translations
 }
 
 struct Category {
-	id                     string
-	id_bin                 []u8
-	created_at             firebird.DateTime
-	updated_at             firebird.DateTime
-	deleted_at             firebird.NullDateTime
-	name                   string
-	description            firebird.NullString
-	handle                 string
-	is_active              bool
-	is_internal            bool
-	parent_category_id     string
-	parent_category_id_bin []u8
-	metadata               firebird.NullString
+	id                 ID
+	created_at         firebird.DateTime
+	updated_at         firebird.DateTime
+	deleted_at         firebird.NullDateTime
+	name               string
+	description        firebird.NullString
+	handle             string
+	is_active          bool
+	is_internal        bool
+	parent_category_id ?ID
+	metadata           firebird.NullString
 mut:
 	seo          CategorySEO
 	translations []CategoryTranslation
@@ -287,30 +281,28 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		handle, _ := v[6].get_string()!
 		is_active, _ := v[7].get_bool()!
 		is_internal, _ := v[8].get_bool()!
-		parent_category_id_bin, _ := v[9].get_array_u8()!
+		parent_category_id_bin := v[9].get_null_array_u8()!
 		metadata := v[10].get_null_string()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
-		mut parent_category_id := ''
-		if parent_category_id_bin.len > 0 {
-			parent_category_id = id_bin_to_string(parent_category_id_bin)!
+		mut parent_category_id := ?ID(none)
+		if !parent_category_id_bin.is_null {
+			parent_category_id = id_from_bytes(parent_category_id_bin.value)!
 		}
 
 		categories[i] = Category{
-			id:                     id
-			id_bin:                 id_bin
-			created_at:             created_at
-			updated_at:             updated_at
-			deleted_at:             deleted_at
-			handle:                 handle
-			is_active:              is_active
-			is_internal:            is_internal
-			parent_category_id:     parent_category_id
-			parent_category_id_bin: parent_category_id_bin
-			metadata:               metadata
-			name:                   name
-			description:            description
+			id:                 id
+			created_at:         created_at
+			updated_at:         updated_at
+			deleted_at:         deleted_at
+			handle:             handle
+			is_active:          is_active
+			is_internal:        is_internal
+			parent_category_id: parent_category_id
+			metadata:           metadata
+			name:               name
+			description:        description
 		}
 	}
 

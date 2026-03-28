@@ -38,10 +38,10 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 	mut categories_ids_bin := [][]u8{len: categories.len}
 	for i := 0; i < categories.len; i++ {
 		pc := categories[i]
-		id_string := pc.id
+		id_string := pc.id.string()
 		categories_map[id_string] = pc
-		categories_ids[i] = pc.id
-		categories_ids_bin[i] = pc.id_bin
+		categories_ids[i] = id_string
+		categories_ids_bin[i] = pc.id.bytes()
 	}
 
 	translations := model_category_translations_get(mut tx, categories_ids_bin) or {
@@ -78,7 +78,7 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 
 	for i := 0; i < translations.len; i++ {
 		translation := translations[i]
-		owner_id := translation.category_id
+		owner_id := translation.category_id.string()
 		old := categories_map[owner_id].translations
 		categories_map[owner_id].translations = arrays.concat(old, translation)
 	}
