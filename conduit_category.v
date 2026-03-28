@@ -116,6 +116,14 @@ fn conduit_category_list(mut app App, mut ctx Context, p CategoryRetrieveParams)
 }
 
 fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) veb.Result {
+	category_ids := p.ids or {
+		return ctx.handle_error(new_error_internal('id missing', 'received no category ids'))
+	}
+
+	if category_ids.len != 1 {
+		return ctx.handle_error(new_error_internal('id missing', 'received bad number of ids'))
+	}
+
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_category_retrieve_count(mut tx, p) or {
@@ -136,13 +144,13 @@ fn conduit_category_get(mut app App, mut ctx Context, p CategoryRetrieveParams) 
 		return ctx.handle_error(perr)
 	}
 
-	translations := model_category_translations_get(mut tx, p.ids_bin) or {
+	translations := model_category_translations_get(mut tx, ids_bytes(category_ids)) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve category_translations', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	seo := model_category_seo_retrieve(mut tx, p.ids_bin) or {
+	seo := model_category_seo_retrieve(mut tx, ids_bytes(category_ids)) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo', err.msg())
 		return ctx.handle_error(perr)
@@ -346,3 +354,4 @@ fn conduit_category_delete(mut app App, mut ctx Context, category_id_bin []u8) v
 
 	return success(mut ctx)
 }
+

@@ -112,7 +112,6 @@
 
 ## Considerations
 
-- Use an ID struct with string and []u8. I decided early on to not do this but I forgot why.
 - Refactor, abstract, reduce boilerplating, separate concerns, but only after minimal viable product works.
 
 ## Documentation

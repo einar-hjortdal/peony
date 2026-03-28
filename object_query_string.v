@@ -438,105 +438,65 @@ fn hygienise_product_get_request_query_store(m map[string]string, product_id str
 	}
 }
 
-pub struct ProductCategoryGetRequestQuery {
-pub:
-	locale_id ZeroString
-}
-
-fn extract_category_get_request_params(m map[string]string) ProductCategoryGetRequestQuery {
-	return ProductCategoryGetRequestQuery{
-		locale_id: zero_string(m, 'locale_id')
-	}
-}
-
-fn hygienise_category_get_request_query(p ProductCategoryGetRequestQuery, category_id_bin []u8) !CategoryRetrieveParams {
-	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
-	}
-
-	return CategoryRetrieveParams{
-		filter_by_id:  true
-		ids_bin:       [category_id_bin]
-		locale_id_bin: locale_id_bin
-	}
-}
-
 // handles expects a string that is a single handle, or many comma-separated handles.
-pub struct ProductCategoryListRequestQuery {
+pub struct CategoryListQueryParams {
 pub:
-	ids                 ZeroArrayString
-	handles             ZeroArrayString
-	is_active           ZeroBool
-	is_internal         ZeroBool
-	product_ids         ZeroArrayString
-	parent_category_ids ZeroArrayString
-	with_deleted        ZeroBool
-	offset              ZeroI32
-	fetch               ZeroI32
-	order               ZeroString
-	locale_id           ZeroString
+	ids                ?[]string
+	handle             ?string
+	is_active          ?bool
+	is_internal        ?bool
+	product_ids        ?[]string
+	parent_category_id ?string
+	with_deleted       ?bool
+	offset             ?i32
+	fetch              ?i32
+	order              ?string
 }
 
-fn extract_category_list_request_query(m map[string]string) ProductCategoryListRequestQuery {
-	return ProductCategoryListRequestQuery{
-		ids:                 zero_array_string(m, 'ids')
-		handles:             zero_array_string(m, 'handle')
-		is_active:           zero_bool(m, 'is_active')
-		is_internal:         zero_bool(m, 'is_internal')
-		product_ids:         zero_array_string(m, 'product_ids')
-		parent_category_ids: zero_array_string(m, 'parent_category_id')
-		with_deleted:        zero_bool(m, 'with_deleted')
-		offset:              zero_i32(m, 'offset')
-		fetch:               zero_i32(m, 'fetch')
-		order:               zero_string(m, 'order')
-		locale_id:           zero_string(m, 'locale_id')
+fn extract_category_list_request_query(m map[string]string) CategoryListQueryParams {
+	return CategoryListQueryParams{
+		ids:                get_none_array_string(m, 'ids')
+		handle:             get_none_string(m, 'handle')
+		is_active:          get_none_bool(m, 'is_active')
+		is_internal:        get_none_bool(m, 'is_internal')
+		product_ids:        get_none_array_string(m, 'product_ids')
+		parent_category_id: get_none_string(m, 'parent_category_id')
+		with_deleted:       get_none_bool(m, 'with_deleted')
+		offset:             get_none_i32(m, 'offset')
+		fetch:              get_none_i32(m, 'fetch')
+		order:              get_none_string(m, 'order')
 	}
 }
 
-// TODO return error if invalid sorting order
-fn hygienise_category_list_request_query(p ProductCategoryListRequestQuery) !CategoryRetrieveParams {
-	ids_bin := zero_array_id_string_to_array_id_bin(p.ids) or {
-		return new_error_bad_request(error_id_invalid, 'ids')
+fn hygienise_category_list_request_query(m map[string]string) !CategoryRetrieveParams {
+	p := extract_category_list_request_query(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
 	}
 
-	parent_category_ids_bin := zero_array_id_string_to_array_id_bin(p.parent_category_ids) or {
-		return new_error_bad_request(error_id_invalid, 'parent_category_ids')
+	mut parent_category_id := ?ID(none)
+	if id_string := p.parent_category_id {
+		parent_category_id = id_from_string(id_string)!
 	}
 
-	product_ids_bin := zero_array_id_string_to_array_id_bin(p.product_ids) or {
-		return new_error_bad_request(error_id_invalid, 'product_ids')
-	}
-
-	include_deleted := p.with_deleted.is_set && p.with_deleted.v
-
-	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
-	}
-
-	order_direction := get_order_direction(p.order) or {
-		return new_error_bad_request(error_order_direction_invalid, details_order_direction_invalid)
+	mut product_ids := ?[]ID(none)
+	if ids_string := p.product_ids {
+		product_ids = ids_from_array_string(ids_string)!
 	}
 
 	return CategoryRetrieveParams{
-		filter_by_id:                  p.ids.is_set
-		ids_bin:                       ids_bin
-		filter_by_handle:              p.handles.is_set
-		handles:                       p.handles.v
-		filter_by_is_active:           p.is_active.is_set
-		is_active:                     p.is_active.v
-		filter_by_is_internal:         p.is_internal.is_set
-		is_internal:                   p.is_internal.v
-		filter_by_product_ids:         p.product_ids.is_set
-		product_ids_bin:               product_ids_bin
-		filter_by_parent_category_ids: p.parent_category_ids.is_set
-		parent_category_ids_bin:       parent_category_ids_bin
-		include_deleted:               include_deleted
-		locale_id_bin:                 locale_id_bin
-		use_offset:                    p.offset.is_set
-		offset:                        p.offset.v
-		fetch:                         hygienise_fetch_amount(p.fetch)!
-		use_order_direction:           p.order.is_set
-		order_direction:               order_direction
+		ids:                ids
+		handle:             p.handle
+		is_active:          p.is_active
+		is_internal:        p.is_active
+		product_ids:        product_ids
+		parent_category_id: parent_category_id
+		with_deleted:       bool_or(p.with_deleted, false)
+		offset:             get_offset_or_default(p.offset)!
+		fetch:              get_fetch_or_default(p.fetch)!
+		order:              get_order_direction_or_default(p.order)!
 	}
 }
 

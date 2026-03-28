@@ -185,63 +185,53 @@ fn model_category_update(mut tx firebird.Transaction, category_id_bin []u8, ph C
 }
 
 struct CategoryRetrieveParams {
-	filter_by_id                  bool
-	ids_bin                       [][]u8
-	filter_by_handle              bool
-	handles                       []string
-	filter_by_is_active           bool
-	is_active                     bool
-	filter_by_is_internal         bool
-	is_internal                   bool
-	filter_by_product_ids         bool
-	product_ids_bin               [][]u8
-	filter_by_parent_category_ids bool
-	parent_category_ids_bin       [][]u8
-	include_parents               bool
-	include_deleted               bool
-	locale_id_bin                 []u8
-	use_offset                    bool
-	offset                        i32
-	fetch                         i32
-	use_order_direction           bool
-	order_direction               string
+	ids                ?[]ID
+	handle             ?string
+	is_active          ?bool
+	is_internal        ?bool
+	product_ids        ?[]ID
+	parent_category_id ?ID
+	with_deleted       bool
+	offset             i32
+	fetch              i32
+	order              string
 }
 
 fn model_category_retrieve_conditions(p CategoryRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if p.filter_by_id {
-		conditions = arrays.concat(conditions, 'c.id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
 	}
 
-	if p.filter_by_handle {
-		conditions = arrays.concat(conditions, 'c.handle IN (${get_placeholders(p.handles)})')
-		params = arrays.concat(params, ...p.handles)
+	if handle := p.handle {
+		conditions = arrays.concat(conditions, 'c.handle = ?')
+		params = arrays.concat(params, handle)
 	}
 
-	if p.filter_by_is_active {
+	if is_active := p.is_active {
 		conditions = arrays.concat(conditions, 'c.is_active = ?')
-		params = arrays.concat(params, p.is_active)
+		params = arrays.concat(params, is_active)
 	}
 
-	if p.filter_by_is_internal {
+	if is_internal := p.is_internal {
 		conditions = arrays.concat(conditions, 'c.is_internal = ?')
-		params = arrays.concat(params, p.is_internal)
+		params = arrays.concat(params, is_internal)
 	}
 
-	if p.filter_by_product_ids {
+	if product_ids := p.product_ids {
 		conditions = arrays.concat(conditions, 'EXISTS (
-		SELECT 1 FROM category_product cp
-		WHERE cp.category_id = c.id
-			AND cp.product_id IN (${get_placeholders(p.product_ids_bin)})
-		)')
-		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
+			SELECT 1 FROM category_product cp
+			WHERE cp.category_id = c.id
+				AND cp.product_id IN (${get_placeholders(product_ids)})
+			)')
+		params = arrays.concat(params, ...workaround_24757(ids_bytes(product_ids)))
 	}
 
-	if !p.include_deleted {
-		conditions = arrays.concat(conditions, 'c.deleted_at IS NULL')
+	if !p.with_deleted {
+		conditions = arrays.concat(conditions, 'deleted_at is NULL')
 	}
 
 	return get_where_conditions(conditions), params
@@ -259,22 +249,12 @@ fn model_category_retrieve_count(mut tx firebird.Transaction, p CategoryRetrieve
 fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
 	conditions, mut params := model_category_retrieve_conditions(p)
 
-	mut order_direction := order_direction_default
-	if p.use_order_direction {
-		order_direction = p.order_direction
-	}
+	mut sorting := 'ORDER BY created_at ${p.order}
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
-	mut sorting := 'ORDER BY c.created_at ${order_direction}'
-
-	if p.use_offset {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset)
-	}
-
-	sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-	params = arrays.concat(params, p.fetch)
-
-	data := tx.execute('SELECT
+	query := 'SELECT
 		c.id,
 		c.created_at,
 		c.updated_at,
@@ -288,8 +268,9 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		c.metadata
 		FROM category c
 		${conditions}
-		${sorting}',
-		...params)!
+		${sorting}'
+
+	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
 
@@ -423,3 +404,4 @@ fn model_category_product_update(mut tx firebird.Transaction, product_id_bin []u
 				DELETE',
 		...params)!
 }
+

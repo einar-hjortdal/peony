@@ -6,8 +6,7 @@ import veb
 // TODO cache
 @['/store/categories'; get]
 pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
-	query_params := extract_category_list_request_query(ctx.query)
-	p := hygienise_category_list_request_query(query_params) or { return ctx.handle_error(err) }
+	p := hygienise_category_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
 	return conduit_category_list(mut app, mut ctx, p)
 }
@@ -16,16 +15,20 @@ pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 // TODO cache
 @['/store/categories/:category_id'; get]
 pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb.Result {
-	category_id_bin := id_string_to_bin(category_id) or {
+	parsed_category_id := id_from_string(category_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'category_id')
 		return ctx.handle_error(perr)
 	}
 
-	query_params := extract_category_get_request_params(ctx.query)
-
-	p := hygienise_category_get_request_query(query_params, category_id_bin) or {
-		return ctx.handle_error(err)
-	}
-
-	return conduit_category_get_store(mut app, mut ctx, query_params.locale_id.v, p)
+	// TODO context params (locale id, order_id, ...)
+	return conduit_category_get_store(mut app, mut ctx, '', CategoryRetrieveParams{
+		ids:          [parsed_category_id]
+		is_active:    true
+		is_internal:  false
+		with_deleted: false
+		offset:       offset_default
+		fetch:        1
+		order:        order_direction_default
+	})
 }
+
