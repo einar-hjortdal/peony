@@ -3,7 +3,6 @@ module peony
 import veb
 
 // lists products
-// TODO price context
 // TODO cache
 @['/store/products'; get]
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
@@ -13,35 +12,20 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		return ctx.handle_error(err)
 	}
 
-	cart_id_bin := zero_id_string_to_id_bin(p.cart_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'cart_id')
-		return ctx.handle_error(perr)
+	ph := RetrieveProductParamsHygienised{} // TODO rewrite
+
+	price_context := hygienise_price_context_query_params(ctx.query) or {
+		return ctx.handle_error(err)
 	}
 
-	region_id_bin := zero_id_string_to_id_bin(p.region_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'region_id')
-		return ctx.handle_error(perr)
+	locale_context := hygienise_locale_context_query_params(ctx.query) or {
+		return ctx.handle_error(err)
 	}
 
-	locale_id_bin := zero_id_string_to_id_bin(p.locale_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'locale_id')
-		return ctx.handle_error(perr)
-	}
-
-	ph := RetrieveProductParamsHygienised{
-		region_id:     p.region_id
-		region_id_bin: region_id_bin
-		cart_id:       p.cart_id
-		cart_id_bin:   cart_id_bin
-		locale_id:     p.locale_id
-		locale_id_bin: locale_id_bin
-	}
-
-	return conduit_products_list_store(mut app, mut ctx, ph)
+	return conduit_products_list_store(mut app, mut ctx, ph, price_context, locale_context)
 }
 
 // get product by id
-// TODO price context
 // TODO cache
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
@@ -49,5 +33,14 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 		return ctx.handle_error(err)
 	}
 
-	return conduit_products_get_by_id_store(mut app, mut ctx, p)
+	price_context := hygienise_price_context_query_params(ctx.query) or {
+		return ctx.handle_error(err)
+	}
+
+	locale_context := hygienise_locale_context_query_params(ctx.query) or {
+		return ctx.handle_error(err)
+	}
+
+	return conduit_products_get_by_id_store(mut app, mut ctx, p, price_context, locale_context)
 }
+

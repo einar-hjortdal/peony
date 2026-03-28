@@ -1,5 +1,71 @@
 module peony
 
+// Whenever a translateable resource is requested, the request may contain a LocaleContextQueryParams.
+// If translations exist for the resource requested, the resource will use them.
+pub struct LocaleContextQueryParams {
+pub:
+	locale_id ?string
+}
+
+fn extract_locale_context_query_params(m map[string]string) LocaleContextQueryParams {
+	return LocaleContextQueryParams{
+		locale_id: get_none_string(m, 'locale_id')
+	}
+}
+
+fn hygienise_locale_context_query_params(m map[string]string) !LocaleContext {
+	p := extract_locale_context_query_params(m)
+	mut locale_id := ?ID(none)
+	if id_string := p.locale_id {
+		locale_id = id_from_string(id_string)!
+	}
+
+	return LocaleContext{
+		locale_id: locale_id
+	}
+}
+
+// WIP
+// The information contained by PriceContextQueryParams is utilized to calculate prices and their presentation.
+pub struct PriceContextQueryParams {
+pub:
+	cart_id     ?string
+	customer_id ?string // TODO this should come from context customer session, not params
+	region_id   ?string
+}
+
+fn extract_price_context_query_params(m map[string]string) PriceContextQueryParams {
+	return PriceContextQueryParams{
+		cart_id:     get_none_string(m, 'cart_id')
+		customer_id: get_none_string(m, 'customer_id')
+		region_id:   get_none_string(m, 'region_id')
+	}
+}
+
+fn hygienise_price_context_query_params(m map[string]string) !PriceContext {
+	p := extract_price_context_query_params(m)
+	mut cart_id := ?ID(none)
+	if id_string := p.cart_id {
+		cart_id = id_from_string(id_string)!
+	}
+
+	mut customer_id := ?ID(none)
+	if id_string := p.customer_id {
+		customer_id = id_from_string(id_string)!
+	}
+
+	mut region_id := ?ID(none)
+	if id_string := p.region_id {
+		region_id = id_from_string(id_string)!
+	}
+
+	return PriceContext{
+		cart_id:     cart_id
+		customer_id: customer_id
+		region_id:   region_id
+	}
+}
+
 pub struct UserListQueryParams {
 pub:
 	ids          ?[]string
@@ -348,38 +414,34 @@ fn extract_product_list_request_query(m map[string]string) ProductListRequestQue
 // Note: it is recommended to use a frontend search engine for enhanced user experience (pattern matching, matching handles to ids, searching among translations, sorting by price, filtering by availability, etc.)
 pub struct ProductListRequestQueryStore {
 pub:
-	ids               ZeroArrayString
-	handle            ZeroString
-	is_giftcard       ZeroBool
-	type_ids          ZeroArrayString
-	tag_ids           ZeroArrayString
-	category_ids      ZeroArrayString
-	price_list_ids    ZeroArrayString
-	sales_channel_ids ZeroArrayString // TODO this should be one not an array
-	region_id         ZeroString
-	offset            ZeroI32
-	fetch             ZeroI32
-	order             ZeroString
-	cart_id           ZeroString
-	locale_id         ZeroString
+	ids              ZeroArrayString
+	handle           ZeroString
+	is_giftcard      ZeroBool
+	type_ids         ZeroArrayString
+	tag_ids          ZeroArrayString
+	category_ids     ZeroArrayString
+	price_list_ids   ZeroArrayString
+	sales_channel_id ZeroString
+	region_id        ZeroString
+	offset           ZeroI32
+	fetch            ZeroI32
+	order            ZeroString
 }
 
 fn extract_product_list_request_query_store(m map[string]string) ProductListRequestQueryStore {
 	return ProductListRequestQueryStore{
-		cart_id:           zero_string(m, 'cart_id')
-		category_ids:      zero_array_string(m, 'category_ids')
-		fetch:             zero_i32(m, 'fetch')
-		handle:            zero_string(m, 'handle')
-		ids:               zero_array_string(m, 'id')
-		is_giftcard:       zero_bool(m, 'is_giftcard')
-		offset:            zero_i32(m, 'offset')
-		order:             zero_string(m, 'order')
-		price_list_ids:    zero_array_string(m, 'price_list_id')
-		region_id:         zero_string(m, 'region_id')
-		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
-		tag_ids:           zero_array_string(m, 'tag_id')
-		type_ids:          zero_array_string(m, 'type_id')
-		locale_id:         zero_string(m, 'locale_id')
+		category_ids:     zero_array_string(m, 'category_ids')
+		handle:           zero_string(m, 'handle')
+		ids:              zero_array_string(m, 'id')
+		is_giftcard:      zero_bool(m, 'is_giftcard')
+		price_list_ids:   zero_array_string(m, 'price_list_id')
+		region_id:        zero_string(m, 'region_id')
+		sales_channel_id: zero_string(m, 'sales_channel_id')
+		tag_ids:          zero_array_string(m, 'tag_id')
+		type_ids:         zero_array_string(m, 'type_id')
+		fetch:            zero_i32(m, 'fetch')
+		offset:           zero_i32(m, 'offset')
+		order:            zero_string(m, 'order')
 	}
 }
 
@@ -404,37 +466,16 @@ fn hygienise_product_get_request_query_store(m map[string]string, product_id str
 		return new_error_bad_request(error_id_invalid, 'product_id')
 	}
 
-	cart_id := zero_string(m, 'cart_id')
-	cart_id_bin := zero_id_string_to_id_bin(cart_id) or {
-		return new_error_bad_request(error_id_invalid, 'cart_id')
-	}
-
 	sales_channel_ids := zero_array_string(m, 'sales_channel_id')
 	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
 		return new_error_bad_request(error_id_invalid, 'sales_channel_id')
 	}
 
-	region_id := zero_string(m, 'region_id')
-	region_id_bin := zero_id_string_to_id_bin(region_id) or {
-		return new_error_bad_request(error_id_invalid, 'region_id')
-	}
-
-	locale_id := zero_string(m, 'locale_id')
-	locale_id_bin := zero_id_string_to_id_bin(locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
-	}
-
 	return RetrieveProductParamsHygienised{
 		ids:                   ids
 		ids_bin:               [id_bin]
-		region_id:             region_id
-		region_id_bin:         region_id_bin
-		cart_id:               cart_id
-		cart_id_bin:           cart_id_bin
 		sales_channel_ids:     sales_channel_ids
 		sales_channel_ids_bin: sales_channel_ids_bin
-		locale_id:             locale_id
-		locale_id_bin:         locale_id_bin
 	}
 }
 
@@ -516,16 +557,10 @@ struct RetrieveProductParamsHygienised {
 	price_list_ids_bin    [][]u8
 	sales_channel_ids     ZeroArrayString
 	sales_channel_ids_bin [][]u8
-	region_id             ZeroString
-	region_id_bin         []u8
 	with_deleted          ZeroBool
 	offset                ZeroI32
 	fetch                 ZeroI32
 	order                 ZeroString
-	cart_id               ZeroString
-	cart_id_bin           []u8
-	locale_id             ZeroString
-	locale_id_bin         []u8
 }
 
 fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParamsHygienised {
@@ -549,11 +584,6 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 		return new_error_bad_request(error_id_invalid, 'type_id')
 	}
 
-	region_id := zero_string(m, 'region_id')
-	region_id_bin := zero_id_string_to_id_bin(region_id) or {
-		return new_error_bad_request(error_id_invalid, 'region_id')
-	}
-
 	category_ids := zero_array_string(m, 'category_ids')
 	category_ids_bin := zero_array_id_string_to_array_id_bin(category_ids) or {
 		return new_error_bad_request(error_id_invalid, 'category_id')
@@ -562,16 +592,6 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 	sales_channel_ids := zero_array_string(m, 'sales_channel_ids')
 	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
 		return new_error_bad_request(error_id_invalid, 'sales_channel_id')
-	}
-
-	locale_id := zero_string(m, 'locale_id')
-	locale_id_bin := zero_id_string_to_id_bin(locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
-	}
-
-	cart_id := zero_string(m, 'cart_id')
-	cart_id_bin := zero_id_string_to_id_bin(cart_id) or {
-		return new_error_bad_request(error_id_invalid, 'cart_id')
 	}
 
 	return RetrieveProductParamsHygienised{
@@ -590,16 +610,10 @@ fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParams
 		price_list_ids_bin:    price_list_ids_bin
 		sales_channel_ids:     sales_channel_ids
 		sales_channel_ids_bin: sales_channel_ids_bin
-		region_id:             region_id
-		region_id_bin:         region_id_bin
 		with_deleted:          zero_bool(m, 'with_deleted')
 		offset:                zero_i32(m, 'offset')
 		fetch:                 zero_i32(m, 'fetch')
 		order:                 zero_string(m, 'order')
-		cart_id:               cart_id
-		cart_id_bin:           cart_id_bin
-		locale_id:             locale_id
-		locale_id_bin:         locale_id_bin
 	}
 }
 

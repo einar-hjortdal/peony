@@ -172,14 +172,14 @@ fn format_store_response(s Store) StoreResponse {
 	}
 
 	return StoreResponse{
-		id:                        s.id
+		id:                        s.id.string()
 		created_at:                s.created_at.Time
 		updated_at:                s.updated_at.Time
 		name:                      s.name
-		default_locale_id:         s.default_locale_id
-		default_region_id:         s.default_region_id
-		default_stock_location_id: s.default_stock_location_id
-		default_sales_channel_id:  s.default_sales_channel_id
+		default_locale_id:         s.default_locale_id.string()
+		default_region_id:         s.default_region_id.string()
+		default_stock_location_id: s.default_stock_location_id.string()
+		default_sales_channel_id:  s.default_sales_channel_id.string()
 		locales:                   locales
 	}
 }
@@ -957,8 +957,7 @@ pub:
 	// tags         []Tag                       @[omitempty]
 }
 
-// note: locale_id is derived from pctx.region_id
-fn format_product_response_store(p Product, pctx PriceContext, product_variants_availability map[string]ProductVariantAvailability, locale_id string) ProductResponseStore {
+fn format_product_response_store(p Product, pctx PriceContext, default_region_id ID, product_variants_availability map[string]ProductVariantAvailability, locale_context LocaleContext) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -978,7 +977,7 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 	mut variants := []VariantResponseStore{len: p.variants.len}
 	for i := 0; i < p.variants.len; i++ {
 		variant := p.variants[i]
-		prices := calculate_price(variant, 1, pctx)
+		prices := calculate_price(variant, default_region_id, pctx, 1)
 		variants[i] = format_variant_response_store(variant, prices, product_variants_availability)
 	}
 
@@ -987,10 +986,10 @@ fn format_product_response_store(p Product, pctx PriceContext, product_variants_
 		description: p.seo.description.value
 	}
 
-	if locale_id != '' {
+	if locale_id := locale_context.locale_id {
 		for i := 0; i < p.seo.translations.len; i++ {
 			translation := p.seo.translations[i]
-			if translation.locale_id != locale_id {
+			if translation.locale_id != locale_id.string() {
 				continue
 			}
 

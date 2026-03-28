@@ -4,19 +4,14 @@ import arrays
 import einar_hjortdal.firebird
 
 struct Store {
-	id                            string
-	id_bin                        []u8
-	created_at                    firebird.DateTime
-	updated_at                    firebird.DateTime
-	name                          string
-	default_locale_id             string
-	default_locale_id_bin         []u8
-	default_region_id             string
-	default_region_id_bin         []u8
-	default_stock_location_id     string
-	default_stock_location_id_bin []u8
-	default_sales_channel_id      string
-	default_sales_channel_id_bin  []u8
+	id                        ID
+	created_at                firebird.DateTime
+	updated_at                firebird.DateTime
+	name                      string
+	default_locale_id         ID
+	default_region_id         ID
+	default_stock_location_id ID
+	default_sales_channel_id  ID
 mut:
 	locales []Locale
 }
@@ -50,26 +45,21 @@ fn model_store_retrieve(mut tx firebird.Transaction) !Store {
 	default_stock_location_id_bin, _ := v[6].get_array_u8()!
 	default_sales_channel_id_bin, _ := v[7].get_array_u8()!
 
-	id := id_bin_to_string(id_bin)!
-	default_locale_id := id_bin_to_string(default_locale_id_bin)!
-	default_region_id := id_bin_to_string(default_region_id_bin)!
-	default_stock_location_id := id_bin_to_string(default_stock_location_id_bin)!
-	default_sales_channel_id := id_bin_to_string(default_sales_channel_id_bin)!
+	id := id_from_bytes(id_bin)!
+	default_locale_id := id_from_bytes(default_locale_id_bin)!
+	default_region_id := id_from_bytes(default_region_id_bin)!
+	default_stock_location_id := id_from_bytes(default_stock_location_id_bin)!
+	default_sales_channel_id := id_from_bytes(default_sales_channel_id_bin)!
 
 	return Store{
-		id:                            id
-		id_bin:                        id_bin
-		created_at:                    created_at
-		updated_at:                    updated_at
-		name:                          name
-		default_locale_id:             default_locale_id
-		default_locale_id_bin:         default_locale_id_bin
-		default_region_id:             default_region_id
-		default_region_id_bin:         default_region_id_bin
-		default_stock_location_id:     default_stock_location_id
-		default_stock_location_id_bin: default_stock_location_id_bin
-		default_sales_channel_id:      default_sales_channel_id
-		default_sales_channel_id_bin:  default_sales_channel_id_bin
+		id:                        id
+		created_at:                created_at
+		updated_at:                updated_at
+		name:                      name
+		default_locale_id:         default_locale_id
+		default_region_id:         default_region_id
+		default_stock_location_id: default_stock_location_id
+		default_sales_channel_id:  default_sales_channel_id
 	}
 }
 

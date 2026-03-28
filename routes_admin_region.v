@@ -133,7 +133,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(perr)
 	}
 
-	if store.default_region_id == id.string() {
+	if store.default_region_id.string() == id.string() {
 		perr := new_error_bad_request('Could not delete region', 'Cannot delete default region')
 		return ctx.handle_error(perr)
 	}

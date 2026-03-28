@@ -606,3 +606,6 @@ fn get_order_direction_or_default(direction ?string) !string {
 	return parse_order_direction(d)
 }
 
+struct LocaleContext {
+	locale_id ?ID
+}
