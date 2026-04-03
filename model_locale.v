@@ -42,7 +42,7 @@ fn model_locale_retrieve_count(mut tx firebird.Transaction, p LocaleRetrievePara
 
 fn model_locale_retrieve(mut tx firebird.Transaction, p LocaleRetrieveParams) ![]Locale {
 	conditions, mut params := conditions_locale_retrieve(p)
-	mut sorting := 'ORDER BY created_at ${p.order}
+	mut sorting := 'ORDER BY code ${p.order}
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY'
 	params = arrays.concat(params, p.offset, p.fetch)
