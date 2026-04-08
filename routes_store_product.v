@@ -14,9 +14,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 
 	ph := RetrieveProductParamsHygienised{} // TODO rewrite
 
-	price_context := hygienise_price_context_query_params(ctx.query) or {
-		return ctx.handle_error(err)
-	}
+	price_context := ctx.get_price_context() or { return ctx.handle_error(err) }
 
 	locale_context := hygienise_locale_context_query_params(ctx.query) or {
 		return ctx.handle_error(err)
@@ -33,9 +31,7 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 		return ctx.handle_error(err)
 	}
 
-	price_context := hygienise_price_context_query_params(ctx.query) or {
-		return ctx.handle_error(err)
-	}
+	price_context := ctx.get_price_context() or { return ctx.handle_error(err) }
 
 	locale_context := hygienise_locale_context_query_params(ctx.query) or {
 		return ctx.handle_error(err)

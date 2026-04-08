@@ -29,29 +29,27 @@ fn hygienise_locale_context_query_params(m map[string]string) !LocaleContext {
 // The information contained by PriceContextQueryParams is utilized to calculate prices and their presentation.
 pub struct PriceContextQueryParams {
 pub:
-	cart_id     ?string
-	customer_id ?string // TODO this should come from context customer session, not params
-	region_id   ?string
+	cart_id   ?string
+	region_id ?string
+}
+
+struct PriceContextQueryParamsHygienised {
+	cart_id   ?ID
+	region_id ?ID
 }
 
 fn extract_price_context_query_params(m map[string]string) PriceContextQueryParams {
 	return PriceContextQueryParams{
-		cart_id:     get_none_string(m, 'cart_id')
-		customer_id: get_none_string(m, 'customer_id')
-		region_id:   get_none_string(m, 'region_id')
+		cart_id:   get_none_string(m, 'cart_id')
+		region_id: get_none_string(m, 'region_id')
 	}
 }
 
-fn hygienise_price_context_query_params(m map[string]string) !PriceContext {
+fn hygienise_price_context_query_params(m map[string]string) !PriceContextQueryParamsHygienised {
 	p := extract_price_context_query_params(m)
 	mut cart_id := ?ID(none)
 	if id_string := p.cart_id {
 		cart_id = id_from_string(id_string)!
-	}
-
-	mut customer_id := ?ID(none)
-	if id_string := p.customer_id {
-		customer_id = id_from_string(id_string)!
 	}
 
 	mut region_id := ?ID(none)
@@ -59,10 +57,9 @@ fn hygienise_price_context_query_params(m map[string]string) !PriceContext {
 		region_id = id_from_string(id_string)!
 	}
 
-	return PriceContext{
-		cart_id:     cart_id
-		customer_id: customer_id
-		region_id:   region_id
+	return PriceContextQueryParamsHygienised{
+		cart_id:   cart_id
+		region_id: region_id
 	}
 }
 

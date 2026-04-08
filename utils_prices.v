@@ -24,8 +24,20 @@ struct VariantPrice {
 // Change context to contain the Cart, Customer and Region structs instead of their id alone
 struct PriceContext {
 	cart_id     ?ID
-	customer_id ?ID
 	region_id   ?ID
+	customer_id ?ID
+}
+
+fn (ctx Context) get_price_context() !PriceContext {
+	q := hygienise_price_context_query_params(ctx.query) or {
+		return new_error_unprocessable_entity(error_id_invalid, err.msg())
+	}
+
+	return PriceContext{
+		cart_id:     q.cart_id
+		region_id:   q.region_id
+		customer_id: ctx.user_session_values.id
+	}
 }
 
 // use app.tax_provider

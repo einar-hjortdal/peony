@@ -9,7 +9,7 @@
 - order post-processing (invoices, fulfillment...)
 - scheduled tasks (database cleanup...)
 - search engine indexing 
-  TODO decide: leave it up to users or integrate one with worker? integration is more consistent with the objective of the project. If integration is chosen: store endpoints should query the data from the search engine instead of the database, invalidation and re-indexing can be done as soon as data changes. List database queries can be simplified.
+  TODO decide: leave it up to API consumers or integrate with worker? integration is more consistent with the objective of the project. If integration is chosen: store endpoints should query the data from the search engine instead of the database, invalidation and re-indexing can be done as soon as data changes. List database queries can be simplified.
 
 *WIP*
 ### Data layers abstractions
@@ -18,10 +18,10 @@ We are not looking for flexibility: tight coupling with the database is not an i
 
 We want:
 
-- a low level layer that contains the insert/update/delete SQL statements (model_* functions).
-- a higher level layer that orchestrates the lower level operations (conduit_* functions).
+- a low level layer that contains the insert/update/delete SQL statements.
+- a higher level layer that orchestrates the lower level operations.
 
-TODO: should route handlers call either, or should it only be allowed to call conduit functions? Soemtimes it is more efficient to call model functions directly.
+TODO: should route handlers call either, or should it only be allowed to call conduit functions?
 
 ### Translations
 
