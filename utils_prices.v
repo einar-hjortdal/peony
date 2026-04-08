@@ -17,17 +17,15 @@ struct VariantPrice {
 	base_price     i32
 }
 
-// TODO build PriceContext in route (verify ids are valid and exist in db, get default region_id if needed)
 // customer_id is used for price_list prices, it is obtained from customer session.
-// cart_id is obtained from url parameters.
-// region_id is obtained from url paramters, or from the database if none is provided by the request.
-// Change context to contain the Cart, Customer and Region structs instead of their id alone
+// cart_id and region_id are obtained from url parameters.
 struct PriceContext {
 	cart_id     ?ID
 	region_id   ?ID
 	customer_id ?ID
 }
 
+// TODO verify ids exist in db
 fn (ctx Context) get_price_context() !PriceContext {
 	q := hygienise_price_context_query_params(ctx.query) or {
 		return new_error_unprocessable_entity(error_id_invalid, err.msg())

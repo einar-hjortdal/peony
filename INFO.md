@@ -9,7 +9,7 @@
 - order post-processing (invoices, fulfillment...)
 - scheduled tasks (database cleanup...)
 - search engine indexing 
-  TODO decide: leave it up to API consumers or integrate with worker? integration is more consistent with the objective of the project. If integration is chosen: store endpoints should query the data from the search engine instead of the database, invalidation and re-indexing can be done as soon as data changes. List database queries can be simplified.
+  TODO decide: leave it up to API consumers or integrate with worker? integration is more consistent with the objective of the project. If integration is chosen: store endpoints should query the data from the search engine instead of the database, invalidation and re-indexing can be done as soon as data changes. List database queries can be simplified. No adapter interface.
 
 *WIP*
 ### Data layers abstractions
@@ -21,7 +21,7 @@ We want:
 - a low level layer that contains the insert/update/delete SQL statements.
 - a higher level layer that orchestrates the lower level operations.
 
-TODO: should route handlers call either, or should it only be allowed to call conduit functions?
+TODO: should route handlers call either, or should it only be allowed to call conduit functions? I am used to MVC, which makes me think it would be best if routes should only invoke conduit functions.
 
 ### Translations
 
@@ -35,6 +35,8 @@ Example:
 3. Peony retrieves the translation rows from the product_translations table.
 4. Peony checks if a translation for the requested locale_id was retrieved, if was: its values override the default values.
 5. Peony returns the product objects with the overridden values.
+
+This is the typical approach, but it is not perfect: changing default locale requires manual intervention that may be tedious. However, how often is the default locale changed?
 
 ### Classification
 
