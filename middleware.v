@@ -4,6 +4,8 @@ import net.http
 import json
 import log
 
+pub const header_api_key = 'Peony-API-Key'
+
 fn (mut app App) middleware_debug(mut ctx Context) bool {
 	log.debug('Received request: ${ctx.req.url} ${ctx.req.method}')
 	return true
@@ -38,3 +40,21 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 
 	return true
 }
+
+fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
+	api_key_string := ctx.get_custom_header(header_api_key) or { return true }
+	if api_key_string == '' {
+		return true
+	}
+
+	api_key := id_from_string(api_key_string) or {
+		ctx.res.set_status(http.Status.bad_request)
+		ctx.json(new_error_bad_request('Invalid API key', err.msg()))
+		return false
+	}
+
+	// TODO set api key in context
+
+	return true
+}
+

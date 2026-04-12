@@ -138,7 +138,7 @@ A `price_list` allows to assign prices and taxes to `variant` that modify or ove
 regional price and tax settings.
 
 `price_list` are used to set volume pricing: prices only valid when a specific number of variants is 
-placed in a cart.
+placed in a cart. TODO may also be a cart_rule
 
 `price_list` are used to configure sales-channel pricing: set prices that override the base prices on 
 specific sales-channels.
