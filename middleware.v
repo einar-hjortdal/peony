@@ -53,7 +53,7 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return false
 	}
 
-	// TODO set api key in context
+	// TODO set api key in context, or get key-related data and set that in context
 
 	return true
 }

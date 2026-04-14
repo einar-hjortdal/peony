@@ -140,7 +140,8 @@ mut:
 fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_bad_request(error_field_too_long, 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_bad_request(error_field_too_long,
+				'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -191,16 +192,19 @@ mut:
 
 fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	if p.id != none && p.url != none {
-		return new_error_unprocessable_entity('unable to update image url', 'both id and url are set')
+		return new_error_unprocessable_entity('unable to update image url',
+			'both id and url are set')
 	}
 
 	if p.id == none && p.url == none {
-		return new_error_unprocessable_entity('unable to create image without url', 'both id and url are unset')
+		return new_error_unprocessable_entity('unable to create image without url',
+			'both id and url are unset')
 	}
 
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_unprocessable_entity(error_field_too_long, 'alt can be at most ${max_length_alt} UTF8 characters long')
+			return new_error_unprocessable_entity(error_field_too_long,
+				'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
 
@@ -429,7 +433,8 @@ fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygieni
 	}
 
 	if p.values.len == 0 {
-		return new_error_bad_request(error_field_empty, 'The product_option lacks values, at least one value must be provided.')
+		return new_error_bad_request(error_field_empty,
+			'The product_option lacks values, at least one value must be provided.')
 	}
 
 	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
@@ -527,7 +532,8 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 
 		base_price := price.base_price
 		if base_price < 0 {
-			return new_error_unprocessable_entity('invalid money amount', 'A price cannot be negative')
+			return new_error_unprocessable_entity('invalid money amount',
+				'A price cannot be negative')
 		}
 
 		money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
@@ -539,7 +545,8 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 
 		if original_price := price.original_price {
 			if original_price < 0 {
-				return new_error_unprocessable_entity('invalid money amount', 'A price cannot be negative')
+				return new_error_unprocessable_entity('invalid money amount',
+					'A price cannot be negative')
 			}
 
 			money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
@@ -860,7 +867,8 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 	// Reject creation of a variant with 0 option values
 	if option_values := p.option_values {
 		if option_values.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'A variant must reference at least one option')
+			return new_error_unprocessable_entity(error_field_empty,
+				'A variant must reference at least one option')
 		}
 	}
 
@@ -1009,7 +1017,8 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 
 	if option_values := p.option_values {
 		if option_values.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'A variant must reference at least one option')
+			return new_error_unprocessable_entity(error_field_empty,
+				'A variant must reference at least one option')
 		}
 	}
 
@@ -1103,7 +1112,8 @@ mut:
 
 fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	if p.option_value_ids.len == 0 {
-		return new_error_unprocessable_entity(error_field_empty, 'option_value_ids cannot be an empty array')
+		return new_error_unprocessable_entity(error_field_empty,
+			'option_value_ids cannot be an empty array')
 	}
 
 	mut option_value_ids_bin := [][]u8{len: p.option_value_ids.len}
@@ -1681,7 +1691,8 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() 
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
 		option_values := variant.option_values or {
-			return new_error_unprocessable_entity(error_field_empty, 'Each variant must reference all options with the option_values field')
+			return new_error_unprocessable_entity(error_field_empty,
+				'Each variant must reference all options with the option_values field')
 		}
 
 		if option_values.len != options.len {
@@ -1700,7 +1711,8 @@ fn (p ProductCreateRequestHygienised) validate_no_orphan_option_values() ! {
 		}
 
 		if p.options == none {
-			return new_error_unprocessable_entity(error_field_empty, 'option_values cannot be provided because no options are defined')
+			return new_error_unprocessable_entity(error_field_empty,
+				'option_values cannot be provided because no options are defined')
 		}
 	}
 }
@@ -1712,7 +1724,8 @@ fn (p ProductCreateRequestHygienised) validate_no_too_many_variants() ! {
 	}
 
 	options := p.options or {
-		return new_error_unprocessable_entity(error_field_empty, 'Empty `options` field not allowed: an option must be created in order to create variants')
+		return new_error_unprocessable_entity(error_field_empty,
+			'Empty `options` field not allowed: an option must be created in order to create variants')
 	}
 
 	mut possible_combinations := 1
@@ -1722,7 +1735,8 @@ fn (p ProductCreateRequestHygienised) validate_no_too_many_variants() ! {
 	}
 
 	if variants.len > possible_combinations {
-		return new_error_unprocessable_entity('too_many_variants', 'Provided ${variants.len} variants but there can only be ${possible_combinations} possible combinations with the provided options and values.')
+		return new_error_unprocessable_entity('too_many_variants',
+			'Provided ${variants.len} variants but there can only be ${possible_combinations} possible combinations with the provided options and values.')
 	}
 }
 
@@ -1736,7 +1750,8 @@ fn (p ProductCreateRequestHygienised) validate_no_duplicate_variants() ! {
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
 		option_values := variant.option_values or {
-			return new_error_unprocessable_entity(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+			return new_error_unprocessable_entity(error_field_empty,
+				'Empty option_values field not allowed: each variant must reference all options')
 		}
 
 		mut combination := ''
@@ -1751,7 +1766,8 @@ fn (p ProductCreateRequestHygienised) validate_no_duplicate_variants() ! {
 		}
 
 		if seen_combinations[combination] {
-			return new_error_unprocessable_entity('Duplicate variant.', '2 variants have the same option values')
+			return new_error_unprocessable_entity('Duplicate variant.',
+				'2 variants have the same option values')
 		}
 
 		seen_combinations[combination] = true
@@ -1765,13 +1781,15 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_valid_values()
 	}
 
 	options := p.options or {
-		return new_error_unprocessable_entity(error_field_empty, 'Empty `options` field not allowed: an option must be created in order to create variants')
+		return new_error_unprocessable_entity(error_field_empty,
+			'Empty `options` field not allowed: an option must be created in order to create variants')
 	}
 
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
 		option_values := variant.option_values or {
-			return new_error_unprocessable_entity(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+			return new_error_unprocessable_entity(error_field_empty,
+				'Empty option_values field not allowed: each variant must reference all options')
 		}
 
 		for option_index := 0; option_index < option_values.len; option_index++ {
@@ -1779,7 +1797,8 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_valid_values()
 			value_index := option_values[option_index]
 			max_value_index := option.values.len - 1
 			if value_index < 0 {
-				return new_error_unprocessable_entity('Invalid value index.', 'An index cannot be a negative integer')
+				return new_error_unprocessable_entity('Invalid value index.',
+					'An index cannot be a negative integer')
 			}
 
 			if value_index > max_value_index {
@@ -1802,7 +1821,8 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 	options := p.options or { return }
 
 	option_values := variant.option_values or {
-		return new_error_unprocessable_entity(error_field_empty, 'Empty option_values field not allowed: each variant must reference all options')
+		return new_error_unprocessable_entity(error_field_empty,
+			'Empty option_values field not allowed: each variant must reference all options')
 	}
 
 	for option_index := 0; option_index < option_values.len; option_index++ {
@@ -1810,7 +1830,8 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 		value_index := option_values[option_index]
 		max_value_index := option.values.len - 1
 		if value_index < 0 {
-			return new_error_unprocessable_entity('Invalid value index.', 'An index cannot be a negative integer')
+			return new_error_unprocessable_entity('Invalid value index.',
+				'An index cannot be a negative integer')
 		}
 
 		if value_index > max_value_index {
@@ -1826,11 +1847,13 @@ fn (p ProductCreateRequestHygienised) validate_variant_image() ! {
 		variant := variants[i]
 		variant_image := variant.image or { continue }
 		if variant_image < 0 {
-			return new_error_unprocessable_entity(error_reference_invalid, 'The variant image index cannot be negative')
+			return new_error_unprocessable_entity(error_reference_invalid,
+				'The variant image index cannot be negative')
 		}
 
 		product_images := p.images or {
-			return new_error_unprocessable_entity(error_reference_invalid, 'A variant image is defined but the product has no images. A variant image is a reference to a product image, therefore a variant cannot have an image if the product has no images.')
+			return new_error_unprocessable_entity(error_reference_invalid,
+				'A variant image is defined but the product has no images. A variant image is a reference to a product image, therefore a variant cannot have an image if the product has no images.')
 		}
 
 		if variant_image >= product_images.len {
@@ -1901,25 +1924,30 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if options := p.options {
 		// Reject creation of a product with 0 options
 		if options.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one option.')
+			return new_error_unprocessable_entity(error_field_empty,
+				'A product must have at least one option.')
 		}
 
 		variants := p.variants or {
-			return new_error_unprocessable_entity(error_field_empty, 'variants must be provided when options are specified')
+			return new_error_unprocessable_entity(error_field_empty,
+				'variants must be provided when options are specified')
 		}
 
 		if variants.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'At least one variant must be provided when options are specified')
+			return new_error_unprocessable_entity(error_field_empty,
+				'At least one variant must be provided when options are specified')
 		}
 
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			option_values := variant.option_values or {
-				return new_error_unprocessable_entity(error_field_empty, 'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
+				return new_error_unprocessable_entity(error_field_empty,
+					'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
 			}
 
 			if option_values.len != options.len {
-				return new_error_unprocessable_entity(error_reference_invalid, 'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
+				return new_error_unprocessable_entity(error_reference_invalid,
+					'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
 			}
 
 			for j := 0; j < options.len; j++ {
@@ -1927,7 +1955,8 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 				values := option.values
 				value_index := option_values[j]
 				if values.len <= value_index {
-					return new_error_unprocessable_entity(error_reference_invalid, 'Out of bounds: the option at index `${j}` has a total of `${values.len}` values, there cannot be a value at index `${value_index}`')
+					return new_error_unprocessable_entity(error_reference_invalid,
+						'Out of bounds: the option at index `${j}` has a total of `${values.len}` values, there cannot be a value at index `${value_index}`')
 				}
 			}
 		}
@@ -1936,7 +1965,8 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if variants := p.variants {
 		// Reject creation of a product with 0 variants
 		if variants.len == 0 {
-			return new_error_unprocessable_entity(error_field_explicit_empty, 'A product must have at least one variant.')
+			return new_error_unprocessable_entity(error_field_explicit_empty,
+				'A product must have at least one variant.')
 		}
 
 		if images := p.images {
@@ -2208,7 +2238,8 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if options := p.options {
 		// Reject deleting all options
 		if options.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one option.')
+			return new_error_unprocessable_entity(error_field_empty,
+				'A product must have at least one option.')
 		}
 
 		// When a new option is created, variants must be defined.
@@ -2222,30 +2253,35 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		}
 
 		if has_new_options && p.variants == none {
-			return new_error_unprocessable_entity(error_field_empty, 'variants must be provided when new options are specified')
+			return new_error_unprocessable_entity(error_field_empty,
+				'variants must be provided when new options are specified')
 		}
 
 		if variants := p.variants {
 			// reject deleting all variants
 			if variants.len == 0 {
-				return new_error_unprocessable_entity(error_field_empty, 'A product must have at least one variant')
+				return new_error_unprocessable_entity(error_field_empty,
+					'A product must have at least one variant')
 			}
 
 			for i := 0; i < variants.len; i++ {
 				variant := variants[i]
 				option_values := variant.option_values or {
-					return new_error_unprocessable_entity(error_field_empty, 'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
+					return new_error_unprocessable_entity(error_field_empty,
+						'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
 				}
 
 				if option_values.len != options.len {
-					return new_error_unprocessable_entity(error_reference_invalid, 'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
+					return new_error_unprocessable_entity(error_reference_invalid,
+						'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
 				}
 
 				for j := 0; j < options.len; j++ {
 					option := options[j]
 					values := option.values or {
 						if variant.id == none {
-							return new_error_unprocessable_entity(error_field_empty, 'A new variant must reference all product options. The variant at index `${j}` has no option_values.')
+							return new_error_unprocessable_entity(error_field_empty,
+								'A new variant must reference all product options. The variant at index `${j}` has no option_values.')
 						}
 						continue
 					}
@@ -2314,3 +2350,4 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 
 	return ph
 }
+

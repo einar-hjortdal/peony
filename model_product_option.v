@@ -15,7 +15,7 @@ fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction,
 	data := tx.execute('SELECT product_option_value_id, locale_id, name
 	FROM product_option_value_translations
 	WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids_bin)})',
-		...workaround_24757(product_option_value_ids_bin))!
+		...product_option_value_ids_bin)!
 
 	rows := data.rows()
 
@@ -72,12 +72,12 @@ fn model_product_option_values_retrieve(mut tx firebird.Transaction, p ProductOp
 	mut params := []firebird.Value{}
 	if p.ids.len > 0 {
 		query = appendln(query, 'WHERE id IN (${get_placeholders(p.ids_bin)})')
-		params = workaround_24757(p.ids_bin)
+		params = slices_to_values(p.ids_bin)
 	}
 
 	if p.option_ids.len > 0 {
 		query = appendln(query, 'WHERE option_id IN (${get_placeholders(p.option_ids_bin)})')
-		params = workaround_24757(p.option_ids_bin)
+		params = slices_to_values(p.option_ids_bin)
 	}
 
 	query = appendln(query, 'ORDER BY value_rank')
@@ -142,7 +142,7 @@ fn model_product_option_value_update(mut tx firebird.Transaction, p []ProductOpt
 	}
 
 	option_ids_bin := option_ids_map.values()
-	params = arrays.concat(params, ...workaround_24757(option_ids_bin))
+	params = arrays.concat(params, ...option_ids_bin)
 
 	query := 'MERGE INTO product_option_value t
 		USING (${get_merge_source(src)}) s
@@ -174,7 +174,7 @@ fn model_product_option_translations_retrieve(mut tx firebird.Transaction, produ
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
 		WHERE product_option_id IN (${get_placeholders(product_option_ids_bin)})',
-		...workaround_24757(product_option_ids_bin))!
+		...product_option_ids_bin)!
 
 	rows := data.rows()
 
@@ -218,7 +218,7 @@ fn model_product_option_retrieve(mut tx firebird.Transaction, product_ids_bin []
 		WHERE product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY option_rank'
 
-	params := workaround_24757(product_ids_bin)
+	params := slices_to_values(product_ids_bin)
 
 	mut data := tx.execute(query, ...params)!
 
@@ -413,7 +413,7 @@ fn model_product_option_value_translations_update(mut tx firebird.Transaction, p
 		product_option_value_ids_map[translation.product_option_value_id] = translation.product_option_value_id_bin
 	}
 
-	params = arrays.concat(params, ...workaround_24757(p.product_option_value_ids_bin))
+	params = arrays.concat(params, ...p.product_option_value_ids_bin)
 
 	query := 'MERGE INTO product_option_value_ids_map
 		USING (${get_merge_source(src)}) s
@@ -496,7 +496,7 @@ fn model_product_option_update(mut tx firebird.Transaction, p []ProductOptionUpd
 			AND t.product_id IN (${get_placeholders(product_ids_bin)})
 			THEN DELETE'
 
-	params = arrays.concat(params, ...workaround_24757(product_ids_bin))
+	params = arrays.concat(params, ...product_ids_bin)
 
 	tx.execute(query, ...params)!
 }
@@ -543,7 +543,7 @@ fn model_product_option_translations_update(mut tx firebird.Transaction, p Produ
 			AND t.product_option_id IN (${get_placeholders(p.product_option_ids_bin)})
 			THEN DELETE'
 
-	params = arrays.concat(params, ...workaround_24757(p.product_option_ids_bin))
+	params = arrays.concat(params, ...p.product_option_ids_bin)
 
 	tx.execute(query, ...params)!
 }
@@ -579,12 +579,12 @@ fn model_product_option_value_variant_retrieve(mut tx firebird.Transaction, p Pr
 	mut params := []firebird.Value{}
 	if p.option_value_ids.len > 0 {
 		query = '${query} WHERE option_value_id IN (${get_placeholders(p.option_value_ids_bin)})'
-		params = workaround_24757(p.option_value_ids_bin)
+		params = slices_to_values(p.option_value_ids_bin)
 	}
 
 	if p.variant_ids.len > 0 {
 		query = '${query} WHERE variant_id IN (${get_placeholders(p.variant_ids_bin)})'
-		params = workaround_24757(p.variant_ids_bin)
+		params = slices_to_values(p.variant_ids_bin)
 	}
 
 	data := tx.execute(query, ...params)!
@@ -642,7 +642,7 @@ fn model_product_option_value_variant_update(mut tx firebird.Transaction, p Prod
 			VALUES (s.option_value_id, s.variant_id)
 		WHEN NOT MATCHED BY SOURCE AND t.variant_id IN (${get_placeholders(p.variant_ids_bin)}) THEN
 			DELETE'
-	params = arrays.concat(params, ...workaround_24757(p.variant_ids_bin))
+	params = arrays.concat(params, ...p.variant_ids_bin)
 
 	tx.execute(query, ...params)!
 }

@@ -27,7 +27,7 @@ fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids_
 		description
 		FROM product_translations
 		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...workaround_24757(product_ids_bin))!
+		...product_ids_bin)!
 
 	rows := data.rows()
 
@@ -143,7 +143,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 
 	if ph.ids.is_set {
 		conditions = arrays.concat(conditions, 'p.id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(ph.ids_bin))
+		params = arrays.concat(params, ...ph.ids_bin)
 	}
 
 	if ph.handle.is_set {
@@ -163,7 +163,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 
 	if ph.type_ids.is_set {
 		conditions = arrays.concat(conditions, 'p.type_id IN ${get_placeholders(ph.type_ids_bin)}')
-		params = arrays.concat(params, ...workaround_24757(ph.type_ids_bin))
+		params = arrays.concat(params, ...ph.type_ids_bin)
 	}
 
 	if ph.tag_ids.is_set {
@@ -181,7 +181,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 			WHERE cp.product_id = p.id
 				AND cp.category_id IN (${get_placeholders(ph.category_ids_bin)})
 			)')
-		params = arrays.concat(params, ...workaround_24757(ph.category_ids_bin))
+		params = arrays.concat(params, ...ph.category_ids_bin)
 	}
 
 	// TODO price lists
@@ -200,7 +200,7 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 			WHERE psc.product_id = p.id
 				AND sales_channel_id IN (${get_placeholders(ph.sales_channel_ids_bin)})
 			)')
-		params = arrays.concat(params, ...workaround_24757(ph.sales_channel_ids_bin))
+		params = arrays.concat(params, ...ph.sales_channel_ids_bin)
 	}
 
 	return get_where_conditions(conditions), params
@@ -322,7 +322,8 @@ struct ProductCreateParams {
 
 fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 	if p.product_id == '' || p.product_id_bin.len == 0 || p.title == '' || p.handle == '' {
-		return new_error_internal('Missing required data in ProductCreateParams', 'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}, title: ${p.title}, handle: ${p.handle}')
+		return new_error_internal('Missing required data in ProductCreateParams',
+			'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}, title: ${p.title}, handle: ${p.handle}')
 	}
 
 	mut c := ['id', 'title', 'handle']
@@ -453,3 +454,4 @@ fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []
 fn model_product_thumbnail_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
 	tx.execute('UPDATE product SET thumbnail_id = NULL WHERE id = ?', product_id_bin)!
 }
+

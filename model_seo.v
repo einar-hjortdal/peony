@@ -23,7 +23,7 @@ fn model_seo_translation_retrieve(mut tx firebird.Transaction, seo_ids_bin [][]u
 	data := tx.execute('SELECT seo_id, locale_id, title, description
 		FROM seo_translations
 		WHERE seo_id IN (${get_placeholders(seo_ids_bin)})',
-		...workaround_24757(seo_ids_bin))!
+		...seo_ids_bin)!
 
 	rows := data.rows()
 
@@ -92,7 +92,7 @@ fn model_product_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, produc
 fn model_product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSEO {
 	data := tx.execute('SELECT id, product_id, title, description FROM seo
 		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...workaround_24757(product_ids_bin))!
+		...product_ids_bin)!
 
 	rows := data.rows()
 
@@ -223,7 +223,7 @@ fn model_category_seo_create(mut tx firebird.Transaction, seo_id_bin []u8, categ
 fn model_category_seo_retrieve(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategorySEO {
 	data := tx.execute('SELECT id, category_id, title, description FROM seo
 		WHERE category_id IN (${get_placeholders(category_ids_bin)})',
-		...workaround_24757(category_ids_bin))!
+		...category_ids_bin)!
 
 	rows := data.rows()
 

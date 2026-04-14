@@ -32,7 +32,7 @@ fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_
 		LEFT JOIN variant_money_amount vma
 			ON ma.id = vma.money_amount_id
 		WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
-		...workaround_24757(variant_ids_bin))!
+		...variant_ids_bin)!
 
 	rows := data.rows()
 
@@ -104,7 +104,7 @@ fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMon
 			WHERE variant_id IN (${get_placeholders(variant_ids_bin)})
 		)
 		AND price_list_id IS NULL',
-		...workaround_24757(variant_ids_bin))!
+		...variant_ids_bin)!
 
 	mut n_params := 4
 	mut src := []string{len: p.len}

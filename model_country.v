@@ -20,13 +20,8 @@ fn conditions_countries_retrieve(p CountryRetrieveParams) (string, []firebird.Va
 	mut params := []firebird.Value{}
 
 	if codes := p.codes {
-		// workaround_24757() but for strings
-		mut c := []firebird.Value{len: codes.len, init: firebird.Null{}}
-		for i := 0; i < codes.len; i++ {
-			c[i] = firebird.Value(codes[i])
-		}
 		conditions = arrays.concat(conditions, 'code IN (${get_placeholders(codes)})')
-		params = arrays.concat(params, ...c)
+		params = arrays.concat(params, ...codes)
 	}
 
 	return get_where_conditions(conditions), params

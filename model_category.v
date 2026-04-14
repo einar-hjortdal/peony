@@ -50,7 +50,7 @@ fn model_category_translations_get(mut tx firebird.Transaction, category_ids_bin
 	data := tx.execute('SELECT category_id, locale_id, name, description
 		FROM category_translations
 		WHERE category_id IN (${get_placeholders(category_ids_bin)})',
-		...workaround_24757(category_ids_bin))!
+		...category_ids_bin)!
 
 	rows := data.rows()
 	mut category_translations := []CategoryTranslation{len: rows.len}
@@ -197,7 +197,7 @@ fn model_category_retrieve_conditions(p CategoryRetrieveParams) (string, []fireb
 
 	if ids := p.ids {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
-		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
 	if handle := p.handle {
@@ -221,7 +221,7 @@ fn model_category_retrieve_conditions(p CategoryRetrieveParams) (string, []fireb
 			WHERE cp.category_id = c.id
 				AND cp.product_id IN (${get_placeholders(product_ids)})
 			)')
-		params = arrays.concat(params, ...workaround_24757(ids_bytes(product_ids)))
+		params = arrays.concat(params, ...ids_bytes(product_ids))
 	}
 
 	if !p.with_deleted {
@@ -340,12 +340,12 @@ fn model_category_product_retrieve(mut tx firebird.Transaction,
 	mut params := []firebird.Value{}
 	if p.category_ids_bin.len > 0 {
 		condition = 'category_id'
-		params = workaround_24757(p.category_ids_bin)
+		params = slices_to_values(p.category_ids_bin)
 	}
 
 	if p.product_ids_bin.len > 0 {
 		condition = 'product_id'
-		params = workaround_24757(p.product_ids_bin)
+		params = slices_to_values(p.product_ids_bin)
 	}
 
 	data := tx.execute('SELECT category_id, product_id

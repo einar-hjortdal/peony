@@ -77,7 +77,7 @@ fn model_user_list_conditions(p UserListParams) (string, []firebird.Value) {
 
 	if ids := p.ids {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
-		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
 	if handle := p.handle {

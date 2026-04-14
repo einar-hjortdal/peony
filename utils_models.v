@@ -125,11 +125,11 @@ fn get_fetch_amount(zi32 ZeroI32) i32 {
 	return max_fetch
 }
 
-// https://github.com/vlang/v/issues/24757
-fn workaround_24757(bins [][]u8) []firebird.Value {
-	mut r := []firebird.Value{len: bins.len, init: firebird.Value(0)}
-	for i := 0; i < bins.len; i++ {
-		r[i] = bins[i]
+// TODO open issue?
+fn slices_to_values[T](s [][]T) []firebird.Value {
+	mut r := []firebird.Value{len: s.len, init: firebird.Value(0)}
+	for i := 0; i < s.len; i++ {
+		r[i] = s[i]
 	}
 	return r
 }

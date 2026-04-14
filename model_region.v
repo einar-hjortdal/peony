@@ -35,7 +35,7 @@ fn conditions_region_retrieve(p RegionRetriveParams) (string, []firebird.Value) 
 
 	if ids := p.ids {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
-		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
 	if !p.with_deleted {
@@ -128,13 +128,8 @@ fn model_region_create(mut tx firebird.Transaction, region_id_bin []u8, d Region
 	tx.execute('INSERT INTO region (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
 		...params)!
 
-	// workaround_24757
-	params = []firebird.Value{len: d.country_codes.len, init: firebird.Null{}}
-	for i := 0; i < d.country_codes.len; i++ {
-		params[i] = d.country_codes[i]
-	}
 	tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(d.country_codes)})',
-		...params)!
+		...d.country_codes)!
 }
 
 fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d RegionUpdateRequest) ! {
@@ -166,14 +161,9 @@ fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d Region
 	tx.execute('UPDATE region SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
 
-	// workaround_24757
 	if country_codes := d.country_codes {
-		params = []firebird.Value{len: country_codes.len, init: firebird.Null{}}
-		for i := 0; i < country_codes.len; i++ {
-			params[i] = country_codes[i]
-		}
 		tx.execute('UPDATE country SET region_id = ? WHERE code IN (${get_placeholders(country_codes)})',
-			...params)!
+			...country_codes)!
 	}
 }
 

@@ -32,7 +32,7 @@ fn model_sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string
 
 	if ids := p.ids {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
-		params = arrays.concat(params, ...workaround_24757(ids_bytes(ids)))
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
 	return get_where_conditions(conditions), params
@@ -144,8 +144,7 @@ fn model_sales_channel_update(mut tx firebird.Transaction, sales_channel_id_bin 
 fn (mut app App) delete_sales_channel(id string) ! {
 	id_bin := id_string_to_bin(id)!
 	mut tx := app.start_transaction()!
-	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
-		id_bin)!
+	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
 	tx.commit()!
 }
 
@@ -159,7 +158,7 @@ struct ProductSalesChannel {
 fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSalesChannel {
 	data := tx.execute('SELECT product_id, sales_channel_id FROM product_sales_channel
 		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...workaround_24757(product_ids_bin))!
+		...product_ids_bin)!
 
 	rows := data.rows()
 
@@ -245,7 +244,7 @@ fn model_sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p Mo
 
 	data := tx.execute('SELECT sales_channel_id, stock_location_id 
 		FROM sales_channel_stock_location WHERE ${condition} IN (${get_placeholders(params)})',
-		...workaround_24757(params))!
+		...params)!
 
 	rows := data.rows()
 

@@ -24,7 +24,7 @@ fn model_stock_location_retrieve_conditions(p StockLocationRetrieveParams) (stri
 
 	if p.filter_by_id {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
+		params = arrays.concat(params, ...p.ids_bin)
 	}
 
 	return get_where_conditions(conditions), params

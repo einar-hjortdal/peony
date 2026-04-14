@@ -14,7 +14,7 @@ struct ImageTranslation {
 fn model_image_translation_retrieve(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]ImageTranslation {
 	data := tx.execute('SELECT image_id, locale_id, alt FROM image_translations
 		WHERE image_id IN (${get_placeholders(image_ids_bin)})',
-		...workaround_24757(image_ids_bin))!
+		...image_ids_bin)!
 
 	rows := data.rows()
 
@@ -74,7 +74,7 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 		ON i.id = pi.image_id
 		WHERE pi.product_id IN (${get_placeholders(product_ids_bin)})
 		ORDER BY pi.image_rank',
-		...workaround_24757(product_ids_bin))!
+		...product_ids_bin)!
 
 	rows := data.rows()
 
@@ -290,7 +290,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 
 	// handle translations
 	query = 'DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids_bin)})'
-	tx.execute(query, ...workaround_24757(image_ids_bin))!
+	tx.execute(query, ...image_ids_bin)!
 
 	if n_translations == 0 {
 		return

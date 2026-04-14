@@ -14,7 +14,7 @@ struct InventoryLevel {
 fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin [][]u8) ![]InventoryLevel {
 	data := tx.execute('SELECT inventory_item_id, stock_location_id, stocked_quantity, reserved_quantity
 		FROM inventory_level WHERE inventory_item_id IN (${get_placeholders(inventory_item_ids_bin)})',
-		...workaround_24757(inventory_item_ids_bin))!
+		...inventory_item_ids_bin)!
 
 	rows := data.rows()
 	mut inventory_levels := []InventoryLevel{len: rows.len}
@@ -118,7 +118,7 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids_bin []
 		allow_backorder
 		FROM inventory_item
 		WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
-		...workaround_24757(variant_ids_bin))!
+		...variant_ids_bin)!
 
 	rows := data.rows()
 	mut inventory_items := []InventoryItem{len: rows.len}

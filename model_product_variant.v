@@ -35,12 +35,13 @@ fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygi
 
 	if p.ids.is_set {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(p.ids_bin))
+		params = arrays.concat(params, ...p.ids_bin)
 	}
 
 	if p.product_ids.is_set {
-		conditions = arrays.concat(conditions, 'product_id IN (${get_placeholders(p.product_ids_bin)})')
-		params = arrays.concat(params, ...workaround_24757(p.product_ids_bin))
+		conditions = arrays.concat(conditions,
+			'product_id IN (${get_placeholders(p.product_ids_bin)})')
+		params = arrays.concat(params, ...p.product_ids_bin)
 	}
 
 	if p.allow_backorder.is_set {
@@ -415,3 +416,4 @@ fn model_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
 		variant_id_bin)!
 }
+
