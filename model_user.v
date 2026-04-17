@@ -10,18 +10,19 @@ pub const role_author = 'author'
 pub const role_contributor = 'contributor'
 
 struct User {
-	id            ID
-	handle        string
-	email         string
-	password_hash []u8
-	password_salt []u8
-	role          string
-	created_at    firebird.DateTime
-	updated_at    firebird.DateTime
-	deleted_at    firebird.DateTime
-	first_name    string
-	last_name     string
-	metadata      firebird.NullString
+	id                     ID
+	handle                 string
+	email                  string
+	password_hash          []u8
+	password_salt          []u8
+	password_parameters_id ID
+	role                   string
+	created_at             firebird.DateTime
+	updated_at             firebird.DateTime
+	deleted_at             firebird.DateTime
+	first_name             string
+	last_name              string
+	metadata               firebird.NullString
 mut:
 	image UserImage
 }
@@ -30,16 +31,40 @@ fn (u User) id() ID {
 	return u.id
 }
 
-fn model_user_create(mut tx firebird.Transaction, p UserCreateRequest, user_id string, user_id_bin []u8) ! {
-	password_salt, password_hash := hash_password(p.password)!
+struct UserCreateParams {
+	user_id                ID
+	handle                 string
+	email                  string
+	password_hash          []u8
+	password_salt          []u8
+	password_parameters_id ID
+	role                   string
+	first_name             ?string
+	last_name              ?string
+	image_id               ?ID
+	metadata               ?string
+}
 
-	mut c := ['id', 'handle', 'email', 'password_hash', 'password_salt']
-	mut params := [firebird.Value(user_id_bin), user_id, p.email, password_hash, password_salt]
+fn model_user_create(mut tx firebird.Transaction, p UserCreateParams) ! {
+	mut c := [
+		'id',
+		'handle',
+		'email',
+		'password_hash',
+		'password_salt',
+		'password_parameters_id',
+		'role',
+	]
 
-	if role := p.role {
-		c = arrays.concat(c, 'role')
-		params = arrays.concat(params, role)
-	}
+	mut params := [
+		firebird.Value(p.user_id.bytes()),
+		p.handle,
+		p.email,
+		p.password_hash,
+		p.password_salt,
+		p.password_parameters_id.bytes(),
+		p.role,
+	]
 
 	if first_name := p.first_name {
 		c = arrays.concat(c, 'first_name')
@@ -126,6 +151,7 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		email,
 		password_hash,
 		password_salt,
+		password_parameters_id,
 		role,
 		created_at,
 		updated_at,
@@ -147,35 +173,39 @@ fn model_user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		email, _ := v[2].get_string()!
 		password_hash, _ := v[3].get_array_u8()!
 		password_salt, _ := v[4].get_array_u8()!
-		role, _ := v[5].get_string()!
-		created_at, _ := v[6].get_date_time()!
-		updated_at, _ := v[7].get_date_time()!
-		deleted_at, _ := v[8].get_date_time()!
-		first_name, _ := v[9].get_string()!
-		last_name, _ := v[10].get_string()!
-		metadata := v[11].get_null_string()!
+		password_parameters_id_bin, _ := v[5].get_array_u8()!
+		role, _ := v[6].get_string()!
+		created_at, _ := v[7].get_date_time()!
+		updated_at, _ := v[8].get_date_time()!
+		deleted_at, _ := v[9].get_date_time()!
+		first_name, _ := v[10].get_string()!
+		last_name, _ := v[11].get_string()!
+		metadata := v[12].get_null_string()!
 
 		id := id_from_bytes(id_bin)!
+		password_parameters_id := id_from_bytes(password_parameters_id_bin)!
 
 		users[i] = User{
-			id:            id
-			handle:        handle
-			email:         email
-			password_hash: password_hash
-			password_salt: password_salt
-			role:          role
-			created_at:    created_at
-			updated_at:    updated_at
-			deleted_at:    deleted_at
-			first_name:    first_name
-			last_name:     last_name
-			metadata:      metadata
+			id:                     id
+			handle:                 handle
+			email:                  email
+			password_hash:          password_hash
+			password_salt:          password_salt
+			password_parameters_id: password_parameters_id
+			role:                   role
+			created_at:             created_at
+			updated_at:             updated_at
+			deleted_at:             deleted_at
+			first_name:             first_name
+			last_name:              last_name
+			metadata:               metadata
 		}
 	}
 
 	return users
 }
 
+// TODO handle password
 fn model_user_update(mut tx firebird.Transaction, user_id_bin []u8, p UserUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}

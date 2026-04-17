@@ -66,24 +66,53 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		return ctx.handle_error(err)
 	}
 
+	password_parameters := model_password_parameters_get(mut tx, PasswordParametersGetParams{
+		id: user.password_parameters_id
+	}) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	verify_password(p.password, user.password_hash, user.password_salt) or {
-		log.debug(err.msg())
-		perr := new_error_login()
+	details := json.decode(PasswordDetails, password_parameters.parameters) or {
+		perr := new_error_internal('Failed to decode PasswordDetails', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	ctx.user_session_values = UserSessionValues{
-		id: user.id
+	if details.function_name == argon2id_name {
+		parameters := details.get_argon2id_parameters() or {
+			perr := new_error_internal('Failed to decode Argon2idParameters', err.msg())
+			return ctx.handle_error(perr)
+		}
+
+		argon2id_hash := Argon2idHash{
+			hash:       user.password_hash
+			salt:       user.password_salt
+			parameters: parameters
+		}
+
+		argon2id_hash.verify_password(p.password) or {
+			log.debug(err.msg())
+			perr := new_error_login()
+			return ctx.handle_error(perr)
+		}
+
+		ctx.user_session_values = UserSessionValues{
+			id: user.id
+		}
+
+		return ctx.handle_ok(UserResponseEnvelope{
+			user: format_user_response(user)
+		})
 	}
 
-	return ctx.handle_ok(UserResponseEnvelope{
-		user: format_user_response(user)
-	})
+	perr := new_error_internal('Unsupported password hashing algorithm',
+		'decoded function name: `${details.function_name}`')
+	return ctx.handle_error(perr)
 }
 
 // logs out user
