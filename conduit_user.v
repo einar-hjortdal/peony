@@ -5,17 +5,57 @@ import veb
 import einar_hjortdal.firebird
 
 fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Result {
+	password_hash := hash_password(p.password) or {
+		perr := new_error_internal('Failed hash password', err.msg())
+		return ctx.handle_error(perr)
+	}
+	password_parameters_encoded, password_parameters_hash := password_hash.parameters.encode() or {
+		perr := new_error_internal('Failed to encode password_parameters', err.msg())
+		return ctx.handle_error(perr)
+	}
+	user_id := app.gen_id()
+
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	user_id, user_id_bin := app.new_id()
+	password_details := model_password_details_get(mut tx, PasswordDetailsGetParams{
+		hash: password_parameters_hash
+	}) or {
+		password_parameters_id := app.gen_id()
+		model_password_details_create(mut tx, password_parameters_id, argon2id_name,
+			password_parameters_encoded, password_parameters_hash) or {
+			tx.rollback() or {}
+			perr := new_error_internal('Failed to create password_parameters', err.msg())
+			return ctx.handle_error(perr)
+		}
+
+		model_password_details_get(mut tx, PasswordDetailsGetParams{
+			hash: password_parameters_hash
+		}) or {
+			tx.rollback() or {}
+			perr := new_error_internal('Failed to get password_parameters', err.msg())
+			return ctx.handle_error(perr)
+		}
+	}
 
 	if image := p.image {
 		println('TODO create image: ${image}')
 	}
 
-	model_user_create(mut tx, p, user_id, user_id_bin) or {
+	model_user_create(mut tx, UserCreateParams{
+		user_id:                user_id
+		handle:                 user_id.string() // TODO validate and format in route
+		email:                  p.email
+		password_hash:          password_hash.hash
+		password_salt:          password_hash.salt
+		password_parameters_id: password_details.id
+		role:                   unwrap_option_or(p.role, role_admin) // TODO validate and format in route
+		first_name:             p.first_name
+		last_name:              p.last_name
+		// image_id
+		metadata: p.metadata
+	}) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to upload file', err.msg())
+		perr := new_error_internal('Failed to create user', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -29,6 +69,7 @@ fn conduit_user_create(mut app App, mut ctx Context, p UserCreateRequest) veb.Re
 }
 
 fn conduit_user_update(mut app App, mut ctx Context, user_id_bin []u8, p UserUpdateRequest) veb.Result {
+	// TODO password
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	if image := p.image {

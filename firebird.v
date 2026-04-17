@@ -84,12 +84,16 @@ fn firebird_insert_locale_codes(mut app App, mut tx firebird.Transaction) ! {
 	stmt.close()!
 }
 
-fn firebird_insert_default_user(mut tx firebird.Transaction, email string, password string, user_id string, user_id_bin []u8) ! {
+fn firebird_insert_default_user(mut tx firebird.Transaction, email string, password string, password_parameters_id ID, user_id ID) ! {
 	log.debug('insert_default_user')
-	password_salt, password_hash := hash_password(password)!
-	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, role)
+	password_hash := hash_password(password)!
+	parameters_encoded, parameters_hash := password_hash.parameters.encode()!
+	tx.execute('INSERT INTO password_parameters (id, parameters, hash) VALUES (?, ?, ?)',
+		password_parameters_id.bytes(), parameters_encoded, parameters_hash)!
+	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, password_parameters_id, role)
 	VALUES (?, ?, ?, ?, ?, ?)',
-		user_id_bin, user_id, email, password_hash, password_salt, role_admin)!
+		user_id.bytes(), user_id.string(), email, password_hash.hash, password_hash.salt,
+		password_parameters_id.bytes(), role_admin)!
 }
 
 fn firebird_insert_default_region(mut tx firebird.Transaction, region_id_bin []u8) ! {
@@ -187,7 +191,8 @@ fn firebird_rollback_schema(mut conn firebird.Connection) {
 }
 
 fn (mut app App) add_data(mut tx firebird.Transaction) ! {
-	user_id, user_id_bin := app.new_id()
+	user_id := app.gen_id()
+	password_parameters_id := app.gen_id()
 	_, stock_location_id_bin := app.new_id()
 	_, region_id_bin := app.new_id()
 	_, sales_channel_id_bin := app.new_id()
@@ -197,8 +202,8 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	firebird_insert_country_codes(mut tx)!
 	firebird_insert_currency_data(mut tx)!
 	firebird_insert_locale_codes(mut app, mut tx)!
-	firebird_insert_default_user(mut tx, app.config.default_user_email, app.config.default_user_password,
-		user_id, user_id_bin)!
+	firebird_insert_default_user(mut tx, app.config.default_user_email,
+		app.config.default_user_password, password_parameters_id, user_id)!
 	firebird_insert_default_region(mut tx, region_id_bin)!
 	firebird_insert_default_stock_location(mut tx, stock_location_id_bin)!
 	firebird_insert_default_sales_channel(mut tx, sales_channel_id_bin)!
@@ -264,3 +269,4 @@ fn (mut app App) prepare_db() ! {
 
 	log.info('Database setup complete')
 }
+

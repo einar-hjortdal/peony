@@ -103,6 +103,7 @@
 - [ ] Attach function name to each error.
 - [ ] Transaction management.
 - [ ] Worker mode.
+- [ ] Routes should not call models, only conduit.
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 
 ## Upstream

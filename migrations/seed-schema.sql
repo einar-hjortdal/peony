@@ -12,12 +12,25 @@ CREATE TABLE image (
   CONSTRAINT "0681493b-ad7e-1eed-6400-452ff1dfa613" PRIMARY KEY (id)
 );
 
+CREATE TABLE password_details (
+  id BINARY(16) NOT NULL,
+  function_name VARCHAR(63) NOT NULL,
+  parameters BLOB SUB_TYPE TEXT NOT NULL,
+  hash BINARY(32) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT "069e1f68-bede-1661-9400-ef34b4fad290" PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX "069e1f68-bede-16c9-0000-ee68688a668b" ON password_parameters (hash);
+
+
 CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,
   email VARCHAR(254), -- IETF RFC 3696 Errata 1690
-  password_hash BINARY(64) NOT NULL,
-  password_salt BINARY(32) NOT NULL,
+  password_hash BLOB SUB_TYPE BINARY NOT NULL,
+  password_salt BLOB SUB_TYPE BINARY NOT NULL,
+  password_details_id BINARY(16) NOT NULL,
   role VARCHAR(11) DEFAULT 'member' NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -27,6 +40,7 @@ CREATE TABLE app_user (
   image_id BINARY(16),
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7e-15e0-f000-68e91e4d68b9" PRIMARY KEY (id),
+  CONSTRAINT "069e1f68-bede-16c9-0000-ee68688a668b" FOREIGN KEY (password_details_id) REFERENCES password_details (id),
   CONSTRAINT "0681493b-ad7e-163b-a800-88be23fc406a" CHECK ( role IN (
     'admin', 'member', 'developer', 'author', 'contributor')
   ),
