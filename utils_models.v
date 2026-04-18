@@ -2,9 +2,9 @@ module peony
 
 import einar_hjortdal.firebird
 
-pub const order_asc = 'ASC' // TODO duplicated order_direction_asc
-pub const order_desc = 'DESC' // TODO duplicated order_direction_desc
-pub const order_default = order_asc // TODO duplicated order_direction_default
+pub const order_asc = 'ASC'
+pub const order_desc = 'DESC'
+pub const order_default = order_asc
 
 fn newln(ln string) string {
 	return '\n${ln}'
@@ -134,3 +134,4 @@ fn slices_to_values[T](s [][]T) []firebird.Value {
 	}
 	return r
 }
+

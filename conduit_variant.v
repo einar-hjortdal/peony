@@ -60,8 +60,7 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 
 	option_value_translations := model_product_option_value_translations_retrieve(mut tx,
 		option_value_ids_bin) or {
-		return new_error_internal('Could not retrieve product_option_value_translations',
-			err.msg())
+		return new_error_internal('Could not retrieve product_option_value_translations', err.msg())
 	}
 
 	mut option_values_map := map[string]ProductOptionValue{}
@@ -176,7 +175,7 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		} else {
 			regions := model_region_retrieve(mut tx, RegionRetriveParams{
 				fetch: max_fetch
-				order: order_direction_default
+				order: order_default
 			}) or { return new_error_internal('Could not retrieve regions', err.msg()) }
 
 			if regions.len == 0 {
@@ -263,7 +262,8 @@ fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			variant_id:        variant_id
 			variant_id_bin:    variant_id_bin
 			sku:               unwrap_option_or(inventory_item.sku, old.sku.value)
-			origin_country:    unwrap_option_or(inventory_item.origin_country, old.origin_country.value)
+			origin_country:    unwrap_option_or(inventory_item.origin_country,
+				old.origin_country.value)
 			hs_code:           unwrap_option_or(inventory_item.hs_code, old.hs_code.value)
 			mid_code:          unwrap_option_or(inventory_item.mid_code, old.mid_code.value)
 			material:          unwrap_option_or(inventory_item.material, old.material.value)
@@ -271,8 +271,10 @@ fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			length:            unwrap_option_or(inventory_item.length, old.length.value)
 			height:            unwrap_option_or(inventory_item.height, old.height.value)
 			width:             unwrap_option_or(inventory_item.width, old.width.value)
-			requires_shipping: unwrap_option_or(inventory_item.requires_shipping, old.requires_shipping)
-			manage_inventory:  unwrap_option_or(inventory_item.manage_inventory, old.manage_inventory)
+			requires_shipping: unwrap_option_or(inventory_item.requires_shipping,
+				old.requires_shipping)
+			manage_inventory:  unwrap_option_or(inventory_item.manage_inventory,
+				old.manage_inventory)
 			allow_backorder:   unwrap_option_or(inventory_item.allow_backorder, old.allow_backorder)
 		}
 

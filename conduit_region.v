@@ -17,7 +17,7 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, region_id ID) veb.Resu
 		ids:    [region_id]
 		offset: offset_default
 		fetch:  1
-		order:  order_direction_default
+		order:  order_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }

@@ -9,9 +9,9 @@ import einar_hjortdal.firebird
 pub const min_fetch = i32(1)
 pub const max_fetch = i32(250)
 pub const offset_default = i32(0)
-pub const order_direction_asc = 'ASC'
-pub const order_direction_desc = 'DESC'
-pub const order_direction_default = order_direction_asc
+// pub const order_asc = model.order_asc
+// pub const order_desc = model.order_desc
+// pub const order_default = model.order_default
 
 pub const length_currency_code = 3
 pub const length_country_code = 2
@@ -58,7 +58,7 @@ const error_transaction_start = 'Failed to start transaction'
 
 const error_handle_fallback_too_long = 'The provided handle already exists. The default default fallback is to add the product id to the provided duplicate handle, but this results in the handle being too long. Please provide a unique handle for this product.'
 
-const details_order_direction_invalid = 'order direction must either be ${order_direction_asc} or ${order_direction_desc}'
+const details_order_direction_invalid = 'order direction must either be ${order_asc} or ${order_desc}'
 
 fn id_string_to_bin(id_string string) ![]u8 {
 	return luuid.to_bytes(id_string)
@@ -532,15 +532,16 @@ fn zero_array_id_string_to_array_id_bin(zero_array_id_string ZeroArrayString) ![
 
 fn parse_order_direction(s string) !string {
 	normalized := s.to_upper()
-	if normalized == order_direction_asc {
-		return order_direction_asc
+	if normalized == order_asc {
+		return order_asc
 	}
 
 	if normalized == order_desc {
-		return order_direction_desc
+		return order_desc
 	}
 
-	return new_error_unprocessable_entity(error_order_direction_invalid, details_order_direction_invalid)
+	return new_error_unprocessable_entity(error_order_direction_invalid,
+		details_order_direction_invalid)
 }
 
 fn get_order_direction(zs ZeroString) !string {
@@ -572,13 +573,14 @@ fn get_fetch_or_default(fetch ?i32) !i32 {
 fn get_offset_or_default(offset ?i32) !i32 {
 	o := offset or { return offset_default }
 	if o < offset_default {
-		return new_error_unprocessable_entity('Minimum offset is ${offset_default}', 'requested ${o}')
+		return new_error_unprocessable_entity('Minimum offset is ${offset_default}',
+			'requested ${o}')
 	}
 	return o
 }
 
 fn get_order_direction_or_default(direction ?string) !string {
-	d := direction or { return order_direction_default }
+	d := direction or { return order_default }
 	return parse_order_direction(d)
 }
 

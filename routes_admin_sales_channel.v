@@ -23,7 +23,7 @@ pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_
 		ids:    [parsed_sales_channel_id]
 		offset: offset_default
 		fetch:  1
-		order:  order_direction_default
+		order:  order_default
 	})
 }
 

@@ -33,7 +33,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		handle: handle
 		fetch:  1
 		offset: 0
-		order:  order_direction_default
+		order:  order_default
 	}) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not verify handle exists', err.msg())
@@ -158,7 +158,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		ids:    [product_id]
 		fetch:  1
 		offset: 0
-		order:  order_direction_default
+		order:  order_default
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_created(ProductResponseEnvelope{
@@ -178,7 +178,7 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 		ids:    [parsed_product_id]
 		fetch:  1
 		offset: 0
-		order:  order_direction_default
+		order:  order_default
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseEnvelope{
@@ -208,7 +208,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 		ids:    [parsed_product_id]
 		fetch:  1
 		offset: 0
-		order:  order_direction_default
+		order:  order_default
 	}
 
 	count := model_product_retrieve_count(mut tx, pr) or {
@@ -244,7 +244,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 			handle: new_handle
 			fetch:  1
 			offset: 0
-			order:  order_direction_default
+			order:  order_default
 		}) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Could not retrieve products by handle', err.msg())
@@ -384,7 +384,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 		ids:    [parsed_product_id]
 		fetch:  1
 		offset: 0
-		order:  order_direction_default
+		order:  order_default
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseEnvelope{
@@ -439,7 +439,7 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{
 		fetch: max_fetch
-		order: order_direction_default
+		order: order_default
 	}) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve region', err.msg())

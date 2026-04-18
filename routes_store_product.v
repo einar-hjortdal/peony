@@ -47,7 +47,7 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 		ids:    [parsed_product_id]
 		fetch:  max_fetch
 		offset: 0
-		order:  order_direction_default
+		order:  order_default
 	}, price_context, locale_context)
 }
 

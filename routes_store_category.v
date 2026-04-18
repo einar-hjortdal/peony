@@ -28,7 +28,7 @@ pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb
 		with_deleted: false
 		offset:       offset_default
 		fetch:        1
-		order:        order_direction_default
+		order:        order_default
 	})
 }
 

@@ -43,7 +43,7 @@ pub fn (mut app App) admin_category_get(mut ctx Context, category_id string) veb
 		ids:    [parsed_category_id]
 		offset: offset_default
 		fetch:  1
-		order:  order_direction_default
+		order:  order_default
 	})
 }
 
@@ -85,7 +85,8 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 	}
 
 	if seo.len == 0 {
-		perr := new_error_internal(error_database_data_malformed, 'Missing category seo for category with id ${category_id}')
+		perr := new_error_internal(error_database_data_malformed,
+			'Missing category seo for category with id ${category_id}')
 		return ctx.handle_error(perr)
 	}
 
@@ -96,8 +97,7 @@ pub fn (mut app App) admin_category_update(mut ctx Context, category_id string) 
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_category_update(mut app, mut ctx, category_id_bin, category_seo.id_bin,
-		ph)
+	return conduit_category_update(mut app, mut ctx, category_id_bin, category_seo.id_bin, ph)
 }
 
 // deletes a category

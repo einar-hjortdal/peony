@@ -16,7 +16,7 @@ fn conduit_currency_get(mut app App, mut ctx Context, code string) veb.Result {
 		codes:  [code]
 		offset: offset_default
 		fetch:  1
-		order:  order_direction_default
+		order:  order_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }

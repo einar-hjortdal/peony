@@ -22,7 +22,7 @@ pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) 
 		ids:    [parsed_locale_id]
 		offset: offset_default
 		fetch:  1
-		order:  order_direction_default
+		order:  order_default
 	})
 }
 

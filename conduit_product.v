@@ -50,7 +50,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	// TODO potentially loop fetch if there are more than max_fetch regions (unlikely)
 	regions := model_region_retrieve(mut tx, RegionRetriveParams{
 		fetch: max_fetch
-		order: order_direction_default
+		order: order_default
 	}) or { return new_error_internal('Failed to retrieve regions', err.msg()) }
 
 	if _ := ph.tag_ids {

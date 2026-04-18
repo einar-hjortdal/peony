@@ -111,7 +111,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 	p := RegionRetriveParams{
 		ids:   [id]
 		fetch: max_fetch
-		order: order_direction_default
+		order: order_default
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
