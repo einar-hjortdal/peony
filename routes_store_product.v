@@ -6,7 +6,18 @@ import veb
 // TODO cache
 @['/store/products'; get]
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
-	p := extract_product_list_request_query_store(ctx.query)
+	// TODO sales_channel_id from ctx.get_availability_context()
+	// for now use default_sales_channel_id
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	store := model_store_retrieve(mut tx) or {
+		perr := new_error_internal('Could not retrieve store', err.msg())
+		return ctx.handle_error(perr)
+	}
+	tx.rollback() or {}
+
+	p := hygienise_product_list_query_params_store(ctx.query, store.default_sales_channel_id) or {
+		return ctx.handle_error(err)
+	}
 
 	price_context := ctx.get_price_context() or { return ctx.handle_error(err) }
 
@@ -14,11 +25,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		return ctx.handle_error(err)
 	}
 
-	return conduit_products_list_store(mut app, mut ctx, ProductRetrieveParams{
-		fetch:  max_fetch
-		offset: 0
-		order:  order_direction_default
-	}, price_context, locale_context)
+	return conduit_products_list_store(mut app, mut ctx, p, price_context, locale_context)
 }
 
 // get product by id
@@ -28,10 +35,6 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 	parsed_product_id := id_from_string(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
-	}
-
-	p := hygienise_product_get_request_query_store(ctx.query, product_id) or {
-		return ctx.handle_error(err)
 	}
 
 	price_context := ctx.get_price_context() or { return ctx.handle_error(err) }

@@ -7,7 +7,7 @@ import einar_hjortdal.slugify
 // lists products
 @['/admin/products'; get]
 pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
-	p := hygienise_product_list_request_query(ctx.query) or { return ctx.handle_error(err) }
+	p := hygienise_product_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
 	return conduit_product_list(mut app, mut ctx, p)
 }

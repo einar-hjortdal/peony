@@ -2,6 +2,15 @@ module peony
 
 import arrays
 
+struct AvailabilityContext {
+	sales_channel_id ID
+}
+
+fn (ctx Context) get_availability_context() !AvailabilityContext {
+	// get sales_channel_id from API key-related data set in context by the middleware
+	return error('TODO: not implemented yet')
+}
+
 // used by admin endpoints.
 // returns available items across all stock locations.
 // an available item is not reserved.
@@ -105,7 +114,8 @@ fn get_variants_availability(p GetProductVariantsAvailabilityParams) map[string]
 		psc := p.product_sales_channels[i]
 		if p.sales_channel_ids_bin.contains(psc.sales_channel_id_bin)
 			&& !products_in_sales_channels.contains(psc.product_id_bin) {
-			products_in_sales_channels = arrays.concat(products_in_sales_channels, psc.product_id_bin)
+			products_in_sales_channels = arrays.concat(products_in_sales_channels,
+				psc.product_id_bin)
 		}
 	}
 
@@ -114,7 +124,8 @@ fn get_variants_availability(p GetProductVariantsAvailabilityParams) map[string]
 		scsl := p.sales_channel_stock_locations[i]
 		if p.sales_channel_ids_bin.contains(scsl.sales_channel_id_bin)
 			&& !allowed_stock_locations.contains(scsl.stock_location_id_bin) {
-			allowed_stock_locations = arrays.concat(allowed_stock_locations, scsl.stock_location_id_bin)
+			allowed_stock_locations = arrays.concat(allowed_stock_locations,
+				scsl.stock_location_id_bin)
 		}
 	}
 
@@ -132,3 +143,4 @@ fn get_variants_availability(p GetProductVariantsAvailabilityParams) map[string]
 	}
 	return res
 }
+

@@ -356,8 +356,6 @@ pub:
 	offset           ?i32
 	fetch            ?i32
 	order            ?string
-	// cart_id          ?string
-	// price_list_ids   ?[]string
 	// title            ?string
 	// description      ?string
 	// type_ids         ?[]string
@@ -379,7 +377,7 @@ fn extract_product_list_query_params(m map[string]string) ProductListQueryParams
 	}
 }
 
-fn hygienise_product_list_request_query(m map[string]string) !ProductRetrieveParams {
+fn hygienise_product_list_query_params(m map[string]string) !ProductRetrieveParams {
 	p := extract_product_list_query_params(m)
 
 	mut ids := ?[]ID(none)
@@ -411,12 +409,12 @@ fn hygienise_product_list_request_query(m map[string]string) !ProductRetrievePar
 	}
 }
 
-// ProductListRequestQueryStore allows filtering and sorting preoducts.
+// ProductListQueryParamsStore allows filtering and sorting preoducts.
 //
 // # Fields
 //
 // ## ids
-// Exact match on product IDs. Most efficient lookup.
+// Comma-separated product ids. Exact match on product IDs. Most efficient lookup.
 //
 // ## handle
 // Exact match on product handle. Less efficient than ids.
@@ -424,26 +422,8 @@ fn hygienise_product_list_request_query(m map[string]string) !ProductRetrievePar
 // ## is_giftcard
 // Filters by gift card status. (TODO)
 //
-// ## type_ids
-// Exact match on product type IDs. (TODO)
-//
-// ## tag_ids
-// Exact match on product tag IDs. (TODO)
-//
 // ## category_ids
 // Exact match on product category IDs.
-//
-// ## price_list_ids
-// Applies price lists for price resolution. Priority rules apply if multiple. (TODO)
-//
-// ## sales_channel_id
-// Filters by availability in the provided sales channels. Defaults to the store's default sales_channel.
-//
-// ## region_id
-// Determines currency for returned prices. Defaults to the store's default region.
-//
-// ## locale_id
-// Returns translated fields if available. Defaults to the store's default locale.
 //
 // ## offset
 // Pagination offset.
@@ -453,151 +433,51 @@ fn hygienise_product_list_request_query(m map[string]string) !ProductRetrievePar
 //
 // ## order
 // See constants: `order_asc`, `order_desc`.
-//
-// ## cart_id
-// Enables cart‑aware price resolution. (TODO)
-//
-// Note: it is recommended to use a frontend search engine for enhanced user experience (pattern matching, matching handles to ids, searching among translations, sorting by price, filtering by availability, etc.)
-pub struct ProductListRequestQueryStore {
+pub struct ProductListQueryParamsStore {
 pub:
-	ids              ZeroArrayString
-	handle           ZeroString
-	is_giftcard      ZeroBool
-	type_ids         ZeroArrayString
-	tag_ids          ZeroArrayString
-	category_ids     ZeroArrayString
-	price_list_ids   ZeroArrayString
-	sales_channel_id ZeroString
-	region_id        ZeroString
-	offset           ZeroI32
-	fetch            ZeroI32
-	order            ZeroString
+	ids          ?[]string
+	handle       ?string
+	is_giftcard  ?bool
+	category_ids ?[]string
+	offset       ?i32
+	fetch        ?i32
+	order        ?string
 }
 
-fn extract_product_list_request_query_store(m map[string]string) ProductListRequestQueryStore {
-	return ProductListRequestQueryStore{
-		category_ids:     zero_array_string(m, 'category_ids')
-		handle:           zero_string(m, 'handle')
-		ids:              zero_array_string(m, 'id')
-		is_giftcard:      zero_bool(m, 'is_giftcard')
-		price_list_ids:   zero_array_string(m, 'price_list_id')
-		region_id:        zero_string(m, 'region_id')
-		sales_channel_id: zero_string(m, 'sales_channel_id')
-		tag_ids:          zero_array_string(m, 'tag_id')
-		type_ids:         zero_array_string(m, 'type_id')
-		fetch:            zero_i32(m, 'fetch')
-		offset:           zero_i32(m, 'offset')
-		order:            zero_string(m, 'order')
+fn extract_product_list_query_params_store(m map[string]string) ProductListQueryParamsStore {
+	return ProductListQueryParamsStore{
+		ids:          get_none_array_string(m, 'ids')
+		handle:       get_none_string(m, 'handle')
+		is_giftcard:  get_none_bool(m, 'is_giftcard')
+		category_ids: get_none_array_string(m, 'category_ids')
+		offset:       get_none_i32(m, 'offset')
+		fetch:        get_none_i32(m, 'fetch')
+		order:        get_none_string(m, 'order')
 	}
 }
 
-// TODO change sales_channel_ids ZeroArrayString to sales_channel_id ZeroString
-// there can only be one sales_channel in price context
-pub struct ProductGetRequestQueryStore {
-pub:
-	price_list_ids    ZeroArrayString
-	sales_channel_ids ZeroArrayString
-	region_id         ZeroString
-	cart_id           ZeroString
-	locale_id         ZeroString
-}
+fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_id ID) !ProductRetrieveParams {
+	p := extract_product_list_query_params_store(m)
 
-fn hygienise_product_get_request_query_store(m map[string]string, product_id string) !RetrieveProductParamsHygienised {
-	ids := ZeroArrayString{
-		is_set: true
-		v:      [product_id]
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
 	}
 
-	id_bin := id_string_to_bin(product_id) or {
-		return new_error_bad_request(error_id_invalid, 'product_id')
+	mut category_ids := ?[]ID(none)
+	if ids_string := p.category_ids {
+		category_ids = ids_from_array_string(ids_string)!
 	}
 
-	sales_channel_ids := zero_array_string(m, 'sales_channel_id')
-	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
-		return new_error_bad_request(error_id_invalid, 'sales_channel_id')
-	}
-
-	return RetrieveProductParamsHygienised{
-		ids:                   ids
-		ids_bin:               [id_bin]
-		sales_channel_ids:     sales_channel_ids
-		sales_channel_ids_bin: sales_channel_ids_bin
-	}
-}
-
-struct RetrieveProductParamsHygienised {
-	ids                   ZeroArrayString
-	ids_bin               [][]u8
-	handle                ZeroString
-	is_giftcard           ZeroBool
-	status                ZeroString
-	type_ids              ZeroArrayString
-	type_ids_bin          [][]u8
-	tag_ids               ZeroArrayString
-	tag_ids_bin           [][]u8
-	category_ids          ZeroArrayString
-	category_ids_bin      [][]u8
-	price_list_ids        ZeroArrayString
-	price_list_ids_bin    [][]u8
-	sales_channel_ids     ZeroArrayString
-	sales_channel_ids_bin [][]u8
-	with_deleted          ZeroBool
-	offset                ZeroI32
-	fetch                 ZeroI32
-	order                 ZeroString
-}
-
-fn hygienise_retrieve_product_params(m map[string]string) !RetrieveProductParamsHygienised {
-	ids := zero_array_string(m, 'ids')
-	ids_bin := zero_array_id_string_to_array_id_bin(ids) or {
-		return new_error_bad_request(error_id_invalid, 'product_id')
-	}
-
-	price_list_ids := zero_array_string(m, 'price_list_ids')
-	price_list_ids_bin := zero_array_id_string_to_array_id_bin(price_list_ids) or {
-		return new_error_bad_request(error_id_invalid, 'price_list_id')
-	}
-
-	tag_ids := zero_array_string(m, 'tag_id')
-	tag_ids_bin := zero_array_id_string_to_array_id_bin(tag_ids) or {
-		return new_error_bad_request(error_id_invalid, 'tag_id')
-	}
-
-	type_ids := zero_array_string(m, 'type_id')
-	type_ids_bin := zero_array_id_string_to_array_id_bin(type_ids) or {
-		return new_error_bad_request(error_id_invalid, 'type_id')
-	}
-
-	category_ids := zero_array_string(m, 'category_ids')
-	category_ids_bin := zero_array_id_string_to_array_id_bin(category_ids) or {
-		return new_error_bad_request(error_id_invalid, 'category_id')
-	}
-
-	sales_channel_ids := zero_array_string(m, 'sales_channel_ids')
-	sales_channel_ids_bin := zero_array_id_string_to_array_id_bin(sales_channel_ids) or {
-		return new_error_bad_request(error_id_invalid, 'sales_channel_id')
-	}
-
-	return RetrieveProductParamsHygienised{
-		ids:                   ids
-		ids_bin:               ids_bin
-		handle:                zero_string(m, 'handle')
-		is_giftcard:           zero_bool(m, 'is_giftcard')
-		status:                zero_string(m, 'status')
-		type_ids:              type_ids
-		type_ids_bin:          type_ids_bin
-		tag_ids:               tag_ids
-		tag_ids_bin:           tag_ids_bin
-		category_ids:          category_ids
-		category_ids_bin:      category_ids_bin
-		price_list_ids:        price_list_ids
-		price_list_ids_bin:    price_list_ids_bin
-		sales_channel_ids:     sales_channel_ids
-		sales_channel_ids_bin: sales_channel_ids_bin
-		with_deleted:          zero_bool(m, 'with_deleted')
-		offset:                zero_i32(m, 'offset')
-		fetch:                 zero_i32(m, 'fetch')
-		order:                 zero_string(m, 'order')
+	return ProductRetrieveParams{
+		ids:              ids
+		handle:           p.handle
+		is_giftcard:      p.is_giftcard
+		category_ids:     category_ids
+		sales_channel_id: sales_channel_id
+		offset:           get_offset_or_default(p.offset)!
+		fetch:            get_fetch_or_default(p.fetch)!
+		order:            get_order_direction_or_default(p.order)!
 	}
 }
 
@@ -606,7 +486,6 @@ pub:
 	ids             ZeroArrayString
 	product_ids     ZeroArrayString
 	allow_backorder ZeroBool
-	region_id       ZeroString
 	title           ZeroString
 	with_deleted    ZeroBool
 	offset          ZeroI32
@@ -620,8 +499,6 @@ struct RetrieveProductVariantParamsHygienised {
 	product_ids     ZeroArrayString
 	product_ids_bin [][]u8
 	allow_backorder ZeroBool
-	region_id       ZeroString
-	region_id_bin   []u8
 	with_deleted    ZeroBool
 	offset          ZeroI32
 	fetch           ZeroI32
@@ -633,7 +510,6 @@ fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductV
 		ids:             zero_array_string(m, 'ids')
 		product_ids:     zero_array_string(m, 'product_ids')
 		allow_backorder: zero_bool(m, 'allow_backorder')
-		region_id:       zero_string(m, 'region_id')
 		offset:          zero_i32(m, 'offset')
 		fetch:           zero_i32(m, 'fetch')
 		order:           zero_string(m, 'order')
