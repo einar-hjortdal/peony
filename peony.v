@@ -71,6 +71,7 @@ pub fn new_peony_app(config Config, providers &Providers) !&App {
 	app.use(handler: app.middleware_debug)
 	app.route_use('/admin/:path...', handler: app.middleware_load_user_session)
 	app.route_use('/admin/:path...', handler: app.middleware_save_user_session, after: true)
+	app.route_use('/store/:path...', handler: app.middleware_get_api_key)
 	// app.route_use('/store/:path...', handler: app.middleware_load_store_session)
 	// app.route_use('/store/:path...', handler: app.middleware_save_store_session, after: true)
 
@@ -81,5 +82,6 @@ pub fn new_peony_app(config Config, providers &Providers) !&App {
 // An error is returned if the initialization fails.
 pub fn (mut app App) run() ! {
 	app.prepare_db()!
+	app.initiate_cache()!
 	veb.run[App, Context](mut app, app.config.port)
 }

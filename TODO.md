@@ -13,6 +13,7 @@
 
 ### Implemented
 
+- [x] API keys
 - [x] Inventory items
 - [x] Metadata
 - [x] Multi-channel
@@ -52,7 +53,6 @@
 - [ ] Orders
 - [ ] Payments
 - [ ] User permissions
-- [ ] API keys
 - [ ] Taxes
 
 ### Low-priority

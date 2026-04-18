@@ -14,6 +14,7 @@ const seed_migration_name = 'seed'
 const seed_default_region_name = 'default region'
 const seed_default_stock_location_name = 'default stock location'
 const seed_default_sales_channel_name = 'default sales channel'
+const seed_default_api_key_name = 'default api key'
 const seed_default_store_name = 'peony store'
 const seed_default_locale_code = 'en'
 const seed_default_region_country = 'NL'
@@ -109,20 +110,26 @@ fn firebird_insert_default_stock_location(mut tx firebird.Transaction, stock_loc
 		seed_default_stock_location_name)!
 }
 
-fn firebird_insert_default_sales_channel(mut tx firebird.Transaction, sales_channel_id_bin []u8) ! {
+fn firebird_insert_default_sales_channel(mut tx firebird.Transaction, sales_channel_id ID) ! {
 	log.debug('insert_default_sales_channel')
-	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id_bin,
+	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id.bytes(),
 		seed_default_sales_channel_name)!
 }
 
-fn firebird_insert_default_sales_channel_stock_location(mut tx firebird.Transaction, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+fn firebird_insert_default_sales_channel_stock_location(mut tx firebird.Transaction, sales_channel_id ID, stock_location_id_bin []u8) ! {
 	log.debug('insert_sales_channel_stock_location')
 	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id)
 		VALUES (?, ?)',
-		sales_channel_id_bin, stock_location_id_bin)!
+		sales_channel_id.bytes(), stock_location_id_bin)!
 }
 
-fn firebird_insert_default_store(mut tx firebird.Transaction, region_id_bin []u8, store_id_bin []u8, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+fn firebird_insert_default_api_key(mut tx firebird.Transaction, api_key ID, sales_channel_id ID) ! {
+	log.debug('firebird_insert_default_api_key')
+	tx.execute('INSERT INTO api_key (id, name, sales_channel_id) VALUES (?, ?, ?)',
+		api_key.bytes(), seed_default_api_key_name, sales_channel_id.bytes())!
+}
+
+fn firebird_insert_default_store(mut tx firebird.Transaction, region_id_bin []u8, store_id_bin []u8, sales_channel_id ID, stock_location_id_bin []u8) ! {
 	log.debug('insert_default_store')
 	tx.execute('INSERT INTO store 
 		(
@@ -143,7 +150,7 @@ fn firebird_insert_default_store(mut tx firebird.Transaction, region_id_bin []u8
 			?
 		)',
 		store_id_bin, seed_default_store_name, seed_default_locale_code, region_id_bin,
-		stock_location_id_bin, sales_channel_id_bin)!
+		stock_location_id_bin, sales_channel_id.bytes())!
 }
 
 fn firebird_insert_default_store_locale(mut tx firebird.Transaction, store_id_bin []u8) ! {
@@ -195,7 +202,8 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	password_parameters_id := app.gen_id()
 	_, stock_location_id_bin := app.new_id()
 	_, region_id_bin := app.new_id()
-	_, sales_channel_id_bin := app.new_id()
+	sales_channel_id := app.gen_id()
+	api_key_id := app.gen_id()
 	_, store_id_bin := app.new_id()
 	_, migration_id_bin := app.new_id()
 
@@ -206,10 +214,11 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 		app.config.default_user_password, password_parameters_id, user_id)!
 	firebird_insert_default_region(mut tx, region_id_bin)!
 	firebird_insert_default_stock_location(mut tx, stock_location_id_bin)!
-	firebird_insert_default_sales_channel(mut tx, sales_channel_id_bin)!
-	firebird_insert_default_sales_channel_stock_location(mut tx, sales_channel_id_bin,
+	firebird_insert_default_sales_channel(mut tx, sales_channel_id)!
+	firebird_insert_default_sales_channel_stock_location(mut tx, sales_channel_id,
 		stock_location_id_bin)!
-	firebird_insert_default_store(mut tx, region_id_bin, store_id_bin, sales_channel_id_bin,
+	firebird_insert_default_api_key(mut tx, api_key_id, sales_channel_id)!
+	firebird_insert_default_store(mut tx, region_id_bin, store_id_bin, sales_channel_id,
 		stock_location_id_bin)!
 	firebird_insert_default_store_locale(mut tx, store_id_bin)!
 	model_migration_create(mut tx, migration_id_bin, seed_migration_name)!

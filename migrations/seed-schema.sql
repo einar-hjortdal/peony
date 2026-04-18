@@ -381,6 +381,17 @@ CREATE TABLE sales_channel_stock_location (
 
 CREATE INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b" ON sales_channel_stock_location (stock_location_id);
 
+CREATE TABLE api_key (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  name VARCHAR(63) NOT NULL,
+  sales_channel_id BINARY(16) NOT NULL,
+  CONSTRAINT "069e1f68-bede-18bb-2000-0781022027f6" PRIMARY KEY (id),
+  CONSTRAINT "069e1f68-bede-1924-c400-20dcd4bbab67" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id) ON DELETE CASCADE
+);
+
 CREATE TABLE store (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,

@@ -15,3 +15,12 @@ module peony
 // accepting a map makes more sense than accepting an array, as translations have no order.
 
 // Distributed FIFO queue for "important" operations (orders, etc)
+
+// TODO high priority
+// cache api_keys:
+// if cache does not contain api_keys data then get all api keys from database and cache them.
+// if cache contains api_keys data then continue
+// then create a method to find api key data if it exists, otherwise return an error.
+// need functions to call for when new api keys are created (invalidate old, cache new data)
+fn (mut app App) initiate_cache() ! {
+}
