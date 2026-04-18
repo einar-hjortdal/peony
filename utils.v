@@ -6,6 +6,8 @@ import veb
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 
+pub const lib = 'peony'
+
 pub const min_fetch = i32(1)
 pub const max_fetch = i32(250)
 pub const offset_default = i32(0)

@@ -4,7 +4,7 @@
 
 ### API keys:
 
-store frontends must attach an API key to every request using the custom header `Peony-Store-Key`. This key connects one frontend to one sales_channel.
+store frontends must attach an API key to every request using the custom header `Peony-Store-API-Key`. This key connects one frontend to one sales_channel.
 
 *WIP*
 ### Tasks performed by the worker:
