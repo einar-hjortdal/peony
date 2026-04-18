@@ -53,8 +53,9 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return false
 	}
 
+	// TODO get api key data from cache, add to context.
+	// if api key does not exist in cache, reject request.
 	_ := api_key // suppress warning
-	// TODO set api key in context, or get key-related data and set that in context
 
 	return true
 }

@@ -2,15 +2,6 @@ module peony
 
 import arrays
 
-struct AvailabilityContext {
-	sales_channel_id ID
-}
-
-fn (ctx Context) get_availability_context() !AvailabilityContext {
-	// get sales_channel_id from API key-related data set in context by the middleware
-	return error('TODO: not implemented yet')
-}
-
 // used by admin endpoints.
 // returns available items across all stock locations.
 // an available item is not reserved.

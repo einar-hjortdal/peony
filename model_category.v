@@ -196,7 +196,7 @@ fn model_category_retrieve_conditions(p CategoryRetrieveParams) (string, []fireb
 	mut params := []firebird.Value{}
 
 	if ids := p.ids {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		conditions = arrays.concat(conditions, 'c.id IN (${get_placeholders(ids)})')
 		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
@@ -225,7 +225,7 @@ fn model_category_retrieve_conditions(p CategoryRetrieveParams) (string, []fireb
 	}
 
 	if !p.with_deleted {
-		conditions = arrays.concat(conditions, 'deleted_at is NULL')
+		conditions = arrays.concat(conditions, 'c.deleted_at is NULL')
 	}
 
 	return get_where_conditions(conditions), params
@@ -243,7 +243,7 @@ fn model_category_retrieve_count(mut tx firebird.Transaction, p CategoryRetrieve
 fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
 	conditions, mut params := model_category_retrieve_conditions(p)
 
-	mut sorting := 'ORDER BY created_at ${p.order}
+	mut sorting := 'ORDER BY c.created_at ${p.order}
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY'
 	params = arrays.concat(params, p.offset, p.fetch)

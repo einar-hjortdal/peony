@@ -6,7 +6,7 @@ import veb
 // TODO cache
 @['/store/products'; get]
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
-	// TODO sales_channel_id from ctx.get_availability_context()
+	// TODO sales_channel_id from ctx
 	// for now use default_sales_channel_id
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 	store := model_store_retrieve(mut tx) or {
