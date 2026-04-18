@@ -133,55 +133,64 @@ mut:
 	// tags         []Tag
 }
 
-fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string, []firebird.Value) {
+struct ProductRetrieveParams {
+	ids              ?[]ID
+	handle           ?string
+	is_giftcard      ?bool
+	status           ?string
+	category_ids     ?[]ID
+	sales_channel_id ?ID
+	with_deleted     bool
+	offset           i32
+	fetch            i32
+	order            string
+}
+
+fn model_product_retrieve_conditions(p ProductRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if !ph.with_deleted.is_set || (ph.with_deleted.is_set && !ph.with_deleted.v) {
-		conditions = arrays.concat(conditions, 'p.deleted_at IS NULL')
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
-	if ph.ids.is_set {
-		conditions = arrays.concat(conditions, 'p.id IN (${get_placeholders(ph.ids_bin)})')
-		params = arrays.concat(params, ...ph.ids_bin)
-	}
-
-	if ph.handle.is_set {
+	if handle := p.handle {
 		conditions = arrays.concat(conditions, 'p.handle = ?')
-		params = arrays.concat(params, ph.handle.v)
+		params = arrays.concat(params, handle)
 	}
 
-	if ph.is_giftcard.is_set {
+	if is_giftcard := p.is_giftcard {
 		conditions = arrays.concat(conditions, 'p.is_giftcard = ?')
-		params = arrays.concat(params, ph.is_giftcard.v)
+		params = arrays.concat(params, is_giftcard)
 	}
 
-	if ph.status.is_set {
+	if status := p.status {
 		conditions = arrays.concat(conditions, 'p.status = ?')
-		params = arrays.concat(params, ph.status.v)
+		params = arrays.concat(params, status)
 	}
 
-	if ph.type_ids.is_set {
-		conditions = arrays.concat(conditions, 'p.type_id IN ${get_placeholders(ph.type_ids_bin)}')
-		params = arrays.concat(params, ...ph.type_ids_bin)
-	}
+	//	if ph.type_ids.is_set {
+	//		conditions = arrays.concat(conditions, 'p.type_id IN ${get_placeholders(ph.type_ids_bin)}')
+	//		params = arrays.concat(params, ...ph.type_ids_bin)
+	//	}
+	//
+	//	if ph.tag_ids.is_set {
+	//		conditions = arrays.concat(conditions, 'EXISTS (
+	//			SELECT 1 FROM product_tag_product pt
+	//			WHERE pt.product_id = p.id
+	//				AND pt.tag_id IN (${get_placeholders(ph.tag_ids_bin)})
+	//			)')
+	//		params = arrays.concat(params, ...ph.tag_ids_bin)
+	//	}
 
-	if ph.tag_ids.is_set {
-		conditions = arrays.concat(conditions, 'EXISTS (
-			SELECT 1 FROM product_tag_product pt
-			WHERE pt.product_id = p.id
-				AND pt.tag_id IN (${get_placeholders(ph.tag_ids_bin)})
-			)')
-		params = arrays.concat(params, ...ph.tag_ids_bin)
-	}
-
-	if ph.category_ids.is_set {
+	if category_ids := p.category_ids {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM category_product cp
 			WHERE cp.product_id = p.id
-				AND cp.category_id IN (${get_placeholders(ph.category_ids_bin)})
+				AND cp.category_id IN (${get_placeholders(category_ids)})
 			)')
-		params = arrays.concat(params, ...ph.category_ids_bin)
+		params = arrays.concat(params, ...ids_bytes(category_ids))
 	}
 
 	// TODO price lists
@@ -194,20 +203,24 @@ fn model_product_retrieve_conditions(ph RetrieveProductParamsHygienised) (string
 	// 	params = arrays.concat(params, ...ph.price_list_ids_bin)
 	// }
 
-	if ph.sales_channel_ids.is_set {
+	if sales_channel_id := p.sales_channel_id {
 		conditions = arrays.concat(conditions, 'EXISTS (
 			SELECT 1 FROM product_sales_channel psc
 			WHERE psc.product_id = p.id
-				AND sales_channel_id IN (${get_placeholders(ph.sales_channel_ids_bin)})
+				AND sales_channel_id = ?
 			)')
-		params = arrays.concat(params, ...ph.sales_channel_ids_bin)
+		params = arrays.concat(params, sales_channel_id)
+	}
+
+	if !p.with_deleted {
+		conditions = arrays.concat(conditions, 'p.deleted_at is NULL')
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) !i64 {
-	conditions, params := model_product_retrieve_conditions(ph)
+fn model_product_retrieve_count(mut tx firebird.Transaction, p ProductRetrieveParams) !i64 {
+	conditions, params := model_product_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM product p ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -215,20 +228,13 @@ fn model_product_retrieve_count(mut tx firebird.Transaction, ph RetrieveProductP
 	return count
 }
 
-fn model_product_retrieve(mut tx firebird.Transaction, ph RetrieveProductParamsHygienised) ![]Product {
-	conditions, mut params := model_product_retrieve_conditions(ph)
+fn model_product_retrieve(mut tx firebird.Transaction, p ProductRetrieveParams) ![]Product {
+	conditions, mut params := model_product_retrieve_conditions(p)
 
-	mut sorting := 'ORDER BY created_at ${get_sorting_order(ph.order)}'
-
-	if ph.offset.is_set {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, ph.offset.v)
-	}
-
-	if ph.fetch.is_set {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, ph.fetch.v)
-	}
+	mut sorting := 'ORDER BY created_at ${p.order}
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
 	data := tx.execute('SELECT
 		p.id,

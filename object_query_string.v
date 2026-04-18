@@ -165,7 +165,8 @@ fn hygienise_country_list_query(m map[string]string) !CountryRetrieveParams {
 		for i := 0; i < codes.len; i++ {
 			code := codes[i]
 			if utf8_str_visible_length(code) > length_country_code {
-				return new_error_unprocessable_entity(error_field_too_long, 'country code must be exactly ${length_country_code} UTF8 characters long')
+				return new_error_unprocessable_entity(error_field_too_long,
+					'country code must be exactly ${length_country_code} UTF8 characters long')
 			}
 		}
 	}
@@ -202,7 +203,8 @@ fn hygienise_currency_list_query(m map[string]string) !CurrencyRetrieveParams {
 		for i := 0; i < codes.len; i++ {
 			code := codes[i]
 			if utf8_str_visible_length(code) > length_currency_code {
-				return new_error_unprocessable_entity(error_field_too_long, 'currency code must be exactly ${length_currency_code} UTF8 characters long')
+				return new_error_unprocessable_entity(error_field_too_long,
+					'currency code must be exactly ${length_currency_code} UTF8 characters long')
 			}
 		}
 	}
@@ -342,45 +344,70 @@ fn hygienise_category_list_request_query(m map[string]string) !CategoryRetrieveP
 	}
 }
 
-pub struct ProductListRequestQuery {
+pub struct ProductListQueryParams {
 pub:
-	ids               ZeroArrayString
-	handle            ZeroString
-	is_giftcard       ZeroBool
-	status            ZeroString
-	type_ids          ZeroArrayString
-	tag_ids           ZeroArrayString
-	title             ZeroString
-	description       ZeroString
-	category_ids      ZeroArrayString
-	price_list_ids    ZeroArrayString
-	sales_channel_ids ZeroArrayString
-	region_id         ZeroString
-	with_deleted      ZeroBool
-	offset            ZeroI32
-	fetch             ZeroI32
-	order             ZeroString
-	cart_id           ZeroString
-	locale_id         ZeroString
+	ids              ?[]string
+	handle           ?string
+	is_giftcard      ?bool
+	status           ?string
+	category_ids     ?[]string
+	sales_channel_id ?string
+	with_deleted     ?bool
+	offset           ?i32
+	fetch            ?i32
+	order            ?string
+	// cart_id          ?string
+	// price_list_ids   ?[]string
+	// title            ?string
+	// description      ?string
+	// type_ids         ?[]string
+	// tag_ids          ?[]string
 }
 
-fn extract_product_list_request_query(m map[string]string) ProductListRequestQuery {
-	return ProductListRequestQuery{
-		cart_id:           zero_string(m, 'cart_id')
-		category_ids:      zero_array_string(m, 'category_ids')
-		fetch:             zero_i32(m, 'fetch')
-		handle:            zero_string(m, 'handle')
-		ids:               zero_array_string(m, 'id')
-		is_giftcard:       zero_bool(m, 'is_giftcard')
-		offset:            zero_i32(m, 'offset')
-		order:             zero_string(m, 'order')
-		price_list_ids:    zero_array_string(m, 'price_list_id')
-		region_id:         zero_string(m, 'region_id')
-		sales_channel_ids: zero_array_string(m, 'sales_channel_id')
-		status:            zero_string(m, 'status')
-		tag_ids:           zero_array_string(m, 'tag_id')
-		type_ids:          zero_array_string(m, 'type_id')
-		locale_id:         zero_string(m, 'locale_id')
+fn extract_product_list_query_params(m map[string]string) ProductListQueryParams {
+	return ProductListQueryParams{
+		ids:              get_none_array_string(m, 'ids')
+		handle:           get_none_string(m, 'handle')
+		is_giftcard:      get_none_bool(m, 'is_giftcard')
+		status:           get_none_string(m, 'status')
+		category_ids:     get_none_array_string(m, 'category_ids')
+		sales_channel_id: get_none_string(m, 'sales_channel_id')
+		with_deleted:     get_none_bool(m, 'with_deleted')
+		offset:           get_none_i32(m, 'offset')
+		fetch:            get_none_i32(m, 'fetch')
+		order:            get_none_string(m, 'order')
+	}
+}
+
+fn hygienise_product_list_request_query(m map[string]string) !ProductRetrieveParams {
+	p := extract_product_list_query_params(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
+	}
+
+	mut category_ids := ?[]ID(none)
+	if ids_string := p.category_ids {
+		category_ids = ids_from_array_string(ids_string)!
+	}
+
+	mut sales_channel_id := ?ID(none)
+	if id_string := p.sales_channel_id {
+		sales_channel_id = id_from_string(id_string)!
+	}
+
+	return ProductRetrieveParams{
+		ids:              ids
+		handle:           p.handle
+		is_giftcard:      p.is_giftcard
+		status:           p.status
+		category_ids:     category_ids
+		sales_channel_id: sales_channel_id
+		with_deleted:     bool_or(p.with_deleted, false)
+		offset:           get_offset_or_default(p.offset)!
+		fetch:            get_fetch_or_default(p.fetch)!
+		order:            get_order_direction_or_default(p.order)!
 	}
 }
 

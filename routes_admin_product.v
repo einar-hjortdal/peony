@@ -7,14 +7,9 @@ import einar_hjortdal.slugify
 // lists products
 @['/admin/products'; get]
 pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
-	ph := hygienise_retrieve_product_params(ctx.query) or { return ctx.handle_error(err) }
+	p := hygienise_product_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
-	if ph.fetch.is_set && ph.fetch.v == 0 {
-		err := new_error_fetch_zero()
-		return ctx.handle_error(err)
-	}
-
-	return conduit_products_list(mut app, mut ctx, ph)
+	return conduit_product_list(mut app, mut ctx, p)
 }
 
 // create a product
@@ -27,18 +22,18 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
 
-	product_id, product_id_bin := app.new_id()
+	product_id := app.gen_id()
 
 	// generate handle from title if handle is not provided
 	mut handle := p.handle or { slugify.default().make(p.title) }
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	product_by_handle_count := model_product_retrieve_count(mut tx, RetrieveProductParamsHygienised{
-		handle: ZeroString{
-			is_set: true
-			v:      handle
-		}
+	product_by_handle_count := model_product_retrieve_count(mut tx, ProductRetrieveParams{
+		handle: handle
+		fetch:  1
+		offset: 0
+		order:  order_direction_default
 	}) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not verify handle exists', err.msg())
@@ -46,10 +41,11 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	}
 
 	if product_by_handle_count > 0 {
-		handle = '${handle}-${product_id}'
+		handle = '${handle}-${product_id.string()}'
 		if utf8_str_visible_length(handle) > max_length_handle {
 			tx.rollback() or {}
-			perr := new_error_unprocessable_entity(error_field_too_long, error_handle_fallback_too_long)
+			perr := new_error_unprocessable_entity(error_field_too_long,
+				error_handle_fallback_too_long)
 			return ctx.handle_error(perr)
 		}
 	}
@@ -138,7 +134,8 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 						if store_locales_exist[locale_id] {
 							continue
 						}
-						perr := new_error_bad_request(error_id_invalid, 'option_value_translation locale_id')
+						perr := new_error_bad_request(error_id_invalid,
+							'option_value_translation locale_id')
 						return ctx.handle_error(perr)
 					}
 				}
@@ -146,8 +143,8 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	conduit_product_create(mut app, mut ctx, mut tx, product_id, product_id_bin, handle,
-		ph) or {
+	conduit_product_create(mut app, mut ctx, mut tx, product_id.string(), product_id.bytes(),
+		handle, ph) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -157,14 +154,12 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		return ctx.handle_error(perr)
 	}
 
-	rp := RetrieveProductParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [product_id_bin]
-	}
-
-	product := conduit_product_get_by_id(mut app, mut ctx, rp) or { return ctx.handle_error(err) }
+	product := conduit_product_get_by_id(mut app, mut ctx, ProductRetrieveParams{
+		ids:    [product_id]
+		fetch:  1
+		offset: 0
+		order:  order_direction_default
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_created(ProductResponseEnvelope{
 		product: product
@@ -174,19 +169,17 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 // get a product by id
 @['/admin/products/:product_id'; get]
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
+	parsed_product_id := id_from_string(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
-	ph := RetrieveProductParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [product_id_bin]
-	}
-
-	product := conduit_product_get_by_id(mut app, mut ctx, ph) or { return ctx.handle_error(err) }
+	product := conduit_product_get_by_id(mut app, mut ctx, ProductRetrieveParams{
+		ids:    [parsed_product_id]
+		fetch:  1
+		offset: 0
+		order:  order_direction_default
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseEnvelope{
 		product: product
@@ -196,7 +189,7 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 // updates a product
 @['/admin/products/:product_id'; post]
 pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
+	parsed_product_id := id_from_string(product_id) or {
 		perr := new_error_unprocessable_entity(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
@@ -211,11 +204,11 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	// verify the product actually exists
-	pr := RetrieveProductParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [product_id_bin]
+	pr := ProductRetrieveParams{
+		ids:    [parsed_product_id]
+		fetch:  1
+		offset: 0
+		order:  order_direction_default
 	}
 
 	count := model_product_retrieve_count(mut tx, pr) or {
@@ -226,8 +219,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	if count == 0 {
 		tx.rollback() or {}
-		perr := new_error_internal('The product with id ${product_id} does not exist',
-			'count == 0')
+		perr := new_error_internal('The product with id ${product_id} does not exist', 'count == 0')
 		return ctx.handle_error(perr)
 	}
 
@@ -240,7 +232,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	product := products[0]
 
-	seo := model_product_seo_retrieve(mut tx, [product_id_bin]) or {
+	seo := model_product_seo_retrieve(mut tx, [parsed_product_id.bytes()]) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve seo', err.msg())
 		return ctx.handle_error(perr)
@@ -248,11 +240,11 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	mut handle := product.handle
 	if new_handle := ph.handle {
-		product_by_handle_count := model_product_retrieve_count(mut tx, RetrieveProductParamsHygienised{
-			handle: ZeroString{
-				is_set: true
-				v:      new_handle
-			}
+		product_by_handle_count := model_product_retrieve_count(mut tx, ProductRetrieveParams{
+			handle: new_handle
+			fetch:  1
+			offset: 0
+			order:  order_direction_default
 		}) or {
 			tx.rollback() or {}
 			perr := new_error_internal('Could not retrieve products by handle', err.msg())
@@ -263,7 +255,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 			handle = '${new_handle}-${product_id}'
 			if utf8_str_visible_length(new_handle) > max_length_handle {
 				tx.rollback() or {}
-				perr := new_error_unprocessable_entity(error_field_too_long, error_handle_fallback_too_long)
+				perr := new_error_unprocessable_entity(error_field_too_long,
+					error_handle_fallback_too_long)
 				return ctx.handle_error(perr)
 			}
 		}
@@ -271,7 +264,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	product_diff := ProductUpdateParams{
 		product_id:     product_id
-		product_id_bin: product_id_bin
+		product_id_bin: parsed_product_id.bytes()
 		title:          unwrap_option_or(ph.title, product.title)
 		subtitle:       unwrap_option_or(ph.subtitle, product.subtitle.value)
 		description:    unwrap_option_or(ph.description, product.description.value)
@@ -291,7 +284,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 			// gather existing images from database
 			existing_images := model_product_image_retrieve(mut tx, [
-				product_id_bin,
+				parsed_product_id.bytes(),
 			]) or {
 				tx.rollback() or {}
 				perr := new_error_internal('Failed to retrieve product_images', err.msg())
@@ -313,7 +306,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 					id, id_bin := app.new_id()
 					url := image.url or {
 						tx.rollback() or {}
-						perr := new_error_bad_request(error_field_empty, 'A new image must have a url')
+						perr := new_error_bad_request(error_field_empty,
+							'A new image must have a url')
 						return ctx.handle_error(perr)
 					}
 
@@ -332,7 +326,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 				// if id in images does not exist return bad request
 				if id !in existing_images_map {
 					tx.rollback() or {}
-					perr := new_error_bad_request(error_id_invalid, 'image with id ${id} does not exist')
+					perr := new_error_bad_request(error_id_invalid,
+						'image with id ${id} does not exist')
 					return ctx.handle_error(perr)
 				}
 
@@ -366,15 +361,16 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	// }
 
 	if seo.len == 0 {
-		perr := new_error_internal(error_database_data_malformed, 'Missing product seo for product with id ${product_id}')
+		perr := new_error_internal(error_database_data_malformed,
+			'Missing product seo for product with id ${product_id}')
 		tx.rollback() or {}
 		return ctx.handle_error(perr)
 	}
 
 	product_seo := seo[0]
 
-	conduit_product_update(mut app, mut ctx, mut tx, product_seo.id_bin, product_diff,
-		images_diff, ph) or {
+	conduit_product_update(mut app, mut ctx, mut tx, product_seo.id_bin, product_diff, images_diff,
+		ph) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -384,16 +380,12 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 		return ctx.handle_error(perr)
 	}
 
-	rp := RetrieveProductParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [product_id_bin]
-	}
-
-	updated_product := conduit_product_get_by_id(mut app, mut ctx, rp) or {
-		return ctx.handle_error(err)
-	}
+	updated_product := conduit_product_get_by_id(mut app, mut ctx, ProductRetrieveParams{
+		ids:    [parsed_product_id]
+		fetch:  1
+		offset: 0
+		order:  order_direction_default
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseEnvelope{
 		product: updated_product
@@ -468,7 +460,8 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 			if regions_map[region_id] {
 				continue
 			}
-			perr := new_error_unprocessable_entity(error_id_invalid, 'regional_prices contains a region id that does not exist')
+			perr := new_error_unprocessable_entity(error_id_invalid,
+				'regional_prices contains a region id that does not exist')
 			return ctx.handle_error(perr)
 		}
 	}
@@ -480,7 +473,8 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 		return ctx.handle_error(err)
 	}
 
-	product_option_data.verify_product_option_value_ids(ph.option_value_ids, ph.option_value_ids_bin) or {
+	product_option_data.verify_product_option_value_ids(ph.option_value_ids,
+		ph.option_value_ids_bin) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -577,7 +571,8 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 		})
 	}
 
-	perr := new_error_not_found('variant does not exist with the given id', 'not found in existing variants for the product')
+	perr := new_error_not_found('variant does not exist with the given id',
+		'not found in existing variants for the product')
 	return ctx.handle_error(perr)
 }
 
@@ -648,7 +643,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	if !found {
-		perr := new_error_not_found('variant does not exist with the given id', 'not found in existing variants for the product')
+		perr := new_error_not_found('variant does not exist with the given id',
+			'not found in existing variants for the product')
 		return ctx.handle_error(perr)
 	}
 
@@ -673,7 +669,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 				continue
 			}
 			tx.rollback() or {}
-			perr := new_error_unprocessable_entity(error_id_invalid, 'regional_prices contains a region id that does not exist')
+			perr := new_error_unprocessable_entity(error_id_invalid,
+				'regional_prices contains a region id that does not exist')
 			return ctx.handle_error(perr)
 		}
 	}
@@ -686,9 +683,8 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 			return ctx.handle_error(err)
 		}
 
-		product_option_data.verify_product_option_value_ids(option_value_ids, ph.option_value_ids_bin) or {
-			return ctx.handle_error(err)
-		}
+		product_option_data.verify_product_option_value_ids(option_value_ids,
+			ph.option_value_ids_bin) or { return ctx.handle_error(err) }
 	}
 
 	conduit_variant_update(mut app, mut ctx, mut tx, product_id_bin, variant_id, variant_id_bin,
@@ -697,8 +693,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(err)
 	}
 
-	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, product_id, product_id_bin,
-		RetrieveProductVariantParamsHygienised{
+	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, product_id, product_id_bin, RetrieveProductVariantParamsHygienised{
 		ids:     ZeroArrayString{
 			v:      [variant_id]
 			is_set: true
@@ -776,7 +771,8 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 	}
 
 	if !found {
-		perr := new_error_not_found('variant does not exist with the given id', 'not found in existing variants for the product')
+		perr := new_error_not_found('variant does not exist with the given id',
+			'not found in existing variants for the product')
 		return ctx.handle_error(perr)
 	}
 

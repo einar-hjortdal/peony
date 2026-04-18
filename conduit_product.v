@@ -203,8 +203,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 
 			model_product_option_translations_create(mut tx, translations_to_create) or {
-				return new_error_internal('Failed to create product_option_translations',
-					err.msg())
+				return new_error_internal('Failed to create product_option_translations', err.msg())
 			}
 		}
 
@@ -510,8 +509,7 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		model_variant_money_amount_update(mut tx, money_amounts_to_create) or {
-			return new_error_internal('Failed to create default variant money_amount',
-				err.msg())
+			return new_error_internal('Failed to create default variant money_amount', err.msg())
 		}
 
 		inventory_item_id, inventory_item_id_bin := app.new_id()
@@ -531,33 +529,28 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	}
 }
 
-fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) veb.Result {
+fn conduit_product_list(mut app App, mut ctx Context, p ProductRetrieveParams) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_product_retrieve_count(mut tx, ph) or {
+	count := model_product_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve product count', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	offset := get_offset_amount(ph.offset)
-
-	if count == 0 || offset >= count {
-		tx.rollback() or {
-			perr := new_error_internal(error_transaction_rollback, err.msg())
-			return ctx.handle_error(perr)
-		}
+	if count == 0 {
+		tx.rollback() or {}
 		r := ProductResponseListEnvelope{
 			products: []ProductResponse{}
 			count:    count
-			offset:   offset
-			fetch:    ph.fetch.v
+			offset:   p.offset
+			fetch:    p.fetch
 		}
 
 		return ctx.json(r)
 	}
 
-	products := model_product_retrieve(mut tx, ph) or {
+	products := model_product_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve product', err.msg())
 		return ctx.handle_error(perr)
@@ -591,23 +584,21 @@ fn conduit_products_list(mut app App, mut ctx Context, ph RetrieveProductParamsH
 	return ctx.json(ProductResponseListEnvelope{
 		products: external_products
 		count:    count
-		offset:   get_offset_amount(ph.offset)
-		fetch:    ph.fetch.v
+		offset:   p.offset
+		fetch:    p.fetch
 	})
 }
 
-fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised, price_context PriceContext, locale_context LocaleContext) veb.Result {
+fn conduit_products_list_store(mut app App, mut ctx Context, p ProductRetrieveParams, price_context PriceContext, locale_context LocaleContext) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_product_retrieve_count(mut tx, ph) or {
+	count := model_product_retrieve_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve products count', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	offset := get_offset_amount(ph.offset)
-
-	if count == 0 || offset >= count {
+	if count == 0 {
 		tx.rollback() or {
 			perr := new_error_internal(error_transaction_rollback, err.msg())
 			return ctx.handle_error(perr)
@@ -615,14 +606,14 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 		r := ProductResponseListEnvelope{
 			products: []ProductResponse{}
 			count:    count
-			offset:   offset
-			fetch:    ph.fetch.v
+			offset:   p.offset
+			fetch:    p.fetch
 		}
 
 		return ctx.json(r)
 	}
 
-	products := model_product_retrieve(mut tx, ph) or {
+	products := model_product_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve product', err.msg())
 		return ctx.handle_error(perr)
@@ -635,8 +626,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	}
 
 	// variants_availability
-	// TODO use sales_channel id from request context created in the route handler
-	// For now just use default sales_channel.id
+	// TODO sales_channel id from request context (header) from middleware
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve store', err.msg())
@@ -650,8 +640,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve sales_channel_stock_location',
-			err.msg())
+		perr := new_error_internal('Failed to retrieve sales_channel_stock_location', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -680,7 +669,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 
 	variants_availability := get_variants_availability(GetProductVariantsAvailabilityParams{
 		variants:                      complete_variants
-		sales_channel_ids_bin:         ph.sales_channel_ids_bin
+		sales_channel_ids_bin:         [store.default_sales_channel_id.bytes()]
 		product_sales_channels:        products_data.product_sales_channels
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
@@ -694,15 +683,15 @@ fn conduit_products_list_store(mut app App, mut ctx Context, ph RetrieveProductP
 	return ctx.json(ProductResponseStoreListEnvelope{
 		products: external_products
 		count:    count
-		offset:   get_offset_amount(ph.offset)
-		fetch:    ph.fetch.v
+		offset:   p.offset
+		fetch:    p.fetch
 	})
 }
 
-fn conduit_product_get_by_id(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised) !ProductResponse {
+fn conduit_product_get_by_id(mut app App, mut ctx Context, p ProductRetrieveParams) !ProductResponse {
 	mut tx := app.start_transaction()!
 
-	products := model_product_retrieve(mut tx, ph) or {
+	products := model_product_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		return new_error_internal('Failed to retrieve products data', err.msg())
 	}
@@ -736,10 +725,11 @@ fn conduit_product_get_by_id(mut app App, mut ctx Context, ph RetrieveProductPar
 	return external_product
 }
 
-fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrieveProductParamsHygienised, price_context PriceContext, locale_context LocaleContext) veb.Result {
+fn conduit_products_get_by_id_store(mut app App, mut ctx Context, p ProductRetrieveParams, price_context PriceContext, locale_context LocaleContext) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	products := model_product_retrieve(mut tx, ph) or {
+	// TODO get count first
+	products := model_product_retrieve(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve products data', err.msg())
 		return ctx.handle_error(perr)
@@ -757,8 +747,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	}
 
 	// variants_availability
-	// TODO use sales_channel id from request context created in the route handler
-	// For now just use default sales_channel.id_bin
+	// TODO sales_channel id from request context (header) from middleware
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
 		perr := new_error_internal('could not retrieve store', err.msg())
@@ -770,8 +759,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve sales_channel_stock_location',
-			err.msg())
+		perr := new_error_internal('Failed to retrieve sales_channel_stock_location', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -793,13 +781,13 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, ph RetrievePro
 
 	variants_availability := get_variants_availability(GetProductVariantsAvailabilityParams{
 		variants:                      complete_variants
-		sales_channel_ids_bin:         ph.sales_channel_ids_bin
+		sales_channel_ids_bin:         [store.default_sales_channel_id.bytes()]
 		product_sales_channels:        product_data.product_sales_channels
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
 
-	external_product := format_product_response_store(product, price_context, store.default_region_id,
-		variants_availability, locale_context)
+	external_product := format_product_response_store(product, price_context,
+		store.default_region_id, variants_availability, locale_context)
 
 	return ctx.json(ProductResponseStoreEnvelope{
 		product: external_product
@@ -1042,8 +1030,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 
 			model_product_option_translations_update(mut tx, option_translations_update_params) or {
-				return new_error_internal('Could not update product_option_translations',
-					err.msg())
+				return new_error_internal('Could not update product_option_translations', err.msg())
 			}
 		}
 
@@ -1061,7 +1048,8 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				option := options[i]
 				if option.id == none { // new option, must have new values
 					values := option.values or {
-						return new_error_internal('New option has no values', 'option.values == none')
+						return new_error_internal('New option has no values',
+							'option.values == none')
 					}
 
 					n_values += values.len
@@ -1079,8 +1067,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				option_ids:     option_ids
 				option_ids_bin: option_ids_bin
 			}) or {
-				return new_error_internal('Could not retrieve product_option_values',
-					err.msg())
+				return new_error_internal('Could not retrieve product_option_values', err.msg())
 			}
 
 			mut old_values_map := map[string]ProductOptionValue{}
@@ -1097,7 +1084,8 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				option_id := option.id or {
 					new_option := options_diff[i]
 					values := option.values or {
-						return new_error_internal('New option has no values', 'option.values == none')
+						return new_error_internal('New option has no values',
+							'option.values == none')
 					}
 
 					for j := 0; j < values.len; j++ {
@@ -1207,9 +1195,9 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				translations:                 value_translations_diff
 			}
 
-			model_product_option_value_translations_update(mut tx, option_value_translation_update_params) or {
-				return new_error_internal('Could not update option_value_translations',
-					err.msg())
+			model_product_option_value_translations_update(mut tx,
+				option_value_translation_update_params) or {
+				return new_error_internal('Could not update option_value_translations', err.msg())
 			}
 		}
 	}
@@ -1277,16 +1265,24 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 						id_bin:            old_inventory_item.id_bin
 						variant_id:        variant_id
 						variant_id_bin:    variant.id_bin
-						sku:               unwrap_option_or(inventory_item.sku, old_inventory_item.sku.value)
+						sku:               unwrap_option_or(inventory_item.sku,
+							old_inventory_item.sku.value)
 						origin_country:    unwrap_option_or(inventory_item.origin_country,
 							old_inventory_item.origin_country.value)
-						hs_code:           unwrap_option_or(inventory_item.hs_code, old_inventory_item.hs_code.value)
-						mid_code:          unwrap_option_or(inventory_item.mid_code, old_inventory_item.mid_code.value)
-						material:          unwrap_option_or(inventory_item.material, old_inventory_item.material.value)
-						weight:            unwrap_option_or(inventory_item.weight, old_inventory_item.weight.value)
-						length:            unwrap_option_or(inventory_item.length, old_inventory_item.length.value)
-						height:            unwrap_option_or(inventory_item.height, old_inventory_item.height.value)
-						width:             unwrap_option_or(inventory_item.width, old_inventory_item.width.value)
+						hs_code:           unwrap_option_or(inventory_item.hs_code,
+							old_inventory_item.hs_code.value)
+						mid_code:          unwrap_option_or(inventory_item.mid_code,
+							old_inventory_item.mid_code.value)
+						material:          unwrap_option_or(inventory_item.material,
+							old_inventory_item.material.value)
+						weight:            unwrap_option_or(inventory_item.weight,
+							old_inventory_item.weight.value)
+						length:            unwrap_option_or(inventory_item.length,
+							old_inventory_item.length.value)
+						height:            unwrap_option_or(inventory_item.height,
+							old_inventory_item.height.value)
+						width:             unwrap_option_or(inventory_item.width,
+							old_inventory_item.width.value)
 						requires_shipping: unwrap_option_or(inventory_item.requires_shipping,
 							old_inventory_item.requires_shipping)
 						manage_inventory:  unwrap_option_or(inventory_item.manage_inventory,
