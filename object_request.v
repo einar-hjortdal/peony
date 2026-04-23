@@ -8,6 +8,65 @@ pub:
 	password string
 }
 
+pub struct APIKeyCreateRequest {
+pub:
+	name             string
+	sales_channel_id string
+}
+
+struct APIKeyCreateRequestHygienised {
+	name             string
+	sales_channel_id ID
+}
+
+fn hygienise_api_key_create_request(p APIKeyCreateRequest) !APIKeyCreateRequestHygienised {
+	if utf8_str_visible_length(p.name) > max_length_api_key_name {
+		return new_error_bad_request(error_field_too_long,
+			'name can be at most ${max_length_api_key_name} UTF8 characters long')
+	}
+
+	sales_channel_id := id_from_string(p.sales_channel_id) or {
+		return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
+	}
+
+	return APIKeyCreateRequestHygienised{
+		name:             p.name
+		sales_channel_id: sales_channel_id
+	}
+}
+
+pub struct APIKeyUpdateRequest {
+pub:
+	name             ?string
+	sales_channel_id ?string
+}
+
+struct APIKeyUpdateRequestHygienised {
+	name             ?string
+	sales_channel_id ?ID
+}
+
+fn hygienise_api_key_update_request(p APIKeyUpdateRequest) !APIKeyUpdateRequestHygienised {
+	if name := p.name {
+		if utf8_str_visible_length(name) > max_length_api_key_name {
+			return new_error_bad_request(error_field_too_long,
+				'name can be at most ${max_length_api_key_name} UTF8 characters long')
+		}
+	}
+
+	mut sales_channel_id := ?ID(none)
+	if id_string := p.sales_channel_id {
+		sales_channel_id = id_from_string(id_string) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
+		}
+	}
+
+	return APIKeyUpdateRequestHygienised{
+		name:             p.name
+		sales_channel_id: sales_channel_id
+	}
+}
+
 pub struct StoreUpdateRequest {
 pub:
 	name                      ?string

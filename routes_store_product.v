@@ -3,19 +3,12 @@ module peony
 import veb
 
 // lists products
-// TODO cache
+// TODO cache response
 @['/store/products'; get]
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
-	// TODO sales_channel_id from ctx
-	// for now use default_sales_channel_id
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-	store := model_store_retrieve(mut tx) or {
-		perr := new_error_internal('Could not retrieve store', err.msg())
-		return ctx.handle_error(perr)
-	}
-	tx.rollback() or {}
+	api_key := ctx.get_api_key() or { return ctx.handle_error(err) }
 
-	p := hygienise_product_list_query_params_store(ctx.query, store.default_sales_channel_id) or {
+	p := hygienise_product_list_query_params_store(ctx.query, api_key.sales_channel_id) or {
 		return ctx.handle_error(err)
 	}
 
@@ -25,13 +18,16 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		return ctx.handle_error(err)
 	}
 
-	return conduit_products_list_store(mut app, mut ctx, p, price_context, locale_context)
+	return conduit_products_list_store(mut app, mut ctx, p, api_key.sales_channel_id,
+		price_context, locale_context)
 }
 
 // get product by id
-// TODO cache
+// TODO cache response
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
+	api_key := ctx.get_api_key() or { return ctx.handle_error(err) }
+
 	parsed_product_id := id_from_string(product_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
@@ -48,6 +44,6 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 		fetch:  max_fetch
 		offset: 0
 		order:  order_default
-	}, price_context, locale_context)
+	}, api_key.sales_channel_id, price_context, locale_context)
 }
 

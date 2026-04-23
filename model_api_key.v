@@ -106,15 +106,26 @@ fn model_api_key_retrieve(mut tx firebird.Transaction, p APIKeyRetrieveParams) !
 }
 
 struct APIKeyUpdateParams {
-	name             string
-	sales_channel_id ID
+	name             ?string
+	sales_channel_id ?ID
 }
 
-fn model_api_key_update(mut tx firebird.Transaction, api_key ID, p APIKeyUpdateParams) ! {
-	columns := ['name', 'sales_channel_id']
-	params := [firebird.Value(p.name), p.sales_channel_id.bytes(),
-		api_key.bytes()]
+fn model_api_key_update(mut tx firebird.Transaction, api_key_id ID, p APIKeyUpdateParams) ! {
+	mut columns := []string{}
+	mut params := []firebird.Value{}
+
+	if name := p.name {
+		columns = arrays.concat(columns, 'name')
+		params = arrays.concat(params, name)
+	}
+
+	if sales_channel_id := p.sales_channel_id {
+		columns = arrays.concat(columns, 'sales_channel_id')
+		params = arrays.concat(params, sales_channel_id.bytes())
+	}
+
 	query := 'UPDATE api_key ${get_set_columns_with_updated_at(columns)} WHERE id = ?'
+	params = arrays.concat(params, api_key_id.bytes())
 	tx.execute(query, ...params)!
 }
 

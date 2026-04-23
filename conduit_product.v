@@ -589,7 +589,7 @@ fn conduit_product_list(mut app App, mut ctx Context, p ProductRetrieveParams) v
 	})
 }
 
-fn conduit_products_list_store(mut app App, mut ctx Context, p ProductRetrieveParams, price_context PriceContext, locale_context LocaleContext) veb.Result {
+fn conduit_products_list_store(mut app App, mut ctx Context, p ProductRetrieveParams, sales_channel_id ID, price_context PriceContext, locale_context LocaleContext) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	count := model_product_retrieve_count(mut tx, p) or {
@@ -626,7 +626,6 @@ fn conduit_products_list_store(mut app App, mut ctx Context, p ProductRetrievePa
 	}
 
 	// variants_availability
-	// TODO sales_channel id from request context (header) from middleware
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve store', err.msg())
@@ -634,7 +633,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, p ProductRetrievePa
 	}
 
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
-		sales_channel_ids_bin: [store.default_sales_channel_id.bytes()]
+		sales_channel_ids_bin: [sales_channel_id.bytes()]
 	}
 
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
@@ -669,7 +668,7 @@ fn conduit_products_list_store(mut app App, mut ctx Context, p ProductRetrievePa
 
 	variants_availability := get_variants_availability(GetProductVariantsAvailabilityParams{
 		variants:                      complete_variants
-		sales_channel_ids_bin:         [store.default_sales_channel_id.bytes()]
+		sales_channel_ids_bin:         [sales_channel_id.bytes()]
 		product_sales_channels:        products_data.product_sales_channels
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})
@@ -725,7 +724,7 @@ fn conduit_product_get_by_id(mut app App, mut ctx Context, p ProductRetrievePara
 	return external_product
 }
 
-fn conduit_products_get_by_id_store(mut app App, mut ctx Context, p ProductRetrieveParams, price_context PriceContext, locale_context LocaleContext) veb.Result {
+fn conduit_products_get_by_id_store(mut app App, mut ctx Context, p ProductRetrieveParams, sales_channel_id ID, price_context PriceContext, locale_context LocaleContext) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	// TODO get count first
@@ -746,15 +745,13 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, p ProductRetri
 		return ctx.handle_error(err)
 	}
 
-	// variants_availability
-	// TODO sales_channel id from request context (header) from middleware
 	store := model_store_retrieve(mut tx) or {
 		tx.rollback() or {}
 		perr := new_error_internal('could not retrieve store', err.msg())
 		return ctx.handle_error(perr)
 	}
 	model_sales_channel_stock_location_retrieve_params := ModelSalesChannelStockLocationRetrieveParams{
-		sales_channel_ids_bin: [store.default_sales_channel_id.bytes()]
+		sales_channel_ids_bin: [sales_channel_id.bytes()]
 	}
 	sales_channel_stock_locations := model_sales_channel_stock_location_retrieve(mut tx,
 		model_sales_channel_stock_location_retrieve_params) or {
@@ -781,7 +778,7 @@ fn conduit_products_get_by_id_store(mut app App, mut ctx Context, p ProductRetri
 
 	variants_availability := get_variants_availability(GetProductVariantsAvailabilityParams{
 		variants:                      complete_variants
-		sales_channel_ids_bin:         [store.default_sales_channel_id.bytes()]
+		sales_channel_ids_bin:         [sales_channel_id.bytes()]
 		product_sales_channels:        product_data.product_sales_channels
 		sales_channel_stock_locations: sales_channel_stock_locations
 	})

@@ -63,6 +63,42 @@ fn hygienise_price_context_query_params(m map[string]string) !PriceContextQueryP
 	}
 }
 
+pub struct APIKeyListQueryParams {
+pub:
+	ids          ?[]string
+	with_deleted ?bool
+	offset       ?i32
+	fetch        ?i32
+	order        ?string
+}
+
+fn extract_api_key_list_query_params(m map[string]string) APIKeyListQueryParams {
+	return APIKeyListQueryParams{
+		ids:          get_none_array_string(m, 'ids')
+		with_deleted: get_none_bool(m, 'with_deleted')
+		offset:       get_none_i32(m, 'offset')
+		fetch:        get_none_i32(m, 'fetch')
+		order:        get_none_string(m, 'order')
+	}
+}
+
+fn hygienise_api_key_list_query_params(m map[string]string) !APIKeyRetrieveParams {
+	p := extract_api_key_list_query_params(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
+	}
+
+	return APIKeyRetrieveParams{
+		ids:          ids
+		with_deleted: bool_or(p.with_deleted, false)
+		offset:       get_offset_or_default(p.offset)!
+		fetch:        get_fetch_or_default(p.fetch)!
+		order:        get_order_direction_or_default(p.order)!
+	}
+}
+
 pub struct UserListQueryParams {
 pub:
 	ids          ?[]string

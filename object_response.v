@@ -28,6 +28,40 @@ pub:
 	id string
 }
 
+pub struct APIKeyResponse {
+pub:
+	id               string
+	created_at       time.Time @[json: 'createdAt']
+	updated_at       time.Time @[json: 'updatedAt']
+	deleted_at       time.Time @[json: 'deletedAt'; omitempty]
+	name             string
+	sales_channel_id string
+}
+
+fn format_api_key_response(p APIKey) APIKeyResponse {
+	return APIKeyResponse{
+		id:               p.id.string()
+		created_at:       p.created_at.Time
+		updated_at:       p.updated_at.Time
+		deleted_at:       p.deleted_at.value.Time
+		name:             p.name
+		sales_channel_id: p.sales_channel_id.string()
+	}
+}
+
+pub struct APIKeyResponseEnvelope {
+pub:
+	api_key APIKeyResponse @[json: 'apiKey']
+}
+
+pub struct APIKeyListResponseEnvelope {
+pub:
+	api_keys []APIKeyResponse @[json: 'apiKeys']
+	count    i64
+	offset   i32
+	fetch    i32
+}
+
 pub struct UserResponse {
 pub:
 	id         string
@@ -71,7 +105,7 @@ pub:
 	users  []UserResponse
 	count  i64
 	offset i32
-	fetch  i32 @[omitempty]
+	fetch  i32
 }
 
 pub struct LocaleResponse {
@@ -97,7 +131,7 @@ pub:
 	locales []LocaleResponse
 	count   i64
 	offset  i32
-	fetch   i32 @[omitempty]
+	fetch   i32
 }
 
 pub struct CurrencyResponse {
@@ -123,7 +157,7 @@ pub:
 	currencies []CurrencyResponse
 	count      i64
 	offset     i32
-	fetch      i32 @[omitempty]
+	fetch      i32
 }
 
 pub struct CountryResponse {
@@ -149,7 +183,7 @@ pub:
 	countries []CountryResponse
 	count     i64
 	offset    i32
-	fetch     i32 @[omitempty]
+	fetch     i32
 }
 
 pub struct StoreResponse {
@@ -467,7 +501,7 @@ pub:
 	regions []RegionResponse
 	count   i64
 	offset  i32
-	fetch   i32 @[omitempty]
+	fetch   i32
 }
 
 pub struct InventoryLevelResponse {
@@ -756,7 +790,7 @@ pub:
 	categories []CategoryResponse
 	count      i64
 	offset     i32
-	fetch      i32 @[omitempty]
+	fetch      i32
 }
 
 pub struct CategoryResponseStore {
@@ -829,7 +863,7 @@ pub:
 	categories []CategoryResponseStore
 	count      i64
 	offset     i32
-	fetch      i32 @[omitempty]
+	fetch      i32
 }
 
 pub struct VariantResponseEnvelope {
@@ -853,7 +887,7 @@ pub:
 	sales_channels []SalesChannelResponse @[json: 'salesChannels']
 	count          i64
 	offset         i32
-	fetch          i32 @[omitempty]
+	fetch          i32
 }
 
 pub struct ProductResponse {
@@ -940,7 +974,7 @@ pub:
 	products []ProductResponse
 	count    i64
 	offset   i32
-	fetch    i32 @[omitempty]
+	fetch    i32
 }
 
 pub struct ProductResponseStore {
@@ -1051,7 +1085,7 @@ pub struct ProductResponseStoreListEnvelope {
 	products []ProductResponseStore
 	count    i64
 	offset   i32
-	fetch    i32 @[omitempty]
+	fetch    i32
 }
 
 pub struct UploadsUploadResponseEnvelope {
@@ -1089,7 +1123,7 @@ pub struct StockLocationResponseListEnvelope {
 	stock_locations []StockLocationResponse @[json: 'stockLocations']
 	count           i64
 	offset          i32
-	fetch           i32 @[omitempty]
+	fetch           i32
 }
 
 pub struct StockLocationResponseEnvelope {

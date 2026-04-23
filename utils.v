@@ -40,20 +40,22 @@ pub const max_length_country = 2
 pub const max_length_hs_code = 63
 pub const max_length_mid_code = 15
 pub const max_length_material = 191
+pub const max_length_api_key_name = 63
 
 pub const default_thumbnail = 0
 
+const error_api_key_invalid = 'Invalid API Key'
 const error_database_data_malformed = 'Data retrieved from database is malformed'
-const error_reference_invalid = 'Field references invalid object'
-const error_field_empty = 'Field cannot be empty'
-const error_field_too_long = 'Field too long'
-const error_field_explicit_empty = 'Field explicitly empty'
 const error_empty_object = 'Received all empty fields'
+const error_field_empty = 'Field cannot be empty'
+const error_field_explicit_empty = 'Field explicitly empty'
+const error_field_too_long = 'Field too long'
 const error_header_invalid = 'Invalid header'
 const error_header_missing = 'Missing header'
-const error_id_generation = 'Failed to generate id'
-const error_id_invalid = 'Invalid id'
+const error_id_generation = 'Failed to generate ID'
+const error_id_invalid = 'Invalid ID'
 const error_order_direction_invalid = 'Invalid order direction'
+const error_reference_invalid = 'Field references invalid object'
 const error_transaction_commit = 'Failed to start transaction'
 const error_transaction_rollback = 'Failed to rollback transaction'
 const error_transaction_start = 'Failed to start transaction'
@@ -358,6 +360,20 @@ fn (mut ctx Context) handle_error(error IError) veb.Result {
 	return ctx.handle_peony_error(new_error_internal('Unhandled error', error.msg()))
 }
 
+fn (mut ctx Context) middleware_handle_error(error IError) bool {
+	if error is PeonyError {
+		ctx.res.set_status(error.status_code)
+		ctx.json(json.encode(PeonyErrorResponse{
+			message: error.message
+			details: error.details
+		}))
+	} else {
+		ctx.res.set_status(http.Status.internal_server_error)
+		ctx.json(new_error_internal('Unhandled middleware error', error.msg()))
+	}
+	return false
+}
+
 fn (mut ctx Context) handle_ok[T](payload T) veb.Result {
 	ctx.res.set_status(http.Status.ok)
 	return ctx.json(payload)
@@ -371,6 +387,14 @@ fn (mut ctx Context) handle_created[T](payload T) veb.Result {
 fn (mut ctx Context) handle_deleted() veb.Result {
 	ctx.res.set_status(http.Status.ok)
 	return ctx.json(DeletedResponse{})
+}
+
+fn (ctx Context) get_api_key() !APIKey {
+	api_key := ctx.api_key or {
+		return new_error_internal('API Key missing from request context', 'ctx.api_key == none')
+	}
+
+	return api_key
 }
 
 fn unwrap_option_or[T](option_type ?T, default_value T) T {

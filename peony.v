@@ -22,6 +22,7 @@ mut:
 pub struct Context {
 	veb.Context
 mut:
+	api_key             ?APIKey
 	user_session        sessions.Session
 	user_session_values UserSessionValues
 	// customer_session        sessions.Session
@@ -85,3 +86,4 @@ pub fn (mut app App) run() ! {
 	app.initiate_cache()!
 	veb.run[App, Context](mut app, app.config.port)
 }
+

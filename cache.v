@@ -1,6 +1,7 @@
 module peony
 
 import json
+import time
 
 // TODO cache for store endpoints:
 // store items in redis after retrieving from db
@@ -18,37 +19,36 @@ import json
 
 // Distributed FIFO queue for "important" operations (orders, etc)
 
-// TODO high priority
-// cache api_keys:
-// if cache does not contain api_keys data then get all api keys from database and cache them.
-// if cache contains api_keys data then continue
-// then create a method to find api key data if it exists, otherwise return an error.
-// need functions to call for when new api keys are created (invalidate old, cache new data)
-
+const one_day = 24 * time.hour
+const one_month = 30 * one_day
 const api_key_prefix = 'api_key'
-const api_key_set_key = 'api_keys'
 
-fn redict_build_key(p ...string) string {
+fn build_key(p ...string) string {
 	return p.join(':')
 }
 
-fn (mut app App) redict_set_api_key(api_key APIKey) ! {
+fn get_api_key_key(api_key_id ID) string {
+	return build_key(lib, api_key_prefix, api_key_id.string())
 }
 
-fn (mut app App) redict_get_api_key(api_key_id ID) !APIKey {
-	r := app.redict.get(redict_build_key(lib, api_key_prefix, api_key_id.string()))!
-	v, is_nil := r.val().get_string()!
-	if is_nil {
-		return error('not found')
-	}
+fn (mut app App) cache_set_api_key(api_key APIKey) ! {
+	api_key_key := get_api_key_key(api_key.id)
+	app.redict.set(api_key_key, json.encode(api_key), one_month).error()!
+}
+
+fn (mut app App) cache_get_api_key(api_key_id ID) !APIKey {
+	v := app.redict.get(get_api_key_key(api_key_id)).result()!
 	api_key := json.decode(APIKey, v)!
 	return api_key
 }
 
-fn (mut app App) redict_delete_api_key(api_key_id ID) ! {}
+fn (mut app App) cache_delete_api_key(api_key_id ID) ! {
+	api_key_key := get_api_key_key(api_key_id)
+	app.redict.del(api_key_key).error()!
+}
 
-fn (mut app App) redict_clear_api_keys() ! {}
-
+// TODO: to prevent dos attacks targeting database operations (garbage api_key header content), cache api keys until invalidation, only check redict not firebird. Populate cache on startup if not populated already, use SADD to keep track of all cached api keys.
 fn (mut app App) initiate_cache() ! {
+	// build cache
 }
 

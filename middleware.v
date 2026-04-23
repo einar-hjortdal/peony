@@ -22,7 +22,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 		}
 
 		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(new_error_internal('Invalid session', err.msg()))
+		ctx.json(new_error_unauthorized('Invalid session', err.msg()))
 		return false
 	}
 
@@ -42,21 +42,39 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 }
 
 fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
-	api_key_string := ctx.get_custom_header(header_store_api_key) or { return true }
-	if api_key_string == '' {
-		return true
-	}
-
-	api_key_id := id_from_string(api_key_string) or {
-		ctx.res.set_status(http.Status.bad_request)
-		ctx.json(new_error_bad_request('Invalid API key', err.msg()))
+	api_key_string := ctx.get_custom_header(header_store_api_key) or {
+		ctx.res.set_status(http.Status.unauthorized)
+		ctx.json(new_error_unauthorized(error_api_key_invalid,
+			'Missing ${header_store_api_key} header'))
 		return false
 	}
 
-	// TODO get api key data from cache, add to context.
-	// if api key does not exist in cache, reject request.
-	_ := api_key_id // suppress warning
+	if api_key_string == '' {
+		ctx.res.set_status(http.Status.unauthorized)
+		ctx.json(new_error_unauthorized(error_api_key_invalid,
+			'Empty ${header_store_api_key} header'))
+		return false
+	}
 
+	api_key_id := id_from_string(api_key_string) or {
+		ctx.res.set_status(http.Status.unprocessable_entity)
+		ctx.json(new_error_unprocessable_entity(error_api_key_invalid, 'Could not parse API Key'))
+		return false
+	}
+
+	if api_key := app.cache_get_api_key(api_key_id) {
+		ctx.api_key = api_key
+		return true
+	}
+
+	mut tx := app.start_transaction() or { return ctx.middleware_handle_error(err) }
+	api_key := conduit_api_key_get(mut tx, api_key_id) or {
+		tx.rollback() or {}
+		return ctx.middleware_handle_error(err)
+	}
+	tx.rollback() or {}
+	app.cache_set_api_key(api_key) or {} // TODO handle error
+	ctx.api_key = api_key
 	return true
 }
 
