@@ -111,9 +111,9 @@ fn model_region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]
 }
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
-fn model_region_create(mut tx firebird.Transaction, region_id_bin []u8, d RegionCreateRequest) ! {
+fn model_region_create(mut tx firebird.Transaction, region_id ID, d RegionCreateRequest) ! {
 	mut columns := ['id', 'currency_code', 'name']
-	mut params := [firebird.Value(region_id_bin), d.currency_code, d.name]
+	mut params := [firebird.Value(region_id.bytes()), d.currency_code, d.name]
 
 	if automatic_taxes := d.automatic_taxes {
 		columns = arrays.concat(columns, 'automatic_taxes')
@@ -132,7 +132,7 @@ fn model_region_create(mut tx firebird.Transaction, region_id_bin []u8, d Region
 		...d.country_codes)!
 }
 
-fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d RegionUpdateRequest) ! {
+fn model_region_update(mut tx firebird.Transaction, region_id ID, d RegionUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -156,7 +156,7 @@ fn model_region_update(mut tx firebird.Transaction, region_id_bin []u8, d Region
 		params = arrays.concat(params, includes_tax)
 	}
 
-	params = arrays.concat(params, region_id_bin)
+	params = arrays.concat(params, region_id.bytes())
 
 	tx.execute('UPDATE region SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!

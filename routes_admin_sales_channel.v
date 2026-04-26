@@ -46,9 +46,8 @@ pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 // updates a sales channel
 @['/admin/sales-channels/:sales_channel_id'; post]
 pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel_id string) veb.Result {
-	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
-		return ctx.handle_error(perr)
+	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id'))
 	}
 
 	p := json.decode(SalesChannelUpdateRequest, ctx.req.data) or {
@@ -63,18 +62,30 @@ pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel
 		}
 	}
 
-	return conduit_sales_channel_update(mut app, mut ctx, sales_channel_id_bin, p)
+	return conduit_sales_channel_update(mut app, mut ctx, parsed_sales_channel_id, p)
 }
 
 // deletes a sales channel
 @['/admin/sales-channels/:sales_channel_id'; delete]
 pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_channel_id string) veb.Result {
-	app.delete_sales_channel(sales_channel_id) or {
+	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id'))
+	}
+
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+
+	model_sales_channel_delete(mut tx, parsed_sales_channel_id) or {
 		perr := new_error_internal('Could not delete sales channel', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	return ctx.text('OK') // TODO
+	tx.commit() or {
+		tx.rollback() or {}
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	return ctx.handle_deleted()
 }
 
 // updates products in the sales channel
@@ -100,34 +111,33 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_chann
 // associates stock location to a channel
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; post]
 pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
-	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
+	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
 		return ctx.handle_error(perr)
 	}
 
-	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
+	parsed_stock_location_id := id_from_string(stock_location_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'stock_location_id')
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_sales_channel_stock_location_add(mut app, mut ctx, sales_channel_id_bin,
-		stock_location_id_bin)
+	return conduit_sales_channel_stock_location_add(mut app, mut ctx, parsed_sales_channel_id,
+		parsed_stock_location_id)
 }
 
 // removes stock location from a channel
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; delete]
 pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
-	sales_channel_id_bin := id_string_to_bin(sales_channel_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
-		return ctx.handle_error(perr)
+	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id'))
 	}
 
-	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'stock_location_id')
-		return ctx.handle_error(perr)
+	parsed_stock_location_id := id_from_string(stock_location_id) or {
+		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid,
+			'stock_location_id'))
 	}
 
-	return conduit_sales_channel_stock_location_delete(mut app, mut ctx, sales_channel_id_bin,
-		stock_location_id_bin)
+	return conduit_sales_channel_stock_location_delete(mut app, mut ctx, parsed_sales_channel_id,
+		parsed_stock_location_id)
 }
 

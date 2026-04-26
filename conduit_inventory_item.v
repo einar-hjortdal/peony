@@ -2,12 +2,12 @@ module peony
 
 import veb
 
-fn conduit_inventory_level_update(mut app App, mut ctx Context, inventory_item_id_bin []u8, stock_location_id_bin []u8,
+fn conduit_inventory_level_update(mut app App, mut ctx Context, inventory_item_id ID, stock_location_id ID,
 	p InventoryLevelUpdateRequest) veb.Result {
 	mp := InventoryLevelUpdateParams{
-		inventory_item_id_bin: inventory_item_id_bin
-		stock_location_id_bin: stock_location_id_bin
-		stocked_quantity:      p.stocked_quantity
+		inventory_item_id: inventory_item_id
+		stock_location_id: stock_location_id
+		stocked_quantity:  p.stocked_quantity
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
@@ -25,3 +25,4 @@ fn conduit_inventory_level_update(mut app App, mut ctx Context, inventory_item_i
 
 	return success(mut ctx)
 }
+

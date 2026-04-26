@@ -3,18 +3,16 @@ module peony
 import einar_hjortdal.firebird
 
 struct InventoryLevel {
-	inventory_item_id     string
-	inventory_item_id_bin []u8
-	stock_location_id     string
-	stock_location_id_bin []u8
-	stocked_quantity      i32
-	reserved_quantity     i32
+	inventory_item_id ID
+	stock_location_id ID
+	stocked_quantity  i32
+	reserved_quantity i32
 }
 
-fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin [][]u8) ![]InventoryLevel {
+fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids []ID) ![]InventoryLevel {
 	data := tx.execute('SELECT inventory_item_id, stock_location_id, stocked_quantity, reserved_quantity
-		FROM inventory_level WHERE inventory_item_id IN (${get_placeholders(inventory_item_ids_bin)})',
-		...inventory_item_ids_bin)!
+		FROM inventory_level WHERE inventory_item_id IN (${get_placeholders(inventory_item_ids)})',
+		...inventory_item_ids)!
 
 	rows := data.rows()
 	mut inventory_levels := []InventoryLevel{len: rows.len}
@@ -25,16 +23,14 @@ fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin
 		stocked_quantity, _ := v[2].get_i32()!
 		reserved_quantity, _ := v[3].get_i32()!
 
-		inventory_item_id := id_bin_to_string(inventory_item_id_bin)!
-		stock_location_id := id_bin_to_string(stock_location_id_bin)!
+		inventory_item_id := id_from_bytes(inventory_item_id_bin)!
+		stock_location_id := id_from_bytes(stock_location_id_bin)!
 
 		inventory_levels[i] = InventoryLevel{
-			inventory_item_id:     inventory_item_id
-			inventory_item_id_bin: inventory_item_id_bin
-			stock_location_id:     stock_location_id
-			stock_location_id_bin: stock_location_id_bin
-			stocked_quantity:      stocked_quantity
-			reserved_quantity:     reserved_quantity
+			inventory_item_id: inventory_item_id
+			stock_location_id: stock_location_id
+			stocked_quantity:  stocked_quantity
+			reserved_quantity: reserved_quantity
 		}
 	}
 
@@ -42,9 +38,9 @@ fn model_inventory_level_get(mut tx firebird.Transaction, inventory_item_ids_bin
 }
 
 struct InventoryLevelUpdateParams {
-	inventory_item_id_bin []u8
-	stock_location_id_bin []u8
-	stocked_quantity      i32
+	inventory_item_id ID
+	stock_location_id ID
+	stocked_quantity  i32
 }
 
 fn model_inventory_level_update(mut tx firebird.Transaction, p InventoryLevelUpdateParams) ! {
@@ -63,17 +59,15 @@ fn model_inventory_level_update(mut tx firebird.Transaction, p InventoryLevelUpd
 		WHEN NOT MATCHED THEN
 			INSERT (inventory_item_id, stock_location_id, stocked_quantity)
 			VALUES (s.inventory_item_id, s.stock_location_id, s.stocked_quantity)',
-		p.inventory_item_id_bin, p.stock_location_id_bin, p.stocked_quantity)!
+		p.inventory_item_id.bytes(), p.stock_location_id.bytes(), p.stocked_quantity)!
 }
 
 struct InventoryItem {
-	id                string
-	id_bin            []u8
+	id                ID
 	created_at        firebird.DateTime
 	updated_at        firebird.DateTime
 	deleted_at        firebird.NullDateTime
-	variant_id        string
-	variant_id_bin    []u8
+	variant_id        ID
 	sku               firebird.NullString
 	origin_country    firebird.NullString
 	hs_code           firebird.NullString
@@ -142,17 +136,15 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids []ID) 
 		manage_inventory, _ := v[15].get_bool()!
 		allow_backorder, _ := v[16].get_bool()!
 
-		id := id_bin_to_string(id_bin)!
-		variant_id := id_bin_to_string(variant_id_bin)!
+		id := id_from_bytes(id_bin)!
+		variant_id := id_from_bytes(variant_id_bin)!
 
 		inventory_items[i] = InventoryItem{
 			id:                id
-			id_bin:            id_bin
 			created_at:        created_at
 			updated_at:        updated_at
 			deleted_at:        deleted_at
 			variant_id:        variant_id
-			variant_id_bin:    variant_id_bin
 			sku:               sku
 			origin_country:    origin_country
 			hs_code:           hs_code
@@ -442,3 +434,4 @@ fn model_inventory_item_sync_delete(mut tx firebird.Transaction, product_id ID) 
 			SET t.deleted_at = s.deleted_at',
 		product_id.bytes())!
 }
+

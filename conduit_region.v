@@ -57,9 +57,9 @@ fn conduit_region_get_by_id(mut app App, mut ctx Context, region_id ID) veb.Resu
 fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	_, region_id_bin := app.new_id()
+	region_id := app.gen_id()
 
-	model_region_create(mut tx, region_id_bin, d) or {
+	model_region_create(mut tx, region_id, d) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not create region', err.msg())
 		return ctx.handle_error(perr)
@@ -73,10 +73,10 @@ fn conduit_region_create(mut app App, mut ctx Context, d RegionCreateRequest) ve
 	return success(mut ctx)
 }
 
-fn conduit_region_update(mut app App, mut ctx Context, region_id_bin []u8, d RegionUpdateRequest) veb.Result {
+fn conduit_region_update(mut app App, mut ctx Context, region_id ID, d RegionUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_region_update(mut tx, region_id_bin, d) or {
+	model_region_update(mut tx, region_id, d) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not update region', err.msg())
 		return ctx.handle_error(perr)

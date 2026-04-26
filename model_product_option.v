@@ -9,11 +9,11 @@ struct ProductOptionValueTranslation {
 	name            string
 }
 
-fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids_bin [][]u8) ![]ProductOptionValueTranslation {
+fn model_product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids []ID) ![]ProductOptionValueTranslation {
 	data := tx.execute('SELECT product_option_value_id, locale_id, name
 	FROM product_option_value_translations
-	WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids_bin)})',
-		...product_option_value_ids_bin)!
+	WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids)})',
+		...ids_bytes(product_option_value_ids))!
 
 	rows := data.rows()
 
@@ -153,11 +153,9 @@ fn model_product_option_value_delete(mut tx firebird.Transaction, product_option
 }
 
 struct ProductOptionTranslation {
-	product_option_id     string
-	product_option_id_bin []u8
-	locale_id             string
-	locale_id_bin         []u8
-	title                 string
+	product_option_id ID
+	locale_id         ID
+	title             string
 }
 
 fn model_product_option_translations_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionTranslation {
@@ -176,15 +174,13 @@ fn model_product_option_translations_retrieve(mut tx firebird.Transaction, produ
 		locale_id_bin, _ := v[1].get_array_u8()!
 		title, _ := v[2].get_string()!
 
-		product_option_id := id_bin_to_string(product_option_id_bin)!
-		locale_id := id_bin_to_string(locale_id_bin)!
+		product_option_id := id_from_bytes(product_option_id_bin)!
+		locale_id := id_from_bytes(locale_id_bin)!
 
 		translations[i] = ProductOptionTranslation{
-			product_option_id:     product_option_id
-			product_option_id_bin: product_option_id_bin
-			locale_id:             locale_id
-			locale_id_bin:         locale_id_bin
-			title:                 title
+			product_option_id: product_option_id
+			locale_id:         locale_id
+			title:             title
 		}
 	}
 
@@ -545,31 +541,29 @@ struct ProductOptionValueProductVariant {
 }
 
 struct ProductOptionValueProductVariantRetrieveParams {
-	option_value_ids     []string
-	option_value_ids_bin [][]u8
-	variant_ids          []string
-	variant_ids_bin      [][]u8
+	option_value_ids ?[]ID
+	variant_ids      ?[]ID
 }
 
 fn model_product_option_value_variant_retrieve(mut tx firebird.Transaction, p ProductOptionValueProductVariantRetrieveParams) ![]ProductOptionValueProductVariant {
-	if p.option_value_ids.len == 0 && p.variant_ids.len == 0 {
+	if p.option_value_ids == none && p.variant_ids == none {
 		return error('Cannot retrieve product_option_value_variant: neither option_value_ids nor variant_ids provided')
 	}
 
-	if p.option_value_ids.len > 0 && p.variant_ids.len > 0 {
+	if p.option_value_ids != none && p.variant_ids != none {
 		return error('Cannot retrieve product_option_value_variant: both option_value_ids and variant_ids provided')
 	}
 
 	mut query := 'SELECT option_value_id, variant_id FROM product_option_value_variant'
 	mut params := []firebird.Value{}
-	if p.option_value_ids.len > 0 {
-		query = '${query} WHERE option_value_id IN (${get_placeholders(p.option_value_ids_bin)})'
-		params = slices_to_values(p.option_value_ids_bin)
+	if option_value_ids := p.option_value_ids {
+		query = '${query} WHERE option_value_id IN (${get_placeholders(option_value_ids)})'
+		params = slices_to_values(ids_bytes(option_value_ids))
 	}
 
-	if p.variant_ids.len > 0 {
-		query = '${query} WHERE variant_id IN (${get_placeholders(p.variant_ids_bin)})'
-		params = slices_to_values(p.variant_ids_bin)
+	if variant_ids := p.variant_ids {
+		query = '${query} WHERE variant_id IN (${get_placeholders(variant_ids)})'
+		params = slices_to_values(ids_bytes(variant_ids))
 	}
 
 	data := tx.execute(query, ...params)!

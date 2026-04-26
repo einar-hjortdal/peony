@@ -64,20 +64,6 @@ const error_handle_fallback_too_long = 'The provided handle already exists. The 
 
 const details_order_direction_invalid = 'order direction must either be ${order_asc} or ${order_desc}'
 
-fn id_string_to_bin(id_string string) ![]u8 {
-	return luuid.to_bytes(id_string)
-}
-
-fn id_bin_to_string(id_bin []u8) !string {
-	return luuid.from_bytes(id_bin)
-}
-
-fn (mut app App) new_id() (string, []u8) {
-	id_string := app.luuid_generator.v1().to_upper()
-	id_bin := id_string_to_bin(id_string) or { panic(err) } // should never panic
-	return id_string, id_bin
-}
-
 fn (mut app App) start_transaction() !&firebird.Transaction {
 	mut tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
 		return new_error_internal(error_transaction_start, err.msg())

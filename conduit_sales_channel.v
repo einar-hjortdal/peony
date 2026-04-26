@@ -3,11 +3,11 @@ module peony
 import veb
 
 fn conduit_sales_channel_create(mut app App, mut ctx Context, p SalesChannelRequest) veb.Result {
-	_, sales_channel_id_bin := app.new_id()
+	sales_channel_id := app.gen_id()
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_sales_channel_create(mut tx, sales_channel_id_bin, p) or {
+	model_sales_channel_create(mut tx, sales_channel_id, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not create sales_channel', err.msg())
 		return ctx.handle_error(perr)
@@ -22,10 +22,10 @@ fn conduit_sales_channel_create(mut app App, mut ctx Context, p SalesChannelRequ
 	return success(mut ctx)
 }
 
-fn conduit_sales_channel_update(mut app App, mut ctx Context, sales_channel_id_bin []u8, p SalesChannelUpdateRequest) veb.Result {
+fn conduit_sales_channel_update(mut app App, mut ctx Context, sales_channel_id ID, p SalesChannelUpdateRequest) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_sales_channel_update(mut tx, sales_channel_id_bin, p) or {
+	model_sales_channel_update(mut tx, sales_channel_id, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not create sales_channel', err.msg())
 		return ctx.handle_error(perr)
@@ -80,10 +80,10 @@ fn conduit_sales_channels_get(mut app App, mut ctx Context, p SalesChannelRetrie
 	})
 }
 
-fn conduit_sales_channel_stock_location_add(mut app App, mut ctx Context, sales_channel_id_bin []u8, stock_location_id_bin []u8) veb.Result {
+fn conduit_sales_channel_stock_location_add(mut app App, mut ctx Context, sales_channel_id ID, stock_location_id ID) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_sales_channel_stock_location_add(mut tx, sales_channel_id_bin, stock_location_id_bin) or {
+	model_sales_channel_stock_location_add(mut tx, sales_channel_id, stock_location_id) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not add stock_location to sales_channel', err.msg())
 		return ctx.handle_error(perr)
@@ -98,13 +98,12 @@ fn conduit_sales_channel_stock_location_add(mut app App, mut ctx Context, sales_
 	return success(mut ctx)
 }
 
-fn conduit_sales_channel_stock_location_delete(mut app App, mut ctx Context, sales_channel_id_bin []u8, stock_location_id_bin []u8) veb.Result {
+fn conduit_sales_channel_stock_location_delete(mut app App, mut ctx Context, sales_channel_id ID, stock_location_id ID) veb.Result {
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	model_sales_channel_stock_location_delete(mut tx, sales_channel_id_bin, stock_location_id_bin) or {
+	model_sales_channel_stock_location_delete(mut tx, sales_channel_id, stock_location_id) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not remove stock_location from sales_channel',
-			err.msg())
+		perr := new_error_internal('Could not remove stock_location from sales_channel', err.msg())
 		return ctx.handle_error(perr)
 	}
 

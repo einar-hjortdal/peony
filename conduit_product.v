@@ -13,10 +13,9 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		handle:       handle
 		is_giftcard:  ph.is_giftcard
 		status:       ph.status
-		type_id:      string_value(ph.type_id)
-		type_id_bin:  ph.type_id_bin
 		discountable: ph.discountable
 		metadata:     string_value(ph.metadata)
+		// type_id
 	}) or { return new_error_internal('Failed to create product', err.msg()) }
 
 	seo_id := app.gen_id()
@@ -48,20 +47,15 @@ fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		order: order_default
 	}) or { return new_error_internal('Failed to retrieve regions', err.msg()) }
 
-	if _ := ph.tag_ids {
-		// TODO
-	}
-
 	// images array is kept at the top level so that it can be used later with variant images
 	mut images_to_create := []ProductImageCreateParams{}
 	if images := ph.images {
 		images_to_create = []ProductImageCreateParams{len: images.len}
 		for i := 0; i < images.len; i++ {
 			image := images[i]
-			id, id_bin := app.new_id()
+			id := app.gen_id()
 			images_to_create[i] = ProductImageCreateParams{
 				id:           id
-				id_bin:       id_bin
 				url:          image.url
 				alt:          image.alt
 				image_rank:   i
@@ -742,21 +736,17 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		return new_error_internal('Failed to update product', err.msg())
 	}
 
-	if _ := ph.tag_ids {
-		// TODO
-	}
-
 	if ph.images != none {
-		model_product_thumbnail_delete(mut tx, product_id.bytes()) or {
+		model_product_thumbnail_delete(mut tx, product_id) or {
 			return new_error_internal('Failed to delete product thumbnail', err.msg())
 		}
 
 		if images_diff.len == 0 {
-			model_product_images_delete(mut tx, product_id.bytes()) or {
+			model_product_images_delete(mut tx, product_id) or {
 				return new_error_internal('Failed to delete product images', err.msg())
 			}
 		} else {
-			model_product_images_update(mut tx, product_id.bytes(), images_diff) or {
+			model_product_images_update(mut tx, product_id, images_diff) or {
 				return new_error_internal('Failed to update product images', err.msg())
 			}
 
@@ -774,20 +764,20 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 	}
 
-	if _ := ph.sales_channel_ids {
-		model_product_sales_channel_update(mut tx, product_id, ph.sales_channel_ids_bin) or {
+	if sales_channel_ids := ph.sales_channel_ids {
+		model_product_sales_channel_update(mut tx, product_id, sales_channel_ids) or {
 			return new_error_internal('Failed to update product sales channel', err.msg())
 		}
 	}
 
-	if _ := ph.category_ids {
-		model_category_product_update(mut tx, product_id, ph.category_ids_bin) or {
+	if category_ids := ph.category_ids {
+		model_category_product_update(mut tx, product_id, category_ids) or {
 			return new_error_internal('Failed to update product category relation', err.msg())
 		}
 	}
 
 	if translations := ph.translations {
-		model_product_translations_delete(mut tx, product_id.bytes()) or {
+		model_product_translations_delete(mut tx, product_id) or {
 			return new_error_internal('Failed to delete from product_translations', err.msg())
 		}
 
@@ -848,7 +838,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				continue
 			}
 
-			old_option := old_options_map[id]
+			old_option := old_options_map[id.string()]
 			options_diff[i] = ProductOptionUpdateParams{
 				id:          id
 				product_id:  product_id
@@ -885,8 +875,9 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			for i := 0; i < old_translations.len; i++ {
 				old_translation := old_translations[i]
 				option_id := old_translation.product_option_id
-				old_array := option_translations_map[option_id]
-				option_translations_map[option_id] = arrays.concat(old_array, old_translation)
+				old_array := option_translations_map[option_id.string()]
+				option_translations_map[option_id.string()] = arrays.concat(old_array,
+					old_translation)
 			}
 
 			// preallocate
@@ -895,7 +886,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				option := options[i]
 				option_id := option.id or { options_diff[i].id }
 				translations := option.translations or {
-					n_translations += option_translations_map[option_id].len
+					n_translations += option_translations_map[option_id.string()].len
 					continue
 				}
 
@@ -923,7 +914,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				}
 
 				translations := option.translations or {
-					old_option_translations := option_translations_map[option_id]
+					old_option_translations := option_translations_map[option_id.string()]
 					for j := 0; j < old_option_translations.len; j++ {
 						old_translation := old_translations[j]
 						option_translations_diff[translations_added] = ProductOptionTranslationParams{
@@ -1041,7 +1032,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 						continue
 					}
 
-					old_value := old_values_map[value_id]
+					old_value := old_values_map[value_id.string()]
 					values_diff[values_added] = ProductOptionValueUpdateParams{
 						id:         value_id
 						option_id:  option_id
@@ -1137,14 +1128,14 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		for i := 0; i < old_inventory_items.len; i++ {
 			inventory_item := old_inventory_items[i]
 			variant_id := inventory_item.variant_id
-			old_inventory_items_map[variant_id] = inventory_item
+			old_inventory_items_map[variant_id.string()] = inventory_item
 		}
 
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			if variant_id := variant.id {
 				// update variant
-				old_variant := old_variants_map[variant_id]
+				old_variant := old_variants_map[variant_id.string()]
 
 				mut image_id := old_variant.image_id
 				if image := variant.image {
@@ -1162,7 +1153,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 					metadata:     unwrap_option_or(variant.metadata, old_variant.metadata.value)
 				}
 
-				old_inventory_item := old_inventory_items_map[variant_id]
+				old_inventory_item := old_inventory_items_map[variant_id.string()]
 				if inventory_item := variant.inventory_item {
 					inventory_items_diff[i] = InventoryItemUpdateParams{
 						id:                old_inventory_item.id

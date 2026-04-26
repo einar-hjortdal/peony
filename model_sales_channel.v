@@ -98,9 +98,9 @@ fn model_sales_channel_retrieve(mut tx firebird.Transaction, p SalesChannelRetri
 	return sales_channels
 }
 
-fn model_sales_channel_create(mut tx firebird.Transaction, sales_channel_id_bin []u8, p SalesChannelRequest) ! {
+fn model_sales_channel_create(mut tx firebird.Transaction, sales_channel_id ID, p SalesChannelRequest) ! {
 	mut columns := ['id', 'name']
-	mut params := [firebird.Value(sales_channel_id_bin), p.name]
+	mut params := [firebird.Value(sales_channel_id.bytes()), p.name]
 
 	if description := p.description {
 		columns = arrays.concat(columns, 'description')
@@ -116,7 +116,7 @@ fn model_sales_channel_create(mut tx firebird.Transaction, sales_channel_id_bin 
 		...params)!
 }
 
-fn model_sales_channel_update(mut tx firebird.Transaction, sales_channel_id_bin []u8, p SalesChannelUpdateRequest) ! {
+fn model_sales_channel_update(mut tx firebird.Transaction, sales_channel_id ID, p SalesChannelUpdateRequest) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -135,24 +135,20 @@ fn model_sales_channel_update(mut tx firebird.Transaction, sales_channel_id_bin 
 		params = arrays.concat(params, is_disabled)
 	}
 
-	params = arrays.concat(params, sales_channel_id_bin)
+	params = arrays.concat(params, sales_channel_id.bytes())
 
 	tx.execute('UPDATE sales_channel ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
 }
 
-fn (mut app App) delete_sales_channel(id string) ! {
-	id_bin := id_string_to_bin(id)!
-	mut tx := app.start_transaction()!
-	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', id_bin)!
-	tx.commit()!
+fn model_sales_channel_delete(mut tx firebird.Transaction, sales_channel_id ID) ! {
+	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		sales_channel_id.bytes())!
 }
 
 struct ProductSalesChannel {
-	product_id           string
-	product_id_bin       []u8
-	sales_channel_id     string
-	sales_channel_id_bin []u8
+	product_id       ID
+	sales_channel_id ID
 }
 
 fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSalesChannel {
@@ -169,14 +165,12 @@ fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids
 		product_id_bin, _ := v[0].get_array_u8()!
 		sales_channel_id_bin, _ := v[1].get_array_u8()!
 
-		product_id := id_bin_to_string(product_id_bin)!
-		sales_channel_id := id_bin_to_string(sales_channel_id_bin)!
+		product_id := id_from_bytes(product_id_bin)!
+		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
 
 		product_sales_channels[i] = ProductSalesChannel{
-			product_id:           product_id
-			product_id_bin:       product_id_bin
-			sales_channel_id:     sales_channel_id
-			sales_channel_id_bin: sales_channel_id_bin
+			product_id:       product_id
+			sales_channel_id: sales_channel_id
 		}
 	}
 
@@ -209,37 +203,35 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id ID
 }
 
 struct SalesChannelStockLocation {
-	sales_channel_id      string
-	sales_channel_id_bin  []u8
-	stock_location_id     string
-	stock_location_id_bin []u8
+	sales_channel_id  ID
+	stock_location_id ID
 }
 
 struct ModelSalesChannelStockLocationRetrieveParams {
-	stock_location_ids_bin [][]u8
-	sales_channel_ids_bin  [][]u8
+	stock_location_ids ?[]ID
+	sales_channel_ids  ?[]ID
 }
 
 fn model_sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p ModelSalesChannelStockLocationRetrieveParams) ![]SalesChannelStockLocation {
-	if p.stock_location_ids_bin.len == 0 && p.sales_channel_ids_bin.len == 0 {
+	if p.stock_location_ids == none && p.sales_channel_ids == none {
 		return []SalesChannelStockLocation{}
 	}
 
-	if p.stock_location_ids_bin.len > 0 && p.sales_channel_ids_bin.len > 0 {
+	if p.stock_location_ids != none && p.sales_channel_ids != none {
 		return new_error_internal('received both stock_location_ids abd sales_channel_ids',
 			'model_sales_channel_stock_location_retrieve')
 	}
 
 	mut condition := ''
-	mut params := [][]u8{}
-	if p.sales_channel_ids_bin.len > 0 {
+	mut params := []firebird.Value{}
+	if sales_channel_ids := p.sales_channel_ids {
 		condition = 'sales_channel_id'
-		params = p.sales_channel_ids_bin.clone()
+		params = slices_to_values(ids_bytes(sales_channel_ids))
 	}
 
-	if p.stock_location_ids_bin.len > 0 {
+	if stock_location_ids := p.stock_location_ids {
 		condition = 'stock_location_id'
-		params = p.stock_location_ids_bin.clone()
+		params = slices_to_values(ids_bytes(stock_location_ids))
 	}
 
 	data := tx.execute('SELECT sales_channel_id, stock_location_id 
@@ -255,27 +247,25 @@ fn model_sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p Mo
 		sales_channel_id_bin, _ := v[0].get_array_u8()!
 		stock_location_id_bin, _ := v[1].get_array_u8()!
 
-		sales_channel_id := id_bin_to_string(sales_channel_id_bin)!
-		stock_location_id := id_bin_to_string(stock_location_id_bin)!
+		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
+		stock_location_id := id_from_bytes(stock_location_id_bin)!
 
 		sales_channel_stock_locations[i] = SalesChannelStockLocation{
-			sales_channel_id:      sales_channel_id
-			sales_channel_id_bin:  sales_channel_id_bin
-			stock_location_id:     stock_location_id
-			stock_location_id_bin: stock_location_id_bin
+			sales_channel_id:  sales_channel_id
+			stock_location_id: stock_location_id
 		}
 	}
 	return sales_channel_stock_locations
 }
 
-fn model_sales_channel_stock_location_add(mut tx firebird.Transaction, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+fn model_sales_channel_stock_location_add(mut tx firebird.Transaction, sales_channel_id ID, stock_location_id ID) ! {
 	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id) 
 		VALUES (?, ?)',
-		sales_channel_id_bin, stock_location_id_bin)!
+		sales_channel_id.bytes(), stock_location_id.bytes())!
 }
 
-fn model_sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_channel_id_bin []u8, stock_location_id_bin []u8) ! {
+fn model_sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_channel_id ID, stock_location_id ID) ! {
 	tx.execute('DELETE FROM sales_channel_stock_location WHERE sales_channel_id = ? AND stock_location_id = ?)',
-		sales_channel_id_bin, stock_location_id_bin)!
+		sales_channel_id.bytes(), stock_location_id.bytes())!
 }
 

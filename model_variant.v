@@ -231,7 +231,7 @@ struct VariantUpdateParams {
 	metadata     string
 }
 
-fn model_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p VariantUpdateParams) ! {
+fn model_variant_update(mut tx firebird.Transaction, p VariantUpdateParams) ! {
 	columns := [
 		'image_id',
 		'title',

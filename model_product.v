@@ -54,8 +54,8 @@ fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids 
 	return translations
 }
 
-fn model_product_translations_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('DELETE FROM product_translations WHERE product_id = ?', product_id_bin)!
+fn model_product_translations_delete(mut tx firebird.Transaction, product_id ID) ! {
+	tx.execute('DELETE FROM product_translations WHERE product_id = ?', product_id.bytes())!
 }
 
 fn model_product_translations_create(mut tx firebird.Transaction, product_id ID, ph []ProductTranslationRequestHygienised) ! {
@@ -72,7 +72,7 @@ fn model_product_translations_create(mut tx firebird.Transaction, product_id ID,
 			FROM RDB\$DATABASE'
 
 		params[i * 5] = product_id.bytes()
-		params[i * 5 + 1] = t.locale_id_bin
+		params[i * 5 + 1] = t.locale_id.bytes()
 
 		if title := t.title {
 			params[i * 5 + 2] = title
@@ -313,8 +313,6 @@ struct ProductCreateParams {
 	handle       string
 	is_giftcard  ?bool
 	status       ?string
-	type_id      string
-	type_id_bin  []u8
 	discountable ?bool
 	metadata     string
 }
@@ -355,10 +353,10 @@ fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 		params = arrays.concat(params, p.status)
 	}
 
-	if p.type_id != '' {
-		c = arrays.concat(c, 'type_id')
-		params = arrays.concat(params, p.type_id_bin)
-	}
+	// if p.type_id != '' {
+	// 	c = arrays.concat(c, 'type_id')
+	// 	params = arrays.concat(params, p.type_id_bin)
+	// }
 
 	if p.discountable != none {
 		c = arrays.concat(c, 'discountable')
@@ -452,7 +450,7 @@ fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id ID, im
 		image_rank, product_id.bytes())!
 }
 
-fn model_product_thumbnail_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('UPDATE product SET thumbnail_id = NULL WHERE id = ?', product_id_bin)!
+fn model_product_thumbnail_delete(mut tx firebird.Transaction, product_id ID) ! {
+	tx.execute('UPDATE product SET thumbnail_id = NULL WHERE id = ?', product_id.bytes())!
 }
 

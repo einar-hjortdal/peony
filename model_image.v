@@ -4,17 +4,15 @@ module peony
 import einar_hjortdal.firebird
 
 struct ImageTranslation {
-	image_id      string
-	image_id_bin  []u8
-	locale_id     string
-	locale_id_bin []u8
-	alt           string
+	image_id  ID
+	locale_id ID
+	alt       string
 }
 
-fn model_image_translation_retrieve(mut tx firebird.Transaction, image_ids_bin [][]u8) ![]ImageTranslation {
+fn model_image_translation_retrieve(mut tx firebird.Transaction, image_ids []ID) ![]ImageTranslation {
 	data := tx.execute('SELECT image_id, locale_id, alt FROM image_translations
-		WHERE image_id IN (${get_placeholders(image_ids_bin)})',
-		...image_ids_bin)!
+		WHERE image_id IN (${get_placeholders(image_ids)})',
+		...ids_bytes(image_ids))!
 
 	rows := data.rows()
 
@@ -26,43 +24,39 @@ fn model_image_translation_retrieve(mut tx firebird.Transaction, image_ids_bin [
 		locale_id_bin, _ := v[1].get_array_u8()!
 		alt, _ := v[2].get_string()!
 
-		image_id := id_bin_to_string(image_id_bin)!
-		locale_id := id_bin_to_string(locale_id_bin)!
+		image_id := id_from_bytes(image_id_bin)!
+		locale_id := id_from_bytes(locale_id_bin)!
 
 		image_translations[i] = ImageTranslation{
-			image_id:      image_id
-			image_id_bin:  image_id_bin
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			alt:           alt
+			image_id:  image_id
+			locale_id: locale_id
+			alt:       alt
 		}
 	}
 
 	return image_translations
 }
 
-struct UserImage {
-	id     string
-	id_bin []u8
-	url    string
-	alt    firebird.NullString
+struct Image {
+	id  ID
+	url string
+	alt firebird.NullString
 mut:
 	translations []ImageTranslation
+}
+
+struct UserImage {
+	Image
+	user_id ID
 }
 
 struct ProductImage {
-	id             string
-	id_bin         []u8
-	url            string
-	image_rank     i32
-	product_id     string
-	product_id_bin []u8
-	alt            firebird.NullString
-mut:
-	translations []ImageTranslation
+	Image
+	product_id ID
+	image_rank i32
 }
 
-fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductImage {
+fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductImage {
 	data := tx.execute('SELECT
 		i.id,
 		i.url,
@@ -72,9 +66,9 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 		FROM image i
 		LEFT JOIN product_image pi
 		ON i.id = pi.image_id
-		WHERE pi.product_id IN (${get_placeholders(product_ids_bin)})
+		WHERE pi.product_id IN (${get_placeholders(product_ids)})
 		ORDER BY pi.image_rank',
-		...product_ids_bin)!
+		...ids_bytes(product_ids))!
 
 	rows := data.rows()
 
@@ -88,17 +82,15 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 		image_rank, _ := v[3].get_i32()!
 		product_id_bin, _ := v[4].get_array_u8()!
 
-		id := id_bin_to_string(id_bin)!
-		product_id := id_bin_to_string(product_id_bin)!
+		id := id_from_bytes(id_bin)!
+		product_id := id_from_bytes(product_id_bin)!
 
 		product_images[i] = ProductImage{
-			id:             id
-			id_bin:         id_bin
-			url:            url
-			alt:            alt
-			image_rank:     image_rank
-			product_id:     product_id
-			product_id_bin: product_id_bin
+			id:         id
+			url:        url
+			alt:        alt
+			image_rank: image_rank
+			product_id: product_id
 		}
 	}
 
@@ -106,19 +98,18 @@ fn model_product_image_retrieve(mut tx firebird.Transaction, product_ids_bin [][
 }
 
 // delete all product images belonging to one product
-fn model_product_images_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
+fn model_product_images_delete(mut tx firebird.Transaction, product_id ID) ! {
 	tx.execute('DELETE FROM image i
 		WHERE EXISTS (
 			SELECT 1 FROM product_image pi
 			WHERE pi.product_id = ?
 			AND pi.image_id = i.id
 		)',
-		product_id_bin)!
+		product_id.bytes())!
 }
 
 struct ProductImageCreateParams {
-	id           string
-	id_bin       []u8
+	id           ID
 	url          string
 	alt          ?string
 	image_rank   i32
@@ -136,7 +127,7 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id ID, image
 			CAST(? AS BLOB SUB_TYPE TEXT),
 			CAST(? AS VARCHAR(191))
 			FROM RDB\$DATABASE'
-		params[i * 3] = image.id_bin
+		params[i * 3] = image.id.bytes()
 		params[i * 3 + 1] = image.url
 		if alt := image.alt {
 			params[i * 3 + 2] = alt
@@ -169,8 +160,8 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id ID, image
 						CAST(? AS VARCHAR(191))
 						FROM RDB\$DATABASE'
 
-					params[current_translation_i * 3] = image.id_bin
-					params[current_translation_i * 3 + 1] = translation.locale_id_bin
+					params[current_translation_i * 3] = image.id.bytes()
+					params[current_translation_i * 3 + 1] = translation.locale_id.bytes()
 					params[current_translation_i * 3 + 2] = translation.alt
 					current_translation_i++
 				}
@@ -193,7 +184,7 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id ID, image
 			FROM RDB\$DATABASE'
 
 		params[i * 3] = product_id.bytes()
-		params[i * 3 + 1] = image.id_bin
+		params[i * 3 + 1] = image.id.bytes()
 		params[i * 3 + 2] = image.image_rank
 	}
 
@@ -202,16 +193,15 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id ID, image
 }
 
 struct ProductImageUpdateParams {
-	id           string
-	id_bin       []u8
+	id           ID
 	url          string
 	alt          ?string // TODO remove option. if alt == '' is null.
 	image_rank   i32
-	translations ?[]ImageTranslationRequestHygienised // TODO remove option. if translations.len == 0 is none
+	translations ?[]ImageTranslationRequestHygienised
 }
 
-fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8, images []ProductImageUpdateParams) ! {
-	mut image_ids_bin := [][]u8{len: images.len}
+fn model_product_images_update(mut tx firebird.Transaction, product_id ID, images []ProductImageUpdateParams) ! {
+	mut image_ids := []ID{len: images.len}
 	mut n_translations := 0
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
@@ -224,7 +214,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 			CAST(? AS VARCHAR(191)) AS alt
 			FROM RDB\$DATABASE'
 
-		params[i * 3] = image.id_bin
+		params[i * 3] = image.id.bytes()
 		params[i * 3 + 1] = image.url
 
 		if alt := image.alt {
@@ -233,7 +223,7 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 			params[i * 3 + 2] = firebird.Null{}
 		}
 
-		image_ids_bin[i] = image.id_bin
+		image_ids[i] = image.id
 		if translations := image.translations {
 			n_translations += translations.len
 		}
@@ -251,10 +241,10 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 	tx.execute(query, ...params)!
 
 	// kill orphans
-	params = []firebird.Value{len: image_ids_bin.len + 1, init: firebird.Null{}}
-	params[0] = product_id_bin
-	for i := 0; i < image_ids_bin.len; i++ {
-		params[i + 1] = image_ids_bin[i]
+	params = []firebird.Value{len: image_ids.len + 1, init: firebird.Null{}}
+	params[0] = product_id.bytes()
+	for i := 0; i < image_ids.len; i++ {
+		params[i + 1] = image_ids[i].bytes()
 	}
 
 	query = 'DELETE FROM image i
@@ -263,12 +253,12 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 			WHERE pi.product_id = ?
 			AND pi.image_id = i.id
 		)
-		AND i.id NOT IN (${get_placeholders(image_ids_bin)})'
+		AND i.id NOT IN (${get_placeholders(image_ids)})'
 	tx.execute(query, ...params)!
 
 	// handle relations
 	query = 'DELETE FROM product_image WHERE product_id = ?'
-	tx.execute(query, product_id_bin)!
+	tx.execute(query, product_id.bytes())!
 
 	src = []string{len: images.len}
 	params = []firebird.Value{len: images.len * 3, init: firebird.Null{}}
@@ -280,8 +270,8 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 			CAST(? AS INTEGER) AS image_rank
 			FROM RDB\$DATABASE'
 
-		params[i * 3] = product_id_bin
-		params[i * 3 + 1] = image.id_bin
+		params[i * 3] = product_id.bytes()
+		params[i * 3 + 1] = image.id.bytes()
 		params[i * 3 + 2] = image.image_rank
 	}
 
@@ -289,8 +279,8 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 	tx.execute(query, ...params)!
 
 	// handle translations
-	query = 'DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids_bin)})'
-	tx.execute(query, ...image_ids_bin)!
+	query = 'DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids)})'
+	tx.execute(query, ...ids_bytes(image_ids))!
 
 	if n_translations == 0 {
 		return
@@ -309,8 +299,8 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 					CAST(? AS BINARY(16)) AS locale_id,
 					CAST(? AS VARCHAR(191)) AS alt
 					FROM RDB\$DATABASE'
-				params[current_translation * 3] = image.id_bin
-				params[current_translation * 3 + 1] = translation.locale_id_bin
+				params[current_translation * 3] = image.id.bytes()
+				params[current_translation * 3 + 1] = translation.locale_id.bytes()
 				params[current_translation * 3 + 2] = translation.alt
 				current_translation++
 			}
@@ -320,3 +310,4 @@ fn model_product_images_update(mut tx firebird.Transaction, product_id_bin []u8,
 	query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
 	tx.execute(query, ...params)!
 }
+

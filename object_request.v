@@ -78,52 +78,57 @@ pub:
 }
 
 struct StoreUpdateRequestHygienised {
-	name                          ?string
-	default_locale_id             ?string
-	default_locale_id_bin         []u8
-	default_region_id             ?string
-	default_region_id_bin         []u8
-	default_stock_location_id     ?string
-	default_stock_location_id_bin []u8
-	default_sales_channel_id      ?string
-	default_sales_channel_id_bin  []u8
-	locale_ids                    ?[]string
-	locale_ids_bin                [][]u8
+	name                      ?string
+	default_locale_id         ?ID
+	default_region_id         ?ID
+	default_stock_location_id ?ID
+	default_sales_channel_id  ?ID
+	locale_ids                ?[]ID
 }
 
 fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
-	default_locale_id_bin := option_id_string_to_id_bin(p.default_locale_id) or {
-		return new_error_bad_request(error_id_invalid, 'default_locale_id')
+	mut parsed_default_locale_id := ?ID(none)
+	if id := p.default_locale_id {
+		parsed_default_locale_id = id_from_string(id) or {
+			return new_error_bad_request(error_id_invalid, 'default_locale_id')
+		}
 	}
 
-	default_region_id_bin := option_id_string_to_id_bin(p.default_region_id) or {
-		return new_error_bad_request(error_id_invalid, 'default_region_id')
+	mut parsed_default_region_id := ?ID(none)
+	if id := p.default_region_id {
+		parsed_default_region_id = id_from_string(id) or {
+			return new_error_bad_request(error_id_invalid, 'default_region_id')
+		}
 	}
 
-	default_stock_location_id_bin := option_id_string_to_id_bin(p.default_stock_location_id) or {
-		return new_error_bad_request(error_id_invalid, 'default_stock_location_id')
+	mut parsed_default_stock_location_id := ?ID(none)
+	if id := p.default_stock_location_id {
+		parsed_default_stock_location_id = id_from_string(id) or {
+			return new_error_bad_request(error_id_invalid, 'default_stock_location_id')
+		}
 	}
 
-	locale_ids_bin := option_array_id_string_to_array_id_bin(p.locale_ids) or {
-		return new_error_bad_request(error_id_invalid, 'locale_id')
+	mut parsed_default_sales_channel_id := ?ID(none)
+	if id := p.default_sales_channel_id {
+		parsed_default_sales_channel_id = id_from_string(id) or {
+			return new_error_bad_request(error_id_invalid, 'default_sales_channel_id')
+		}
 	}
 
-	default_sales_channel_id_bin := option_id_string_to_id_bin(p.default_sales_channel_id) or {
-		return new_error_bad_request(error_id_invalid, 'default_sales_channel_id')
+	mut parsed_locale_ids := ?[]ID(none)
+	if ids := p.locale_ids {
+		parsed_locale_ids = ids_from_array_string(ids) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'locale_ids')
+		}
 	}
 
 	return StoreUpdateRequestHygienised{
-		name:                          p.name
-		default_locale_id:             p.default_locale_id
-		default_locale_id_bin:         default_locale_id_bin
-		default_region_id:             p.default_region_id
-		default_region_id_bin:         default_region_id_bin
-		default_stock_location_id:     p.default_stock_location_id
-		default_stock_location_id_bin: default_stock_location_id_bin
-		default_sales_channel_id:      p.default_sales_channel_id
-		default_sales_channel_id_bin:  default_sales_channel_id_bin
-		locale_ids:                    p.locale_ids
-		locale_ids_bin:                locale_ids_bin
+		name:                      p.name
+		default_locale_id:         parsed_default_locale_id
+		default_region_id:         parsed_default_region_id
+		default_stock_location_id: parsed_default_stock_location_id
+		default_sales_channel_id:  parsed_default_sales_channel_id
+		locale_ids:                parsed_locale_ids
 	}
 }
 
@@ -146,28 +151,26 @@ pub:
 	alt string
 }
 
+struct ImageTranslationRequestHygienised {
+	locale_id ID
+	alt       string
+}
+
 fn hygienise_image_translations(p map[string]ImageTranslationRequest) ![]ImageTranslationRequestHygienised {
 	mut res := []ImageTranslationRequestHygienised{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		locale_id_bin := id_string_to_bin(locale_id) or {
+		parsed_locale_id := id_from_string(locale_id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ImageTranslationRequestHygienised{
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			alt:           translation.alt
+			locale_id: parsed_locale_id
+			alt:       translation.alt
 		}
 		i++
 	}
 	return res
-}
-
-struct ImageTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	alt           string
 }
 
 // ImageCreateRequest describes the body of the request to create a new product image.
@@ -241,10 +244,9 @@ pub:
 }
 
 struct ImageUpdateRequestHygienised {
-	id     ?string
-	id_bin []u8
-	url    ?string
-	alt    ?string
+	id  ?ID
+	url ?string
+	alt ?string
 mut:
 	translations ?[]ImageTranslationRequestHygienised
 }
@@ -267,11 +269,17 @@ fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 		}
 	}
 
+	mut parsed_id := ?ID(none)
+	if id := p.id {
+		parsed_id = id_from_string(id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'id')
+		}
+	}
+
 	mut image := ImageUpdateRequestHygienised{
-		id:     p.id
-		id_bin: option_id_string_to_id_bin(p.id)!
-		url:    p.url
-		alt:    p.alt
+		id:  parsed_id
+		url: p.url
+		alt: p.alt
 	}
 
 	if translations := p.translations {
@@ -309,27 +317,25 @@ pub:
 }
 
 struct ProductTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	title         ?string
-	subtitle      ?string
-	description   ?string
+	locale_id   ID
+	title       ?string
+	subtitle    ?string
+	description ?string
 }
 
 fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]ProductTranslationRequestHygienised {
 	mut res := []ProductTranslationRequestHygienised{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		locale_id_bin := id_string_to_bin(locale_id) or {
+		parsed_locale_id := id_from_string(locale_id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductTranslationRequestHygienised{
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			title:         translation.title
-			subtitle:      translation.subtitle
-			description:   translation.description
+			locale_id:   parsed_locale_id
+			title:       translation.title
+			subtitle:    translation.subtitle
+			description: translation.description
 		}
 		i++
 	}
@@ -341,28 +347,26 @@ pub:
 	name string
 }
 
+struct ProductOptionValueTranslationRequestHygienised {
+	locale_id ID
+	name      string
+}
+
 fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTranslationRequest) ![]ProductOptionValueTranslationRequestHygienised {
 	mut res := []ProductOptionValueTranslationRequestHygienised{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		locale_id_bin := id_string_to_bin(locale_id) or {
+		parsed_locale_id := id_from_string(locale_id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductOptionValueTranslationRequestHygienised{
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			name:          translation.name
+			locale_id: parsed_locale_id
+			name:      translation.name
 		}
 		i++
 	}
 	return res
-}
-
-struct ProductOptionValueTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	name          string
 }
 
 pub struct ProductOptionValueRequest {
@@ -420,9 +424,8 @@ pub:
 }
 
 struct ProductOptionValueUpdateRequestHygienised {
-	id     ?string
-	id_bin []u8
-	name   ?string
+	id   ?ID
+	name ?string
 mut:
 	translations ?[]ProductOptionValueTranslationRequestHygienised
 }
@@ -432,7 +435,15 @@ fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequ
 		return new_error_bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
 	}
 
+	mut parsed_id := ?ID(none)
+	if id := p.id {
+		parsed_id = id_from_string(id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'id')
+		}
+	}
+
 	mut ph := ProductOptionValueUpdateRequestHygienised{
+		id:   parsed_id
 		name: p.name
 	}
 
@@ -449,23 +460,21 @@ pub:
 }
 
 struct ProductOptionTranslationRequestHygienised {
-	title         string
-	locale_id     string
-	locale_id_bin []u8
+	title     string
+	locale_id ID
 }
 
 fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRequest) ![]ProductOptionTranslationRequestHygienised {
 	mut res := []ProductOptionTranslationRequestHygienised{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		locale_id_bin := id_string_to_bin(locale_id) or {
+		parsed_locale_id := id_from_string(locale_id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductOptionTranslationRequestHygienised{
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			title:         translation.title
+			locale_id: parsed_locale_id
+			title:     translation.title
 		}
 		i++
 	}
@@ -546,24 +555,31 @@ pub:
 }
 
 struct ProductOptionUpdateRequestHygienised {
-	id     ?string
-	id_bin []u8
-	title  ?string
+	id    ?ID
+	title ?string
 mut:
 	translations ?[]ProductOptionTranslationRequestHygienised
 	values       ?[]ProductOptionValueUpdateRequestHygienised
 }
 
 fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
+	mut parsed_id := ?ID(none)
+	if id := p.id {
+		parsed_id = id_from_string(id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'id')
+		}
+	}
+
 	mut ph := ProductOptionUpdateRequestHygienised{
-		id:     p.id
-		id_bin: option_id_string_to_id_bin(p.id)!
-		title:  p.title
+		id:    parsed_id
+		title: p.title
 	}
 
 	if translations := p.translations {
 		ph.translations = hygienise_product_option_translations(translations)!
 	}
+
+	// TODO values are missing here
 
 	return ph
 }
@@ -575,10 +591,9 @@ pub:
 }
 
 struct VariantMoneyAmountRequestHygienised {
-	amount        i32
-	region_id     string
-	region_id_bin []u8
-	is_original   bool
+	amount      i32
+	region_id   ID
+	is_original bool
 }
 
 fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]VariantMoneyAmountRequestHygienised {
@@ -586,7 +601,10 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 	region_ids := p.keys()
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
-		region_id_bin := id_string_to_bin(region_id)!
+		parsed_region_id := id_from_string(region_id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'region_id')
+		}
+
 		price := p[region_id]
 
 		base_price := price.base_price
@@ -596,10 +614,9 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 		}
 
 		money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
-			region_id:     region_id
-			region_id_bin: region_id_bin
-			amount:        base_price
-			is_original:   false
+			amount:      base_price
+			region_id:   parsed_region_id
+			is_original: false
 		})
 
 		if original_price := price.original_price {
@@ -609,10 +626,9 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 			}
 
 			money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
-				region_id:     region_id
-				region_id_bin: region_id_bin
-				amount:        original_price
-				is_original:   true
+				amount:      original_price
+				region_id:   parsed_region_id
+				is_original: true
 			})
 		}
 	}
@@ -628,17 +644,18 @@ pub:
 }
 
 struct InventoryLevelCreateRequestHygienised {
-	stock_location_id     string
-	stock_location_id_bin []u8
-	stocked_quantity      i32 @[json: 'stockedQuantity']
+	stock_location_id ID
+	stocked_quantity  i32 @[json: 'stockedQuantity']
 }
 
 fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygienised {
-	stock_location_id_bin := id_string_to_bin(p.stock_location_id)!
+	parsed_stock_location_id := id_from_string(p.stock_location_id) or {
+		return new_error_unprocessable_entity(error_id_invalid, 'stock_location_id')
+	}
+
 	return InventoryLevelCreateRequestHygienised{
-		stock_location_id:     p.stock_location_id
-		stock_location_id_bin: stock_location_id_bin
-		stocked_quantity:      p.stocked_quantity
+		stock_location_id: parsed_stock_location_id
+		stocked_quantity:  p.stocked_quantity
 	}
 }
 
@@ -1029,8 +1046,7 @@ pub:
 }
 
 struct ProductVariantUpdateRequestHygienised {
-	id             ?string
-	id_bin         []u8
+	id             ?ID
 	title          ?string
 	ean            ?string
 	upc            ?string
@@ -1044,8 +1060,11 @@ mut:
 }
 
 fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
-	id_bin := option_id_string_to_id_bin(p.id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'id')
+	mut parsed_id := ?ID(none)
+	if id := p.id {
+		parsed_id = id_from_string(id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'id')
+		}
 	}
 
 	if ean := p.ean {
@@ -1082,8 +1101,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 	}
 
 	mut ph := ProductVariantUpdateRequestHygienised{
-		id:             p.id
-		id_bin:         id_bin
+		id:             parsed_id
 		title:          p.title
 		ean:            p.ean
 		upc:            p.upc
@@ -1155,15 +1173,13 @@ pub:
 }
 
 struct VariantCreateRequestHygienised {
-	title                ?string
-	ean                  ?string
-	upc                  ?string
-	barcode              ?string
-	image_id             ?string
-	image_id_bin         []u8
-	option_value_ids     []string
-	option_value_ids_bin [][]u8
-	metadata             ?string
+	title            ?string
+	ean              ?string
+	upc              ?string
+	barcode          ?string
+	image_id         ?ID
+	option_value_ids []ID
+	metadata         ?string
 mut:
 	money_amounts  ?[]VariantMoneyAmountRequestHygienised
 	inventory_item ?InventoryItemCreateRequestHygienised
@@ -1175,29 +1191,29 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 			'option_value_ids cannot be an empty array')
 	}
 
-	mut option_value_ids_bin := [][]u8{len: p.option_value_ids.len}
+	mut parsed_option_value_ids := []ID{len: p.option_value_ids.len}
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
-		id_bin := id_string_to_bin(id) or {
+		parsed_option_value_ids[i] = id_from_string(id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'option_value_ids')
 		}
-		option_value_ids_bin[i] = id_bin
 	}
 
-	image_id_bin := option_id_string_to_id_bin(p.image_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+	mut parsed_image_id := ?ID(none)
+	if id := p.image_id {
+		parsed_image_id = id_from_string(id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+		}
 	}
 
 	mut ph := VariantCreateRequestHygienised{
-		title:                p.title
-		ean:                  p.ean
-		upc:                  p.upc
-		barcode:              p.barcode
-		image_id:             p.image_id
-		image_id_bin:         image_id_bin
-		option_value_ids:     p.option_value_ids
-		option_value_ids_bin: option_value_ids_bin
-		metadata:             p.metadata
+		title:            p.title
+		ean:              p.ean
+		upc:              p.upc
+		barcode:          p.barcode
+		image_id:         parsed_image_id
+		option_value_ids: parsed_option_value_ids
+		metadata:         p.metadata
 	}
 
 	if prices := p.regional_prices {
@@ -1280,39 +1296,41 @@ pub:
 }
 
 struct VariantUpdateRequestHygienised {
-	title                ?string
-	ean                  ?string
-	upc                  ?string
-	barcode              ?string
-	image_id             ?string
-	image_id_bin         []u8
-	option_value_ids     ?[]string
-	option_value_ids_bin [][]u8
-	metadata             ?string
+	title            ?string
+	ean              ?string
+	upc              ?string
+	barcode          ?string
+	image_id         ?ID
+	option_value_ids ?[]ID
+	metadata         ?string
 mut:
 	inventory_item ?InventoryItemUpdateRequestHygienised
 	money_amounts  ?[]VariantMoneyAmountRequestHygienised
 }
 
 fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
-	option_value_ids_bin := option_array_id_string_to_array_id_bin(p.option_value_ids) or {
-		return new_error_bad_request(error_id_invalid, 'option_value_ids')
+	mut parsed_option_value_ids := ?[]ID(none)
+	if ids := p.option_value_ids {
+		parsed_option_value_ids = ids_from_array_string(ids) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'option_value_ids')
+		}
 	}
 
-	image_id_bin := option_id_string_to_id_bin(p.image_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+	mut parsed_image_id := ?ID(none)
+	if id := p.image_id {
+		parsed_image_id = id_from_string(id) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+		}
 	}
 
 	mut ph := VariantUpdateRequestHygienised{
-		title:                p.title
-		ean:                  p.ean
-		upc:                  p.upc
-		barcode:              p.barcode
-		image_id:             p.image_id
-		image_id_bin:         image_id_bin
-		option_value_ids:     p.option_value_ids
-		option_value_ids_bin: option_value_ids_bin
-		metadata:             p.metadata
+		title:            p.title
+		ean:              p.ean
+		upc:              p.upc
+		barcode:          p.barcode
+		image_id:         parsed_image_id
+		option_value_ids: parsed_option_value_ids
+		metadata:         p.metadata
 	}
 
 	if prices := p.regional_prices {
@@ -1359,25 +1377,23 @@ pub:
 }
 
 struct CategoryTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	name          ?string
-	description   ?string
+	locale_id   ID
+	name        ?string
+	description ?string
 }
 
 fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]CategoryTranslationRequestHygienised {
 	mut res := []CategoryTranslationRequestHygienised{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		locale_id_bin := id_string_to_bin(locale_id) or {
+		parsed_locale_id := id_from_string(locale_id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = CategoryTranslationRequestHygienised{
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			name:          translation.name
-			description:   translation.description
+			locale_id:   parsed_locale_id
+			name:        translation.name
+			description: translation.description
 		}
 		i++
 	}
@@ -1391,32 +1407,30 @@ pub:
 }
 
 struct SEOTranslationRequestHygienised {
-	locale_id     string
-	locale_id_bin []u8
-	title         ?string
-	description   ?string
+	locale_id   ID
+	title       ?string
+	description ?string
 }
 
 fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]SEOTranslationRequestHygienised {
 	mut res := []SEOTranslationRequestHygienised{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		locale_id_bin := id_string_to_bin(locale_id) or {
+		parsed_locale_id := id_from_string(locale_id) or {
 			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = SEOTranslationRequestHygienised{
-			locale_id:     locale_id
-			locale_id_bin: locale_id_bin
-			title:         translation.title
-			description:   translation.description
+			locale_id:   parsed_locale_id
+			title:       translation.title
+			description: translation.description
 		}
 		i++
 	}
 	return res
 }
 
-fn (r SEOTranslationRequestHygienised) locale_id() string {
+fn (r SEOTranslationRequestHygienised) locale_id() ID {
 	return r.locale_id
 }
 
@@ -1500,36 +1514,34 @@ pub:
 }
 
 struct CategoryCreateRequestHygienised {
-	name                   string
-	description            ?string
-	handle                 ?string
-	is_internal            ?bool
-	is_active              ?bool
-	parent_category_id     ?string
-	parent_category_id_bin []u8
-	metadata               ?string
+	name               string
+	description        ?string
+	handle             ?string
+	is_internal        ?bool
+	is_active          ?bool
+	parent_category_id ?ID
+	metadata           ?string
 mut:
 	seo          ?SEORequestHygienised
 	translations ?[]CategoryTranslationRequestHygienised
 }
 
 fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
-	mut parent_category_id_bin := []u8{}
-	if parent_category_id := p.parent_category_id {
-		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
+	mut parsed_parent_category_id := ?ID(none)
+	if id := p.parent_category_id {
+		parsed_parent_category_id = id_from_string(id) or {
 			return new_error_bad_request(error_id_invalid, 'parent_category_id')
 		}
 	}
 
 	mut ph := CategoryCreateRequestHygienised{
-		name:                   p.name
-		description:            p.description
-		handle:                 p.handle
-		is_internal:            p.is_internal
-		is_active:              p.is_active
-		parent_category_id:     p.parent_category_id
-		parent_category_id_bin: parent_category_id_bin
-		metadata:               p.metadata
+		name:               p.name
+		description:        p.description
+		handle:             p.handle
+		is_internal:        p.is_internal
+		is_active:          p.is_active
+		parent_category_id: parsed_parent_category_id
+		metadata:           p.metadata
 	}
 
 	if translations := p.translations {
@@ -1576,14 +1588,13 @@ pub:
 }
 
 struct CategoryUpdateRequestHygienised {
-	name                   ?string
-	description            ?string
-	handle                 ?string
-	is_internal            ?bool
-	is_active              ?bool
-	parent_category_id     ?string
-	parent_category_id_bin []u8
-	metadata               ?string
+	name               ?string
+	description        ?string
+	handle             ?string
+	is_internal        ?bool
+	is_active          ?bool
+	parent_category_id ?ID
+	metadata           ?string
 mut:
 	seo          ?SEORequestHygienised
 	translations ?[]CategoryTranslationRequestHygienised
@@ -1595,22 +1606,21 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 		return new_error_bad_request(error_empty_object, 'CategoryUpdateRequest')
 	}
 
-	mut parent_category_id_bin := []u8{}
-	if parent_category_id := p.parent_category_id {
-		parent_category_id_bin = id_string_to_bin(parent_category_id) or {
+	mut parsed_parent_category_id := ?ID(none)
+	if id := p.parent_category_id {
+		parsed_parent_category_id = id_from_string(id) or {
 			return new_error_bad_request(error_id_invalid, 'parent_category_id')
 		}
 	}
 
 	mut ph := CategoryUpdateRequestHygienised{
-		name:                   p.name
-		description:            p.description
-		handle:                 p.handle
-		is_internal:            p.is_internal
-		is_active:              p.is_active
-		parent_category_id:     p.parent_category_id
-		parent_category_id_bin: parent_category_id_bin
-		metadata:               p.metadata
+		name:               p.name
+		description:        p.description
+		handle:             p.handle
+		is_internal:        p.is_internal
+		is_active:          p.is_active
+		parent_category_id: parsed_parent_category_id
+		metadata:           p.metadata
 	}
 
 	if translations := p.translations {
@@ -1646,17 +1656,11 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 // ## status
 // See constants: `product_status_draft`, `product_status_proposed`, `product_status_published`, `product_status_rejected`.
 //
-// ## type_id
-// Product type identifier.
-//
 // ## discountable
 // Whether the product is eligible for discounts.
 //
 // ## metadata
 // Raw metadata stored as a string.
-//
-// ## tag_ids
-// Tags to associate with the product.
 //
 // ## sales_channel_ids
 // Sales channels where the product will be available.
@@ -1702,10 +1706,8 @@ pub:
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
-	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
 	metadata          ?string   @[raw]
-	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?map[string]ProductTranslationRequest
@@ -1714,26 +1716,24 @@ pub:
 	variants          ?[]ProductVariantCreateRequest
 	thumbnail         ?i32
 	images            ?[]ImageCreateRequest
+	// type_id           ?string @[json: 'typeId']
+	// tag_ids           ?[]string @[json: 'tagIds']
 }
 
 struct ProductCreateRequestHygienised {
-	title                 string
-	subtitle              ?string
-	description           ?string
-	handle                ?string
-	is_giftcard           ?bool
-	status                ?string
-	type_id               ?string
-	type_id_bin           []u8
-	discountable          ?bool
-	metadata              ?string
-	tag_ids               ?[]string
-	tag_ids_bin           [][]u8
-	sales_channel_ids     ?[]string
-	sales_channel_ids_bin [][]u8
-	category_ids          ?[]string
-	category_ids_bin      [][]u8
-	thumbnail             ?i32
+	title             string
+	subtitle          ?string
+	description       ?string
+	handle            ?string
+	is_giftcard       ?bool
+	status            ?string
+	discountable      ?bool
+	metadata          ?string
+	sales_channel_ids ?[]ID
+	category_ids      ?[]ID
+	thumbnail         ?i32
+	// type_id               ?ID
+	// tag_ids               ?[]ID
 mut:
 	seo          ?SEORequestHygienised
 	options      ?[]ProductOptionCreateRequestHygienised
@@ -1964,20 +1964,18 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		}
 	}
 
-	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'type_id')
+	mut parsed_sales_channel_ids := ?[]ID(none)
+	if ids := p.sales_channel_ids {
+		parsed_sales_channel_ids = ids_from_array_string(ids) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_ids')
+		}
 	}
 
-	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'tag_id')
-	}
-
-	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
-	}
-
-	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'category_id')
+	mut parsed_category_ids := ?[]ID(none)
+	if ids := p.category_ids {
+		parsed_category_ids = ids_from_array_string(ids) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'category_ids')
+		}
 	}
 
 	if options := p.options {
@@ -2048,23 +2046,17 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	mut ph := ProductCreateRequestHygienised{
-		title:                 p.title
-		subtitle:              p.subtitle
-		description:           p.description
-		handle:                p.handle
-		is_giftcard:           p.is_giftcard
-		status:                p.status
-		thumbnail:             p.thumbnail
-		type_id:               p.type_id
-		type_id_bin:           type_id_bin
-		discountable:          p.discountable
-		metadata:              p.metadata
-		tag_ids:               p.tag_ids
-		tag_ids_bin:           tag_ids_bin
-		sales_channel_ids:     p.sales_channel_ids
-		sales_channel_ids_bin: sales_channel_ids_bin
-		category_ids:          p.category_ids
-		category_ids_bin:      category_ids_bin
+		title:             p.title
+		subtitle:          p.subtitle
+		description:       p.description
+		handle:            p.handle
+		is_giftcard:       p.is_giftcard
+		status:            p.status
+		thumbnail:         p.thumbnail
+		discountable:      p.discountable
+		metadata:          p.metadata
+		sales_channel_ids: parsed_sales_channel_ids
+		category_ids:      parsed_category_ids
 	}
 
 	if options := p.options {
@@ -2132,17 +2124,11 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 // ## status
 // See constants: `product_status_draft`, `product_status_proposed`, `product_status_published`, `product_status_rejected`.
 //
-// ## type_id
-// Product type identifier.
-//
 // ## discountable
 // Whether the product is eligible for discounts.
 //
 // ## metadata
 // Raw metadata stored as a string.
-//
-// ## tag_ids
-// Tags to associate with the product. To remove the product from all tags, submit an empty array.
 //
 // ## sales_channel_ids
 // Sales channels where the product will be available.
@@ -2195,10 +2181,8 @@ pub:
 	handle            ?string
 	is_giftcard       ?bool @[json: 'isGiftcard']
 	status            ?string
-	type_id           ?string @[json: 'typeId']
 	discountable      ?bool
 	metadata          ?string   @[raw]
-	tag_ids           ?[]string @[json: 'tagIds']
 	sales_channel_ids ?[]string @[json: 'salesChannelIds']
 	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?map[string]ProductTranslationRequest
@@ -2207,26 +2191,22 @@ pub:
 	seo               ?SEORequest
 	options           ?[]ProductOptionUpdateRequest
 	variants          ?[]ProductVariantUpdateRequest
+	// type_id           ?string @[json: 'typeId']
+	// tag_ids           ?[]string @[json: 'tagIds']
 }
 
 struct ProductUpdateRequestHygienised {
-	title                 ?string
-	subtitle              ?string
-	description           ?string
-	handle                ?string
-	is_giftcard           ?bool
-	status                ?string
-	type_id               ?string
-	type_id_bin           []u8
-	discountable          ?bool
-	metadata              ?string
-	tag_ids               ?[]string
-	tag_ids_bin           [][]u8
-	sales_channel_ids     ?[]string
-	sales_channel_ids_bin [][]u8
-	category_ids          ?[]string
-	category_ids_bin      [][]u8
-	thumbnail             ?i32
+	title             ?string
+	subtitle          ?string
+	description       ?string
+	handle            ?string
+	is_giftcard       ?bool
+	status            ?string
+	discountable      ?bool
+	metadata          ?string
+	sales_channel_ids ?[]ID
+	category_ids      ?[]ID
+	thumbnail         ?i32
 mut:
 	translations ?[]ProductTranslationRequestHygienised
 	images       ?[]ImageUpdateRequestHygienised
@@ -2278,20 +2258,18 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		}
 	}
 
-	type_id_bin := option_id_string_to_id_bin(p.type_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'type_id')
+	mut parsed_sales_channel_ids := ?[]ID(none)
+	if ids := p.sales_channel_ids {
+		parsed_sales_channel_ids = ids_from_array_string(ids) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_ids')
+		}
 	}
 
-	tag_ids_bin := option_array_id_string_to_array_id_bin(p.tag_ids) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'tag_id')
-	}
-
-	sales_channel_ids_bin := option_array_id_string_to_array_id_bin(p.sales_channel_ids) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
-	}
-
-	category_ids_bin := option_array_id_string_to_array_id_bin(p.category_ids) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'category_id')
+	mut parsed_category_ids := ?[]ID(none)
+	if ids := p.category_ids {
+		parsed_category_ids = ids_from_array_string(ids) or {
+			return new_error_unprocessable_entity(error_id_invalid, 'category_ids')
+		}
 	}
 
 	if options := p.options {
@@ -2356,23 +2334,17 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	}
 
 	mut ph := ProductUpdateRequestHygienised{
-		title:                 p.title
-		subtitle:              p.subtitle
-		description:           p.description
-		handle:                p.handle
-		is_giftcard:           p.is_giftcard
-		status:                p.status
-		type_id:               p.type_id
-		type_id_bin:           type_id_bin
-		discountable:          p.discountable
-		metadata:              p.metadata
-		tag_ids:               p.tag_ids
-		tag_ids_bin:           tag_ids_bin
-		sales_channel_ids:     p.sales_channel_ids
-		sales_channel_ids_bin: sales_channel_ids_bin
-		category_ids:          p.category_ids
-		category_ids_bin:      category_ids_bin
-		thumbnail:             p.thumbnail
+		title:             p.title
+		subtitle:          p.subtitle
+		description:       p.description
+		handle:            p.handle
+		is_giftcard:       p.is_giftcard
+		status:            p.status
+		discountable:      p.discountable
+		metadata:          p.metadata
+		sales_channel_ids: parsed_sales_channel_ids
+		category_ids:      parsed_category_ids
+		thumbnail:         p.thumbnail
 	}
 
 	if translations := p.translations {
