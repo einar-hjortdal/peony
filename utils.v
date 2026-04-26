@@ -99,78 +99,6 @@ fn parse_bool(s string) bool {
 	return false
 }
 
-struct ZeroString {
-	v      string
-	is_set bool
-}
-
-// TODO replace all ZeroT with ?T
-// TODO change `v` to `value`
-fn zero_string(m map[string]string, k string) ZeroString {
-	if k in m {
-		return ZeroString{
-			v:      m[k]
-			is_set: true
-		}
-	}
-	return ZeroString{}
-}
-
-struct ZeroArrayString {
-	v      []string
-	is_set bool
-}
-
-fn zero_array_string(m map[string]string, k string) ZeroArrayString {
-	s := zero_string(m, k)
-	if s.is_set {
-		return ZeroArrayString{
-			v:      s.v.split(',')
-			is_set: true
-		}
-	}
-	return ZeroArrayString{}
-}
-
-struct ZeroI32 {
-	v      i32
-	is_set bool
-}
-
-fn zero_i32(m map[string]string, k string) ZeroI32 {
-	s := zero_string(m, k)
-	if s.is_set {
-		return ZeroI32{
-			v:      s.v.i32()
-			is_set: true
-		}
-	}
-	return ZeroI32{}
-}
-
-struct ZeroBool {
-	v      bool
-	is_set bool
-}
-
-fn zero_bool(m map[string]string, k string) ZeroBool {
-	s := zero_string(m, k)
-	if s.is_set {
-		if s.v == '' {
-			return ZeroBool{
-				v:      true
-				is_set: true
-			}
-		}
-
-		return ZeroBool{
-			v:      parse_bool(s.v)
-			is_set: true
-		}
-	}
-	return ZeroBool{}
-}
-
 fn get_none_string(m map[string]string, k string) ?string {
 	if k in m {
 		return m[k]
@@ -193,24 +121,6 @@ fn get_none_bool(m map[string]string, k string) ?bool {
 	return parse_bool(s)
 }
 
-fn hygienise_fetch_amount(zi32 ZeroI32) !i32 {
-	if !zi32.is_set {
-		return max_fetch
-	}
-
-	if zi32.v < 1 {
-		return new_error_bad_request('Too few objects requested. Minimum ${min_fetch} must be requested',
-			'requested ${zi32.v}')
-	}
-
-	if zi32.v > max_fetch {
-		return new_error_bad_request('Too many objects requested. Maximum ${max_fetch} can be requested',
-			'requested ${zi32.v}')
-	}
-
-	return zi32.v
-}
-
 interface Identifiable {
 	id() ID
 }
@@ -226,6 +136,11 @@ fn new_id(mut g luuid.Generator) ID {
 		s: s
 		b: luuid.to_bytes(s) or { panic(err) } // should never panic
 	}
+}
+
+// detects if the ID is its zero value
+fn (id ID) is_zero() bool {
+	return id.s == '' && id.b.len == 0
 }
 
 fn (id ID) string() string {
@@ -279,14 +194,14 @@ fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
 		identifiable := identifiables[i]
 		id := identifiable.id()
 		map_res[id.string()] = identifiable
-		arr_res[i] = id.bytes()
+		arr_res[i] = id
 	}
 	return map_res, arr_res
 }
 
 // WIP
 interface Translation {
-	locale_id() string
+	locale_id() ID
 }
 
 interface Translatable {
@@ -411,69 +326,6 @@ fn keys[T](m map[string]T) []string {
 		r[i] = k
 		i++
 	}
-}
-
-// TODO create interface Identifiable with .id() method returning the id
-// This would allow to merge all these methods into one
-// but first need to decide what id type to use
-fn make_product_map(p []Product) (map[string]Product, [][]u8) {
-	mut m := map[string]Product{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
-}
-
-fn make_product_variant_map(p []ProductVariant) (map[string]ProductVariant, [][]u8) {
-	mut m := map[string]ProductVariant{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
-}
-
-fn make_inventory_item_map(p []InventoryItem) (map[string]InventoryItem, [][]u8) {
-	mut m := map[string]InventoryItem{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
-}
-
-fn make_product_option_map(p []ProductOption) (map[string]ProductOption, [][]u8) {
-	mut m := map[string]ProductOption{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
-}
-
-fn make_product_option_value_map(p []ProductOptionValue) (map[string]ProductOptionValue, [][]u8) {
-	mut m := map[string]ProductOptionValue{}
-	mut a := [][]u8{len: p.len}
-	for i := 0; i < p.len; i++ {
-		id := p[i].id
-		id_bin := p[i].id_bin
-		m[id] = p[i]
-		a[i] = id_bin
-	}
-	return m, a
 }
 
 fn format_field_too_long_details(field_name string, max_utf8_length i32) string {

@@ -517,38 +517,25 @@ fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_
 	}
 }
 
-struct RetrieveProductVariantParams {
+struct VariantListQueryParams {
 pub:
-	ids             ZeroArrayString
-	product_ids     ZeroArrayString
-	allow_backorder ZeroBool
-	title           ZeroString
-	with_deleted    ZeroBool
-	offset          ZeroI32
-	fetch           ZeroI32
-	order           ZeroString
+	ids             ?[]string
+	product_ids     ?[]string
+	allow_backorder ?bool
+	with_deleted    ?bool
+	offset          ?i32
+	fetch           ?i32
+	order           ?string
 }
 
-struct RetrieveProductVariantParamsHygienised {
-	ids             ZeroArrayString
-	ids_bin         [][]u8
-	product_ids     ZeroArrayString
-	product_ids_bin [][]u8
-	allow_backorder ZeroBool
-	with_deleted    ZeroBool
-	offset          ZeroI32
-	fetch           ZeroI32
-	order           ZeroString
-}
-
-fn extract_retrieve_product_variant_params(m map[string]string) RetrieveProductVariantParams {
-	return RetrieveProductVariantParams{
-		ids:             zero_array_string(m, 'ids')
-		product_ids:     zero_array_string(m, 'product_ids')
-		allow_backorder: zero_bool(m, 'allow_backorder')
-		offset:          zero_i32(m, 'offset')
-		fetch:           zero_i32(m, 'fetch')
-		order:           zero_string(m, 'order')
+fn extract_variant_list_query_params(m map[string]string) VariantListQueryParams {
+	return VariantListQueryParams{
+		ids:             get_none_array_string(m, 'ids')
+		product_ids:     get_none_array_string(m, 'product_ids')
+		allow_backorder: get_none_bool(m, 'allow_backorder')
+		with_deleted:    get_none_bool(m, 'with_deleted')
+		offset:          get_none_i32(m, 'offset')
+		fetch:           get_none_i32(m, 'fetch')
+		order:           get_none_string(m, 'order')
 	}
 }
-

@@ -493,7 +493,7 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 		ids_bin: [variant_id_bin]
 	}
 
-	variants := model_product_variants_retrieve(mut tx, rvph) or {
+	variants := model_variant_retrieve(mut tx, rvph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants after creation', err.msg())
 		return ctx.handle_error(perr)
@@ -539,7 +539,7 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 		product_ids_bin: [product_id_bin]
 	}
 
-	count := model_product_variants_retrieve_count(mut tx, ph) or {
+	count := model_variant_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
@@ -551,7 +551,7 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 		return ctx.handle_error(perr)
 	}
 
-	variants := model_product_variants_retrieve(mut tx, ph) or {
+	variants := model_variant_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
@@ -612,7 +612,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		product_ids_bin: [product_id_bin]
 	}
 
-	count := model_product_variants_retrieve_count(mut tx, rpvph) or {
+	count := model_variant_retrieve_count(mut tx, rpvph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
@@ -624,7 +624,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(perr)
 	}
 
-	variants := model_product_variants_retrieve(mut tx, rpvph) or {
+	variants := model_variant_retrieve(mut tx, rpvph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
@@ -693,13 +693,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(err)
 	}
 
-	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, product_id, product_id_bin, RetrieveProductVariantParamsHygienised{
-		ids:     ZeroArrayString{
-			v:      [variant_id]
-			is_set: true
-		}
-		ids_bin: [variant_id_bin]
-	}) or {
+	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, variant_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -736,7 +730,7 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 		product_ids_bin: [product_id_bin]
 	}
 
-	count := model_product_variants_retrieve_count(mut tx, ph) or {
+	count := model_variant_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
@@ -754,7 +748,7 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 		return ctx.handle_error(perr)
 	}
 
-	variants := model_product_variants_retrieve(mut tx, ph) or {
+	variants := model_variant_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)

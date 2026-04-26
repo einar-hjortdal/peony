@@ -8,62 +8,62 @@ pub const option_default_title = 'default option'
 pub const option_value_default_name = 'default value'
 
 struct ProductVariant {
-	id             string
-	id_bin         []u8
-	created_at     firebird.DateTime
-	updated_at     firebird.DateTime
-	deleted_at     firebird.NullDateTime
-	product_id     string
-	product_id_bin []u8
-	image_id       string
-	image_id_bin   []u8
-	title          firebird.NullString
-	barcode        firebird.NullString
-	ean            firebird.NullString
-	upc            firebird.NullString
-	variant_rank   i32
-	metadata       firebird.NullString
+	id           ID
+	created_at   firebird.DateTime
+	updated_at   firebird.DateTime
+	deleted_at   firebird.NullDateTime
+	product_id   ID
+	image_id     ?ID
+	title        firebird.NullString
+	barcode      firebird.NullString
+	ean          firebird.NullString
+	upc          firebird.NullString
+	variant_rank i32
+	metadata     firebird.NullString
 mut:
 	inventory_item InventoryItem
 	money_amounts  []VariantMoneyAmount
 	option_values  []ProductOptionValue
 }
 
-fn model_product_variants_retrieve_conditions(p RetrieveProductVariantParamsHygienised) (string, []firebird.Value) {
+struct VariantRetrieveParams {
+	ids             ?[]ID
+	product_ids     ?[]ID
+	allow_backorder ?bool
+	with_deleted    bool
+	offset          i32
+	fetch           i32
+	order           string
+}
+
+fn model_variant_retrieve_conditions(p VariantRetrieveParams) (string, []firebird.Value) {
 	mut params := []firebird.Value{}
 	mut conditions := []string{}
 
-	if p.ids.is_set {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...p.ids_bin)
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
-	if p.product_ids.is_set {
-		conditions = arrays.concat(conditions,
-			'product_id IN (${get_placeholders(p.product_ids_bin)})')
-		params = arrays.concat(params, ...p.product_ids_bin)
+	if product_ids := p.product_ids {
+		conditions = arrays.concat(conditions, 'product_id IN (${get_placeholders(product_ids)})')
+		params = arrays.concat(params, ...ids_bytes(product_ids))
 	}
 
-	if p.allow_backorder.is_set {
+	if allow_backorder := p.allow_backorder {
 		conditions = arrays.concat(conditions, 'allow_backorder = ?')
-		params = arrays.concat(params, p.allow_backorder.v)
+		params = arrays.concat(params, allow_backorder)
 	}
 
-	// TODO handle correctly
-	// if p.region_id.is_set {
-	// 	c = arrays.concat(c, 'region_id = ?')
-	// 	params = arrays.concat(params, p.region_id)
-	// }
-
-	if !p.with_deleted.is_set || (p.with_deleted.is_set && !p.with_deleted.v) {
-		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
+	if !p.with_deleted {
+		conditions = arrays.concat(conditions, 'c.deleted_at is NULL')
 	}
 
 	return get_where_conditions(conditions), params
 }
 
-fn model_product_variants_retrieve_count(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) !i64 {
-	conditions, mut params := model_product_variants_retrieve_conditions(p)
+fn model_variant_retrieve_count(mut tx firebird.Transaction, p VariantRetrieveParams) !i64 {
+	conditions, mut params := model_variant_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM variant ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -71,21 +71,15 @@ fn model_product_variants_retrieve_count(mut tx firebird.Transaction, p Retrieve
 	return count
 }
 
-fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProductVariantParamsHygienised) ![]ProductVariant {
-	conditions, mut params := model_product_variants_retrieve_conditions(p)
-	mut sorting := 'ORDER BY product_id, variant_rank ${get_sorting_order(p.order)}'
+fn model_variant_retrieve(mut tx firebird.Transaction, p VariantRetrieveParams) ![]ProductVariant {
+	conditions, mut params := model_variant_retrieve_conditions(p)
 
-	if p.offset.is_set {
-		sorting = appendln(sorting, 'OFFSET ? ROWS')
-		params = arrays.concat(params, p.offset.v)
-	}
+	mut sorting := 'ORDER BY c.created_at ${p.order}
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
 
-	if p.fetch.is_set {
-		sorting = appendln(sorting, 'FETCH NEXT ? ROWS ONLY')
-		params = arrays.concat(params, p.fetch.v)
-	}
-
-	data := tx.execute('SELECT 
+	query := 'SELECT 
 		id,
 		created_at,
 		updated_at,
@@ -100,14 +94,10 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		metadata
 		FROM variant
 		${conditions}
-		${sorting}',
-		...params)!
-	rows := data.rows()
+		${sorting}'
 
-	// exit early if no rows returned
-	if rows.len == 0 {
-		return []ProductVariant{}
-	}
+	data := tx.execute(query, ...params)!
+	rows := data.rows()
 
 	mut variants := []ProductVariant{len: rows.len}
 	for i := 0; i < rows.len; i++ {
@@ -118,7 +108,7 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		updated_at, _ := v[2].get_date_time()!
 		deleted_at := v[3].get_null_date_time()!
 		product_id_bin, _ := v[4].get_array_u8()!
-		image_id_bin, _ := v[5].get_array_u8()!
+		image_id_bin, image_id_is_null := v[5].get_array_u8()!
 		title := v[6].get_null_string()!
 		barcode := v[7].get_null_string()!
 		ean := v[8].get_null_string()!
@@ -126,68 +116,42 @@ fn model_product_variants_retrieve(mut tx firebird.Transaction, p RetrieveProduc
 		variant_rank, _ := v[10].get_i32()!
 		metadata := v[11].get_null_string()!
 
-		id := id_bin_to_string(id_bin)!
-		product_id := id_bin_to_string(product_id_bin)!
+		id := id_from_bytes(id_bin)!
+		product_id := id_from_bytes(product_id_bin)!
 
-		mut image_id := ''
-		if image_id_bin.len > 0 {
-			image_id = id_bin_to_string(image_id_bin)!
+		mut image_id := ?ID(none)
+		if !image_id_is_null {
+			image_id = id_from_bytes(image_id_bin)!
 		}
 
 		variants[i] = ProductVariant{
-			id:             id
-			id_bin:         id_bin
-			created_at:     created_at
-			updated_at:     updated_at
-			deleted_at:     deleted_at
-			product_id:     product_id
-			product_id_bin: product_id_bin
-			image_id:       image_id
-			image_id_bin:   image_id_bin
-			title:          title
-			barcode:        barcode
-			ean:            ean
-			upc:            upc
-			variant_rank:   variant_rank
-			metadata:       metadata
+			id:           id
+			created_at:   created_at
+			updated_at:   updated_at
+			deleted_at:   deleted_at
+			product_id:   product_id
+			image_id:     image_id
+			title:        title
+			barcode:      barcode
+			ean:          ean
+			upc:          upc
+			variant_rank: variant_rank
+			metadata:     metadata
 		}
 	}
 	return variants
 }
 
-fn model_product_variants_retrieve_by_ids(mut tx firebird.Transaction, variant_ids_bin [][]u8) ![]ProductVariant {
-	vph := RetrieveProductVariantParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: variant_ids_bin
-	}
-	return model_product_variants_retrieve(mut tx, vph)
-}
-
-fn model_product_variants_retrieve_by_product_ids(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductVariant {
-	vph := RetrieveProductVariantParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: product_ids_bin
-	}
-	return model_product_variants_retrieve(mut tx, vph)
-}
-
 struct VariantCreateParams {
-	product_id     string
-	product_id_bin []u8
-	variant_id     string
-	variant_id_bin []u8
-	image_id       string
-	image_id_bin   []u8
-	title          string
-	barcode        string
-	ean            string
-	upc            string
-	metadata       string
-	variant_rank   i32
+	product_id   ID
+	variant_id   ID
+	image_id     ?ID
+	title        string
+	barcode      string
+	ean          string
+	upc          string
+	metadata     string
+	variant_rank i32
 }
 
 // TODO validate struct fields
@@ -210,11 +174,11 @@ fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! 
 			CAST(? AS BLOB SUB_TYPE TEXT) AS metadata
 			FROM RDB\$DATABASE'
 
-		params[i * n_params] = v.variant_id_bin
-		params[i * n_params + 1] = v.product_id_bin
+		params[i * n_params] = v.variant_id.bytes()
+		params[i * n_params + 1] = v.product_id.bytes()
 
-		if v.image_id_bin.len > 0 {
-			params[i * n_params + 2] = v.image_id_bin
+		if image_id := v.image_id {
+			params[i * n_params + 2] = image_id.bytes()
 		}
 
 		if v.title != '' {
@@ -257,10 +221,8 @@ fn model_variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! 
 }
 
 struct VariantUpdateParams {
-	id           string
-	id_bin       []u8
-	image_id     string
-	image_id_bin []u8
+	id           ID
+	image_id     ?ID
 	title        string
 	barcode      string
 	ean          string
@@ -283,8 +245,8 @@ fn model_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p Vari
 	n_params := 8
 	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
 
-	if p.image_id_bin.len > 0 {
-		params[0] = p.image_id_bin
+	if image_id := p.image_id {
+		params[0] = image_id.bytes()
 	}
 
 	if p.title != '' {
@@ -309,14 +271,15 @@ fn model_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p Vari
 		params[6] = p.metadata
 	}
 
-	params[7] = p.id_bin
+	params[7] = p.id.bytes()
 
 	query := 'UPDATE variant SET ${get_set_columns(columns)} WHERE id = ?'
+
 	tx.execute(query, ...params)!
 }
 
 // used in product endpoints
-fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8, p []VariantUpdateParams) ! {
+fn model_product_variant_update(mut tx firebird.Transaction, product_id ID, p []VariantUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 9
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -335,11 +298,11 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 			CAST(? AS BLOB SUB_TYPE TEXT) AS metadata
 			FROM RDB\$DATABASE'
 
-		params[i * n_params + 0] = variant.id_bin
-		params[i * n_params + 1] = product_id_bin
+		params[i * n_params + 0] = variant.id.bytes()
+		params[i * n_params + 1] = product_id.bytes()
 
-		if variant.image_id_bin.len > 0 {
-			params[i * n_params + 2] = variant.image_id_bin
+		if image_id := variant.image_id {
+			params[i * n_params + 2] = image_id.bytes()
 		}
 
 		if variant.title != '' {
@@ -406,14 +369,14 @@ fn model_product_variant_update(mut tx firebird.Transaction, product_id_bin []u8
 			THEN UPDATE
 				SET deleted_at = CURRENT_TIMESTAMP'
 
-	params = arrays.concat(params, product_id_bin)
+	params = arrays.concat(params, product_id.bytes())
 
 	tx.execute(query, ...params)!
 }
 
-fn model_variant_delete(mut tx firebird.Transaction, variant_id_bin []u8) ! {
-	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id_bin)!
+fn model_variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
+	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id.bytes())!
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
-		variant_id_bin)!
+		variant_id.bytes())!
 }
 

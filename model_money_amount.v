@@ -5,19 +5,16 @@ import einar_hjortdal.firebird
 const default_money_amount = i32(0)
 
 struct VariantMoneyAmount {
-	id             string
-	id_bin         []u8
-	variant_id     string
-	variant_id_bin []u8 // from variant_money_amount
-	amount         i32
-	is_original    bool
-	region_id      string
-	region_id_bin  []u8
-	currency_code  string // from region
-	includes_tax   bool   // from region
+	id            ID
+	variant_id    ID
+	amount        i32
+	is_original   bool
+	region_id     ID
+	currency_code string // from region
+	includes_tax  bool   // from region
 }
 
-fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_bin [][]u8) ![]VariantMoneyAmount {
+fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids []ID) ![]VariantMoneyAmount {
 	data := tx.execute('SELECT
 		ma.id,
 		ma.amount,
@@ -31,8 +28,8 @@ fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_
 			ON ma.region_id = r.id
 		LEFT JOIN variant_money_amount vma
 			ON ma.id = vma.money_amount_id
-		WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
-		...variant_ids_bin)!
+		WHERE variant_id IN (${get_placeholders(variant_ids)})',
+		...ids_bytes(variant_ids))!
 
 	rows := data.rows()
 
@@ -48,21 +45,18 @@ fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_
 		includes_tax, _ := v[5].get_bool()!
 		variant_id_bin, _ := v[6].get_array_u8()!
 
-		id := id_bin_to_string(id_bin)!
-		region_id := id_bin_to_string(region_id_bin)!
-		variant_id := id_bin_to_string(variant_id_bin)!
+		id := id_from_bytes(id_bin)!
+		region_id := id_from_bytes(region_id_bin)!
+		variant_id := id_from_bytes(variant_id_bin)!
 
 		variant_money_amounts[i] = VariantMoneyAmount{
-			id:             id
-			id_bin:         id_bin
-			amount:         amount
-			region_id:      region_id
-			region_id_bin:  region_id_bin
-			is_original:    is_original
-			currency_code:  currency_code
-			includes_tax:   includes_tax
-			variant_id:     variant_id
-			variant_id_bin: variant_id_bin
+			id:            id
+			amount:        amount
+			region_id:     region_id
+			is_original:   is_original
+			currency_code: currency_code
+			includes_tax:  includes_tax
+			variant_id:    variant_id
 		}
 	}
 
@@ -70,41 +64,33 @@ fn model_variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids_
 }
 
 struct VariantMoneyAmountUpdateParams {
-	variant_id          string
-	variant_id_bin      []u8
-	region_id           string
-	region_id_bin       []u8
-	money_amount_id     string
-	money_amount_id_bin []u8
-	amount              i32
-	is_original         bool
+	variant_id      ID
+	region_id       ID
+	money_amount_id ID
+	amount          i32
+	is_original     bool
 }
 
 fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMoneyAmountUpdateParams) ! {
 	// deduplicate variant ids
-	mut variant_ids_map := map[string][]u8{}
+	mut variant_ids_map := map[string]ID{}
 	for i := 0; i < p.len; i++ {
 		variant_id := p[i].variant_id
-		variant_id_bin := p[i].variant_id_bin
-		variant_ids_map[variant_id] = variant_id_bin
+		variant_ids_map[variant_id.string()] = variant_id
 	}
 
-	mut variant_ids_bin := [][]u8{len: variant_ids_map.len}
-	mut idx := 0
-	for _, id_bin in variant_ids_map {
-		variant_ids_bin[idx] = id_bin
-		idx++
-	}
+	mut variant_ids := variant_ids_map.values()
 
 	// delete all related money amount first
-	tx.execute('DELETE FROM money_amount
+	mut query := 'DELETE FROM money_amount
 		WHERE id IN (
 			SELECT money_amount_id
 			FROM variant_money_amount
-			WHERE variant_id IN (${get_placeholders(variant_ids_bin)})
+			WHERE variant_id IN (${get_placeholders(variant_ids)})
 		)
-		AND price_list_id IS NULL',
-		...variant_ids_bin)!
+		AND price_list_id IS NULL'
+
+	tx.execute(query, ...ids_bytes(variant_ids))!
 
 	mut n_params := 4
 	mut src := []string{len: p.len}
@@ -117,14 +103,15 @@ fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMon
 			CAST(? AS INTEGER) AS amount
 			FROM RDB\$DATABASE'
 
-		params[i * n_params] = p[i].money_amount_id_bin
-		params[i * n_params + 1] = p[i].region_id_bin
+		params[i * n_params] = p[i].money_amount_id.bytes()
+		params[i * n_params + 1] = p[i].region_id.bytes()
 		params[i * n_params + 2] = p[i].is_original
 		params[i * n_params + 3] = p[i].amount
 	}
 
-	tx.execute('INSERT INTO money_amount (id, region_id, is_original, amount) ${get_merge_source(src)}',
-		...params)!
+	query = 'INSERT INTO money_amount (id, region_id, is_original, amount) ${get_merge_source(src)}'
+
+	tx.execute(query, ...params)!
 
 	n_params = 2
 	params = []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -134,11 +121,13 @@ fn model_variant_money_amount_update(mut tx firebird.Transaction, p []VariantMon
 			CAST(? AS BINARY(16)) AS money_amount_id
 			FROM RDB\$DATABASE'
 
-		params[i * n_params] = p[i].variant_id_bin
-		params[i * n_params + 1] = p[i].money_amount_id_bin
+		params[i * n_params] = p[i].variant_id.bytes()
+		params[i * n_params + 1] = p[i].money_amount_id.bytes()
 	}
 
-	tx.execute('INSERT INTO variant_money_amount (variant_id, money_amount_id)
-		${get_merge_source(src)}',
-		...params)!
+	query = 'INSERT INTO variant_money_amount (variant_id, money_amount_id)
+		${get_merge_source(src)}'
+
+	tx.execute(query, ...params)!
 }
+

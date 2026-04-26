@@ -9,16 +9,14 @@ pub const product_status_published = 'published'
 pub const product_status_rejected = 'rejected'
 
 struct ProductTranslation {
-	product_id     string
-	product_id_bin []u8
-	locale_id      string
-	locale_id_bin  []u8
-	title          string
-	subtitle       string
-	description    string
+	product_id  ID
+	locale_id   ID
+	title       string
+	subtitle    string
+	description string
 }
 
-fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductTranslation {
+fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductTranslation {
 	data := tx.execute('SELECT
 		product_id,
 		locale_id,
@@ -26,8 +24,8 @@ fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids_
 		subtitle,
 		description
 		FROM product_translations
-		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...product_ids_bin)!
+		WHERE product_id IN (${get_placeholders(product_ids)})',
+		...ids_bytes(product_ids))!
 
 	rows := data.rows()
 
@@ -41,17 +39,15 @@ fn model_product_translations_retrieve(mut tx firebird.Transaction, product_ids_
 		subtitle, _ := v[3].get_string()!
 		description, _ := v[4].get_string()!
 
-		product_id := id_bin_to_string(product_id_bin)!
-		locale_id := id_bin_to_string(locale_id_bin)!
+		product_id := id_from_bytes(product_id_bin)!
+		locale_id := id_from_bytes(locale_id_bin)!
 
 		translations[i] = ProductTranslation{
-			product_id:     product_id
-			product_id_bin: product_id_bin
-			locale_id:      locale_id
-			locale_id_bin:  locale_id_bin
-			title:          title
-			subtitle:       subtitle
-			description:    description
+			product_id:  product_id
+			locale_id:   locale_id
+			title:       title
+			subtitle:    subtitle
+			description: description
 		}
 	}
 
@@ -62,7 +58,7 @@ fn model_product_translations_delete(mut tx firebird.Transaction, product_id_bin
 	tx.execute('DELETE FROM product_translations WHERE product_id = ?', product_id_bin)!
 }
 
-fn model_product_translations_create(mut tx firebird.Transaction, product_id_bin []u8, ph []ProductTranslationRequestHygienised) ! {
+fn model_product_translations_create(mut tx firebird.Transaction, product_id ID, ph []ProductTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 5, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
@@ -75,7 +71,7 @@ fn model_product_translations_create(mut tx firebird.Transaction, product_id_bin
 			CAST(? AS BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE'
 
-		params[i * 5] = product_id_bin
+		params[i * 5] = product_id.bytes()
 		params[i * 5 + 1] = t.locale_id_bin
 
 		if title := t.title {
@@ -103,23 +99,20 @@ fn model_product_translations_create(mut tx firebird.Transaction, product_id_bin
 }
 
 struct Product {
-	id               string
-	id_bin           []u8
-	created_at       firebird.DateTime
-	updated_at       firebird.DateTime
-	deleted_at       firebird.NullDateTime
-	handle           string
-	title            string
-	subtitle         firebird.NullString
-	description      firebird.NullString
-	is_giftcard      bool
-	status           string
-	type_id_bin      []u8
-	type_id          string
-	thumbnail_id_bin []u8
-	thumbnail_id     string
-	discountable     bool
-	metadata         firebird.NullString
+	id           ID
+	created_at   firebird.DateTime
+	updated_at   firebird.DateTime
+	deleted_at   firebird.NullDateTime
+	handle       string
+	title        string
+	subtitle     firebird.NullString
+	description  firebird.NullString
+	is_giftcard  bool
+	status       string
+	thumbnail_id ?ID
+	type_id      ?ID
+	discountable bool
+	metadata     firebird.NullString
 mut:
 	seo                    ProductSEO
 	images                 []ProductImage
@@ -131,6 +124,10 @@ mut:
 	sales_channels_ids     []string
 	sales_channels_ids_bin [][]u8
 	// tags         []Tag
+}
+
+fn (p Product) id() ID {
+	return p.id
 }
 
 struct ProductRetrieveParams {
@@ -268,72 +265,75 @@ fn model_product_retrieve(mut tx firebird.Transaction, p ProductRetrieveParams) 
 		handle, _ := v[4].get_string()!
 		is_giftcard, _ := v[5].get_bool()!
 		status, _ := v[6].get_string()!
-		thumbnail_id_bin, _ := v[7].get_array_u8()!
-		type_id_bin, _ := v[8].get_array_u8()!
+		thumbnail_id_bin, thumbnail_id_bin_is_null := v[7].get_array_u8()!
+		type_id_bin, type_id_bin_is_null := v[8].get_array_u8()!
 		discountable, _ := v[9].get_bool()!
 		metadata := v[10].get_null_string()!
 		title, _ := v[11].get_string()!
 		subtitle := v[12].get_null_string()!
 		description := v[13].get_null_string()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
-		mut thumbnail_id := ''
-		if thumbnail_id_bin.len > 0 {
-			thumbnail_id = id_bin_to_string(thumbnail_id_bin)!
+		mut thumbnail_id := ?ID(none)
+		if !thumbnail_id_bin_is_null {
+			thumbnail_id = id_from_bytes(thumbnail_id_bin)!
 		}
 
-		mut type_id := ''
-		if type_id_bin.len > 0 {
-			type_id = id_bin_to_string(type_id_bin)!
+		mut type_id := ?ID(none)
+		if !type_id_bin_is_null {
+			type_id = id_from_bytes(type_id_bin)!
 		}
 
 		products[i] = Product{
-			id:               id
-			id_bin:           id_bin
-			created_at:       created_at
-			updated_at:       updated_at
-			deleted_at:       deleted_at
-			handle:           handle
-			is_giftcard:      is_giftcard
-			status:           status
-			thumbnail_id_bin: thumbnail_id_bin
-			thumbnail_id:     thumbnail_id
-			type_id_bin:      type_id_bin
-			type_id:          type_id
-			discountable:     discountable
-			metadata:         metadata
-			title:            title
-			subtitle:         subtitle
-			description:      description
+			id:           id
+			created_at:   created_at
+			updated_at:   updated_at
+			deleted_at:   deleted_at
+			handle:       handle
+			is_giftcard:  is_giftcard
+			status:       status
+			thumbnail_id: thumbnail_id
+			type_id:      type_id
+			discountable: discountable
+			metadata:     metadata
+			title:        title
+			subtitle:     subtitle
+			description:  description
 		}
 	}
 	return products
 }
 
 struct ProductCreateParams {
-	product_id     string
-	product_id_bin []u8
-	title          string
-	subtitle       string
-	description    string
-	handle         string
-	is_giftcard    ?bool
-	status         ?string
-	type_id        string
-	type_id_bin    []u8
-	discountable   ?bool
-	metadata       string
+	product_id   ID
+	title        string
+	subtitle     string
+	description  string
+	handle       string
+	is_giftcard  ?bool
+	status       ?string
+	type_id      string
+	type_id_bin  []u8
+	discountable ?bool
+	metadata     string
 }
 
 fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
-	if p.product_id == '' || p.product_id_bin.len == 0 || p.title == '' || p.handle == '' {
-		return new_error_internal('Missing required data in ProductCreateParams',
-			'product_id: ${p.product_id}, product_id_bin.len: ${p.product_id_bin.len}, title: ${p.title}, handle: ${p.handle}')
+	if p.product_id.is_zero() {
+		return error('Invalid product_id in ProductCreateParams: `${p.product_id}`')
+	}
+
+	if p.title == '' {
+		return error('title is required in ProductUpdateParams')
+	}
+
+	if p.handle == '' {
+		return error('handle is required in ProductUpdateParams')
 	}
 
 	mut c := ['id', 'title', 'handle']
-	mut params := [firebird.Value(p.product_id_bin), p.title, p.handle]
+	mut params := [firebird.Value(p.product_id.bytes()), p.title, p.handle]
 
 	if p.subtitle != '' {
 		c = arrays.concat(c, 'subtitle')
@@ -375,35 +375,30 @@ fn model_product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 }
 
 struct ProductUpdateParams {
-	product_id     string
-	product_id_bin []u8
-	title          string
-	subtitle       string
-	description    string
-	handle         string
-	is_giftcard    bool
-	status         string
-	type_id        string
-	type_id_bin    []u8
-	discountable   bool
-	metadata       string
+	product_id   ID
+	title        string
+	subtitle     string
+	description  string
+	handle       string
+	is_giftcard  bool
+	status       string
+	type_id      string
+	type_id_bin  []u8
+	discountable bool
+	metadata     string
 }
 
 fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
-	if p.product_id == '' {
-		return error('Invalid product_id in ProductCreateParams: `${p.product_id}`')
-	}
-
-	if p.product_id_bin.len == 0 {
-		return error('Invalid product_id_bin in ProductCreateParams: `${p.product_id_bin.len}`')
+	if p.product_id.is_zero() {
+		return error('Invalid product_id in ProductUpdateParams: `${p.product_id}`')
 	}
 
 	if p.handle == '' {
-		return error('Invalid handle in ProductCreateParams: `${p.handle}`')
+		return error('Invalid handle in ProductUpdateParams: `${p.handle}`')
 	}
 
 	if p.title == '' {
-		return error('Invalid title in ProductCreateParams: `${p.title}`')
+		return error('Invalid title in ProductUpdateParams: `${p.title}`')
 	}
 
 	columns := [
@@ -434,16 +429,16 @@ fn model_product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
 
 	params[7] = p.discountable
 	params[8] = p.metadata
-	params[9] = p.product_id_bin
+	params[9] = p.product_id.bytes()
 
 	tx.execute(query, ...params)!
 }
 
-fn model_product_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
-	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', product_id_bin)!
+fn model_product_delete(mut tx firebird.Transaction, product_id ID) ! {
+	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', product_id.bytes())!
 }
 
-fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []u8, image_rank i32) ! {
+fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id ID, image_rank i32) ! {
 	tx.execute('UPDATE product p
 		SET 
 			updated_at = CURRENT_TIMESTAMP,
@@ -454,7 +449,7 @@ fn model_product_thumbnail_update(mut tx firebird.Transaction, product_id_bin []
 				AND pi.image_rank = ?
 			)
 		WHERE p.id = ?',
-		image_rank, product_id_bin)!
+		image_rank, product_id.bytes())!
 }
 
 fn model_product_thumbnail_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {

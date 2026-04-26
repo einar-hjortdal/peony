@@ -3,24 +3,24 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 
-fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id string, product_id_bin []u8, ph RetrieveProductVariantParamsHygienised) !ProductVariant {
-	count := model_product_variants_retrieve_count(mut tx, ph) or {
-		return new_error_internal('Could not retrieve product_variant count', err.msg())
+fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction, variant_id ID) !ProductVariant {
+	variants := model_variant_retrieve(mut tx, VariantRetrieveParams{
+		ids:          [variant_id]
+		with_deleted: false
+		offset:       offset_default
+		fetch:        1
+		order:        order_default
+	}) or { return new_error_internal('Could not retrieve product_variant', err.msg()) }
+
+	if variants.len == 0 {
+		return ProductVariant{}
 	}
 
-	if count == 0 {
-		return new_error_not_found('No variant exists with the given id', 'count == 0')
-	}
-
-	variants := model_product_variants_retrieve(mut tx, ph) or {
-		return new_error_internal('Could not retrieve product_variant', err.msg())
-	}
-
-	money_amounts := model_variant_money_amount_retrieve(mut tx, ph.ids_bin) or {
+	money_amounts := model_variant_money_amount_retrieve(mut tx, [variant_id]) or {
 		return new_error_internal('Could not retrieve product_variant_money_amount', err.msg())
 	}
 
-	inventory_items := model_inventory_item_retrieve(mut tx, ph.ids_bin) or {
+	inventory_items := model_inventory_item_retrieve(mut tx, [variant_id]) or {
 		return new_error_internal('Could not retrieve inventory_item', err.msg())
 	}
 

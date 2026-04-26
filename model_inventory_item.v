@@ -97,7 +97,7 @@ mut:
 // - purchasable (!manage_inventory || iventory_quantity > 0 || allow_backorder)
 // The frontend can assume the variant can be backordered if (inventoryQuantity === 0 && purchasable)
 
-fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids_bin [][]u8) ![]InventoryItem {
+fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids []ID) ![]InventoryItem {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -117,8 +117,8 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids_bin []
 		manage_inventory,
 		allow_backorder
 		FROM inventory_item
-		WHERE variant_id IN (${get_placeholders(variant_ids_bin)})',
-		...variant_ids_bin)!
+		WHERE variant_id IN (${get_placeholders(variant_ids)})',
+		...ids_bytes(variant_ids))!
 
 	rows := data.rows()
 	mut inventory_items := []InventoryItem{len: rows.len}
@@ -172,10 +172,8 @@ fn model_inventory_item_retrieve(mut tx firebird.Transaction, variant_ids_bin []
 }
 
 struct InventoryItemCreateParams {
-	id                string
-	id_bin            []u8
-	variant_id        string
-	variant_id_bin    []u8
+	id                ID
+	variant_id        ID
 	sku               string
 	origin_country    string
 	hs_code           string
@@ -215,8 +213,8 @@ fn model_inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCre
 			CAST(? AS BOOLEAN) AS allow_backorder
 			FROM RDB\$DATABASE'
 
-		params[i * n_params] = item.id_bin
-		params[i * n_params + 1] = item.variant_id_bin
+		params[i * n_params] = item.id.bytes()
+		params[i * n_params + 1] = item.variant_id.bytes()
 
 		if item.sku != '' {
 			params[i * n_params + 2] = item.sku
@@ -281,10 +279,8 @@ fn model_inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCre
 }
 
 struct InventoryItemUpdateParams {
-	id                string
-	id_bin            []u8
-	variant_id        string
-	variant_id_bin    []u8
+	id                ID
+	variant_id        ID
 	sku               string
 	origin_country    string
 	hs_code           string
@@ -322,8 +318,8 @@ fn model_inventory_item_update(mut tx firebird.Transaction, p []InventoryItemUpd
 			CAST(? AS BOOLEAN) AS allow_backorder
 			FROM RDB\$DATABASE'
 
-		params[i * n_params + 0] = item.id_bin
-		params[i * n_params + 1] = item.variant_id_bin
+		params[i * n_params + 0] = item.id.bytes()
+		params[i * n_params + 1] = item.variant_id.bytes()
 
 		if item.sku != '' {
 			params[i * n_params + 2] = item.sku
@@ -424,13 +420,13 @@ fn model_inventory_item_update(mut tx firebird.Transaction, p []InventoryItemUpd
 	tx.execute(query, ...params)!
 }
 
-fn model_inventory_item_delete(mut tx firebird.Transaction, inventory_item_id_bin []u8) ! {
+fn model_inventory_item_delete(mut tx firebird.Transaction, inventory_item_id ID) ! {
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
-		inventory_item_id_bin)!
+		inventory_item_id.bytes())!
 }
 
 // used when updating variants within a product update
-fn model_inventory_item_sync_delete(mut tx firebird.Transaction, product_id_bin []u8) ! {
+fn model_inventory_item_sync_delete(mut tx firebird.Transaction, product_id ID) ! {
 	tx.execute('MERGE INTO inventory_item t
 		USING
 			(
@@ -444,5 +440,5 @@ fn model_inventory_item_sync_delete(mut tx firebird.Transaction, product_id_bin 
 		ON s.variant_id = t.variant_id
 		WHEN MATCHED AND t.deleted_at IS NULL THEN UPDATE 
 			SET t.deleted_at = s.deleted_at',
-		product_id_bin)!
+		product_id.bytes())!
 }

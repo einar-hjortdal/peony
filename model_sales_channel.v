@@ -183,16 +183,16 @@ fn model_product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids
 	return product_sales_channels
 }
 
-fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bin []u8, sales_channel_ids_bin [][]u8) ! {
+fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id ID, sales_channel_ids []ID) ! {
 	mut d := ''
 	mut pa := []firebird.Value{}
-	for i := 0; i < sales_channel_ids_bin.len; i++ {
+	for i := 0; i < sales_channel_ids.len; i++ {
 		d = appendln(d, 'SELECT 
 			CAST(? AS BINARY(16)) AS product_id,
 			CAST(? AS BINARY(16)) AS sales_channel_id
 			FROM RDB\$DATABASE')
-		pa = arrays.concat(pa, product_id_bin, sales_channel_ids_bin[i])
-		if i != sales_channel_ids_bin.len - 1 {
+		pa = arrays.concat(pa, product_id.bytes(), sales_channel_ids[i].bytes())
+		if i != sales_channel_ids.len - 1 {
 			d = appendln(d, 'UNION ALL')
 		}
 	}
@@ -204,7 +204,7 @@ fn model_product_sales_channel_update(mut tx firebird.Transaction, product_id_bi
 				INSERT (product_id, sales_channel_id) 
 				VALUES (s.product_id, s.sales_channel_id)
 				WHEN NOT MATCHED BY SOURCE AND t.product_id = ? THEN DELETE'
-	pa = arrays.concat(pa, product_id_bin)
+	pa = arrays.concat(pa, product_id.bytes())
 	tx.execute(query, ...pa)!
 }
 

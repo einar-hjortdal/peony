@@ -22,12 +22,12 @@ mut:
 	product_seo_map    map[string]ProductSEO
 }
 
-fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !SuiteProductData {
-	if product_ids_bin.len == 0 {
+fn suite_product_data_get(mut tx firebird.Transaction, product_ids []ID) !SuiteProductData {
+	if product_ids.len == 0 {
 		return SuiteProductData{}
 	}
 
-	// locale_id_bin := [][]u8{} // TODO provide request context
+	product_ids_bin := ids_bytes(product_ids) // TODO remove
 
 	product_options_data := suite_product_option_data_get(mut tx, product_ids_bin) or {
 		return new_error_internal('Failed to retrieve product_options', err.msg())
@@ -69,9 +69,14 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		return new_error_internal('Failed to retrieve product_sales_channel', err.msg())
 	}
 
-	variants := model_product_variants_retrieve_by_product_ids(mut tx, product_ids_bin) or {
-		return new_error_internal('Failed to retrieve product_variant', err.msg())
-	}
+	// TODO loop for pagination
+	variants := model_variant_retrieve(mut tx, VariantRetrieveParams{
+		product_ids:  [product_ids]
+		with_deleted: false
+		offset:       offset_default
+		fetch:        max_fetch
+		order:        order_default
+	}) or { return new_error_internal('Failed to retrieve product_variant', err.msg()) }
 
 	variants_map, variant_ids_bin := make_product_variant_map(variants)
 	variants_data := suite_product_variant_data_get(mut tx, variant_ids_bin)!
@@ -112,3 +117,4 @@ fn suite_product_data_get(mut tx firebird.Transaction, product_ids_bin [][]u8) !
 		product_seo_translations:   seo_translations
 	}
 }
+

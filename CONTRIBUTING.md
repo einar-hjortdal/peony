@@ -35,8 +35,8 @@ Please follow these standards
 
 - `object_` files contain request/response data structures and related functions.
 - `route_` files define endpoints, validate request inputs and send responses.
-- `conduit_` files orchestrate database operations operations.
-- `model_` files define individual database operations.
+- The `conduit` module contains files that orchestrate database operations.
+- The `model` module contains files that define individual database operations.
 
 ### FirebirdSQL
 

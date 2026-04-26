@@ -4,8 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 
 struct StockLocation {
-	id         string
-	id_bin     []u8
+	id         ID
 	created_at firebird.DateTime
 	updated_at firebird.DateTime
 	deleted_at firebird.NullDateTime
@@ -13,18 +12,18 @@ struct StockLocation {
 	// address Address
 }
 
+// TODO fetch, order...
 struct StockLocationRetrieveParams {
-	filter_by_id bool
-	ids_bin      [][]u8
+	ids ?[]ID
 }
 
 fn model_stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
-	if p.filter_by_id {
-		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(p.ids_bin)})')
-		params = arrays.concat(params, ...p.ids_bin)
+	if ids := p.ids {
+		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...ids_bytes(ids))
 	}
 
 	return get_where_conditions(conditions), params
@@ -58,11 +57,10 @@ fn model_stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRet
 		deleted_at := v[3].get_null_date_time()!
 		name, _ := v[4].get_string()!
 
-		id := id_bin_to_string(id_bin)!
+		id := id_from_bytes(id_bin)!
 
 		stock_locations[i] = StockLocation{
 			id:         id
-			id_bin:     id_bin
 			created_at: created_at
 			updated_at: updated_at
 			deleted_at: deleted_at
@@ -72,3 +70,4 @@ fn model_stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRet
 
 	return stock_locations
 }
+

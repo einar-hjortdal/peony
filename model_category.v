@@ -10,11 +10,11 @@ struct CategoryTranslation {
 	description firebird.NullString
 }
 
-fn model_category_translations_delete(mut tx firebird.Transaction, category_id_bin []u8) ! {
-	tx.execute('DELETE FROM category_translations WHERE category_id = ?', category_id_bin)!
+fn model_category_translations_delete(mut tx firebird.Transaction, category_id ID) ! {
+	tx.execute('DELETE FROM category_translations WHERE category_id = ?', category_id.bytes())!
 }
 
-fn model_category_translations_update(mut tx firebird.Transaction, category_id_bin []u8, ph []CategoryTranslationRequestHygienised) ! {
+fn model_category_translations_update(mut tx firebird.Transaction, category_id ID, ph []CategoryTranslationRequestHygienised) ! {
 	mut src := []string{len: ph.len}
 	mut params := []firebird.Value{len: ph.len * 4, init: firebird.Null{}}
 	for i := 0; i < ph.len; i++ {
@@ -25,7 +25,7 @@ fn model_category_translations_update(mut tx firebird.Transaction, category_id_b
 			CAST(? AS BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE'
 
-		params[i * 4] = category_id_bin
+		params[i * 4] = category_id.bytes()
 		params[i * 4 + 1] = ph[i].locale_id_bin
 
 		if name := ph[i].name {
@@ -46,11 +46,11 @@ fn model_category_translations_update(mut tx firebird.Transaction, category_id_b
 		...params)!
 }
 
-fn model_category_translations_get(mut tx firebird.Transaction, category_ids_bin [][]u8) ![]CategoryTranslation {
+fn model_category_translations_get(mut tx firebird.Transaction, category_ids []ID) ![]CategoryTranslation {
 	data := tx.execute('SELECT category_id, locale_id, name, description
 		FROM category_translations
-		WHERE category_id IN (${get_placeholders(category_ids_bin)})',
-		...category_ids_bin)!
+		WHERE category_id IN (${get_placeholders(category_ids)})',
+		...ids_bytes(category_ids))!
 
 	rows := data.rows()
 	mut category_translations := []CategoryTranslation{len: rows.len}
@@ -92,15 +92,15 @@ mut:
 	translations []CategoryTranslation
 }
 
-fn model_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph CategoryCreateRequestHygienised) ! {
+fn model_category_create(mut tx firebird.Transaction, id ID, ph CategoryCreateRequestHygienised) ! {
 	mut columns := ['id', 'name', 'handle']
-	mut params := [firebird.Value(id_bin), ph.name]
+	mut params := [firebird.Value(id.bytes()), ph.name]
 
 	// TODO just use handle (trust it is unique and safe in the params)
 	if handle := ph.handle {
 		params = arrays.concat(params, handle)
 	} else {
-		params = arrays.concat(params, id)
+		params = arrays.concat(params, id.string())
 	}
 
 	if description := ph.description {
@@ -133,7 +133,7 @@ fn model_category_create(mut tx firebird.Transaction, id string, id_bin []u8, ph
 		...params)!
 }
 
-fn model_category_update(mut tx firebird.Transaction, category_id_bin []u8, ph CategoryUpdateRequestHygienised) ! {
+fn model_category_update(mut tx firebird.Transaction, category_id ID, ph CategoryUpdateRequestHygienised) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -172,7 +172,7 @@ fn model_category_update(mut tx firebird.Transaction, category_id_bin []u8, ph C
 		params = arrays.concat(params, ph.parent_category_id_bin)
 	}
 
-	params = arrays.concat(params, category_id_bin)
+	params = arrays.concat(params, category_id.bytes())
 
 	tx.execute('UPDATE category SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
@@ -265,7 +265,6 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 		${sorting}'
 
 	data := tx.execute(query, ...params)!
-
 	rows := data.rows()
 
 	mut categories := []Category{len: rows.len}
@@ -309,8 +308,9 @@ fn model_category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams
 	return categories
 }
 
-fn model_category_delete(mut tx firebird.Transaction, category_id_bin []u8) ! {
-	tx.execute('UPDATE category SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', category_id_bin)!
+fn model_category_delete(mut tx firebird.Transaction, category_id ID) ! {
+	tx.execute('UPDATE category SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		category_id.bytes())!
 }
 
 struct CategoryProduct {
@@ -373,18 +373,18 @@ fn model_category_product_retrieve(mut tx firebird.Transaction,
 	return category_products
 }
 
-fn model_category_product_update(mut tx firebird.Transaction, product_id_bin []u8, category_ids_bin [][]u8) ! {
-	mut src := []string{len: category_ids_bin.len}
-	mut params := []firebird.Value{len: category_ids_bin.len * 2 + 1, init: firebird.Null{}}
-	for i := 0; i < category_ids_bin.len; i++ {
+fn model_category_product_update(mut tx firebird.Transaction, product_id ID, category_ids []ID) ! {
+	mut src := []string{len: category_ids.len}
+	mut params := []firebird.Value{len: category_ids.len * 2 + 1, init: firebird.Null{}}
+	for i := 0; i < category_ids.len; i++ {
 		src[i] = 'SELECT 
 			CAST(? AS BINARY(16)) AS product_id,
 			CAST(? AS BINARY(16)) AS category_id
 			FROM RDB\$DATABASE'
-		params[i * 2] = product_id_bin
-		params[i * 2 + 1] = category_ids_bin[i]
+		params[i * 2] = product_id.bytes()
+		params[i * 2 + 1] = category_ids[i].bytes()
 	}
-	params[category_ids_bin.len * 2] = product_id_bin
+	params[category_ids.len * 2] = product_id.bytes()
 
 	tx.execute('MERGE INTO category_product t
 			USING (${get_merge_source(src)}) s

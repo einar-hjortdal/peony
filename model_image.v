@@ -125,7 +125,7 @@ struct ProductImageCreateParams {
 	translations ?[]ImageTranslationRequestHygienised
 }
 
-fn model_product_images_create(mut tx firebird.Transaction, product_id_bin []u8, images []ProductImageCreateParams) ! {
+fn model_product_images_create(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	mut translation_n := i32(0)
@@ -192,7 +192,7 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id_bin []u8,
 			CAST(? AS INTEGER)
 			FROM RDB\$DATABASE'
 
-		params[i * 3] = product_id_bin
+		params[i * 3] = product_id.bytes()
 		params[i * 3 + 1] = image.id_bin
 		params[i * 3 + 2] = image.image_rank
 	}
