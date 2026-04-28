@@ -2,6 +2,7 @@ module peony
 
 import veb
 import json
+import conduit
 
 // list api keys
 @['/admin/api-keys'; get]
@@ -10,12 +11,12 @@ pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 
 	p := hygienise_api_key_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	count := conduit_api_key_list_count(mut tx, p) or {
+	count := conduit.api_key_list_count(mut tx, p) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
 
-	api_keys := conduit_api_key_list(mut tx, p) or {
+	api_keys := conduit.api_key_list(mut tx, p) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -51,12 +52,12 @@ pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
 
 	// verify ph.sales_channel_id exists
 
-	conduit_api_key_create(mut tx, api_key_id, ph.name, ph.sales_channel_id) or {
+	conduit.api_key_create(mut tx, api_key_id, ph.name, ph.sales_channel_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
 
-	api_key := conduit_api_key_get(mut tx, api_key_id) or {
+	api_key := conduit.api_key_get(mut tx, api_key_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -75,13 +76,12 @@ pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
 @['/admin/api-keys/:api_key_id'; get]
 pub fn (mut app App) api_keys_get(mut ctx Context, api_key_id string) veb.Result {
 	parsed_api_key_id := id_from_string(api_key_id) or {
-		perr := new_error_unprocessable_entity(error_id_invalid, 'api_key_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'api_key_id'))
 	}
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	api_key := conduit_api_key_get(mut tx, parsed_api_key_id) or {
+	api_key := conduit.api_key_get(mut tx, parsed_api_key_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -109,7 +109,7 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	conduit_api_key_update(mut tx, parsed_api_key_id, APIKeyUpdateParams{
+	conduit.api_key_update(mut tx, parsed_api_key_id, APIKeyUpdateParams{
 		name:             ph.name
 		sales_channel_id: ph.sales_channel_id
 	}) or {
@@ -117,7 +117,7 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 		return ctx.handle_error(err)
 	}
 
-	api_key := conduit_api_key_get(mut tx, parsed_api_key_id) or {
+	api_key := conduit.api_key_get(mut tx, parsed_api_key_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -144,7 +144,7 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	conduit_api_key_delete(mut tx, parsed_api_key_id) or {
+	conduit.api_key_delete(mut tx, parsed_api_key_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}

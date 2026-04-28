@@ -1,13 +1,48 @@
 module peony
 
 import veb
+import conduit
 
 // list locales
 @['/admin/locales/'; get]
 pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 	p := hygienise_retrieve_locale_params(ctx.query) or { return ctx.handle_error(err) }
 
-	return conduit_locale_list(mut app, mut ctx, p)
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+
+	count := conduit.locale_list_count(mut tx, p) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	if count == 0 {
+		return ctx.handle_ok(LocaleResponseListEnvelope{
+			offset: p.offset
+			fetch:  p.fetch
+		})
+	}
+
+	locales := conduit.locale_list(mut tx, p) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	mut external_locales := []LocaleResponse{len: locales.len}
+	for i := 0; i < locales.len; i++ {
+		external_locales[i] = format_locale_response(locales[i])
+	}
+
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	return ctx.handle_ok(LocaleResponseListEnvelope{
+		locales: external_locales
+		count:   count
+		offset:  p.offset
+		fetch:   p.fetch
+	})
 }
 
 // get locale by id
@@ -18,11 +53,17 @@ pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) 
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_locale_get(mut app, mut ctx, LocaleRetrieveParams{
-		ids:    [parsed_locale_id]
-		offset: offset_default
-		fetch:  1
-		order:  order_default
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+
+	locale := conduit.locale_get(mut tx, parsed_locale_id) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	tx.rollback() or {}
+
+	return ctx.handle_ok(LocaleResponseEnvelope{
+		locale: format_locale_response(locale)
 	})
 }
 

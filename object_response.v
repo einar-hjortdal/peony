@@ -38,7 +38,7 @@ pub:
 	sales_channel_id string
 }
 
-fn format_api_key_response(p APIKey) APIKeyResponse {
+fn format_api_key_response(p conduit.APIKey) APIKeyResponse {
 	return APIKeyResponse{
 		id:               p.id.string()
 		created_at:       p.created_at.Time

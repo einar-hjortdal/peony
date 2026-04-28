@@ -14,6 +14,7 @@
 ### Implemented
 
 - [x] API keys
+- [x] Cache
 - [x] Inventory items
 - [x] Metadata
 - [x] Multi-channel
@@ -33,7 +34,6 @@
 
 ### Soon to be implemented
 
-- [ ] Cache
 - [ ] Unit pricing
 
 ### To be implement
@@ -57,6 +57,7 @@
 
 ### Low-priority
 
+- [ ] OAuth
 - [ ] Sub-divisions of country
 - [ ] Comment
 
@@ -92,18 +93,18 @@
 - [x] Add tests
 - [ ] Add debug level logs where opportune
 - [x] Separate response structs from internal structs
-- [ ] Separate model parameter objects from Request objects
+- [x] Separate model parameter objects from Request objects
   - [x] Make Request objects public
   - [x] Remove `parse_` functions from methods
 - [x] Rename query string structs to include `Query` in their name
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
-- [ ] Soft-delete only where needed
+- [x] Soft-delete only where needed
 - [x] Remove all unnecessary `product_` prefixes from database, structs and function names.
 - [ ] Attach function name to each error.
 - [ ] Transaction management.
 - [ ] Worker mode.
-- [ ] Routes should not call models, only conduit.
+- [x] Routes should not call models, only conduit.
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 
 ## Upstream
@@ -113,7 +114,7 @@
 
 ## Considerations
 
-- Refactor, abstract, reduce boilerplating, separate concerns, but only after minimal viable product works.
+
 
 ## Documentation
 

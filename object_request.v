@@ -1,6 +1,8 @@
 module peony
 
 import arrays
+import json
+import conduit
 
 pub struct AuthRequest {
 pub:
@@ -1600,7 +1602,11 @@ mut:
 	translations ?[]CategoryTranslationRequestHygienised
 }
 
-fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
+fn hygienise_category_update_request(s string) !CategoryUpdateRequestHygienised {
+	p := json.decode(CategoryUpdateRequest, s) or {
+		return new_error_bad_request('Could not decode CategoryUpdateRequest', err.msg())
+	}
+
 	if p.handle == none && p.is_internal == none && p.is_active == none
 		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
 		return new_error_bad_request(error_empty_object, 'CategoryUpdateRequest')
@@ -1632,6 +1638,34 @@ fn (p CategoryUpdateRequest) hygienise() !CategoryUpdateRequestHygienised {
 	}
 
 	return ph
+}
+
+fn (p CategoryUpdateRequestHygienised) category_update_params(category_id ID) conduit.CategoryUpdateParams {
+	return conduit.CategoryUpdateParams{
+		id:                 category_id
+		name:               p.name
+		description:        p.description
+		handle:             p.handle
+		is_active:          p.is_active
+		is_internal:        p.is_internal
+		metadata:           p.metadata
+		parent_category_id: p.parent_category_id
+	}
+}
+
+fn (p CategoryUpdateRequestHygienised) seo_update_params(seo_id ID) ?conduit.SEOUpdateParams {
+	s := p.seo or { return none }
+	return conduit.SEOUpdateParams{
+		id:          seo_id
+		title:       s.title
+		description: s.description
+	}
+}
+
+fn (p CategoryUpdateRequestHygienised) category_translation_update_params() ?[]conduit.CategoryTranslationUpdateParams {
+}
+
+fn (p CategoryUpdateRequestHygienised) seo_translation_create_params() ?conduit.SEOTranslationCreateParams {
 }
 
 // ProductCreateRequest describes the body of the request to create a new product.

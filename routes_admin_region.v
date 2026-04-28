@@ -2,6 +2,7 @@ module peony
 
 import veb
 import json
+import conduit
 
 // lists regions
 @['/admin/regions'; get]
@@ -10,10 +11,9 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_region_retrieve_count(mut tx, p) or {
+	count := conduit.region_list_count(mut tx, p) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve region count', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(err)
 	}
 
 	if count == 0 {
@@ -24,7 +24,7 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 		})
 	}
 
-	regions := conduit_region_list(mut app, mut tx, p) or { return ctx.handle_error(err) }
+	regions := conduit.region_list(mut tx, p) or { return ctx.handle_error(err) }
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())

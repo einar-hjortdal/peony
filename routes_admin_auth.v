@@ -3,6 +3,7 @@ module peony
 import json
 import log
 import veb
+import conduit
 
 // returns details about the user that performed the request
 @['/admin/auth'; get]
@@ -14,7 +15,7 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 		return ctx.handle_error(perr)
 	}
 
-	user := conduit_user_get_by_id(mut app, mut tx, user_id) or {
+	user := conduit.user_get_by_id(mut tx, user_id) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -61,12 +62,12 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	user := conduit_user_get_by_email(mut app, mut tx, p.email) or {
+	user := conduit.user_get_by_email(mut tx, p.email) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
 
-	password_details := model_password_details_get(mut tx, PasswordDetailsGetParams{
+	password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 		id: user.password_parameters_id
 	}) or {
 		tx.rollback() or {}

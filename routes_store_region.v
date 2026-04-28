@@ -1,6 +1,7 @@
 module peony
 
 import veb
+import conduit
 
 // lists regions
 // TODO cache
@@ -10,7 +11,7 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_region_retrieve_count(mut tx, p) or {
+	count := conduit.region_list_count(mut tx, p) or {
 		tx.rollback() or {}
 		perr := new_error_internal('Failed to retrieve region count', err.msg())
 		return ctx.handle_error(perr)
@@ -24,7 +25,7 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 		})
 	}
 
-	regions := conduit_region_list(mut app, mut tx, p) or { return ctx.handle_error(err) }
+	regions := conduit.region_list(mut tx, p) or { return ctx.handle_error(err) }
 
 	tx.rollback() or {
 		perr := new_error_internal(error_transaction_rollback, err.msg())
@@ -48,10 +49,25 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 // TODO cache
 @['/store/regions/:region_id'; get]
 pub fn (mut app App) store_region_get(mut ctx Context, region_id string) veb.Result {
-	id := id_from_string(region_id) or {
+	parsed_region_id := id_from_string(region_id) or {
 		perr := new_error_bad_request(error_id_invalid, 'region_id')
 		return ctx.handle_error(perr)
 	}
-	return conduit_region_get_by_id(mut app, mut ctx, id)
+
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+
+	region := conduit.region_get(mut tx, parsed_region_id) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	return ctx.handle_ok(RegionResponseEnvelope{
+		regions: format_region_response(region)
+	})
 }
 

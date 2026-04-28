@@ -1,15 +1,15 @@
 module peony
 
 import veb
+import conduit
 
 @['/admin/currencies/'; get]
 pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 	p := hygienise_currency_list_query(ctx.query) or { return ctx.handle_error(err) }
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := model_currency_retrieve_count(mut tx, p) or {
+	count := conduit.currency_list_count(mut tx, p) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve currency count', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -21,7 +21,7 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 		})
 	}
 
-	currencies := conduit_currency_list(mut app, mut tx, p) or {
+	currencies := conduit.currency_list(mut tx, p) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -48,10 +48,25 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 @['/admin/currencies/:code'; get]
 pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) veb.Result {
 	if utf8_str_visible_length(code) > length_currency_code {
-		perr := new_error_unprocessable_entity(error_field_too_long, 'currency code must be exactly ${length_currency_code} UTF8 characters long')
+		perr := new_error_unprocessable_entity(error_field_too_long,
+			'currency code must be exactly ${length_currency_code} UTF8 characters long')
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_currency_get(mut app, mut ctx, code)
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+
+	currency := conduit.currency_get(mut tx, code) or {
+		tx.rollback() or {}
+		return ctx.handle_error(err)
+	}
+
+	tx.rollback() or {
+		perr := new_error_internal(error_transaction_rollback, err.msg())
+		return ctx.handle_error(perr)
+	}
+
+	return ctx.handle_ok(CurrencyResponseEnvelope{
+		currencies: format_currency_response(currency)
+	})
 }
 

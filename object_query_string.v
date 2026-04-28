@@ -1,5 +1,7 @@
 module peony
 
+import conduit
+
 // Whenever a translateable resource is requested, the request may contain a LocaleContextQueryParams.
 // If translations exist for the resource requested, the resource will use them.
 pub struct LocaleContextQueryParams {
@@ -82,7 +84,7 @@ fn extract_api_key_list_query_params(m map[string]string) APIKeyListQueryParams 
 	}
 }
 
-fn hygienise_api_key_list_query_params(m map[string]string) !APIKeyRetrieveParams {
+fn hygienise_api_key_list_query_params(m map[string]string) !conduit.APIKeyRetrieveParams {
 	p := extract_api_key_list_query_params(m)
 
 	mut ids := ?[]ID(none)
@@ -90,7 +92,7 @@ fn hygienise_api_key_list_query_params(m map[string]string) !APIKeyRetrieveParam
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	return APIKeyRetrieveParams{
+	return conduit.APIKeyRetrieveParams{
 		ids:          ids
 		with_deleted: bool_or(p.with_deleted, false)
 		offset:       get_offset_or_default(p.offset)!
@@ -122,7 +124,7 @@ fn extract_user_list_request_query(m map[string]string) UserListQueryParams {
 	}
 }
 
-fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
+fn hygienise_user_list_request_query(m map[string]string) !conduit.UserListParams {
 	p := extract_user_list_request_query(m)
 
 	mut ids := ?[]ID(none)
@@ -130,7 +132,7 @@ fn hygienise_user_list_request_query(m map[string]string) !UserListParams {
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	return UserListParams{
+	return conduit.UserListParams{
 		ids:          ids
 		email:        p.email
 		handle:       p.handle
@@ -160,7 +162,7 @@ fn extract_region_list_request_query(m map[string]string) RegionListQueryParams 
 	}
 }
 
-fn hygienise_region_list_request_query(m map[string]string) !RegionRetriveParams {
+fn hygienise_region_list_request_query(m map[string]string) !conduit.RegionRetriveParams {
 	p := extract_region_list_request_query(m)
 
 	mut ids := ?[]ID(none)
@@ -168,7 +170,7 @@ fn hygienise_region_list_request_query(m map[string]string) !RegionRetriveParams
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	return RegionRetriveParams{
+	return conduit.RegionRetriveParams{
 		ids:          ids
 		with_deleted: bool_or(p.with_deleted, false)
 		offset:       get_offset_or_default(p.offset)!
@@ -194,7 +196,7 @@ fn extract_retrieve_countries_params(p map[string]string) CountryListQueryParams
 	}
 }
 
-fn hygienise_country_list_query(m map[string]string) !CountryRetrieveParams {
+fn hygienise_country_list_query(m map[string]string) !conduit.CountryRetrieveParams {
 	p := extract_retrieve_countries_params(m)
 
 	if codes := p.codes {
@@ -207,7 +209,7 @@ fn hygienise_country_list_query(m map[string]string) !CountryRetrieveParams {
 		}
 	}
 
-	return CountryRetrieveParams{
+	return conduit.CountryRetrieveParams{
 		codes:  p.codes
 		offset: get_offset_or_default(p.offset)!
 		fetch:  get_fetch_or_default(p.fetch)!
@@ -232,7 +234,7 @@ fn extract_retrieve_currencies_params(m map[string]string) CurrencyListQueryPara
 	}
 }
 
-fn hygienise_currency_list_query(m map[string]string) !CurrencyRetrieveParams {
+fn hygienise_currency_list_query(m map[string]string) !conduit.CurrencyRetrieveParams {
 	p := extract_retrieve_currencies_params(m)
 
 	if codes := p.codes {
@@ -245,7 +247,7 @@ fn hygienise_currency_list_query(m map[string]string) !CurrencyRetrieveParams {
 		}
 	}
 
-	return CurrencyRetrieveParams{
+	return conduit.CurrencyRetrieveParams{
 		codes:  p.codes
 		offset: get_offset_or_default(p.offset)!
 		fetch:  get_fetch_or_default(p.fetch)!
@@ -270,7 +272,7 @@ fn extract_locale_retrieve_params(m map[string]string) LocaleListQueryParams {
 	}
 }
 
-fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParams {
+fn hygienise_retrieve_locale_params(m map[string]string) !conduit.LocaleRetrieveParams {
 	p := extract_locale_retrieve_params(m)
 
 	mut ids := ?[]ID(none)
@@ -278,7 +280,7 @@ fn hygienise_retrieve_locale_params(m map[string]string) !LocaleRetrieveParams {
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	return LocaleRetrieveParams{
+	return conduit.LocaleRetrieveParams{
 		ids:    ids
 		offset: get_offset_or_default(p.offset)!
 		fetch:  get_fetch_or_default(p.fetch)!
@@ -348,7 +350,7 @@ fn extract_category_list_request_query(m map[string]string) CategoryListQueryPar
 	}
 }
 
-fn hygienise_category_list_request_query(m map[string]string) !CategoryRetrieveParams {
+fn hygienise_category_list_request_query(m map[string]string) !conduit.CategoryRetrieveParams {
 	p := extract_category_list_request_query(m)
 
 	mut ids := ?[]ID(none)
@@ -366,7 +368,7 @@ fn hygienise_category_list_request_query(m map[string]string) !CategoryRetrieveP
 		product_ids = ids_from_array_string(ids_string)!
 	}
 
-	return CategoryRetrieveParams{
+	return conduit.CategoryRetrieveParams{
 		ids:                ids
 		handle:             p.handle
 		is_active:          p.is_active
@@ -413,7 +415,7 @@ fn extract_product_list_query_params(m map[string]string) ProductListQueryParams
 	}
 }
 
-fn hygienise_product_list_query_params(m map[string]string) !ProductRetrieveParams {
+fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetrieveParams {
 	p := extract_product_list_query_params(m)
 
 	mut ids := ?[]ID(none)
@@ -431,7 +433,7 @@ fn hygienise_product_list_query_params(m map[string]string) !ProductRetrievePara
 		sales_channel_id = id_from_string(id_string)!
 	}
 
-	return ProductRetrieveParams{
+	return conduit.ProductRetrieveParams{
 		ids:              ids
 		handle:           p.handle
 		is_giftcard:      p.is_giftcard
@@ -492,7 +494,7 @@ fn extract_product_list_query_params_store(m map[string]string) ProductListQuery
 	}
 }
 
-fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_id ID) !ProductRetrieveParams {
+fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_id ID) !conduit.ProductRetrieveParams {
 	p := extract_product_list_query_params_store(m)
 
 	mut ids := ?[]ID(none)
@@ -505,7 +507,7 @@ fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_
 		category_ids = ids_from_array_string(ids_string)!
 	}
 
-	return ProductRetrieveParams{
+	return conduit.ProductRetrieveParams{
 		ids:              ids
 		handle:           p.handle
 		is_giftcard:      p.is_giftcard
