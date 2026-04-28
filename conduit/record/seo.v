@@ -170,21 +170,18 @@ pub fn seo_update(mut tx firebird.Transaction, p SEOUpdateParams) ! {
 	tx.execute('UPDATE seo SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }
 
-pub fn seo_translations_delete(mut tx firebird.Transaction, seo_id ID) ! {
-	tx.execute('DELETE FROM seo_translations WHERE seo_id = ?', seo_id.bytes())!
-}
-
 pub struct SEOTranslationCreateParams {
+	seo_id      ID
 	locale_id   ID
 	title       ?string
 	description ?string
 }
 
-pub fn seo_translations_create(mut tx firebird.Transaction, seo_id ID, translations []SEOTranslationCreateParams) ! {
-	mut src := []string{len: translations.len}
-	mut params := []firebird.Value{len: translations.len * 4, init: firebird.Null{}}
-	for i := 0; i < translations.len; i++ {
-		translation := translations[i]
+pub fn seo_translations_create(mut tx firebird.Transaction, p []SEOTranslationCreateParams) ! {
+	mut src := []string{len: p.len}
+	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS seo_id,
 			CAST(? AS BINARY(16)) AS locale_id,
@@ -192,7 +189,7 @@ pub fn seo_translations_create(mut tx firebird.Transaction, seo_id ID, translati
 			CAST(? AS VARCHAR(191)) AS description
 			FROM RDB\$DATABASE'
 
-		params[i * 4] = seo_id.bytes()
+		params[i * 4] = translation.seo_id.bytes()
 		params[i * 4 + 1] = translation.locale_id.bytes()
 
 		if title := translation.title {
@@ -210,6 +207,26 @@ pub fn seo_translations_create(mut tx firebird.Transaction, seo_id ID, translati
 
 	tx.execute('INSERT INTO seo_translations (seo_id, locale_id, title, description) ${get_merge_source(src)}',
 		...params)!
+}
+
+pub fn category_seo_translations_delete(mut tx firebird.Transaction, category_id ID) ! {
+	tx.execute('DELETE FROM seo_translations st 
+		WHERE EXISTS (
+			SELECT 1 FROM seo s
+			WHERE category_id = ?
+			AND s.id = st.seo_id
+		)',
+		category_id.bytes())!
+}
+
+pub fn product_seo_translations_delete(mut tx firebird.Transaction, product_id ID) ! {
+	tx.execute('DELETE FROM seo_translations st 
+		WHERE EXISTS (
+			SELECT 1 FROM seo s
+			WHERE product_id = ?
+			AND s.id = st.seo_id
+		)',
+		product_id.bytes())!
 }
 
 pub struct CategorySEO {

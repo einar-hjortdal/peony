@@ -1640,34 +1640,6 @@ fn hygienise_category_update_request(s string) !CategoryUpdateRequestHygienised 
 	return ph
 }
 
-fn (p CategoryUpdateRequestHygienised) category_update_params(category_id ID) conduit.CategoryUpdateParams {
-	return conduit.CategoryUpdateParams{
-		id:                 category_id
-		name:               p.name
-		description:        p.description
-		handle:             p.handle
-		is_active:          p.is_active
-		is_internal:        p.is_internal
-		metadata:           p.metadata
-		parent_category_id: p.parent_category_id
-	}
-}
-
-fn (p CategoryUpdateRequestHygienised) seo_update_params(seo_id ID) ?conduit.SEOUpdateParams {
-	s := p.seo or { return none }
-	return conduit.SEOUpdateParams{
-		id:          seo_id
-		title:       s.title
-		description: s.description
-	}
-}
-
-fn (p CategoryUpdateRequestHygienised) category_translation_update_params() ?[]conduit.CategoryTranslationUpdateParams {
-}
-
-fn (p CategoryUpdateRequestHygienised) seo_translation_create_params() ?conduit.SEOTranslationCreateParams {
-}
-
 // ProductCreateRequest describes the body of the request to create a new product.
 //
 // # Fields

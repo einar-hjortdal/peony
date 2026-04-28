@@ -3,8 +3,9 @@ module peony
 import arrays
 import veb
 import einar_hjortdal.firebird
+import record
 
-fn conduit_product_create(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id ID, handle string, ph ProductCreateRequestHygienised) ! {
+fn conduit_product_create(mut tx firebird.Transaction, product_id ID, handle string, ph ProductCreateRequestHygienised) ! {
 	model_product_create(mut tx, ProductCreateParams{
 		product_id:   product_id
 		title:        ph.title
@@ -796,7 +797,7 @@ fn conduit_product_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		}
 
 		if translations := seo.translations {
-			model_seo_translations_delete(mut tx, seo_id) or {
+			record.product_seo_translations_delete(mut tx, product_id) or {
 				return new_error_internal('Could not delete seo_translations', err.msg())
 			}
 

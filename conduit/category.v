@@ -143,7 +143,7 @@ pub fn category_create(mut tx firebird.Transaction, p CateogryCreateData) ! {
 
 	if seo_translations := p.seo_translations {
 		if seo_translations.len > 0 {
-			record.seo_translations_create(mut tx, p.seo.id, seo_translations) or {
+			record.seo_translations_create(mut tx, seo_translations) or {
 				return new_error_internal('Failed to insert seo_translations data', err.msg())
 			}
 		}
@@ -152,9 +152,6 @@ pub fn category_create(mut tx firebird.Transaction, p CateogryCreateData) ! {
 
 pub type CategoryUpdateParams = record.CategoryUpdateParams
 
-// if seo_translations is provided, seo must be provided.
-// I don't like this, maybe seo_translations should be nested in seo?
-// the request already guarantees this but this layer doesn't know about the request above
 pub struct CategoryUpdateData {
 pub:
 	category         CategoryUpdateParams
@@ -186,16 +183,16 @@ pub fn category_update(mut tx firebird.Transaction, p CategoryUpdateData) ! {
 				return new_error_internal('Could not update seo', err.msg())
 			}
 		}
+	}
 
-		if translations := p.seo_translations {
-			record.seo_translations_delete(mut tx, seo.id) or {
-				return new_error_internal('Could not delete seo_translations', err.msg())
-			}
+	if translations := p.seo_translations {
+		record.category_seo_translations_delete(mut tx, p.category.id) or {
+			return new_error_internal('Could not delete seo_translations', err.msg())
+		}
 
-			if translations.len > 0 {
-				record.seo_translations_create(mut tx, seo.id, translations) or {
-					return new_error_internal('Could not update seo_translations', err.msg())
-				}
+		if translations.len > 0 {
+			record.seo_translations_create(mut tx, translations) or {
+				return new_error_internal('Could not update seo_translations', err.msg())
 			}
 		}
 	}
