@@ -81,8 +81,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 
 	match password_details.function_name {
 		argon2id_name {
-			parameters := json.decode(Argon2idParameters, password_details.parameters) or {
-				perr := new_error_internal('Failed to decode Argon2idParameters', err.msg())
+			parameters := decode_argon2id_parameters(password_details.parameters) or {
 				return ctx.handle_error(perr)
 			}
 
@@ -93,9 +92,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 			}
 
 			argon2id_hash.verify_password(p.password) or {
-				log.debug(err.msg())
-				perr := new_error_login()
-				return ctx.handle_error(perr)
+				return ctx.handle_error(new_error_login())
 			}
 
 			ctx.user_session_values = UserSessionValues{

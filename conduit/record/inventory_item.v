@@ -83,7 +83,7 @@ pub:
 	requires_shipping bool
 	manage_inventory  bool
 	allow_backorder   bool
-mut:
+pub mut:
 	inventory_levels []InventoryLevel
 }
 

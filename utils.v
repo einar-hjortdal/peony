@@ -41,8 +41,8 @@ pub const max_length_api_key_name = 63
 
 pub const default_thumbnail = 0
 
+const error_database_data_malformed = conduit.error_database_data_malformed
 const error_api_key_invalid = 'Invalid API Key'
-const error_database_data_malformed = 'Data retrieved from database is malformed'
 const error_empty_object = 'Received all empty fields'
 const error_field_empty = 'Field cannot be empty'
 const error_field_explicit_empty = 'Field explicitly empty'

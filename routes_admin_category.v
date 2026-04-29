@@ -2,6 +2,7 @@ module peony
 
 import veb
 import json
+import conduit
 
 // lists category
 @['/admin/categories'; get]

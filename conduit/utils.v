@@ -4,6 +4,8 @@ import net.http
 import einar_hjortdal.luuid
 import record
 
+pub const error_database_data_malformed = 'Data retrieved from database is malformed'
+
 pub const offset_default = record.offset_default
 pub const order_asc = record.order_asc
 pub const order_desc = record.order_desc

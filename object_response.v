@@ -2,6 +2,7 @@ module peony
 
 import time
 import veb
+import conduit
 
 // TODO eliminate: always return created/updated resource
 pub struct PeonySuccess {
@@ -76,7 +77,7 @@ pub:
 	metadata   string    @[omitempty]
 }
 
-fn format_user_response(u User) UserResponse {
+fn format_user_response(u conduit.User) UserResponse {
 	return UserResponse{
 		id:         u.id.string()
 		handle:     u.handle
@@ -114,7 +115,7 @@ pub:
 	code string
 }
 
-fn format_locale_response(l Locale) LocaleResponse {
+fn format_locale_response(l conduit.Locale) LocaleResponse {
 	return LocaleResponse{
 		id:   l.id.string()
 		code: l.code
@@ -140,7 +141,7 @@ pub:
 	decimal_digits i32 @[json: 'decimalDigits'; omitempty]
 }
 
-fn format_currency_response(c Currency) CurrencyResponse {
+fn format_currency_response(c conduit.Currency) CurrencyResponse {
 	return CurrencyResponse{
 		code:           c.code
 		decimal_digits: c.decimal_digits.value
@@ -166,7 +167,7 @@ pub:
 	region_id string @[json: 'regionId'; omitempty]
 }
 
-fn format_country_response(c Country) CountryResponse {
+fn format_country_response(c conduit.Country) CountryResponse {
 	mut region_id := ''
 	if c.region_id != none {
 		region_id = c.region_id.string()
@@ -199,7 +200,7 @@ pub:
 	locales                   []LocaleResponse
 }
 
-fn format_store_response(s Store) StoreResponse {
+fn format_store_response(s conduit.Store) StoreResponse {
 	mut locales := []LocaleResponse{len: s.locales.len}
 	for i := 0; i < s.locales.len; i++ {
 		locales[i] = format_locale_response(s.locales[i])
@@ -229,7 +230,7 @@ pub:
 	alt      string
 }
 
-fn format_image_translation_response(p []ImageTranslation) map[string]ImageTranslationResponse {
+fn format_image_translation_response(p []conduit.ImageTranslation) map[string]ImageTranslationResponse {
 	mut res := map[string]ImageTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
@@ -252,7 +253,7 @@ pub:
 	translations map[string]ImageTranslationResponse @[omitempty]
 }
 
-fn format_product_image_response(p ProductImage) ProductImageResponse {
+fn format_product_image_response(p conduit.ProductImage) ProductImageResponse {
 	return ProductImageResponse{
 		id:           p.id
 		url:          p.url
@@ -271,7 +272,7 @@ pub:
 	description string @[omitempty]
 }
 
-fn format_product_translations(p []ProductTranslation) map[string]ProductTranslationResponse {
+fn format_product_translations(p []conduit.ProductTranslation) map[string]ProductTranslationResponse {
 	mut res := map[string]ProductTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
@@ -292,7 +293,7 @@ pub:
 	name            string
 }
 
-fn format_product_option_value_translations(p []ProductOptionValueTranslation) map[string]ProductOptionValueTranslationResponse {
+fn format_product_option_value_translations(p []conduit.ProductOptionValueTranslation) map[string]ProductOptionValueTranslationResponse {
 	mut res := map[string]ProductOptionValueTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
@@ -314,7 +315,7 @@ pub:
 	translations map[string]ProductOptionValueTranslationResponse @[omitempty]
 }
 
-fn format_product_option_value_response(p ProductOptionValue) ProductOptionValueResponse {
+fn format_product_option_value_response(p conduit.ProductOptionValue) ProductOptionValueResponse {
 	return ProductOptionValueResponse{
 		id:           p.id
 		option_id:    p.option_id
@@ -330,7 +331,7 @@ pub:
 	title     string
 }
 
-fn format_product_option_translations(p []ProductOptionTranslation) map[string]ProductOptionTranslationResponse {
+fn format_product_option_translations(p []conduit.ProductOptionTranslation) map[string]ProductOptionTranslationResponse {
 	mut res := map[string]ProductOptionTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
@@ -353,7 +354,7 @@ pub:
 	translations map[string]ProductOptionTranslationResponse @[omitempty]
 }
 
-fn format_product_option_response(p ProductOption) ProductOptionResponse {
+fn format_product_option_response(p conduit.ProductOption) ProductOptionResponse {
 	mut values := []ProductOptionValueResponse{len: p.values.len}
 	for i := 0; i < p.values.len; i++ {
 		values[i] = format_product_option_value_response(p.values[i])
@@ -393,7 +394,7 @@ pub:
 	tax_type   string @[json: 'taxType'; omitempty]
 }
 
-fn format_tax_rate_response(t TaxRate) TaxRateResponse {
+fn format_tax_rate_response(t conduit.TaxRate) TaxRateResponse {
 	return TaxRateResponse{
 		id:         t.id
 		created_at: t.created_at.Time
@@ -426,7 +427,7 @@ fn format_variant_price_response(p VariantPrice) VariantPriceResponse {
 	}
 }
 
-fn format_regional_prices(p []VariantMoneyAmount) map[string]VariantPriceResponse {
+fn format_regional_prices(p []conduit.VariantMoneyAmount) map[string]VariantPriceResponse {
 	mut res := map[string]VariantPriceResponse{}
 	for i := 0; i < p.len; i++ {
 		money_amount := p[i]
@@ -471,7 +472,7 @@ pub:
 	tax_rates          []TaxRateResponse @[json: 'taxRates']
 }
 
-fn format_region_response(r Region) RegionResponse {
+fn format_region_response(r conduit.Region) RegionResponse {
 	mut tax_rates := []TaxRateResponse{len: r.tax_rates.len}
 	for i := 0; i < r.tax_rates.len; i++ {
 		tax_rates[i] = format_tax_rate_response(r.tax_rates[i])
@@ -512,7 +513,7 @@ pub:
 	reserved_quantity i32    @[json: 'reservedQuantity']
 }
 
-fn format_inventory_level_response(v InventoryLevel) InventoryLevelResponse {
+fn format_inventory_level_response(v conduit.InventoryLevel) InventoryLevelResponse {
 	return InventoryLevelResponse{
 		inventory_item_id: v.inventory_item_id
 		stock_location_id: v.stock_location_id
@@ -543,7 +544,7 @@ pub:
 	inventory_levels  []InventoryLevelResponse @[json: 'inventoryLevels'; omitempty]
 }
 
-fn format_inventory_item_response(v InventoryItem) InventoryItemResponse {
+fn format_inventory_item_response(v conduit.InventoryItem) InventoryItemResponse {
 	mut inventory_levels := []InventoryLevelResponse{len: v.inventory_levels.len}
 	for i := 0; i < v.inventory_levels.len; i++ {
 		inventory_levels[i] = format_inventory_level_response(v.inventory_levels[i])
@@ -591,7 +592,7 @@ pub:
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 }
 
-fn format_variant_response(v ProductVariant) VariantResponse {
+fn format_variant_response(v conduit.ProductVariant) VariantResponse {
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
@@ -637,7 +638,7 @@ pub:
 	price              VariantPriceResponse
 }
 
-fn format_variant_response_store(v ProductVariant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
+fn format_variant_response_store(v conduit.ProductVariant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
 	product_variant_availability := product_variants_availability[v.id]
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
@@ -665,7 +666,7 @@ fn format_variant_response_store(v ProductVariant, p VariantPrice, product_varia
 	}
 }
 
-fn format_sales_channel_response(v SalesChannel) SalesChannelResponse {
+fn format_sales_channel_response(v conduit.SalesChannel) SalesChannelResponse {
 	return SalesChannelResponse{
 		id:          v.id.string()
 		created_at:  v.created_at.Time
@@ -684,7 +685,7 @@ pub:
 	description string @[omitempty]
 }
 
-fn format_seo_translations(p []SEOTranslation) map[string]SEOTranslationResponse {
+fn format_seo_translations(p []conduit.SEOTranslation) map[string]SEOTranslationResponse {
 	mut res := map[string]SEOTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
@@ -705,7 +706,7 @@ pub:
 	translations map[string]SEOTranslationResponse @[omitempty]
 }
 
-fn format_seo_response(p SEO) SEOResponse {
+fn format_seo_response(p conduit.SEO) SEOResponse {
 	return SEOResponse{
 		title:        p.title.value
 		description:  p.description.value
@@ -757,7 +758,7 @@ pub:
 	translations       map[string]CategoryTranslationResponse @[omitempty]
 }
 
-fn format_category_response(p Category) CategoryResponse {
+fn format_category_response(p conduit.Category) CategoryResponse {
 	mut parent_category_id_string := ''
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_string = parent_category_id.string()
@@ -806,7 +807,7 @@ pub:
 	seo                SEOResponseStore @[omitempty]
 }
 
-fn format_category_response_store(p Category, locale_id string) CategoryResponseStore {
+fn format_category_response_store(p conduit.Category, locale_id ID) CategoryResponseStore {
 	mut parent_category_id_string := ''
 	if parent_category_id := p.parent_category_id {
 		parent_category_id_string = parent_category_id.string()
@@ -817,25 +818,23 @@ fn format_category_response_store(p Category, locale_id string) CategoryResponse
 		description: p.seo.description.value
 	}
 
-	if locale_id != '' {
-		for i := 0; i < p.seo.translations.len; i++ {
-			translation := p.seo.translations[i]
-			if translation.locale_id != locale_id {
-				continue
-			}
+	for i := 0; i < p.seo.translations.len; i++ {
+		translation := p.seo.translations[i]
+		if translation.locale_id.string() != locale_id.string() {
+			continue
+		}
 
-			if !translation.title.is_null {
-				seo = SEOResponseStore{
-					title:       translation.title.value
-					description: seo.description
-				}
+		if !translation.title.is_null {
+			seo = SEOResponseStore{
+				title:       translation.title.value
+				description: seo.description
 			}
+		}
 
-			if !translation.description.is_null {
-				seo = SEOResponseStore{
-					title:       seo.title
-					description: translation.description.value
-				}
+		if !translation.description.is_null {
+			seo = SEOResponseStore{
+				title:       seo.title
+				description: translation.description.value
 			}
 		}
 	}
@@ -916,7 +915,7 @@ pub:
 	// tags         []Tag                       @[omitempty] // return ids only
 }
 
-fn format_product_response(p Product) ProductResponse {
+fn format_product_response(p conduit.Product) ProductResponse {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -1001,7 +1000,7 @@ pub:
 	// tags         []Tag                       @[omitempty]
 }
 
-fn format_product_response_store(p Product, pctx PriceContext, default_region_id ID, product_variants_availability map[string]ProductVariantAvailability, locale_context LocaleContext) ProductResponseStore {
+fn format_product_response_store(p conduit.Product, pctx PriceContext, default_region_id ID, product_variants_availability map[string]ProductVariantAvailability, locale_context LocaleContext) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -1109,7 +1108,7 @@ pub struct StockLocationResponse {
 	name       string
 }
 
-fn format_stock_location_response(p StockLocation) StockLocationResponse {
+fn format_stock_location_response(p conduit.StockLocation) StockLocationResponse {
 	return StockLocationResponse{
 		id:         p.id
 		created_at: p.created_at.Time

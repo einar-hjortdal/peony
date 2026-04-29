@@ -34,6 +34,7 @@
 
 ### Soon to be implemented
 
+- [ ] Product types
 - [ ] Unit pricing
 
 ### To be implement
@@ -42,7 +43,6 @@
 - [ ] Cart rules
 - [ ] Price lists
 - [ ] Product tags
-- [ ] Product types
 - [ ] Product bundles
 - [ ] Blog
 - [ ] Post

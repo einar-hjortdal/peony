@@ -48,7 +48,7 @@ pub:
 	option_id  ID
 	value_rank i32
 	name       string
-mut:
+pub mut:
 	translations []ProductOptionValueTranslation
 }
 
@@ -206,7 +206,7 @@ pub:
 	product_id  ID
 	option_rank i32
 	title       string
-mut:
+pub mut:
 	values       []ProductOptionValue
 	translations []ProductOptionTranslation
 }
@@ -556,19 +556,19 @@ pub fn product_option_delete(mut tx firebird.Transaction, id_bin []u8) ! {
 	tx.execute('DELETE FROM product_option WHERE id = ?', id_bin)!
 }
 
-pub struct ProductOptionValueProductVariant {
+pub struct ProductOptionValueVariant {
 pub:
 	option_value_id ID
 	variant_id      ID
 }
 
-pub struct ProductOptionValueProductVariantRetrieveParams {
+pub struct ProductOptionValueVariantRetrieveParams {
 pub:
 	option_value_ids ?[]ID
 	variant_ids      ?[]ID
 }
 
-pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p ProductOptionValueProductVariantRetrieveParams) ![]ProductOptionValueProductVariant {
+pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p ProductOptionValueVariantRetrieveParams) ![]ProductOptionValueVariant {
 	if p.option_value_ids == none && p.variant_ids == none {
 		return error('Cannot retrieve product_option_value_variant: neither option_value_ids nor variant_ids provided')
 	}
@@ -593,7 +593,7 @@ pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p Prod
 
 	rows := data.rows()
 
-	mut product_option_value_variants := []ProductOptionValueProductVariant{len: rows.len}
+	mut product_option_value_variants := []ProductOptionValueVariant{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()
 
@@ -603,7 +603,7 @@ pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p Prod
 		option_value_id := id_from_bytes(option_value_id_bin)!
 		variant_id := id_from_bytes(variant_id_bin)!
 
-		product_option_value_variants[i] = ProductOptionValueProductVariant{
+		product_option_value_variants[i] = ProductOptionValueVariant{
 			option_value_id: option_value_id
 			variant_id:      variant_id
 		}
@@ -611,14 +611,14 @@ pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p Prod
 	return product_option_value_variants
 }
 
-pub struct ProductOptionValueProductVariantParams {
+pub struct ProductOptionValueVariantParams {
 pub:
 	variant_ids []ID
-	relations   []ProductOptionValueProductVariant
+	relations   []ProductOptionValueVariant
 }
 
 // TODO validate params
-pub fn product_option_value_variant_update(mut tx firebird.Transaction, p ProductOptionValueProductVariantParams) ! {
+pub fn product_option_value_variant_update(mut tx firebird.Transaction, p ProductOptionValueVariantParams) ! {
 	mut src := []string{len: p.relations.len}
 	n_params := 2
 	mut params := []firebird.Value{len: p.relations.len * n_params, init: firebird.Null{}}

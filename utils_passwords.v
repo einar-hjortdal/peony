@@ -75,3 +75,10 @@ fn (p Argon2idParameters) encode() !(string, []u8) {
 	hash := blake2b.sum256(encoded.bytes())
 	return encoded, hash
 }
+
+fn decode_argon2id_parameters(s string) !Argon2idParameters {
+	res := json.decode(Argon2idParameters, s) or {
+		return new_error_internal('Failed to decode Argon2idParameters', err.msg())
+	}
+	return res
+}

@@ -2,9 +2,14 @@ module peony
 
 import arrays
 import einar_hjortdal.firebird
+import record
 
-fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction, variant_id ID) !ProductVariant {
-	variants := model_variant_retrieve(mut tx, VariantRetrieveParams{
+pub type Variant = record.Variant
+
+pub type VariantRetrieveParams = record.VariantRetrieveParams
+
+pub fn variant_get(mut tx firebird.Transaction, variant_id ID) !Variant {
+	variants := record.variant_retrieve(mut tx, VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
 		offset:       offset_default
@@ -13,14 +18,15 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 	}) or { return new_error_internal('Could not retrieve product_variant', err.msg()) }
 
 	if variants.len == 0 {
-		return ProductVariant{}
+		return new_error_not_found('No variant found',
+			'No variant exists with id `${variant_id.string()}`')
 	}
 
-	money_amounts := model_variant_money_amount_retrieve(mut tx, [variant_id]) or {
+	money_amounts := record.variant_money_amount_retrieve(mut tx, [variant_id]) or {
 		return new_error_internal('Could not retrieve product_variant_money_amount', err.msg())
 	}
 
-	inventory_items := model_inventory_item_retrieve(mut tx, [variant_id]) or {
+	inventory_items := record.inventory_item_retrieve(mut tx, [variant_id]) or {
 		return new_error_internal('Could not retrieve inventory_item', err.msg())
 	}
 
@@ -29,7 +35,7 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 	}
 
 	mut inventory_item := inventory_items[0]
-	inventory_levels := model_inventory_level_get(mut tx, [inventory_item.id]) or {
+	inventory_levels := record.inventory_level_get(mut tx, [inventory_item.id]) or {
 		return new_error_internal('Could not retrieve inventory_level', err.msg())
 	}
 
@@ -38,7 +44,7 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 	variant.money_amounts = money_amounts
 	variant.inventory_item = inventory_item
 
-	option_value_variants := model_product_option_value_variant_retrieve(mut tx, ProductOptionValueProductVariantRetrieveParams{
+	option_value_variants := record.product_option_value_variant_retrieve(mut tx, ProductOptionValueVariantRetrieveParams{
 		variant_ids: [variant.id]
 	}) or {
 		return new_error_internal('Could not retrieve product_option_value_variant', err.msg())
@@ -50,11 +56,11 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 		option_value_ids[i] = option_value_variant.option_value_id
 	}
 
-	option_values := model_product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+	option_values := record.product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
 		ids: option_value_ids
 	}) or { return new_error_internal('Could not retrieve product_option_value', err.msg()) }
 
-	option_value_translations := model_product_option_value_translations_retrieve(mut tx,
+	option_value_translations := record.product_option_value_translations_retrieve(mut tx,
 		option_value_ids) or {
 		return new_error_internal('Could not retrieve product_option_value_translations', err.msg())
 	}
@@ -79,7 +85,7 @@ fn conduit_variant_get(mut app App, mut ctx Context, mut tx firebird.Transaction
 	return variant
 }
 
-fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id ID, variant_id ID, ph VariantCreateRequestHygienised) ! {
+fn variant_create(mut tx firebird.Transaction, product_id ID, variant_id ID, ph VariantCreateRequestHygienised) ! {
 	variant_to_create := VariantCreateParams{
 		product_id:   product_id
 		variant_id:   variant_id
@@ -92,13 +98,13 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 		variant_rank: 0 // Explicit
 	}
 	variants_to_create := [variant_to_create]
-	model_variant_create(mut tx, variants_to_create) or {
+	record.variant_create(mut tx, variants_to_create) or {
 		return new_error_internal('Could not create product_variant', err.msg())
 	}
 
 	inventory_item_id := app.gen_id()
 	if inventory_item := ph.inventory_item {
-		model_inventory_item_create(mut tx, [
+		record.inventory_item_create(mut tx, [
 			InventoryItemCreateParams{
 				id:                inventory_item_id
 				variant_id:        variant_id
@@ -120,7 +126,7 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				err.msg())
 		}
 	} else {
-		model_inventory_item_create(mut tx, [
+		record.inventory_item_create(mut tx, [
 			InventoryItemCreateParams{
 				id:                inventory_item_id
 				variant_id:        variant_id
@@ -146,11 +152,11 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 					is_original:     money_amount.is_original
 				}
 			}
-			model_variant_money_amount_update(mut tx, variant_money_amount_update_params) or {
+			record.variant_money_amount_update(mut tx, variant_money_amount_update_params) or {
 				return new_error_internal('Could not update money_amounts', err.msg())
 			}
 		} else {
-			regions := model_region_retrieve(mut tx, RegionRetriveParams{
+			regions := record.region_retrieve(mut tx, RegionRetriveParams{
 				fetch: max_fetch
 				order: order_default
 			}) or { return new_error_internal('Could not retrieve regions', err.msg()) }
@@ -172,7 +178,7 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 				}
 			}
 
-			model_variant_money_amount_update(mut tx, variant_money_amount_update_params) or {
+			record.variant_money_amount_update(mut tx, variant_money_amount_update_params) or {
 				return new_error_internal('Could not create default money_amounts for the new variant',
 					err.msg())
 			}
@@ -180,7 +186,7 @@ fn conduit_variant_create(mut app App, mut ctx Context, mut tx firebird.Transact
 	}
 }
 
-fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transaction, product_id ID, variant_id ID, variant ProductVariant, ph VariantUpdateRequestHygienised) ! {
+fn conduit_variant_update(mut tx firebird.Transaction, product_id ID, variant_id ID, variant Variant, ph VariantUpdateRequestHygienised) ! {
 	mut updated_image_id := variant.image_id
 	if image_id := ph.image_id {
 		updated_image_id = ph.image_id
@@ -196,7 +202,7 @@ fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transact
 		variant_rank: variant.variant_rank
 		metadata:     unwrap_option_or(ph.metadata, variant.metadata.value)
 	}
-	model_variant_update(mut tx, variant_diff) or {
+	record.variant_update(mut tx, variant_diff) or {
 		return new_error_internal('Could not update product_variant', err.msg())
 	}
 
@@ -209,14 +215,14 @@ fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			}
 		}
 
-		model_product_option_value_variant_update(mut tx, ProductOptionValueProductVariantParams{
+		record.product_option_value_variant_update(mut tx, ProductOptionValueProductVariantParams{
 			variant_ids: [variant_id]
 			relations:   relations
 		}) or { return new_error_internal('Could not update product_option_value', err.msg()) }
 	}
 
 	if inventory_item := ph.inventory_item {
-		inventory_items := model_inventory_item_retrieve(mut tx, [variant_id]) or {
+		inventory_items := record.inventory_item_retrieve(mut tx, [variant_id]) or {
 			return new_error_internal('Could not retrieve inventory_item', err.msg())
 		}
 
@@ -245,7 +251,7 @@ fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transact
 			allow_backorder:   unwrap_option_or(inventory_item.allow_backorder, old.allow_backorder)
 		}
 
-		model_inventory_item_update(mut tx, [inventory_item_diff]) or {
+		record.inventory_item_update(mut tx, [inventory_item_diff]) or {
 			return new_error_internal('Could not update inventory_item', err.msg())
 		}
 	}
@@ -263,14 +269,14 @@ fn conduit_variant_update(mut app App, mut ctx Context, mut tx firebird.Transact
 				is_original:     money_amount.is_original
 			}
 		}
-		model_variant_money_amount_update(mut tx, variant_money_amount_update_params) or {
+		record.variant_money_amount_update(mut tx, variant_money_amount_update_params) or {
 			return new_error_internal('Could not update money_amounts', err.msg())
 		}
 	}
 }
 
 fn conduit_variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
-	model_variant_delete(mut tx, variant_id) or {
+	record.variant_delete(mut tx, variant_id) or {
 		return new_error_internal('Could not delete variant', err.msg())
 	}
 }

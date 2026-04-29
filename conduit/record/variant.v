@@ -21,7 +21,7 @@ pub:
 	upc          firebird.NullString
 	variant_rank i32
 	metadata     firebird.NullString
-mut:
+pub mut:
 	inventory_item InventoryItem
 	money_amounts  []VariantMoneyAmount
 	option_values  []ProductOptionValue
