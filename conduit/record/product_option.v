@@ -611,14 +611,14 @@ pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p Prod
 	return product_option_value_variants
 }
 
-pub struct ProductOptionValueVariantParams {
+pub struct ProductOptionValueVariantUpdateParams {
 pub:
 	variant_ids []ID
 	relations   []ProductOptionValueVariant
 }
 
 // TODO validate params
-pub fn product_option_value_variant_update(mut tx firebird.Transaction, p ProductOptionValueVariantParams) ! {
+pub fn product_option_value_variant_update(mut tx firebird.Transaction, p ProductOptionValueVariantUpdateParams) ! {
 	mut src := []string{len: p.relations.len}
 	n_params := 2
 	mut params := []firebird.Value{len: p.relations.len * n_params, init: firebird.Null{}}

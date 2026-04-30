@@ -91,7 +91,10 @@
 ## Internals
 
 - [x] Add tests
-- [ ] Add debug level logs where opportune
+- [ ] Add *error* level logs
+- [ ] Add *warn* level logs
+- [ ] Add *info* level logs
+- [ ] Add *debug* level logs
 - [x] Separate response structs from internal structs
 - [x] Separate model parameter objects from Request objects
   - [x] Make Request objects public
@@ -100,11 +103,12 @@
 - [x] Return data as the root property of json payload
 - [x] Return count, offset and fetch values with lists
 - [x] Soft-delete only where needed
-- [x] Remove all unnecessary `product_` prefixes from database, structs and function names.
-- [ ] Attach function name to each error.
-- [ ] Transaction management.
-- [ ] Worker mode.
+- [x] Remove all unnecessary `product_` prefixes from database, structs and function names
+- [ ] Attach function name to each error
+- [ ] Transaction management
+- [ ] Worker mode
 - [x] Routes should not call models, only conduit.
+- [ ] Refactor record fields to use option types instead of firebird.NullT
 - [ ] Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` [(once Firebird supports it)](https://github.com/FirebirdSQL/firebird/issues/5431).
 
 ## Upstream

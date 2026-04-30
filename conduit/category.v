@@ -110,11 +110,7 @@ pub fn category_get(mut tx firebird.Transaction, category_id ID) !Category {
 
 pub type CategoryCreateParams = record.CategoryCreateParams
 
-pub type CategorySEOCreateParams = record.CategorySEOCreateParams
-
 pub type CategoryTranslationUpdateParams = record.CategoryTranslationUpdateParams
-
-pub type SEOTranslationCreateParams = record.SEOTranslationCreateParams
 
 pub struct CateogryCreateData {
 pub:

@@ -11,3 +11,5 @@ pub type ProductOptionValueVariant = record.ProductOptionValueVariant
 pub type ProductOptionValueRetrieveParams = record.ProductOptionValueRetrieveParams
 
 pub type ProductOptionValueVariantRetrieveParams = record.ProductOptionValueVariantRetrieveParams
+
+pub type ProductOptionValueVariantUpdateParams = record.ProductOptionValueVariantUpdateParams

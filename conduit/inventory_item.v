@@ -5,6 +5,10 @@ import record
 
 pub type InventoryItem = record.InventoryItem
 
+pub type InventoryItemCreateParams = record.InventoryItemCreateParams
+
+pub type InventoryItemUpdateParams = record.InventoryItemUpdateParams
+
 pub type InventoryLevel = record.InventoryLevel
 
 pub type InventoryLevelUpdateParams = record.InventoryLevelUpdateParams

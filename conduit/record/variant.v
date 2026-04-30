@@ -150,8 +150,8 @@ pub fn variant_retrieve(mut tx firebird.Transaction, p VariantRetrieveParams) ![
 
 pub struct VariantCreateParams {
 pub:
+	id           ID
 	product_id   ID
-	variant_id   ID
 	image_id     ?ID
 	title        string
 	barcode      string
@@ -181,7 +181,7 @@ pub fn variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! {
 			CAST(? AS BLOB SUB_TYPE TEXT) AS metadata
 			FROM RDB\$DATABASE'
 
-		params[i * n_params] = v.variant_id.bytes()
+		params[i * n_params] = v.id.bytes()
 		params[i * n_params + 1] = v.product_id.bytes()
 
 		if image_id := v.image_id {
