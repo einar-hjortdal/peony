@@ -47,7 +47,7 @@ pub:
 	id  ID
 	url string
 	alt firebird.NullString
-mut:
+pub mut:
 	translations []ImageTranslation
 }
 
@@ -61,7 +61,7 @@ pub:
 	user_id ID
 }
 
-struct ProductImage {
+pub struct ProductImage {
 	Image
 pub:
 	product_id ID
@@ -110,7 +110,7 @@ pub fn product_image_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]
 }
 
 // delete all product images belonging to one product
-pub fn product_images_delete(mut tx firebird.Transaction, product_id ID) ! {
+pub fn product_image_delete(mut tx firebird.Transaction, product_id ID) ! {
 	tx.execute('DELETE FROM image i
 		WHERE EXISTS (
 			SELECT 1 FROM product_image pi
@@ -120,16 +120,24 @@ pub fn product_images_delete(mut tx firebird.Transaction, product_id ID) ! {
 		product_id.bytes())!
 }
 
+pub struct ImageTranslationCreateParams {
+pub:
+	image_id  ID
+	locale_id ID
+	alt       string
+}
+
 pub struct ProductImageCreateParams {
 pub:
 	id           ID
 	url          string
 	alt          ?string
 	image_rank   i32
-	translations ?[]ImageTranslationRequestHygienised
+	translations ?[]ImageTranslationCreateParams
 }
 
-fn model_product_images_create(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
+// TODO split operations
+pub fn product_image_create(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	mut translation_n := i32(0)
@@ -142,8 +150,13 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id ID, image
 			FROM RDB\$DATABASE'
 		params[i * 3] = image.id.bytes()
 		params[i * 3 + 1] = image.url
+
 		if alt := image.alt {
-			params[i * 3 + 2] = alt
+			if alt == '' {
+				params[i * 3 + 2] = firebird.Null{}
+			} else {
+				params[i * 3 + 2] = alt
+			}
 		} else {
 			params[i * 3 + 2] = firebird.Null{}
 		}
@@ -205,16 +218,8 @@ fn model_product_images_create(mut tx firebird.Transaction, product_id ID, image
 	tx.execute(query, ...params)!
 }
 
-pub struct ProductImageUpdateParams {
-pub:
-	id           ID
-	url          string
-	alt          ?string // TODO remove option. if alt == '' is null.
-	image_rank   i32
-	translations ?[]ImageTranslationRequestHygienised
-}
-
-pub fn product_images_update(mut tx firebird.Transaction, product_id ID, images []ProductImageUpdateParams) ! {
+// TODO split operations
+pub fn product_image_update(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
 	mut image_ids := []ID{len: images.len}
 	mut n_translations := 0
 	mut src := []string{len: images.len}
@@ -232,7 +237,11 @@ pub fn product_images_update(mut tx firebird.Transaction, product_id ID, images 
 		params[i * 3 + 1] = image.url
 
 		if alt := image.alt {
-			params[i * 3 + 2] = alt
+			if alt == '' {
+				params[i * 3 + 2] = firebird.Null{}
+			} else {
+				params[i * 3 + 2] = alt
+			}
 		} else {
 			params[i * 3 + 2] = firebird.Null{}
 		}

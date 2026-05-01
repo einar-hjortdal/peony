@@ -55,32 +55,47 @@ pub mut:
 // TODO fetch...
 pub struct ProductOptionValueRetrieveParams {
 pub:
-	ids        ?[]ID
-	option_ids ?[]ID
+	ids         ?[]ID
+	option_ids  ?[]ID
+	variant_ids ?[]ID
 }
 
-pub fn product_option_values_retrieve(mut tx firebird.Transaction, p ProductOptionValueRetrieveParams) ![]ProductOptionValue {
-	if p.ids != none && p.option_ids != none {
-		return error('Could not retrieve product_option_value: received both ids and option_ids')
-	}
-
-	if p.ids == none && p.option_ids == none {
-		return []ProductOptionValue{}
-	}
-
-	mut query := 'SELECT id, option_id, value_rank, name FROM product_option_value'
+fn product_option_values_retrieve_conditions(p ProductOptionValueRetrieveParams) (string, []firebird.Value) {
+	mut conditions := []string{}
 	mut params := []firebird.Value{}
 	if ids := p.ids {
-		query = appendln(query, 'WHERE id IN (${get_placeholders(ids)})')
-		params = ids_values(ids)
+		conditions = arrays.concat(conditions, 'pov.id IN (${get_placeholders(ids)})')
+		params = arrays.concat(params, ...ids_values(ids))
 	}
 
 	if option_ids := p.option_ids {
-		query = appendln(query, 'WHERE option_id IN (${get_placeholders(option_ids)})')
-		params = ids_values(option_ids)
+		conditions = arrays.concat(conditions, 'pov.option_id IN (${get_placeholders(option_ids)})')
+		params = arrays.concat(params, ...ids_values(option_ids))
 	}
 
-	query = appendln(query, 'ORDER BY value_rank')
+	if variant_ids := p.variant_ids {
+		conditions = arrays.concat(conditions, 'EXISTS (
+			SELECT 1 FROM product_option_value_variant povv
+			WHERE pov.id = povv.option_value_id
+				AND povv.variant_id IN (${get_placeholders(variant_ids)})
+			)')
+		params = arrays.concat(params, ...ids_values(variant_ids))
+	}
+
+	return get_conditions(conditions), params
+}
+
+pub fn product_option_values_retrieve(mut tx firebird.Transaction, p ProductOptionValueRetrieveParams) ![]ProductOptionValue {
+	conditions, params := product_option_values_retrieve_conditions(p)
+	sorting := 'ORDER BY pov.value_rank'
+	query := 'SELECT
+		pov.id,
+		pov.option_id,
+		pov.value_rank,
+		pov.name
+		FROM product_option_value pov
+		${conditions}
+		${sorting}'
 
 	data := tx.execute(query, ...params)!
 	rows := data.rows()
@@ -171,11 +186,11 @@ pub fn (po_t ProductOptionTranslation) locale_id() ID {
 	return po_t.locale_id
 }
 
-fn product_option_translations_retrieve(mut tx firebird.Transaction, product_option_ids_bin [][]u8) ![]ProductOptionTranslation {
+pub fn product_option_translations_retrieve(mut tx firebird.Transaction, product_option_ids []ID) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
-		WHERE product_option_id IN (${get_placeholders(product_option_ids_bin)})',
-		...product_option_ids_bin)!
+		WHERE product_option_id IN (${get_placeholders(product_option_ids)})',
+		...ids_values(product_option_ids))!
 
 	rows := data.rows()
 
@@ -285,14 +300,14 @@ pub fn product_option_create(mut tx firebird.Transaction, p []ProductOptionCreat
 }
 
 // TODO validate before running operation
-pub struct ProductOptionTranslationParams {
+pub struct ProductOptionTranslationCreateParams {
 pub:
 	product_option_id ID
 	locale_id         ID
 	title             string
 }
 
-pub fn product_option_translations_create(mut tx firebird.Transaction, p []ProductOptionTranslationParams) ! {
+pub fn product_option_translations_create(mut tx firebird.Transaction, p []ProductOptionTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -354,14 +369,14 @@ pub fn product_option_value_create(mut tx firebird.Transaction, p []ProductOptio
 }
 
 // TODO validate before running operation
-pub struct ProductOptionValueTranslationParams {
+pub struct ProductOptionValueTranslationCreateParams {
 pub:
 	product_option_value_id ID
 	locale_id               ID
 	name                    string
 }
 
-pub fn product_option_value_translations_create(mut tx firebird.Transaction, p []ProductOptionValueTranslationParams) ! {
+pub fn product_option_value_translations_create(mut tx firebird.Transaction, p []ProductOptionValueTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -386,7 +401,7 @@ pub fn product_option_value_translations_create(mut tx firebird.Transaction, p [
 // ProductOptionValueTranslationUpdateParams
 // - product_option_value_id: ID of the option value being updated.
 // - product_option_value_id_bin: binary ID ([]u8, 16 bytes).
-// - translations: list of ProductOptionValueTranslationParams to create or update.
+// - translations: list of ProductOptionValueTranslationCreateParams to create or update.
 //
 // ## Behavior
 // - Replace the translations for the given product_option_value_id with the provided list.
@@ -394,7 +409,7 @@ pub fn product_option_value_translations_create(mut tx firebird.Transaction, p [
 pub struct ProductOptionValueTranslationUpdateParams {
 pub:
 	product_option_value_ids []ID
-	translations             []ProductOptionValueTranslationParams
+	translations             []ProductOptionValueTranslationCreateParams
 }
 
 pub fn product_option_value_translations_update(mut tx firebird.Transaction, p ProductOptionValueTranslationUpdateParams) ! {
@@ -500,7 +515,7 @@ pub fn product_option_update(mut tx firebird.Transaction, p []ProductOptionUpdat
 
 // ProductOptionTranslationUpdateParams
 // - product_option_ids: IDs of all options being updated (ordered).
-// - translations: flat list of ProductOptionTranslation rows to create or update.
+// - translations: flat list of ProductOptionTranslationCreateParams rows to create or update.
 //
 // ## Behavior
 // - For each id in product_option_ids: replace that option's translations with the provided translations.
@@ -508,7 +523,7 @@ pub fn product_option_update(mut tx firebird.Transaction, p []ProductOptionUpdat
 pub struct ProductOptionTranslationUpdateParams {
 pub:
 	product_option_ids []ID
-	translations       []ProductOptionTranslationParams
+	translations       []ProductOptionTranslationCreateParams
 }
 
 pub fn product_option_translations_update(mut tx firebird.Transaction, p ProductOptionTranslationUpdateParams) ! {
@@ -611,28 +626,27 @@ pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p Prod
 	return product_option_value_variants
 }
 
-pub struct ProductOptionValueVariantUpdateParams {
-pub:
-	variant_ids []ID
-	relations   []ProductOptionValueVariant
-}
-
-// TODO validate params
-pub fn product_option_value_variant_update(mut tx firebird.Transaction, p ProductOptionValueVariantUpdateParams) ! {
-	mut src := []string{len: p.relations.len}
+pub fn product_option_value_variant_update(mut tx firebird.Transaction, p []ProductOptionValueVariant) ! {
+	mut src := []string{len: p.len}
 	n_params := 2
-	mut params := []firebird.Value{len: p.relations.len * n_params, init: firebird.Null{}}
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
+	mut variant_ids := map[string]ID{} // deduplicate variant_id
 
-	for i := 0; i < p.relations.len; i++ {
-		r := p.relations[i]
+	for i := 0; i < p.len; i++ {
+		r := p[i]
+		variant_id := r.variant_id
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS option_value_id,
 			CAST(? AS BINARY(16)) AS variant_id
 			FROM RDB\$DATABASE'
 
 		params[i * n_params + 0] = r.option_value_id.bytes()
-		params[i * n_params + 1] = r.variant_id.bytes()
+		params[i * n_params + 1] = variant_id.bytes()
+
+		variant_ids[variant_id.string()] = variant_id
 	}
+
+	variant_ids_values := ids_values(variant_ids.values())
 
 	query := 'MERGE INTO product_option_value_variant t
 		USING (${get_merge_source(src)}) s
@@ -640,9 +654,9 @@ pub fn product_option_value_variant_update(mut tx firebird.Transaction, p Produc
 		WHEN NOT MATCHED THEN
 			INSERT (option_value_id, variant_id)
 			VALUES (s.option_value_id, s.variant_id)
-		WHEN NOT MATCHED BY SOURCE AND t.variant_id IN (${get_placeholders(p.variant_ids)}) THEN
+		WHEN NOT MATCHED BY SOURCE AND t.variant_id IN (${get_placeholders(variant_ids_values)}) THEN
 			DELETE'
-	params = arrays.concat(params, ...ids_bytes(p.variant_ids))
+	params = arrays.concat(params, ...variant_ids_values)
 
 	tx.execute(query, ...params)!
 }

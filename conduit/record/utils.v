@@ -105,14 +105,6 @@ fn get_set_columns_with_updated_at(c []string) string {
 	return '${res}, ${get_set_columns(c)}'
 }
 
-fn get_placeholders[T](a []T) string {
-	mut res := []string{len: a.len}
-	for i := 0; i < a.len; i++ {
-		res[i] = '?'
-	}
-	return res.join(', ')
-}
-
 fn get_conditions(c []string) string {
 	if c.len == 0 {
 		return ''

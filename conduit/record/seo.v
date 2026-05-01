@@ -107,10 +107,10 @@ pub fn product_seo_create(mut tx firebird.Transaction, p ProductSEOCreateParams)
 		...params)!
 }
 
-pub fn product_seo_retrieve(mut tx firebird.Transaction, product_ids_bin [][]u8) ![]ProductSEO {
+pub fn product_seo_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductSEO {
 	data := tx.execute('SELECT id, product_id, title, description FROM seo
-		WHERE product_id IN (${get_placeholders(product_ids_bin)})',
-		...product_ids_bin)!
+		WHERE product_id IN (${get_placeholders(product_ids)})',
+		...ids_values(product_ids))!
 
 	rows := data.rows()
 

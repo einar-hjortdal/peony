@@ -26,7 +26,7 @@ pub struct SalesChannelRetrieveParams {
 	order  string
 }
 
-pub fn sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, []firebird.Value) {
+fn sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
@@ -39,7 +39,7 @@ pub fn sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, 
 }
 
 pub fn sales_channel_retrieve_count(mut tx firebird.Transaction, p SalesChannelRetrieveParams) !i64 {
-	conditions, params := model_sales_channel_retrieve_conditions(p)
+	conditions, params := sales_channel_retrieve_conditions(p)
 	query := 'SELECT COUNT(*) FROM sales_channel ${conditions}'
 	data := tx.execute(query, ...params)!
 	rows := data.rows()
@@ -49,7 +49,7 @@ pub fn sales_channel_retrieve_count(mut tx firebird.Transaction, p SalesChannelR
 }
 
 pub fn sales_channel_retrieve(mut tx firebird.Transaction, p SalesChannelRetrieveParams) ![]SalesChannel {
-	conditions, mut params := model_sales_channel_retrieve_conditions(p)
+	conditions, mut params := sales_channel_retrieve_conditions(p)
 	mut sorting := 'ORDER BY created_at ${p.order}
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY'
@@ -159,6 +159,7 @@ pub fn sales_channel_delete(mut tx firebird.Transaction, sales_channel_id ID) ! 
 }
 
 pub struct ProductSalesChannel {
+pub:
 	product_id       ID
 	sales_channel_id ID
 }
@@ -230,20 +231,19 @@ pub fn sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p Sale
 	}
 
 	if p.stock_location_ids != none && p.sales_channel_ids != none {
-		return new_error_internal('received both stock_location_ids abd sales_channel_ids',
-			'model_sales_channel_stock_location_retrieve')
+		return error('received both stock_location_ids abd sales_channel_ids')
 	}
 
 	mut condition := ''
 	mut params := []firebird.Value{}
 	if sales_channel_ids := p.sales_channel_ids {
 		condition = 'sales_channel_id'
-		params = slices_to_values(ids_bytes(sales_channel_ids))
+		params = ids_values(sales_channel_ids)
 	}
 
 	if stock_location_ids := p.stock_location_ids {
 		condition = 'stock_location_id'
-		params = slices_to_values(ids_bytes(stock_location_ids))
+		params = ids_values(stock_location_ids)
 	}
 
 	data := tx.execute('SELECT sales_channel_id, stock_location_id 

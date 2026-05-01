@@ -9,8 +9,8 @@ import conduit
 
 pub const lib = 'peony'
 
-pub const min_fetch = i32(1)
-pub const max_fetch = i32(250)
+pub const min_fetch = conduit.min_fetch
+pub const max_fetch = conduit.max_fetch
 
 pub const length_currency_code = 3
 pub const length_country_code = 2

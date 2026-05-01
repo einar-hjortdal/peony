@@ -200,3 +200,4 @@ pub fn category_delete(mut tx firebird.Transaction, category_id ID) ! {
 	}
 }
 
+pub type CategoryProductRetrieveParams = record.CategoryProductRetrieveParams

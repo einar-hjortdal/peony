@@ -59,15 +59,24 @@ pub fn product_translations_retrieve(mut tx firebird.Transaction, product_ids []
 	return translations
 }
 
-pub fn product_translations_delete(mut tx firebird.Transaction, product_id ID) ! {
+pub fn product_translation_delete(mut tx firebird.Transaction, product_id ID) ! {
 	tx.execute('DELETE FROM product_translations WHERE product_id = ?', product_id.bytes())!
 }
 
-pub fn product_translations_create(mut tx firebird.Transaction, product_id ID, ph []ProductTranslationRequestHygienised) ! {
-	mut src := []string{len: ph.len}
-	mut params := []firebird.Value{len: ph.len * 5, init: firebird.Null{}}
-	for i := 0; i < ph.len; i++ {
-		t := ph[i]
+pub struct ProductTranslationCreateParams {
+pub:
+	product_id  ID
+	locale_id   ID
+	title       ?string
+	subtitle    ?string
+	description ?string
+}
+
+pub fn product_translation_create(mut tx firebird.Transaction, p []ProductTranslationCreateParams) ! {
+	mut src := []string{len: p.len}
+	mut params := []firebird.Value{len: p.len * 5, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
+		t := p[i]
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS product_id,
 			CAST(? AS BINARY(16)) AS locale_id,
@@ -76,7 +85,7 @@ pub fn product_translations_create(mut tx firebird.Transaction, product_id ID, p
 			CAST(? AS BLOB SUB_TYPE TEXT) AS description
 			FROM RDB\$DATABASE'
 
-		params[i * 5] = product_id.bytes()
+		params[i * 5] = t.product_id.bytes()
 		params[i * 5 + 1] = t.locale_id.bytes()
 
 		if title := t.title {
@@ -120,15 +129,13 @@ pub:
 	discountable bool
 	metadata     firebird.NullString
 mut:
-	seo                    ProductSEO
-	images                 []ProductImage
-	options                []ProductOption
-	translations           []ProductTranslation
-	variants               []ProductVariant
-	category_ids           []string
-	category_ids_bin       [][]u8
-	sales_channels_ids     []string
-	sales_channels_ids_bin [][]u8
+	seo                ProductSEO
+	images             []ProductImage
+	options            []ProductOption
+	translations       []ProductTranslation
+	variants           []Variant
+	category_ids       []ID
+	sales_channels_ids []ID
 	// tags         []Tag
 }
 
@@ -224,7 +231,7 @@ pub fn product_retrieve_conditions(p ProductRetrieveParams) (string, []firebird.
 }
 
 pub fn product_retrieve_count(mut tx firebird.Transaction, p ProductRetrieveParams) !i64 {
-	conditions, params := model_product_retrieve_conditions(p)
+	conditions, params := product_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM product p ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -233,7 +240,7 @@ pub fn product_retrieve_count(mut tx firebird.Transaction, p ProductRetrievePara
 }
 
 pub fn product_retrieve(mut tx firebird.Transaction, p ProductRetrieveParams) ![]Product {
-	conditions, mut params := model_product_retrieve_conditions(p)
+	conditions, mut params := product_retrieve_conditions(p)
 
 	mut sorting := 'ORDER BY created_at ${p.order}
 		OFFSET ? ROWS
@@ -314,7 +321,7 @@ pub fn product_retrieve(mut tx firebird.Transaction, p ProductRetrieveParams) ![
 
 pub struct ProductCreateParams {
 pub:
-	product_id   ID
+	id           ID
 	title        string
 	subtitle     string
 	description  string
@@ -326,8 +333,8 @@ pub:
 }
 
 pub fn product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
-	if p.product_id.is_zero() {
-		return error('Invalid product_id in ProductCreateParams: `${p.product_id}`')
+	if p.id.is_zero() {
+		return error('Invalid product_id in ProductCreateParams: `${p.id}`')
 	}
 
 	if p.title == '' {
@@ -339,7 +346,7 @@ pub fn product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 	}
 
 	mut c := ['id', 'title', 'handle']
-	mut params := [firebird.Value(p.product_id.bytes()), p.title, p.handle]
+	mut params := [firebird.Value(p.id.bytes()), p.title, p.handle]
 
 	if p.subtitle != '' {
 		c = arrays.concat(c, 'subtitle')
@@ -382,7 +389,7 @@ pub fn product_create(mut tx firebird.Transaction, p ProductCreateParams) ! {
 
 pub struct ProductUpdateParams {
 pub:
-	product_id   ID
+	id           ID
 	title        string
 	subtitle     string
 	description  string
@@ -396,8 +403,8 @@ pub:
 }
 
 pub fn product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
-	if p.product_id.is_zero() {
-		return error('Invalid product_id in ProductUpdateParams: `${p.product_id}`')
+	if p.id.is_zero() {
+		return error('Invalid product_id in ProductUpdateParams: `${p.id}`')
 	}
 
 	if p.handle == '' {
@@ -436,7 +443,7 @@ pub fn product_update(mut tx firebird.Transaction, p ProductUpdateParams) ! {
 
 	params[7] = p.discountable
 	params[8] = p.metadata
-	params[9] = p.product_id.bytes()
+	params[9] = p.id.bytes()
 
 	tx.execute(query, ...params)!
 }
@@ -445,18 +452,9 @@ pub fn product_delete(mut tx firebird.Transaction, product_id ID) ! {
 	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', product_id.bytes())!
 }
 
-pub fn product_thumbnail_update(mut tx firebird.Transaction, product_id ID, image_rank i32) ! {
-	tx.execute('UPDATE product p
-		SET 
-			updated_at = CURRENT_TIMESTAMP,
-			p.thumbnail_id = (
-				SELECT pi.image_id
-				FROM product_image pi
-				WHERE pi.product_id = p.id
-				AND pi.image_rank = ?
-			)
-		WHERE p.id = ?',
-		image_rank, product_id.bytes())!
+pub fn product_thumbnail_update(mut tx firebird.Transaction, product_id ID, image_id ID) ! {
+	tx.execute('UPDATE product SET thumbnail_id = ? WHERE id = ?', image_id.bytes(),
+		product_id.bytes())!
 }
 
 pub fn product_thumbnail_delete(mut tx firebird.Transaction, product_id ID) ! {
