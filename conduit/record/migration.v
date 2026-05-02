@@ -13,8 +13,8 @@ pub fn migration_create(mut tx firebird.Transaction, migration_id ID, name strin
 	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', migration_id.bytes(), name)!
 }
 
-pub fn migrations_retrieve(mut tx firebird.Transaction) ![]Migration {
-	data := tx.execute('SELECT id, created_at, name FROM migration')!
+pub fn migration_retrieve(mut tx firebird.Transaction) ![]Migration {
+	data := tx.execute('SELECT id, created_at, name FROM migration ORDER BY created_at ASC')!
 	rows := data.rows()
 	mut migrations := []Migration{len: rows.len}
 	for i := 0; i < rows.len; i++ {

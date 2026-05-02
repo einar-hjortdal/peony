@@ -74,6 +74,10 @@ pub const role_contributor = conduit.role_contributor
 
 type ID = conduit.ID
 
+fn new_id(mut g luuid.Generator) ID {
+	return conduit.new_id(mut g)
+}
+
 fn id_from_string(s string) !ID {
 	return conduit.id_from_string(s)
 }
