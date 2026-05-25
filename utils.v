@@ -6,6 +6,7 @@ import veb
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import conduit
+import conduit.record
 
 pub const lib = 'peony'
 
@@ -72,18 +73,16 @@ pub const role_developer = conduit.role_developer
 pub const role_author = conduit.role_author
 pub const role_contributor = conduit.role_contributor
 
-type ID = conduit.ID
-
-fn new_id(mut g luuid.Generator) ID {
+fn new_id(mut g luuid.Generator) record.ID {
 	return conduit.new_id(mut g)
 }
 
-fn id_from_string(s string) !ID {
+fn id_from_string(s string) !record.ID {
 	return conduit.id_from_string(s)
 }
 
 fn (mut app App) start_transaction() !&firebird.Transaction {
-	mut tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
+	tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
 		return conduit.new_error_internal(error_transaction_start, err.msg())
 	}
 	return tx
@@ -124,21 +123,21 @@ fn get_none_bool(m map[string]string, k string) ?bool {
 }
 
 // to parse query strings
-fn ids_from_array_string(ids_string []string) ![]ID {
-	mut ids := []ID{len: ids_string.len}
+fn ids_from_array_string(ids_string []string) ![]record.ID {
+	mut ids := []record.ID{len: ids_string.len}
 	for i := 0; i < ids_string.len; i++ {
 		ids[i] = id_from_string(ids_string[i])!
 	}
 	return ids
 }
 
-fn (mut app App) gen_id() ID {
+fn (mut app App) gen_id() record.ID {
 	return conduit.new_id(mut app.luuid_generator)
 }
 
 // WIP
 interface Translation {
-	locale_id() ID
+	locale_id() record.ID
 }
 
 interface Translatable {
@@ -306,7 +305,7 @@ fn get_order_direction_or_default(direction ?string) !string {
 }
 
 struct LocaleContext {
-	locale_id ?ID
+	locale_id ?record.ID
 }
 
 // TODO delete (use conduit.)
@@ -363,9 +362,9 @@ fn new_error_fetch_zero() PeonyError {
 	return new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
 }
 
-fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
+fn make_identifiable_map[T](identifiables []T) (map[string]T, []record.ID) {
 	mut map_res := map[string]T{}
-	mut arr_res := []ID{len: identifiables.len}
+	mut arr_res := []record.ID{len: identifiables.len}
 	for i := 0; i < identifiables.len; i++ {
 		identifiable := identifiables[i]
 		id := identifiable.id()

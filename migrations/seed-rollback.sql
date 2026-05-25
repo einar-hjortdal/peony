@@ -20,6 +20,8 @@ DROP INDEX "0681493b-ad85-17b5-1c00-77a1a1ff2a8c";
 DROP TABLE category_product;
 DROP TABLE store;
 DROP TABLE api_key;
+DROP TABLE item_reservation;
+DROP TABLE item_availability;
 DROP INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b";
 DROP TABLE sales_channel_stock_location;
 DROP TABLE sales_channel;

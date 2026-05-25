@@ -173,20 +173,36 @@ of this item is tracked. A `inventory_item` is not available to the `/store/` en
 
 A `inventory_level` is the amount of `inventory_item` in one `stock_location`.
 - `stocked_quantity` is the amount of `inventory_item` located at the `stock_location`.
-- `reserved_quantity` is the amount of `inventory_item` located at the `stock_location` that is not 
-  available to be ordered. This must be subtracted from `stocked_quantity` to determine the amount of 
-  `inventory_item` that can be ordered.
+- `reserved_quantity` is the amount of `inventory_item` located at the `stock_location` that is not available to be purchased. This must be subtracted from `stocked_quantity` to determine the amount of `inventory_item` that can be purchased. This functions as oversell protection.
 
-Note: filtering products by availability should be handled by the frontend (eg. [Redict Sorted Sets](https://redict.io/docs/data-types/sorted-sets/)).
+#### Overselling, underselling, contention (WIP)
+
+Items in a cart must be purchaseable: the `item_availability` table keeps track of the purchaseable amounts for each sales channel.
+
+When a customer starts the payment process, `item_availability` is decremented and a `item_reservation` are created. This happens within the same transaction, and if availability decrement fails, then no reservation is created. This effectively prevents overselling.
+
+```sql
+UPDATE item_availability
+SET amount = amount - ?
+WHERE item_id = ?
+  AND sales_channel_id = ?
+  AND (amount >= ?) -- only added if allow_backorder == false
+  -- if affected_rows == 0 then decrement failed
+```
+
+Once a payment is successful, `inventory_level.stocked_quantity` is adjusted, then related `item_reservation` rows are deleted.
+
+If a payment fails, `item_reservation` rows are scanned, `inventory_level.reserved_quantity`, `item_availability.amount` are reverted, and then the reservation rows are deleted.
+
+A periodic scan (worker) will ensure that expired `item_reservation` are processed just like payment failures.
+
+Interesting read: [shopify.engineering/scaling-inventory-reservations](https://shopify.engineering/scaling-inventory-reservations?utm_source=copilot.com)
 
 ### Inventory management
 
 By default, peony manages the inventory of each `variant`.
 - A `variant` is always considered *purchasable* if peony does not manage its inventory.
 - A `variant` is considered *purchasable* if `stocked_quantity` is more than its `reserved_quantity`.
-
-A `reservation_item` is one `inventory_item` that is part of a `reserved_quantity`. This is used when 
-  an order has been created but has not been fulfilled yet.
 
 Each `variant` has exactly one `inventory_item`.
 

@@ -1,5 +1,6 @@
 module record
 
+import arrays
 import einar_hjortdal.firebird
 
 pub struct InventoryLevel {
@@ -11,9 +12,24 @@ pub:
 }
 
 pub fn inventory_level_get(mut tx firebird.Transaction, inventory_item_ids []ID) ![]InventoryLevel {
-	data := tx.execute('SELECT inventory_item_id, stock_location_id, stocked_quantity, reserved_quantity
-		FROM inventory_level WHERE inventory_item_id IN (${get_placeholders(inventory_item_ids)})',
-		...inventory_item_ids)!
+	mut params := arrays.concat(ids_values(inventory_item_ids), ...ids_values(inventory_item_ids))
+
+	data := tx.execute('SELECT 
+		il.inventory_item_id,
+		il.stock_location_id,
+		il.stocked_quantity,
+		COALESCE(r.reserved_quantity, 0) as reserved_quantity
+		FROM inventory_level il
+		LEFT JOIN (
+			SELECT item_id, stock_location_id, SUM(amount) AS reserved_quantity
+			FROM item_reservation
+			WHERE item_id IN (${get_placeholders(inventory_item_ids)})
+			GROUP BY item_id, stock_location_id
+		) r
+			ON r.item_id = il.inventory_item_id
+  		AND r.stock_location_id = il.stock_location_id
+		WHERE il.inventory_item_id IN (${get_placeholders(inventory_item_ids)})',
+		...params)!
 
 	rows := data.rows()
 	mut inventory_levels := []InventoryLevel{len: rows.len}

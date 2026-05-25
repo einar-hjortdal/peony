@@ -352,7 +352,6 @@ CREATE TABLE inventory_level (
   inventory_item_id BINARY(16) NOT NULL,
   stock_location_id BINARY(16) NOT NULL,
   stocked_quantity INTEGER DEFAULT 0 NOT NULL,
-  reserved_quantity INTEGER DEFAULT 0 NOT NULL,
   CONSTRAINT "06828532-0de1-11fb-5800-aecf67f0cc77" PRIMARY KEY (inventory_item_id, stock_location_id),
   CONSTRAINT "06828532-0de1-1ef1-e000-ed029783b4aa" FOREIGN KEY (inventory_item_id) REFERENCES inventory_item (id) ON DELETE CASCADE,
   CONSTRAINT "06828532-0de1-1f47-fc00-0bd5681967b9" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id) ON DELETE CASCADE
@@ -380,6 +379,32 @@ CREATE TABLE sales_channel_stock_location (
 );
 
 CREATE INDEX "06828532-0ddc-1b6b-0c00-cb10f67da04b" ON sales_channel_stock_location (stock_location_id);
+
+CREATE TABLE item_availability (
+  item_id BINARY(16) NOT NULL,
+  sales_channel_id BINARY(16) NOT NULL,
+  amount INTEGER DEFAULT 0 NOT NULL,
+  CONSTRAINT "069f0dfa-384e-1c92-1000-2166f33c72d8" PRIMARY KEY (item_id, sales_channel_id),
+  CONSTRAINT "069f0dfa-384f-11a8-5000-639e046318b2" FOREIGN KEY (item_id) REFERENCES inventory_item (id) ON DELETE CASCADE,
+  CONSTRAINT "069f0dfa-384f-1245-8800-af90192ace65" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id) ON DELETE CASCADE
+);
+
+CREATE TABLE item_reservation (
+  id BINARY(16) NOT NULL,
+  item_id BINARY(16) NOT NULL,
+  sales_channel_id BINARY(16) NOT NULL,
+  stock_location_id BINARY(16) NOT NULL,
+  amount INTEGER NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  -- checkout_id BINARY(16) NOT NULL,
+  CONSTRAINT "069f0dfa-384e-1ecf-4800-320b140bbc55" PRIMARY KEY (id),
+  CONSTRAINT "069f0dfa-384f-15bd-d400-a029efe0e028" FOREIGN KEY (item_id) REFERENCES inventory_item (id) ON DELETE CASCADE,
+  CONSTRAINT "069f0dfa-384f-192d-2400-ee7a9b2b1d9c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id) ON DELETE CASCADE,
+  CONSTRAINT "069f0dfa-384f-15bd-d400-a029efe0e028" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id) ON DELETE CASCADE
+);
+
+-- CREATE INDEX "069f0dfa-384f-1a60-b400-b751267a2d6c" ON item_reservation (checkout_id);
 
 CREATE TABLE api_key (
   id BINARY(16) NOT NULL,
