@@ -5,35 +5,27 @@ import veb
 import einar_hjortdal.firebird
 import record
 
-pub type Product = record.Product
-
-pub type ProductCreateParams = record.ProductCreateParams
-
-pub type ProductTranslation = record.ProductTranslation
-
-pub type ProductTranslationCreateParams = record.ProductTranslationCreateParams
-
 pub struct ProductCreateData {
 pub:
-	product                   ProductCreateParams
-	translations              ?[]ProductTranslationCreateParams
-	seo                       ProductSEOCreateParams
-	seo_translations          ?[]SEOTranslationCreateParams
-	options                   []ProductOptionCreateParams
-	option_translations       ?[]ProductOptionTranslationCreateParams
-	option_values             []ProductOptionValueCreateParams
-	option_value_translations ?[]ProductOptionValueTranslationCreateParams
-	variants                  []VariantCreateParams
-	inventory_items           []InventoryItemCreateParams
-	variant_money_amounts     []VariantMoneyAmountUpdateParams
-	option_value_variant      []ProductOptionValueVariant
-	category_ids              ?[]ID
-	images                    ?[]ProductImageCreateParams
-	thumbnail_id              ?ID
-	sales_channel_ids         []ID
+	product                   record.ProductCreateParams
+	translations              ?[]record.ProductTranslationCreateParams
+	seo                       record.ProductSEOCreateParams
+	seo_translations          ?[]record.SEOTranslationCreateParams
+	options                   []record.ProductOptionCreateParams
+	option_translations       ?[]record.ProductOptionTranslationCreateParams
+	option_values             []record.ProductOptionValueCreateParams
+	option_value_translations ?[]record.ProductOptionValueTranslationCreateParams
+	variants                  []record.VariantCreateParams
+	inventory_items           []record.InventoryItemCreateParams
+	variant_money_amounts     []record.VariantMoneyAmountUpdateParams
+	option_value_variant      []record.ProductOptionValueVariant
+	category_ids              ?[]record.ID
+	images                    ?[]record.ProductImageCreateParams
+	thumbnail_id              ?record.ID
+	sales_channel_ids         []record.ID
 }
 
-fn product_create(mut tx firebird.Transaction, product_id ID, handle string, p ProductCreateData) ! {
+fn product_create(mut tx firebird.Transaction, product_id record.ID, handle string, p ProductCreateData) ! {
 	record.product_create(mut tx, p.product) or {
 		return new_error_internal('Failed to create product', err.msg())
 	}
@@ -117,9 +109,7 @@ fn product_create(mut tx firebird.Transaction, product_id ID, handle string, p P
 	}
 }
 
-pub type ProductRetrieveParams = record.ProductRetrieveParams
-
-fn get_products_translations(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
+fn get_products_translations(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
 	translations := record.product_translations_retrieve(mut tx, product_ids) or {
 		return new_error_internal('Failed to retrieve product_translation', err.msg())
 	}
@@ -132,7 +122,7 @@ fn get_products_translations(mut tx firebird.Transaction, mut products_map map[s
 	}
 }
 
-fn get_products_seo(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
+fn get_products_seo(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
 	product_seo := record.product_seo_retrieve(mut tx, product_ids) or {
 		return new_error_internal('Failed to retrieve seo', err.msg())
 	}
@@ -157,7 +147,7 @@ fn get_products_seo(mut tx firebird.Transaction, mut products_map map[string]Pro
 	}
 }
 
-fn get_products_images(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
+fn get_products_images(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
 	images := record.product_image_retrieve(mut tx, product_ids) or {
 		return new_error_internal('Failed to retrieve product_image', err.msg())
 	}
@@ -188,7 +178,7 @@ fn get_products_images(mut tx firebird.Transaction, mut products_map map[string]
 	}
 }
 
-fn get_products_sales_channels(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
+fn get_products_sales_channels(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
 	sales_channels := record.product_sales_channel_retrieve(mut tx, product_ids) or {
 		return new_error_internal('Failed to retrieve product_sales_channel', err.msg())
 	}
@@ -201,8 +191,8 @@ fn get_products_sales_channels(mut tx firebird.Transaction, mut products_map map
 	}
 }
 
-fn get_products_categories(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
-	category_products := record.category_product_retrieve(mut tx, CategoryProductRetrieveParams{
+fn get_products_categories(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
+	category_products := record.category_product_retrieve(mut tx, record.CategoryProductRetrieveParams{
 		product_ids: product_ids
 	}) or { return new_error_internal('Failed to retrieve category_product', err.msg()) }
 
@@ -214,7 +204,7 @@ fn get_products_categories(mut tx firebird.Transaction, mut products_map map[str
 	}
 }
 
-fn get_products_options(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
+fn get_products_options(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
 	options := record.product_option_retrieve(mut tx, product_ids) or {
 		return new_error_internal('Failed to retrieve product_option', err.msg())
 	}
@@ -224,10 +214,10 @@ fn get_products_options(mut tx firebird.Transaction, mut products_map map[string
 	get_product_option_values(mut tx, mut options_map, option_ids)!
 }
 
-fn get_products_variants(mut tx firebird.Transaction, mut products_map map[string]Product, product_ids []ID) ! {
+fn get_products_variants(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []record.ID) ! {
 	// TODO loop for pagination or auto-loop in firebird driver (upstream)
-	variants := record.variant_retrieve(mut tx, VariantRetrieveParams{
-		product_ids:  [product_ids]
+	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
+		product_ids:  product_ids
 		with_deleted: false
 		offset:       offset_default
 		fetch:        max_fetch
@@ -249,13 +239,13 @@ fn get_products_variants(mut tx firebird.Transaction, mut products_map map[strin
 }
 
 // TODO: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient, but separating the logic this way also makes sense.
-pub fn product_list(mut tx firebird.Transaction, p ProductRetrieveParams) ![]Product {
+pub fn product_list(mut tx firebird.Transaction, p record.ProductRetrieveParams) ![]record.Product {
 	count := record.product_retrieve_count(mut tx, p) or {
 		return new_error_internal('Failed to retrieve product count', err.msg())
 	}
 
 	if count == 0 {
-		return []Product{}
+		return []record.Product{}
 	}
 
 	products := record.product_retrieve(mut tx, p) or {
@@ -272,7 +262,7 @@ pub fn product_list(mut tx firebird.Transaction, p ProductRetrieveParams) ![]Pro
 	get_products_variants(mut tx, mut products_map, product_ids)!
 
 	// sort complete products
-	mut complete_products := []Product{len: products.len}
+	mut complete_products := []record.Product{len: products.len}
 	for i := 0; products.len; i++ {
 		id := products[i].id
 		complete_products[i] = products_map[id.string()]
@@ -280,8 +270,8 @@ pub fn product_list(mut tx firebird.Transaction, p ProductRetrieveParams) ![]Pro
 	return complete_products
 }
 
-pub fn product_get(mut tx firebird.Transaction, product_id ID) !Product {
-	products := record.product_retrieve(mut tx, ProductRetrieveParams{
+pub fn product_get(mut tx firebird.Transaction, product_id record.ID) !record.Product {
+	products := record.product_retrieve(mut tx, record.ProductRetrieveParams{
 		ids:          [product_id]
 		with_deleted: false
 		offset:       offset_default
@@ -307,29 +297,27 @@ pub fn product_get(mut tx firebird.Transaction, product_id ID) !Product {
 	return products_map[product_id.string()]
 }
 
-pub type ProductUpdateParams = record.ProductUpdateParams
-
 pub struct ProductUpdateData {
 pub:
-	product                   ProductUpdateParams
-	translations              ?[]ProductTranslationCreateParams
-	seo                       ?SEOUpdateParams
-	seo_translations          ?[]SEOTranslationCreateParams
-	images                    ?[]ProductImageCreateParams
-	thumbnail_id              ?ID
-	sales_channel_ids         ?[]ID
-	category_ids              ?[]ID
-	options                   ?[]ProductOptionUpdateParams
-	option_translations       ?ProductOptionTranslationUpdateParams
-	option_values             ?[]ProductOptionValueUpdateParams
-	option_value_translations ?ProductOptionValueTranslationUpdateParams
-	option_value_variant      ?[]ProductOptionValueVariant
-	variants                  ?[]VariantUpdateParams
-	inventory_items           ?[]InventoryItemUpdateParams
-	variant_money_amounts     ?[]VariantMoneyAmountUpdateParams
+	product                   record.ProductUpdateParams
+	translations              ?[]record.ProductTranslationCreateParams
+	seo                       ?record.SEOUpdateParams
+	seo_translations          ?[]record.SEOTranslationCreateParams
+	images                    ?[]record.ProductImageCreateParams
+	thumbnail_id              ?record.ID
+	sales_channel_ids         ?[]record.ID
+	category_ids              ?[]record.ID
+	options                   ?[]record.ProductOptionUpdateParams
+	option_translations       ?record.ProductOptionTranslationUpdateParams
+	option_values             ?[]record.ProductOptionValueUpdateParams
+	option_value_translations ?record.ProductOptionValueTranslationUpdateParams
+	option_value_variant      ?[]record.ProductOptionValueVariant
+	variants                  ?[]record.VariantUpdateParams
+	inventory_items           ?[]record.InventoryItemUpdateParams
+	variant_money_amounts     ?[]record.VariantMoneyAmountUpdateParams
 }
 
-fn product_translations_update(mut tx firebird.Transaction, product_id ID, p []ProductTranslationCreateParams) ! {
+fn product_translations_update(mut tx firebird.Transaction, product_id record.ID, p []record.ProductTranslationCreateParams) ! {
 	record.product_translation_delete(mut tx, product_id) or {
 		return new_error_internal('Failed to delete existing product_translation', err.msg())
 	}
@@ -341,7 +329,7 @@ fn product_translations_update(mut tx firebird.Transaction, product_id ID, p []P
 	}
 }
 
-fn product_seo_translations_update(mut tx firebird.Transaction, product_id ID, p []SEOTranslationCreateParams) ! {
+fn product_seo_translations_update(mut tx firebird.Transaction, product_id record.ID, p []record.SEOTranslationCreateParams) ! {
 	record.product_seo_translations_delete(mut tx, product_id) or {
 		return new_error_internal('Could not delete seo_translations', err.msg())
 	}
@@ -353,7 +341,7 @@ fn product_seo_translations_update(mut tx firebird.Transaction, product_id ID, p
 	}
 }
 
-fn product_images_update(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
+fn product_images_update(mut tx firebird.Transaction, product_id record.ID, images []record.ProductImageCreateParams) ! {
 	record.product_thumbnail_delete(mut tx, product_id) or {
 		return new_error_internal('Failed to delete product thumbnail', err.msg())
 	}
@@ -464,7 +452,7 @@ pub fn product_update(mut tx firebird.Transaction, p ProductUpdateData) ! {
 	}
 }
 
-pub fn product_delete(mut tx firebird.Transaction, product_id ID) ! {
+pub fn product_delete(mut tx firebird.Transaction, product_id record.ID) ! {
 	record.product_delete(mut tx, product_id) or {
 		return new_error_internal('Failed to delete product', err.msg())
 	}

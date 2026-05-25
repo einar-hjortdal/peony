@@ -4,6 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 
 pub struct Store {
+pub:
 	id                        ID
 	created_at                firebird.DateTime
 	updated_at                firebird.DateTime
@@ -12,11 +13,11 @@ pub struct Store {
 	default_region_id         ID
 	default_stock_location_id ID
 	default_sales_channel_id  ID
-mut:
+pub mut:
 	locales []Locale
 }
 
-pub fn (s Store) id() {
+pub fn (s Store) id() ID {
 	return s.id
 }
 
@@ -122,6 +123,7 @@ pub fn store_locales_update(mut tx firebird.Transaction, store_id ID, locale_ids
 }
 
 pub struct StoreUpdateParams {
+pub:
 	name                      ?string
 	default_locale_id         ?ID
 	default_region_id         ?ID

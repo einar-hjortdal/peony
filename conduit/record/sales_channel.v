@@ -20,6 +20,7 @@ pub fn (sc SalesChannel) id() ID {
 }
 
 pub struct SalesChannelRetrieveParams {
+pub:
 	ids    ?[]ID
 	offset i32
 	fetch  i32

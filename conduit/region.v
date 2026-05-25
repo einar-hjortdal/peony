@@ -4,18 +4,14 @@ import veb
 import einar_hjortdal.firebird
 import record
 
-pub type Region = record.Region
-
-pub type RegionRetriveParams = record.RegionRetriveParams
-
-pub fn region_list_count(mut tx firebird.Transaction, p RegionRetriveParams) !i64 {
+pub fn region_list_count(mut tx firebird.Transaction, p record.RegionRetriveParams) !i64 {
 	count := record.region_retrieve_count(mut tx, p) or {
 		return new_error_internal('Failed to retrieve region count', err.msg())
 	}
 	return count
 }
 
-pub fn region_list(mut tx firebird.Transaction, p RegionRetriveParams) ![]Region {
+pub fn region_list(mut tx firebird.Transaction, p record.RegionRetriveParams) ![]record.Region {
 	regions := record.region_retrieve(mut tx, p) or {
 		return new_error_internal('Failed to retrieve regions', err.msg())
 	}
@@ -24,8 +20,8 @@ pub fn region_list(mut tx firebird.Transaction, p RegionRetriveParams) ![]Region
 	return regions
 }
 
-pub fn region_get_by_id(mut tx firebird.Transaction, region_id ID) !Region {
-	regions := record.region_retrieve(mut tx, RegionRetriveParams{
+pub fn region_get_by_id(mut tx firebird.Transaction, region_id record.ID) !record.Region {
+	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
 		ids:    [region_id]
 		offset: offset_default
 		fetch:  1
@@ -36,27 +32,23 @@ pub fn region_get_by_id(mut tx firebird.Transaction, region_id ID) !Region {
 		return new_error_not_found('region not found', 'No region exists with the given id')
 	}
 
-	region = regions[0]
+	region := regions[0]
 	return region
 }
 
-pub type RegionCreateParams = record.RegionCreateParams
-
-pub fn region_create(mut tx firebird.Transaction, region_id ID, p RegionCreateParams) ! {
+pub fn region_create(mut tx firebird.Transaction, region_id record.ID, p record.RegionCreateParams) ! {
 	record.region_create(mut tx, region_id, p) or {
 		return new_error_internal('Could not create region', err.msg())
 	}
 }
 
-pub type RegionUpdateParams = record.RegionUpdateParams
-
-pub fn region_update(mut tx firebird.Transaction, region_id ID, p RegionUpdateParams) ! {
+pub fn region_update(mut tx firebird.Transaction, region_id record.ID, p record.RegionUpdateParams) ! {
 	record.region_update(mut tx, region_id, p) or {
 		return new_error_internal('Could not update region', err.msg())
 	}
 }
 
-pub fn region_delete(mut tx firebird.Transaction, region_id ID) ! {
+pub fn region_delete(mut tx firebird.Transaction, region_id record.ID) ! {
 	record.region_delete(mut tx, region_id) or {
 		return new_error_internal('Could not delete region', err.msg())
 	}

@@ -226,7 +226,7 @@ pub mut:
 	translations []ProductOptionTranslation
 }
 
-fn (p ProductOption) id() ID {
+pub fn (p ProductOption) id() ID {
 	return p.id
 }
 

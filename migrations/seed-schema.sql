@@ -23,7 +23,6 @@ CREATE TABLE password_details (
 
 CREATE UNIQUE INDEX "069e1f68-bede-16c9-0000-ee68688a668b" ON password_parameters (hash);
 
-
 CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
   handle VARCHAR(63) NOT NULL,

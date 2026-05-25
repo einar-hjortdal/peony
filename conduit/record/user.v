@@ -86,6 +86,7 @@ pub fn user_create(mut tx firebird.Transaction, p UserCreateParams) ! {
 }
 
 pub struct UserListParams {
+pub:
 	ids          ?[]ID
 	handle       ?string
 	email        ?string
@@ -128,7 +129,7 @@ pub fn user_list_conditions(p UserListParams) (string, []firebird.Value) {
 }
 
 pub fn user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
-	conditions, params := model_user_list_conditions(p)
+	conditions, params := user_list_conditions(p)
 	query := 'SELECT COUNT(*) FROM app_user ${conditions}'
 	data := tx.execute(query, ...params)!
 	rows := data.rows()
@@ -138,7 +139,7 @@ pub fn user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 }
 
 pub fn user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
-	conditions, mut params := model_user_list_conditions(p)
+	conditions, mut params := user_list_conditions(p)
 
 	mut sorting := 'ORDER BY created_at ${p.order} 
 		OFFSET ? ROWS
@@ -205,8 +206,16 @@ pub fn user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 	return users
 }
 
+pub struct UserUpdateParams {
+pub:
+	first_name ?string
+	last_name  ?string
+	role       ?string
+	metadata   ?string
+}
+
 // TODO handle password
-pub fn user_update(mut tx firebird.Transaction, user_id ID, p UserUpdateRequest) ! {
+pub fn user_update(mut tx firebird.Transaction, user_id ID, p UserUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 

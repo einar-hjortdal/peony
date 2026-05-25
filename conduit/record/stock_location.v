@@ -12,16 +12,17 @@ pub struct StockLocation {
 	// address Address
 }
 
-pub fn (sl StockLocation) id() {
+pub fn (sl StockLocation) id() ID {
 	return sl.id
 }
 
 // TODO fetch, order...
 pub struct StockLocationRetrieveParams {
+pub:
 	ids ?[]ID
 }
 
-pub fn stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []firebird.Value) {
+fn stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []firebird.Value) {
 	mut conditions := []string{}
 	mut params := []firebird.Value{}
 
@@ -34,7 +35,7 @@ pub fn stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string
 }
 
 pub fn stock_location_retrieve_count(mut tx firebird.Transaction, p StockLocationRetrieveParams) !i64 {
-	conditions, params := model_stock_location_retrieve_conditions(p)
+	conditions, params := stock_location_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM stock_location ${conditions}', ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -42,8 +43,8 @@ pub fn stock_location_retrieve_count(mut tx firebird.Transaction, p StockLocatio
 	return count
 }
 
-fn stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRetrieveParams) ![]StockLocation {
-	conditions, mut params := model_stock_location_retrieve_conditions(p)
+pub fn stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRetrieveParams) ![]StockLocation {
+	conditions, mut params := stock_location_retrieve_conditions(p)
 
 	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, name, address_id 
 		FROM stock_location ${conditions}',

@@ -4,11 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub type Category = record.Category
-
-pub type CategoryRetrieveParams = record.CategoryRetrieveParams
-
-pub fn category_list_count(mut tx firebird.Transaction, p CategoryRetrieveParams) !i64 {
+pub fn category_list_count(mut tx firebird.Transaction, p record.CategoryRetrieveParams) !i64 {
 	count := record.category_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve category count', err.msg())
 	}
@@ -16,7 +12,7 @@ pub fn category_list_count(mut tx firebird.Transaction, p CategoryRetrieveParams
 }
 
 // TODO split store/admin conduit to fetch only data required by the endpoint
-pub fn category_list(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
+pub fn category_list(mut tx firebird.Transaction, p record.CategoryRetrieveParams) ![]record.Category {
 	categories := record.category_retrieve(mut tx, p) or {
 		return new_error_internal('Could not retrieve category', err.msg())
 	}
@@ -57,7 +53,7 @@ pub fn category_list(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]C
 		categories_map[category_id.string()].seo = seo_map[seo_id.string()]
 	}
 
-	mut complete_categories := []Category{len: categories_ids.len}
+	mut complete_categories := []record.Category{len: categories_ids.len}
 	for i := 0; i < categories_ids.len; i++ {
 		id := categories_ids[i]
 		complete_categories[i] = categories_map[id.string()]
@@ -65,8 +61,8 @@ pub fn category_list(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]C
 	return complete_categories
 }
 
-pub fn category_get(mut tx firebird.Transaction, category_id ID) !Category {
-	categories := record.category_retrieve(mut tx, CategoryRetrieveParams{
+pub fn category_get(mut tx firebird.Transaction, category_id record.ID) !record.Category {
+	categories := record.category_retrieve(mut tx, record.CategoryRetrieveParams{
 		ids:          [category_id]
 		with_deleted: false
 		offset:       offset_default
@@ -108,15 +104,11 @@ pub fn category_get(mut tx firebird.Transaction, category_id ID) !Category {
 	return category
 }
 
-pub type CategoryCreateParams = record.CategoryCreateParams
-
-pub type CategoryTranslationUpdateParams = record.CategoryTranslationUpdateParams
-
 pub struct CateogryCreateData {
 pub:
-	category         CategoryCreateParams
+	category         record.CategoryCreateParams
 	seo              CategorySEOCreateParams
-	translations     ?[]CategoryTranslationUpdateParams
+	translations     ?[]record.CategoryTranslationUpdateParams
 	seo_translations ?[]SEOTranslationCreateParams
 }
 
@@ -146,13 +138,11 @@ pub fn category_create(mut tx firebird.Transaction, p CateogryCreateData) ! {
 	}
 }
 
-pub type CategoryUpdateParams = record.CategoryUpdateParams
-
 pub struct CategoryUpdateData {
 pub:
-	category         CategoryUpdateParams
+	category         record.CategoryUpdateParams
 	seo              ?SEOUpdateParams
-	translations     ?[]CategoryTranslationUpdateParams
+	translations     ?[]record.CategoryTranslationUpdateParams
 	seo_translations ?[]SEOTranslationCreateParams
 }
 
@@ -199,5 +189,3 @@ pub fn category_delete(mut tx firebird.Transaction, category_id ID) ! {
 		return new_error_internal('Could not delete category', err.msg())
 	}
 }
-
-pub type CategoryProductRetrieveParams = record.CategoryProductRetrieveParams

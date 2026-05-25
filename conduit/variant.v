@@ -4,11 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub type Variant = record.Variant
-
-pub type VariantRetrieveParams = record.VariantRetrieveParams
-
-fn get_variants_money_amounts(mut tx firebird.Transaction, mut variants_map map[string]Variant, variant_ids []ID) ! {
+fn get_variants_money_amounts(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []record.ID) ! {
 	money_amounts := record.variant_money_amount_retrieve(mut tx, variant_ids) or {
 		return new_error_internal('Failed to retrieve product_variant_money_amount', err.msg())
 	}
@@ -21,7 +17,7 @@ fn get_variants_money_amounts(mut tx firebird.Transaction, mut variants_map map[
 	}
 }
 
-fn get_variants_inventory_items(mut tx firebird.Transaction, mut variants_map map[string]Variant, variant_ids []ID) ! {
+fn get_variants_inventory_items(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []record.ID) ! {
 	inventory_items := record.inventory_item_retrieve(mut tx, variant_ids) or {
 		return new_error_internal('Failed to retrieve inventory_item', err.msg())
 	}
@@ -30,22 +26,22 @@ fn get_variants_inventory_items(mut tx firebird.Transaction, mut variants_map ma
 	get_inventory_items_levels(mut tx, mut item_map, item_ids)!
 }
 
-fn get_variants_option_values(mut tx firebird.Transaction, mut variants_map map[string]Variant, variant_ids []ID) ! {
-	option_value_variants := record.product_option_value_variant_retrieve(mut tx, ProductOptionValueVariantRetrieveParams{
+fn get_variants_option_values(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []record.ID) ! {
+	option_value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
 		variant_ids: variant_ids
 	}) or {
 		return new_error_internal('Failed to retrieve product_option_value_product_variant',
 			err.msg())
 	}
 
-	option_values := record.product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+	option_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
 		variant_ids: variant_ids
 	}) or { return new_error_internal('Failed to retrieve product_option_value', err.msg()) }
 
 	mut value_map, value_ids := make_identifiable_map(option_values)
 	get_product_option_values_translations(mut tx, mut value_map, value_ids)!
 
-	mut variant_values_map := map[string][]ID{}
+	mut variant_values_map := map[string][]record.ID{}
 	for i := 0; i < option_value_variants.len; i++ {
 		variant_id := option_value_variants[i].variant_id
 		value_id := option_value_variants[i].option_value_id
@@ -63,8 +59,8 @@ fn get_variants_option_values(mut tx firebird.Transaction, mut variants_map map[
 	}
 }
 
-pub fn variant_get(mut tx firebird.Transaction, variant_id ID) !Variant {
-	variants := record.variant_retrieve(mut tx, VariantRetrieveParams{
+pub fn variant_get(mut tx firebird.Transaction, variant_id record.ID) !record.Variant {
+	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
 		offset:       offset_default
@@ -99,19 +95,19 @@ pub fn variant_get(mut tx firebird.Transaction, variant_id ID) !Variant {
 	variant.money_amounts = money_amounts
 	variant.inventory_item = inventory_item
 
-	option_value_variants := record.product_option_value_variant_retrieve(mut tx, ProductOptionValueVariantRetrieveParams{
+	option_value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
 		variant_ids: [variant.id]
 	}) or {
 		return new_error_internal('Could not retrieve product_option_value_variant', err.msg())
 	}
 
-	mut option_value_ids := []ID{len: option_value_variants.len}
+	mut option_value_ids := []record.ID{len: option_value_variants.len}
 	for i := 0; i < option_value_variants.len; i++ {
 		option_value_variant := option_value_variants[i]
 		option_value_ids[i] = option_value_variant.option_value_id
 	}
 
-	option_values := record.product_option_values_retrieve(mut tx, ProductOptionValueRetrieveParams{
+	option_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
 		ids: option_value_ids
 	}) or { return new_error_internal('Could not retrieve product_option_value', err.msg()) }
 
@@ -129,7 +125,7 @@ pub fn variant_get(mut tx firebird.Transaction, variant_id ID) !Variant {
 		option_values_map[option_value_id.string()].translations = arrays.concat(old, translation)
 	}
 
-	mut complete_option_values := []ProductOptionValue{len: option_value_ids.len}
+	mut complete_option_values := []record.ProductOptionValue{len: option_value_ids.len}
 	for i := 0; i < option_value_ids.len; i++ {
 		option_value_id := option_value_ids[i]
 		complete_option_values[i] = option_values_map[option_value_id.string()]
@@ -140,13 +136,11 @@ pub fn variant_get(mut tx firebird.Transaction, variant_id ID) !Variant {
 	return variant
 }
 
-pub type VariantCreateParams = record.VariantCreateParams
-
 pub struct VariantCreateData {
-	variant        VariantCreateParams
-	option_values  []ProductOptionValueVariant
-	inventory_item InventoryItemCreateParams
-	money_amounts  []VariantMoneyAmountUpdateParams
+	variant        record.VariantCreateParams
+	option_values  []record.ProductOptionValueVariant
+	inventory_item record.InventoryItemCreateParams
+	money_amounts  []record.VariantMoneyAmountUpdateParams
 }
 
 pub fn variant_create(mut tx firebird.Transaction, p VariantCreateData) ! {
@@ -167,13 +161,11 @@ pub fn variant_create(mut tx firebird.Transaction, p VariantCreateData) ! {
 	}
 }
 
-pub type VariantUpdateParams = record.VariantUpdateParams
-
 pub struct VariantUpdateData {
-	variant        VariantUpdateParams
-	option_values  []ProductOptionValueVariant
-	inventory_item ?InventoryItemUpdateParams
-	money_amounts  ?[]VariantMoneyAmountUpdateParams
+	variant        record.VariantUpdateParams
+	option_values  ?[]record.ProductOptionValueVariant
+	inventory_item ?record.InventoryItemUpdateParams
+	money_amounts  ?[]record.VariantMoneyAmountUpdateParams
 }
 
 pub fn variant_update(mut tx firebird.Transaction, p VariantUpdateData) ! {
@@ -200,7 +192,7 @@ pub fn variant_update(mut tx firebird.Transaction, p VariantUpdateData) ! {
 	}
 }
 
-fn conduit_variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
+fn conduit_variant_delete(mut tx firebird.Transaction, variant_id record.ID) ! {
 	record.variant_delete(mut tx, variant_id) or {
 		return new_error_internal('Could not delete variant', err.msg())
 	}

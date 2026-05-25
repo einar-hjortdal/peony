@@ -3,19 +3,15 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub type StockLocation = record.StockLocation
-
-pub type StockLocationRetrieveParams = record.StockLocationRetrieveParams
-
-pub fn stock_location_list(mut tx firebird.Transaction, p StockLocationRetrieveParams) ![]StockLocation {
+pub fn stock_location_list(mut tx firebird.Transaction, p record.StockLocationRetrieveParams) ![]record.StockLocation {
 	stock_locations := record.stock_location_retrieve(mut tx, p) or {
 		return new_error_internal('Could not get stock_location', err.msg())
 	}
 	return stock_locations
 }
 
-pub fn stock_location_get(mut tx firebird.Transaction, stock_location_id ID) !StockLocation {
-	stock_locations := record.stock_location_retrieve(mut tx, StockLocationRetrieveParams{
+pub fn stock_location_get(mut tx firebird.Transaction, stock_location_id record.ID) !record.StockLocation {
+	stock_locations := record.stock_location_retrieve(mut tx, record.StockLocationRetrieveParams{
 		ids: [stock_location_id]
 	}) or { return new_error_internal('Could not get stock_location', err.msg()) }
 

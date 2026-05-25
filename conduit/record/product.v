@@ -128,7 +128,7 @@ pub:
 	type_id      ?ID
 	discountable bool
 	metadata     firebird.NullString
-mut:
+pub mut:
 	seo                ProductSEO
 	images             []ProductImage
 	options            []ProductOption
