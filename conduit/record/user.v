@@ -208,6 +208,7 @@ pub fn user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 
 pub struct UserUpdateParams {
 pub:
+	email      ?string
 	first_name ?string
 	last_name  ?string
 	role       ?string
@@ -215,18 +216,32 @@ pub:
 }
 
 // TODO handle password
+// TODO validate params
 pub fn user_update(mut tx firebird.Transaction, user_id ID, p UserUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
+	if email := p.email {
+		columns = arrays.concat(columns, 'email')
+		params = arrays.concat(params, email)
+	}
+
 	if first_name := p.first_name {
 		columns = arrays.concat(columns, 'first_name')
-		params = arrays.concat(params, first_name)
+		if first_name == '' {
+			params = arrays.concat(params, firebird.Null{})
+		} else {
+			params = arrays.concat(params, first_name)
+		}
 	}
 
 	if last_name := p.last_name {
 		columns = arrays.concat(columns, 'last_name')
-		params = arrays.concat(params, last_name)
+		if last_name == '' {
+			params = arrays.concat(params, firebird.Null{})
+		} else {
+			params = arrays.concat(params, last_name)
+		}
 	}
 
 	if role := p.role {

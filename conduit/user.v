@@ -12,7 +12,7 @@ pub const role_author = record.role_author
 pub const role_contributor = record.role_contributor
 
 // TODO create image
-pub fn user_create(mut tx firebird.Transaction, user_id record.ID, p record.UserCreateParams) ! {
+pub fn user_create(mut tx firebird.Transaction, p record.UserCreateParams) ! {
 	record.user_create(mut tx, p) or {
 		return new_error_internal('Failed to create user', err.msg())
 	}
@@ -59,8 +59,7 @@ pub fn user_get_by_id(mut tx firebird.Transaction, user_id record.ID) !record.Us
 		return new_error_not_found('user not found', 'No user exists with id `${user_id.string()}`')
 	}
 
-	user := users[0]
-	return user
+	return users[0]
 }
 
 pub fn user_get_by_email(mut tx firebird.Transaction, email string) !record.User {
@@ -75,7 +74,6 @@ pub fn user_get_by_email(mut tx firebird.Transaction, email string) !record.User
 		return new_error_not_found('user not found', 'No user exists with email `${email}`')
 	}
 
-	user := users[0]
-	return user
+	return users[0]
 }
 

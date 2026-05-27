@@ -301,6 +301,50 @@ pub:
 	metadata   ?string @[raw]
 }
 
+fn (p UserCreateRequest) hygienise() ! {
+	if p.email == '' {
+		return new_error_bad_request(error_field_empty, 'email')
+	}
+
+	if p.password == '' {
+		return new_error_bad_request(error_field_empty, 'password')
+	}
+
+	email_is_valid(p.email) or { return new_error_bad_request('invalid email', err.msg()) }
+
+	if role := p.role {
+		match role {
+			role_admin, role_member, role_developer, role_author, role_contributor {}
+			else {
+				return new_error_role_invalid()
+			}
+		}
+	}
+
+	if first_name := p.first_name {
+		if utf8_str_visible_length(first_name) > max_length_first_name {
+			return new_error_bad_request('first_name too long',
+				'first_name can be at most ${max_length_first_name} UTF8 characters long')
+		}
+	}
+
+	if last_name := p.last_name {
+		if utf8_str_visible_length(last_name) > max_length_last_name {
+			return new_error_bad_request('last_name too long',
+				'last_name can be at most ${max_length_last_name} UTF8 characters long')
+		}
+	}
+
+	if image := p.image {
+		if alt := image.alt {
+			if utf8_str_visible_length(alt) > max_length_alt {
+				return new_error_bad_request('alt too long',
+					'alt can be at most ${max_length_alt} UTF8 characters long')
+			}
+		}
+	}
+}
+
 pub struct UserUpdateRequest {
 pub:
 	email      ?string
@@ -309,6 +353,48 @@ pub:
 	role       ?string
 	image      ?ImageUpdateRequest
 	metadata   ?string @[raw]
+}
+
+fn (p UserUpdateRequest) hygienise() ! {
+	if email := p.email {
+		if email == '' {
+			return new_error_bad_request(error_field_empty, 'email')
+		}
+	}
+
+	email_is_valid(p.email) or { return new_error_bad_request('invalid email', err.msg()) }
+
+	if role := p.role {
+		match role {
+			role_admin, role_member, role_developer, role_author, role_contributor {}
+			else {
+				return new_error_role_invalid()
+			}
+		}
+	}
+
+	if first_name := p.first_name {
+		if utf8_str_visible_length(first_name) > max_length_first_name {
+			return new_error_bad_request('first_name too long',
+				'first_name can be at most ${max_length_first_name} UTF8 characters long')
+		}
+	}
+
+	if last_name := p.last_name {
+		if utf8_str_visible_length(last_name) > max_length_last_name {
+			return new_error_bad_request('last_name too long',
+				'last_name can be at most ${max_length_last_name} UTF8 characters long')
+		}
+	}
+
+	if image := p.image {
+		if alt := image.alt {
+			if utf8_str_visible_length(alt) > max_length_alt {
+				return new_error_bad_request('alt too long',
+					'alt can be at most ${max_length_alt} UTF8 characters long')
+			}
+		}
+	}
 }
 
 pub struct ProductTranslationRequest {

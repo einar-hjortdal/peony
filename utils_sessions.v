@@ -5,3 +5,4 @@ mut:
 	id ?ID
 }
 
+struct CustomerSessionValues {}

@@ -45,6 +45,7 @@ pub const default_thumbnail = 0
 const error_database_data_malformed = conduit.error_database_data_malformed
 const error_api_key_invalid = 'Invalid API Key'
 const error_empty_object = 'Received all empty fields'
+const error_field_invalid = 'Invalid field'
 const error_field_empty = 'Field cannot be empty'
 const error_field_explicit_empty = 'Field explicitly empty'
 const error_field_too_long = 'Field too long'
@@ -72,6 +73,14 @@ pub const role_member = conduit.role_member
 pub const role_developer = conduit.role_developer
 pub const role_author = conduit.role_author
 pub const role_contributor = conduit.role_contributor
+
+const roles = [
+	role_admin,
+	role_member,
+	role_developer,
+	role_author,
+	role_contributor,
+]
 
 fn new_id(mut g luuid.Generator) record.ID {
 	return conduit.new_id(mut g)
@@ -360,6 +369,11 @@ fn new_error_login() PeonyError {
 
 fn new_error_fetch_zero() PeonyError {
 	return new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
+}
+
+fn new_error_role_invalid() PeonyError {
+	return new_error_unprocessable_entity(error_field_invalid,
+		'role must be one of: ${roles.join(', ')}')
 }
 
 fn make_identifiable_map[T](identifiables []T) (map[string]T, []record.ID) {

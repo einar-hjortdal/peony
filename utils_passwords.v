@@ -17,12 +17,11 @@ const argon2id_salt_length = 16
 // Many projects use the PHC string format (https://github.com/P-H-C/phc-string-format) to store password hashes. For this application, it isn't obvious that storing the full PHC token per user is necessary:
 //   - Algorithm name, version, and parameters are unlikely to change often and would be duplicated across many rows.
 //   - Portability is not important for this application.
-// With today's default parameters the PHC token is roughly 220 bytes per user (~140 bytes for the token header + ~80 bytes for salt+hash). An alternative is to store the raw binary values and reference shared parameters:
+// An alternative is to store the raw binary values and reference shared parameters:
 //   - password_hash      BINARY(64)   // 64 bytes raw derived key
 //   - password_salt      BINARY(16)   // 16 bytes per-user salt
 //   - password_params_id BINARY(16)   // 16 bytes referencing params table
-// That layout is about 96 bytes per user, plus a single params row (~80 bytes) stored once. Amortized across any realistic user base, the shared params cost is negligible, so this approach can save ~124 bytes per user compared to storing the full PHC string.
-// This is slightly more complex, but it may be worth it at scale for the storage and I/O savings.
+// That layout is about 96 bytes per user, plus a single params row (~80 bytes) stored once. Amortized across any realistic user base, the shared params cost is negligible, so this approach can save ~124 bytes per user compared to storing the full PHC string. It is slightly more complex though.
 
 // When retrieving a password, retrieve the params from the database.
 // When inserting a new password, use the defined consts for parameters. These params may already be stored in the database: first verify if they exist and what their id is. If they already are set, use the existing id otherwise create a new record and then use that id.
