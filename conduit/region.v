@@ -3,9 +3,6 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub type Region = record.Region
-pub type RegionRetriveParams = record.RegionRetriveParams
-
 pub fn region_list_count(mut tx firebird.Transaction, p RegionRetriveParams) !i64 {
 	count := record.region_retrieve_count(mut tx, p) or {
 		return new_error_internal('Failed to retrieve region count', err.msg())

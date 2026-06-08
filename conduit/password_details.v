@@ -3,7 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub fn password_details_get(mut tx firebird.Transaction, p record.PasswordDetailsGetParams) !record.PasswordDetails {
+pub fn password_details_get(mut tx firebird.Transaction, p PasswordDetailsGetParams) !PasswordDetails {
 	password_details := record.password_details_get(mut tx, p) or {
 		return new_error_internal('Failed to get password_parameters', err.msg())
 	}
@@ -15,3 +15,4 @@ pub fn password_details_create(mut tx firebird.Transaction, id ID, function_name
 		return new_error_internal('Failed to create password_parameters', err.msg())
 	}
 }
+

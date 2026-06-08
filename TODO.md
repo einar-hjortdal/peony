@@ -104,10 +104,7 @@
 ## Internals
 
 - [x] Add tests
-- [ ] Add *error* level logs
-- [ ] Add *warn* level logs
-- [ ] Add *info* level logs
-- [ ] Add *debug* level logs
+- [ ] Add log messages (error, warn, info, debug)
 - [x] Separate response structs from internal structs
 - [x] Separate model parameter objects from Request objects
   - [x] Make Request objects public

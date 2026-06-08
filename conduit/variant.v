@@ -4,8 +4,6 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub type Variant = record.Variant
-
 fn get_variants_money_amounts(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
 	money_amounts := record.variant_money_amount_retrieve(mut tx, variant_ids) or {
 		return new_error_internal('Failed to retrieve product_variant_money_amount', err.msg())
@@ -199,3 +197,4 @@ fn conduit_variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
 		return new_error_internal('Could not delete variant', err.msg())
 	}
 }
+

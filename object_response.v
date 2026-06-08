@@ -1,7 +1,6 @@
 module peony
 
 import time
-import veb
 import conduit
 import einar_hjortdal.firebird
 
@@ -21,18 +20,6 @@ fn format_array_id(aid []ID) []string {
 		res[i] = aid[i].string()
 	}
 	return res
-}
-
-// TODO eliminate: always return created/updated resource
-pub struct PeonySuccess {
-pub:
-	success bool
-}
-
-fn success(mut ctx Context) veb.Result {
-	return ctx.json(PeonySuccess{
-		success: true
-	})
 }
 
 pub struct DeletedResponse {}

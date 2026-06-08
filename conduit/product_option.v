@@ -4,11 +4,6 @@ import einar_hjortdal.firebird
 import record
 import arrays
 
-pub type ProductOptionValueTranslation = record.ProductOptionValueTranslation
-pub type ProductOptionValue = record.ProductOptionValue
-pub type ProductOptionTranslation = record.ProductOptionTranslation
-pub type ProductOption = record.ProductOption
-
 fn get_product_option_translations(mut tx firebird.Transaction, mut options_map map[string]record.ProductOption, option_ids []ID) ! {
 	translations := record.product_option_translations_retrieve(mut tx, option_ids) or {
 		return new_error_internal('Failed to retrieve product_option_translations', err.msg())
@@ -52,3 +47,4 @@ fn get_product_option_values(mut tx firebird.Transaction, mut options_map map[st
 		options_map[option_id.string()].values = arrays.concat(old, complete_value)
 	}
 }
+

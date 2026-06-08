@@ -4,10 +4,6 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub type Product = record.Product
-pub type ProductTranslation = record.ProductTranslation
-pub type ProductRetrieveParams = record.ProductRetrieveParams
-
 pub struct ProductCreateData {
 pub:
 	product                   record.ProductCreateParams
@@ -218,7 +214,7 @@ fn get_products_options(mut tx firebird.Transaction, mut products_map map[string
 }
 
 fn get_products_variants(mut tx firebird.Transaction, mut products_map map[string]record.Product, product_ids []ID) ! {
-	// TODO loop for pagination or auto-loop in firebird driver (upstream)
+	// TODO loop for pagination
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		product_ids:  product_ids
 		with_deleted: false
@@ -460,3 +456,4 @@ pub fn product_delete(mut tx firebird.Transaction, product_id ID) ! {
 		return new_error_internal('Failed to delete product', err.msg())
 	}
 }
+

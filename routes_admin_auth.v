@@ -42,11 +42,6 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		return ctx.handle_error(perr)
 	}
 
-	if p.email == '' {
-		perr := new_error_bad_request(error_field_empty, 'email')
-		return ctx.handle_error(perr)
-	}
-
 	if p.password == '' {
 		perr := new_error_bad_request(error_field_empty, 'password')
 		return ctx.handle_error(perr)
@@ -56,8 +51,6 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		perr := new_error_bad_request('Invalid email', err.msg())
 		return ctx.handle_error(perr)
 	}
-	// TODO quick validate email: min/max char length, shape and presence of @ and .
-	// return error if user already logged in
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
@@ -81,7 +74,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 	match password_details.function_name {
 		argon2id_name {
 			parameters := decode_argon2id_parameters(password_details.parameters) or {
-				return ctx.handle_error(perr)
+				return ctx.handle_error(new_error_login())
 			}
 
 			argon2id_hash := Argon2idHash{
@@ -114,5 +107,6 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 @['/admin/auth'; delete]
 pub fn (mut app App) admin_auth_del(mut ctx Context) veb.Result {
 	ctx.user_session.to_prune = true
-	return success(mut ctx)
+	return ctx.handle_ok('logged out')
 }
+

@@ -24,11 +24,11 @@ pub:
 	session_admin_prefix   string
 }
 
-// TODO validate
 fn (c Config) get_default_user_email() !string {
 	if c.default_user_email == '' {
 		return error('default_user_email is required')
 	}
+	email_is_valid(c.default_user_email) or { return error('invalid email: ${err.msg()}') }
 	return c.default_user_email
 }
 
@@ -115,3 +115,4 @@ fn (c Config) verify() !Config {
 		session_admin_prefix:   c.get_session_admin_prefix()!
 	}
 }
+

@@ -74,7 +74,12 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return ctx.middleware_handle_error(err)
 	}
 	tx.rollback() or {}
-	app.cache_set_api_key(api_key) or {} // TODO handle error
+
+	app.cache_set_api_key(api_key) or {
+		log.warn('middleware_get_api_key failed to cache API key: ${err.msg()}')
+	}
+
 	ctx.api_key = api_key
 	return true
 }
+

@@ -3,6 +3,7 @@ module peony
 import veb
 import json
 import conduit
+import log
 
 // list api keys
 @['/admin/api-keys'; get]
@@ -127,7 +128,9 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 		return ctx.handle_error(perr)
 	}
 
-	app.cache_set_api_key(api_key) or {} // TODO handle error
+	app.cache_set_api_key(api_key) or {
+		log.warn('api_keys_update failed to cache API key: ${err.msg()}')
+	}
 
 	return ctx.handle_ok(APIKeyResponseEnvelope{
 		api_key: format_api_key_response(api_key)
@@ -149,7 +152,9 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 		return ctx.handle_error(err)
 	}
 
-	app.cache_delete_api_key(parsed_api_key_id) or {} // TODO handle error
+	app.cache_delete_api_key(parsed_api_key_id) or {
+		log.warn('api_keys_delete failed to remove API key from cache: ${err.msg()}')
+	}
 
 	tx.commit() or {
 		perr := new_error_internal(error_transaction_commit, err.msg())

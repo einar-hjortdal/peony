@@ -3,9 +3,6 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub type SalesChannel = record.SalesChannel
-pub type SalesChannelRetrieveParams = record.SalesChannelRetrieveParams
-
 pub fn sales_channel_create(mut tx firebird.Transaction, sales_channel_id ID, p record.SalesChannelCreateParams) ! {
 	record.sales_channel_create(mut tx, sales_channel_id, p) or {
 		return new_error_internal('Could not create sales_channel', err.msg())
@@ -47,3 +44,4 @@ pub fn sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_ch
 		return new_error_internal('Could not remove stock_location from sales_channel', err.msg())
 	}
 }
+

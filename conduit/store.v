@@ -3,8 +3,6 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub type Store = record.Store
-
 pub fn store_get(mut tx firebird.Transaction) !Store {
 	mut store := record.store_retrieve(mut tx) or {
 		return new_error_internal('Failed to retrieve store', err.msg())
@@ -39,3 +37,4 @@ pub fn conduit_store_update(mut tx firebird.Transaction, store_id ID, p StoreUpd
 		}
 	}
 }
+

@@ -4,9 +4,6 @@ import einar_hjortdal.firebird
 import record
 import arrays
 
-pub type InventoryItem = record.InventoryItem
-pub type InventoryLevel = record.InventoryLevel
-
 pub fn inventory_level_update(mut tx firebird.Transaction, p record.InventoryLevelUpdateParams) ! {
 	record.inventory_level_update(mut tx, p) or {
 		return new_error_internal('Could not create inventory_level', err.msg())
@@ -25,3 +22,4 @@ fn get_inventory_items_levels(mut tx firebird.Transaction, mut items_map map[str
 		items_map[item_id.string()].inventory_levels = arrays.concat(old, level)
 	}
 }
+

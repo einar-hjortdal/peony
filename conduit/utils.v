@@ -13,8 +13,6 @@ pub const order_asc = record.order_asc
 pub const order_desc = record.order_desc
 pub const order_default = record.order_default
 
-pub type ID = record.ID
-
 pub fn new_id(mut g luuid.Generator) ID {
 	return record.new_id(mut g)
 }
@@ -90,3 +88,4 @@ fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
 	}
 	return map_res, arr_res
 }
+

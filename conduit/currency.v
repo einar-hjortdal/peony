@@ -3,10 +3,6 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub type Currency = record.Currency
-
-pub type CurrencyRetrieveParams = record.CurrencyRetrieveParams
-
 pub fn currency_list_count(mut tx firebird.Transaction, p CurrencyRetrieveParams) !i64 {
 	count := record.currency_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve currency count', err.msg())

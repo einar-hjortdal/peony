@@ -458,7 +458,7 @@ fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetr
 // Exact match on product handle. Less efficient than ids.
 //
 // ## is_giftcard
-// Filters by gift card status. (TODO)
+// Filters gift cards.
 //
 // ## category_ids
 // Exact match on product category IDs.

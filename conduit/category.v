@@ -4,11 +4,6 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub type Category = record.Category
-pub type CategoryTranslation = record.CategoryTranslation
-pub type CategoryRetrieveParams = record.CategoryRetrieveParams
-pub type CategorySEOCreateParams = record.CategorySEOCreateParams
-
 pub fn category_list_count(mut tx firebird.Transaction, p CategoryRetrieveParams) !i64 {
 	count := record.category_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve category count', err.msg())
@@ -194,3 +189,4 @@ pub fn category_delete(mut tx firebird.Transaction, category_id ID) ! {
 		return new_error_internal('Could not delete category', err.msg())
 	}
 }
+

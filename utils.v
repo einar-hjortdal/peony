@@ -385,15 +385,3 @@ fn new_error_role_invalid() PeonyError {
 	return new_error_unprocessable_entity(error_field_invalid,
 		'role must be one of: ${roles.join(', ')}')
 }
-
-fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
-	mut map_res := map[string]T{}
-	mut arr_res := []ID{len: identifiables.len}
-	for i := 0; i < identifiables.len; i++ {
-		identifiable := identifiables[i]
-		id := identifiable.id()
-		map_res[id.string()] = identifiable
-		arr_res[i] = id
-	}
-	return map_res, arr_res
-}

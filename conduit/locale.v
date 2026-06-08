@@ -3,8 +3,6 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub type Locale = record.Locale
-
 pub fn locale_list_count(mut tx firebird.Transaction, p record.LocaleRetrieveParams) !i64 {
 	count := record.locale_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve locale count', err.msg())
@@ -34,3 +32,4 @@ fn conduit_locale_get(mut tx firebird.Transaction, locale_id ID) !Locale {
 	locale := locales[0]
 	return locale
 }
+
