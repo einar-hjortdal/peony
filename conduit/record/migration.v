@@ -33,4 +33,3 @@ pub fn migration_retrieve(mut tx firebird.Transaction) ![]Migration {
 	}
 	return migrations
 }
-

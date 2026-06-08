@@ -4,7 +4,12 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub fn category_list_count(mut tx firebird.Transaction, p record.CategoryRetrieveParams) !i64 {
+pub type Category = record.Category
+pub type CategoryTranslation = record.CategoryTranslation
+pub type CategoryRetrieveParams = record.CategoryRetrieveParams
+pub type CategorySEOCreateParams = record.CategorySEOCreateParams
+
+pub fn category_list_count(mut tx firebird.Transaction, p CategoryRetrieveParams) !i64 {
 	count := record.category_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve category count', err.msg())
 	}
@@ -12,7 +17,7 @@ pub fn category_list_count(mut tx firebird.Transaction, p record.CategoryRetriev
 }
 
 // TODO split store/admin conduit to fetch only data required by the endpoint
-pub fn category_list(mut tx firebird.Transaction, p record.CategoryRetrieveParams) ![]record.Category {
+pub fn category_list(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
 	categories := record.category_retrieve(mut tx, p) or {
 		return new_error_internal('Could not retrieve category', err.msg())
 	}
@@ -53,7 +58,7 @@ pub fn category_list(mut tx firebird.Transaction, p record.CategoryRetrieveParam
 		categories_map[category_id.string()].seo = seo_map[seo_id.string()]
 	}
 
-	mut complete_categories := []record.Category{len: categories_ids.len}
+	mut complete_categories := []Category{len: categories_ids.len}
 	for i := 0; i < categories_ids.len; i++ {
 		id := categories_ids[i]
 		complete_categories[i] = categories_map[id.string()]
@@ -61,8 +66,8 @@ pub fn category_list(mut tx firebird.Transaction, p record.CategoryRetrieveParam
 	return complete_categories
 }
 
-pub fn category_get(mut tx firebird.Transaction, category_id record.ID) !record.Category {
-	categories := record.category_retrieve(mut tx, record.CategoryRetrieveParams{
+pub fn category_get(mut tx firebird.Transaction, category_id ID) !Category {
+	categories := record.category_retrieve(mut tx, CategoryRetrieveParams{
 		ids:          [category_id]
 		with_deleted: false
 		offset:       offset_default

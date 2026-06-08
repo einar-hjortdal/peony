@@ -78,4 +78,3 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 	ctx.api_key = api_key
 	return true
 }
-

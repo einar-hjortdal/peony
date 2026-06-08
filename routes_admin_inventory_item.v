@@ -17,11 +17,10 @@ pub fn (mut app App) admin_inventory_level_update(mut ctx Context, inventory_ite
 	}
 
 	p := json.decode(InventoryLevelUpdateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode InventoryLevelUpdateRequest',
-			err.msg())
+		perr := new_error_bad_request('Could not decode InventoryLevelUpdateRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
 
-	return conduit_inventory_level_update(mut app, mut ctx, inventory_item_id_bin, stock_location_id_bin,
-		p)
+	return conduit_inventory_level_update(mut app, mut ctx, inventory_item_id_bin,
+		stock_location_id_bin, p)
 }

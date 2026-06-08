@@ -7,8 +7,8 @@ pub struct SEOTranslation {
 pub:
 	seo_id      ID
 	locale_id   ID
-	title       firebird.NullString
-	description firebird.NullString
+	title       ?string
+	description ?string
 }
 
 pub fn (seo_t SEOTranslation) locale_id() ID {
@@ -18,8 +18,8 @@ pub fn (seo_t SEOTranslation) locale_id() ID {
 pub struct SEO {
 pub:
 	id          ID
-	title       firebird.NullString
-	description firebird.NullString
+	title       ?string
+	description ?string
 pub mut:
 	translations []SEOTranslation
 }
@@ -51,8 +51,8 @@ pub fn seo_translation_retrieve(mut tx firebird.Transaction, seo_ids []ID) ![]SE
 		seo_translations[i] = SEOTranslation{
 			seo_id:      seo_id
 			locale_id:   locale_id
-			title:       title
-			description: description
+			title:       title.none_value()
+			description: description.none_value()
 		}
 	}
 
@@ -129,8 +129,8 @@ pub fn product_seo_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]Pr
 		product_seo[i] = ProductSEO{
 			id:          id
 			product_id:  product_id
-			title:       title
-			description: description
+			title:       title.none_value()
+			description: description.none_value()
 		}
 	}
 
@@ -293,11 +293,10 @@ pub fn category_seo_retrieve(mut tx firebird.Transaction, category_ids []ID) ![]
 		category_seo[i] = CategorySEO{
 			id:          id
 			category_id: product_id
-			title:       title
-			description: description
+			title:       title.none_value()
+			description: description.none_value()
 		}
 	}
 
 	return category_seo
 }
-

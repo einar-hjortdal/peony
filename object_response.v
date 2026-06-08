@@ -3,6 +3,25 @@ module peony
 import time
 import veb
 import conduit
+import einar_hjortdal.firebird
+
+fn format_none_date_time(ndt ?firebird.DateTime) ?time.Time {
+	date_time := ndt or { return none }
+	return date_time.Time
+}
+
+fn format_none_id(nid ?ID) ?string {
+	id := nid or { return none }
+	return id.string()
+}
+
+fn format_array_id(aid []ID) []string {
+	mut res := []string{len: aid.len}
+	for i := 0; i < aid.len; i++ {
+		res[i] = aid[i].string()
+	}
+	return res
+}
 
 // TODO eliminate: always return created/updated resource
 pub struct PeonySuccess {
@@ -32,9 +51,9 @@ pub:
 pub struct APIKeyResponse {
 pub:
 	id               string
-	created_at       time.Time @[json: 'createdAt']
-	updated_at       time.Time @[json: 'updatedAt']
-	deleted_at       time.Time @[json: 'deletedAt'; omitempty]
+	created_at       time.Time  @[json: 'createdAt']
+	updated_at       time.Time  @[json: 'updatedAt']
+	deleted_at       ?time.Time @[json: 'deletedAt'; omitempty]
 	name             string
 	sales_channel_id string
 }
@@ -44,7 +63,7 @@ fn format_api_key_response(p conduit.APIKey) APIKeyResponse {
 		id:               p.id.string()
 		created_at:       p.created_at.Time
 		updated_at:       p.updated_at.Time
-		deleted_at:       p.deleted_at.value.Time
+		deleted_at:       format_none_date_time(p.deleted_at)
 		name:             p.name
 		sales_channel_id: p.sales_channel_id.string()
 	}
@@ -69,12 +88,12 @@ pub:
 	handle     string
 	email      string
 	role       string
-	created_at time.Time @[json: 'createdAt']
-	updated_at time.Time @[json: 'updatedAt']
-	deleted_at time.Time @[json: 'deletedAt'; omitempty]
-	first_name string    @[json: 'firstName'; omitempty]
-	last_name  string    @[json: 'lastName'; omitempty]
-	metadata   string    @[omitempty]
+	created_at time.Time  @[json: 'createdAt']
+	updated_at time.Time  @[json: 'updatedAt']
+	deleted_at ?time.Time @[json: 'deletedAt'; omitempty]
+	first_name string     @[json: 'firstName'; omitempty]
+	last_name  string     @[json: 'lastName'; omitempty]
+	metadata   ?string    @[omitempty]
 }
 
 fn format_user_response(u conduit.User) UserResponse {
@@ -85,10 +104,10 @@ fn format_user_response(u conduit.User) UserResponse {
 		role:       u.role
 		created_at: u.created_at.Time
 		updated_at: u.updated_at.Time
-		deleted_at: u.deleted_at.Time
+		deleted_at: format_none_date_time(u.deleted_at)
 		first_name: u.first_name
 		last_name:  u.last_name
-		metadata:   u.metadata.value
+		metadata:   u.metadata
 	}
 }
 
@@ -138,13 +157,13 @@ pub:
 pub struct CurrencyResponse {
 pub:
 	code           string
-	decimal_digits i32 @[json: 'decimalDigits'; omitempty]
+	decimal_digits ?i32 @[json: 'decimalDigits'; omitempty]
 }
 
 fn format_currency_response(c conduit.Currency) CurrencyResponse {
 	return CurrencyResponse{
 		code:           c.code
-		decimal_digits: c.decimal_digits.value
+		decimal_digits: c.decimal_digits
 	}
 }
 
@@ -234,9 +253,9 @@ fn format_image_translation_response(p []conduit.ImageTranslation) map[string]Im
 	mut res := map[string]ImageTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
-		locale_id := translation.locale_id
+		locale_id := translation.locale_id.string()
 		res[locale_id] = ImageTranslationResponse{
-			image_id: translation.image_id
+			image_id: translation.image_id.string()
 			alt:      translation.alt
 		}
 	}
@@ -248,18 +267,18 @@ pub:
 	id           string
 	url          string
 	image_rank   i32
-	product_id   string @[json: 'productId']
-	alt          string @[omitempty]
+	product_id   string  @[json: 'productId']
+	alt          ?string @[omitempty]
 	translations map[string]ImageTranslationResponse @[omitempty]
 }
 
 fn format_product_image_response(p conduit.ProductImage) ProductImageResponse {
 	return ProductImageResponse{
-		id:           p.id
+		id:           p.id.string()
 		url:          p.url
 		image_rank:   p.image_rank
-		product_id:   p.product_id
-		alt:          p.alt.value
+		product_id:   p.product_id.string()
+		alt:          p.alt
 		translations: format_image_translation_response(p.translations)
 	}
 }
@@ -276,9 +295,9 @@ fn format_product_translations(p []conduit.ProductTranslation) map[string]Produc
 	mut res := map[string]ProductTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
-		locale_id := translation.locale_id
+		locale_id := translation.locale_id.string()
 		res[locale_id] = ProductTranslationResponse{
-			product_id:  translation.product_id
+			product_id:  translation.product_id.string()
 			title:       translation.title
 			subtitle:    translation.subtitle
 			description: translation.description
@@ -297,9 +316,9 @@ fn format_product_option_value_translations(p []conduit.ProductOptionValueTransl
 	mut res := map[string]ProductOptionValueTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
-		locale_id := translation.locale_id
+		locale_id := translation.locale_id.string()
 		res[locale_id] = ProductOptionValueTranslationResponse{
-			option_value_id: translation.option_value_id
+			option_value_id: translation.option_value_id.string()
 			name:            translation.name
 		}
 	}
@@ -317,8 +336,8 @@ pub:
 
 fn format_product_option_value_response(p conduit.ProductOptionValue) ProductOptionValueResponse {
 	return ProductOptionValueResponse{
-		id:           p.id
-		option_id:    p.option_id
+		id:           p.id.string()
+		option_id:    p.option_id.string()
 		name:         p.name
 		value_rank:   p.value_rank
 		translations: format_product_option_value_translations(p.translations)
@@ -335,9 +354,9 @@ fn format_product_option_translations(p []conduit.ProductOptionTranslation) map[
 	mut res := map[string]ProductOptionTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
-		locale_id := translation.locale_id
+		locale_id := translation.locale_id.string()
 		res[locale_id] = ProductOptionTranslationResponse{
-			option_id: translation.product_option_id
+			option_id: translation.product_option_id.string()
 			title:     translation.title
 		}
 	}
@@ -361,8 +380,8 @@ fn format_product_option_response(p conduit.ProductOption) ProductOptionResponse
 	}
 
 	return ProductOptionResponse{
-		id:           p.id
-		product_id:   p.product_id
+		id:           p.id.string()
+		product_id:   p.product_id.string()
 		title:        p.title
 		option_rank:  p.option_rank
 		values:       values
@@ -385,23 +404,23 @@ pub:
 pub struct TaxRateResponse {
 pub:
 	id         string
-	created_at time.Time @[json: 'createdAt']
-	updated_at time.Time @[json: 'updatedAt']
-	deleted_at time.Time @[json: 'deletedAt'; omitempty]
-	rate       f32       @[omitempty]
-	code       string    @[omitempty]
+	created_at time.Time  @[json: 'createdAt']
+	updated_at time.Time  @[json: 'updatedAt']
+	deleted_at ?time.Time @[json: 'deletedAt'; omitempty]
+	rate       f32        @[omitempty]
+	code       ?string    @[omitempty]
 	name       string
 	tax_type   string @[json: 'taxType'; omitempty]
 }
 
 fn format_tax_rate_response(t conduit.TaxRate) TaxRateResponse {
 	return TaxRateResponse{
-		id:         t.id
+		id:         t.id.string()
 		created_at: t.created_at.Time
 		updated_at: t.updated_at.Time
-		deleted_at: t.deleted_at.value.Time
+		deleted_at: format_none_date_time(t.deleted_at)
 		rate:       t.rate
-		code:       t.code.value
+		code:       t.code
 		name:       t.name
 		tax_type:   t.tax_type
 	}
@@ -431,7 +450,7 @@ fn format_regional_prices(p []conduit.VariantMoneyAmount) map[string]VariantPric
 	mut res := map[string]VariantPriceResponse{}
 	for i := 0; i < p.len; i++ {
 		money_amount := p[i]
-		region_id := money_amount.region_id
+		region_id := money_amount.region_id.string()
 		if region_id in res {
 			if money_amount.is_original {
 				res[region_id].original_price = money_amount.amount
@@ -464,7 +483,7 @@ pub:
 	name               string
 	created_at         time.Time         @[json: 'createdAt']
 	updated_at         time.Time         @[json: 'updatedAt']
-	deleted_at         time.Time         @[json: 'deletedAt'; omitempty]
+	deleted_at         ?time.Time        @[json: 'deletedAt'; omitempty]
 	currency_code      string            @[json: 'currencyCode']
 	includes_tax       bool              @[json: 'includesTax']
 	gift_cards_taxable bool              @[json: 'giftCardsTaxable']
@@ -483,7 +502,7 @@ fn format_region_response(r conduit.Region) RegionResponse {
 		name:               r.name
 		created_at:         r.created_at.Time
 		updated_at:         r.updated_at.Time
-		deleted_at:         r.deleted_at.value.Time
+		deleted_at:         format_none_date_time(r.deleted_at)
 		currency_code:      r.currency_code
 		includes_tax:       r.includes_tax
 		gift_cards_taxable: r.gift_cards_taxable
@@ -515,8 +534,8 @@ pub:
 
 fn format_inventory_level_response(v conduit.InventoryLevel) InventoryLevelResponse {
 	return InventoryLevelResponse{
-		inventory_item_id: v.inventory_item_id
-		stock_location_id: v.stock_location_id
+		inventory_item_id: v.inventory_item_id.string()
+		stock_location_id: v.stock_location_id.string()
 		stocked_quantity:  v.stocked_quantity
 		reserved_quantity: v.reserved_quantity
 	}
@@ -527,17 +546,17 @@ pub:
 	id                string
 	created_at        time.Time                @[json: 'createdAt']
 	updated_at        time.Time                @[json: 'updatedAt']
-	deleted_at        time.Time                @[json: 'deletedAt'; omitempty]
+	deleted_at        ?time.Time               @[json: 'deletedAt'; omitempty]
 	variant_id        string                   @[json: 'variantId']
-	sku               string                   @[omitempty]
-	origin_country    string                   @[json: 'originCountry'; omitempty]
-	hs_code           string                   @[json: 'hsCode'; omitempty]
-	mid_code          string                   @[json: 'midCode'; omitempty]
-	material          string                   @[omitempty]
-	weight            i32                      @[omitempty]
-	length            i32                      @[omitempty]
-	height            i32                      @[omitempty]
-	width             i32                      @[omitempty]
+	sku               ?string                  @[omitempty]
+	origin_country    ?string                  @[json: 'originCountry'; omitempty]
+	hs_code           ?string                  @[json: 'hsCode'; omitempty]
+	mid_code          ?string                  @[json: 'midCode'; omitempty]
+	material          ?string                  @[omitempty]
+	weight            ?i32                     @[omitempty]
+	length            ?i32                     @[omitempty]
+	height            ?i32                     @[omitempty]
+	width             ?i32                     @[omitempty]
 	requires_shipping bool                     @[json: 'requiresShipping']
 	manage_inventory  bool                     @[json: 'manageInventory']
 	allow_backorder   bool                     @[json: 'allowBackorder']
@@ -551,20 +570,20 @@ fn format_inventory_item_response(v conduit.InventoryItem) InventoryItemResponse
 	}
 
 	return InventoryItemResponse{
-		id:                v.id
+		id:                v.id.string()
 		created_at:        v.created_at.Time
 		updated_at:        v.updated_at.Time
-		deleted_at:        v.deleted_at.value.Time
-		variant_id:        v.variant_id
-		sku:               v.sku.value
-		origin_country:    v.origin_country.value
-		hs_code:           v.hs_code.value
-		mid_code:          v.mid_code.value
-		material:          v.material.value
-		weight:            v.weight.value
-		length:            v.length.value
-		height:            v.height.value
-		width:             v.width.value
+		deleted_at:        format_none_date_time(v.deleted_at)
+		variant_id:        v.variant_id.string()
+		sku:               v.sku
+		origin_country:    v.origin_country
+		hs_code:           v.hs_code
+		mid_code:          v.mid_code
+		material:          v.material
+		weight:            v.weight
+		length:            v.length
+		height:            v.height
+		width:             v.width
 		requires_shipping: v.requires_shipping
 		manage_inventory:  v.manage_inventory
 		allow_backorder:   v.allow_backorder
@@ -577,40 +596,40 @@ pub:
 	id                 string
 	created_at         time.Time                       @[json: 'createdAt']
 	updated_at         time.Time                       @[json: 'updatedAt']
-	deleted_at         time.Time                       @[json: 'deletedAt'; omitempty]
+	deleted_at         ?time.Time                      @[json: 'deletedAt'; omitempty]
 	product_id         string                          @[json: 'productId']
-	title              string                          @[omitempty]
-	barcode            string                          @[omitempty]
-	ean                string                          @[omitempty]
-	upc                string                          @[omitempty]
+	title              ?string                         @[omitempty]
+	barcode            ?string                         @[omitempty]
+	ean                ?string                         @[omitempty]
+	upc                ?string                         @[omitempty]
 	variant_rank       i32                             @[json: 'variantRank']
-	metadata           string                          @[omitempty]
-	image_id           string                          @[omitempty]
+	metadata           ?string                         @[omitempty]
+	image_id           ?string                         @[omitempty]
 	option_values      []ProductOptionValueResponse    @[json: 'optionValues']
 	regional_prices    map[string]VariantPriceResponse @[json: 'regionalPrices']
 	inventory_item     InventoryItemResponse           @[json: 'inventoryItem'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 }
 
-fn format_variant_response(v conduit.ProductVariant) VariantResponse {
+fn format_variant_response(v conduit.Variant) VariantResponse {
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
 		option_values[i] = format_product_option_value_response(v.option_values[i])
 	}
 
 	return VariantResponse{
-		id:                 v.id
+		id:                 v.id.string()
 		created_at:         v.created_at.Time
 		updated_at:         v.updated_at.Time
-		deleted_at:         v.deleted_at.value.Time
-		product_id:         v.product_id
-		title:              v.title.value
-		barcode:            v.barcode.value
-		ean:                v.ean.value
-		upc:                v.upc.value
+		deleted_at:         format_none_date_time(v.deleted_at)
+		product_id:         v.product_id.string()
+		title:              v.title
+		barcode:            v.barcode
+		ean:                v.ean
+		upc:                v.upc
 		variant_rank:       v.variant_rank
-		metadata:           v.metadata.value
-		image_id:           v.image_id
+		metadata:           v.metadata
+		image_id:           format_none_id(v.image_id)
 		inventory_item:     format_inventory_item_response(v.inventory_item)
 		inventory_quantity: get_inventory_quantity(v.inventory_item)
 		option_values:      option_values
@@ -623,23 +642,23 @@ pub:
 	id                 string
 	created_at         time.Time                    @[json: 'createdAt']
 	updated_at         time.Time                    @[json: 'updatedAt']
-	deleted_at         time.Time                    @[json: 'deletedAt'; omitempty]
+	deleted_at         ?time.Time                   @[json: 'deletedAt'; omitempty]
 	product_id         string                       @[json: 'productId']
-	title              string                       @[omitempty]
-	barcode            string                       @[omitempty]
-	ean                string                       @[omitempty]
-	upc                string                       @[omitempty]
+	title              ?string                      @[omitempty]
+	barcode            ?string                      @[omitempty]
+	ean                ?string                      @[omitempty]
+	upc                ?string                      @[omitempty]
 	variant_rank       i32                          @[json: 'variantRank']
-	metadata           string                       @[omitempty]
-	image_id           string                       @[omitempty]
+	metadata           ?string                      @[omitempty]
+	image_id           ?string                      @[omitempty]
 	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
 	inventory_quantity i32 @[json: 'inventoryQuantity']
 	purchasable        bool
 	price              VariantPriceResponse
 }
 
-fn format_variant_response_store(v conduit.ProductVariant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
-	product_variant_availability := product_variants_availability[v.id]
+fn format_variant_response_store(v conduit.Variant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
+	product_variant_availability := product_variants_availability[v.id.string()]
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
@@ -647,18 +666,18 @@ fn format_variant_response_store(v conduit.ProductVariant, p VariantPrice, produ
 	}
 
 	return VariantResponseStore{
-		id:                 v.id
+		id:                 v.id.string()
 		created_at:         v.created_at.Time
 		updated_at:         v.updated_at.Time
-		deleted_at:         v.deleted_at.value.Time
-		product_id:         v.product_id
-		title:              v.title.value
-		barcode:            v.barcode.value
-		ean:                v.ean.value
-		upc:                v.upc.value
+		deleted_at:         format_none_date_time(v.deleted_at)
+		product_id:         v.product_id.string()
+		title:              v.title
+		barcode:            v.barcode
+		ean:                v.ean
+		upc:                v.upc
 		variant_rank:       v.variant_rank
-		metadata:           v.metadata.value
-		image_id:           v.image_id
+		metadata:           v.metadata
+		image_id:           format_none_id(v.image_id)
 		inventory_quantity: product_variant_availability.inventory_quantity
 		option_values:      option_values
 		price:              format_variant_price_response(p)
@@ -666,34 +685,22 @@ fn format_variant_response_store(v conduit.ProductVariant, p VariantPrice, produ
 	}
 }
 
-fn format_sales_channel_response(v conduit.SalesChannel) SalesChannelResponse {
-	return SalesChannelResponse{
-		id:          v.id.string()
-		created_at:  v.created_at.Time
-		updated_at:  v.updated_at.Time
-		deleted_at:  v.deleted_at.Time
-		name:        v.name
-		description: v.description
-		is_disabled: v.is_disabled
-	}
-}
-
 pub struct SEOTranslationResponse {
 pub:
 	seo_id      string
-	title       string @[omitempty]
-	description string @[omitempty]
+	title       ?string @[omitempty]
+	description ?string @[omitempty]
 }
 
 fn format_seo_translations(p []conduit.SEOTranslation) map[string]SEOTranslationResponse {
 	mut res := map[string]SEOTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
-		locale_id := translation.locale_id
+		locale_id := translation.locale_id.string()
 		res[locale_id] = SEOTranslationResponse{
-			seo_id:      translation.seo_id
-			title:       translation.title.value
-			description: translation.description.value
+			seo_id:      translation.seo_id.string()
+			title:       translation.title
+			description: translation.description
 		}
 	}
 	return res
@@ -701,23 +708,23 @@ fn format_seo_translations(p []conduit.SEOTranslation) map[string]SEOTranslation
 
 pub struct SEOResponse {
 pub:
-	title        string @[omitempty]
-	description  string @[omitempty]
+	title        ?string @[omitempty]
+	description  ?string @[omitempty]
 	translations map[string]SEOTranslationResponse @[omitempty]
 }
 
 fn format_seo_response(p conduit.SEO) SEOResponse {
 	return SEOResponse{
-		title:        p.title.value
-		description:  p.description.value
+		title:        p.title
+		description:  p.description
 		translations: format_seo_translations(p.translations)
 	}
 }
 
 pub struct SEOResponseStore {
 pub:
-	title       string @[omitempty]
-	description string @[omitempty]
+	title       ?string @[omitempty]
+	description ?string @[omitempty]
 }
 
 pub struct CategoryTranslationResponse {
@@ -727,15 +734,15 @@ pub:
 	description string @[omitempty]
 }
 
-fn format_category_translations(p []CategoryTranslation) map[string]CategoryTranslationResponse {
+fn format_category_translations(p []conduit.CategoryTranslation) map[string]CategoryTranslationResponse {
 	mut res := map[string]CategoryTranslationResponse{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
 		locale_id := translation.locale_id.string()
 		res[locale_id] = CategoryTranslationResponse{
 			category_id: translation.category_id.string()
-			name:        translation.name.value
-			description: translation.description.value
+			name:        string_value(translation.name)
+			description: string_value(translation.description)
 		}
 	}
 	return res
@@ -744,38 +751,33 @@ fn format_category_translations(p []CategoryTranslation) map[string]CategoryTran
 pub struct CategoryResponse {
 pub:
 	id                 string
-	created_at         time.Time @[json: 'createdAt']
-	updated_at         time.Time @[json: 'updatedAt']
-	deleted_at         time.Time @[json: 'deletedAt'; omitempty]
+	created_at         time.Time  @[json: 'createdAt']
+	updated_at         time.Time  @[json: 'updatedAt']
+	deleted_at         ?time.Time @[json: 'deletedAt'; omitempty]
 	handle             string
-	parent_category_id string      @[json: 'parentCategoryId'; omitempty]
-	is_active          bool        @[json: 'isActive']
-	is_internal        bool        @[json: 'isInternal']
-	metadata           string      @[omitempty]
-	name               string      @[omitempty]
-	description        string      @[omitempty]
+	parent_category_id ?string @[json: 'parentCategoryId'; omitempty]
+	is_active          bool    @[json: 'isActive']
+	is_internal        bool    @[json: 'isInternal']
+	metadata           ?string @[omitempty]
+	name               string
+	description        ?string     @[omitempty]
 	seo                SEOResponse @[omitempty]
 	translations       map[string]CategoryTranslationResponse @[omitempty]
 }
 
 fn format_category_response(p conduit.Category) CategoryResponse {
-	mut parent_category_id_string := ''
-	if parent_category_id := p.parent_category_id {
-		parent_category_id_string = parent_category_id.string()
-	}
-
 	return CategoryResponse{
 		id:                 p.id.string()
 		created_at:         p.created_at.Time
 		updated_at:         p.updated_at.Time
-		deleted_at:         p.deleted_at.value.Time
+		deleted_at:         format_none_date_time(p.deleted_at)
 		handle:             p.handle
-		parent_category_id: parent_category_id_string
+		parent_category_id: format_none_id(p.parent_category_id)
 		is_active:          p.is_active
 		is_internal:        p.is_internal
-		metadata:           p.metadata.value
+		metadata:           p.metadata
 		name:               p.name
-		description:        p.description.value
+		description:        p.description
 		translations:       format_category_translations(p.translations)
 		seo:                format_seo_response(p.seo.SEO)
 	}
@@ -800,43 +802,37 @@ pub:
 	created_at         time.Time @[json: 'createdAt']
 	updated_at         time.Time @[json: 'updatedAt']
 	handle             string
-	parent_category_id string           @[json: 'parentCategoryId'; omitempty]
-	metadata           string           @[omitempty]
+	parent_category_id ?string          @[json: 'parentCategoryId'; omitempty]
+	metadata           ?string          @[omitempty]
 	name               string           @[omitempty]
-	description        string           @[omitempty]
+	description        ?string          @[omitempty]
 	seo                SEOResponseStore @[omitempty]
 }
 
-fn format_category_response_store(p conduit.Category, locale_id ID) CategoryResponseStore {
-	mut parent_category_id_string := ''
-	if parent_category_id := p.parent_category_id {
-		parent_category_id_string = parent_category_id.string()
-	}
+fn format_category_response_store(p conduit.Category, locale_context LocaleContext) CategoryResponseStore {
+	mut seo_title := p.seo.title
+	mut seo_description := p.seo.description
 
-	mut seo := SEOResponseStore{
-		title:       p.seo.title.value
-		description: p.seo.description.value
-	}
+	if locale_id := locale_context.locale_id {
+		for i := 0; i < p.seo.translations.len; i++ {
+			translation := p.seo.translations[i]
+			if translation.locale_id.string() != locale_id.string() {
+				continue
+			}
 
-	for i := 0; i < p.seo.translations.len; i++ {
-		translation := p.seo.translations[i]
-		if translation.locale_id.string() != locale_id.string() {
-			continue
-		}
+			if title := translation.title {
+				seo_title = title
+			}
 
-		if !translation.title.is_null {
-			seo = SEOResponseStore{
-				title:       translation.title.value
-				description: seo.description
+			if description := translation.description {
+				seo_description = description
 			}
 		}
+	}
 
-		if !translation.description.is_null {
-			seo = SEOResponseStore{
-				title:       seo.title
-				description: translation.description.value
-			}
-		}
+	seo := SEOResponseStore{
+		title:       seo_title
+		description: seo_description
 	}
 
 	return CategoryResponseStore{
@@ -844,10 +840,10 @@ fn format_category_response_store(p conduit.Category, locale_id ID) CategoryResp
 		created_at:         p.created_at.Time
 		updated_at:         p.updated_at.Time
 		handle:             p.handle
-		parent_category_id: parent_category_id_string
-		metadata:           p.metadata.value
+		parent_category_id: format_none_id(p.parent_category_id)
+		metadata:           p.metadata
 		name:               p.name
-		description:        p.description.value
+		description:        p.description
 		seo:                seo
 	}
 }
@@ -873,12 +869,24 @@ pub:
 pub struct SalesChannelResponse {
 pub:
 	id          string
-	created_at  time.Time @[json: 'createdAt']
-	updated_at  time.Time @[json: 'updatedAt']
-	deleted_at  time.Time @[json: 'deletedAt'; omitempty]
+	created_at  time.Time  @[json: 'createdAt']
+	updated_at  time.Time  @[json: 'updatedAt']
+	deleted_at  ?time.Time @[json: 'deletedAt'; omitempty]
 	name        string
 	description string @[omitempty]
 	is_disabled bool   @[json: 'isDisabled']
+}
+
+fn format_sales_channel_response(v conduit.SalesChannel) SalesChannelResponse {
+	return SalesChannelResponse{
+		id:          v.id.string()
+		created_at:  v.created_at.Time
+		updated_at:  v.updated_at.Time
+		deleted_at:  format_none_date_time(v.deleted_at)
+		name:        v.name
+		description: v.description
+		is_disabled: v.is_disabled
+	}
 }
 
 pub struct SalesChannelResponseEnvelope {
@@ -892,18 +900,18 @@ pub:
 pub struct ProductResponse {
 pub:
 	id                string
-	created_at        time.Time @[json: 'createdAt']
-	updated_at        time.Time @[json: 'updatedAt']
-	deleted_at        time.Time @[json: 'deletedAt'; omitempty]
+	created_at        time.Time  @[json: 'createdAt']
+	updated_at        time.Time  @[json: 'updatedAt']
+	deleted_at        ?time.Time @[json: 'deletedAt'; omitempty]
 	handle            string
 	is_giftcard       bool @[json: 'isGiftcard']
 	status            string
-	type_id           string @[json: 'typeId'; omitempty]
+	type_id           ?string @[json: 'typeId'; omitempty]
 	discountable      bool
-	metadata          string @[omitempty]
+	metadata          ?string @[omitempty]
 	title             string
-	subtitle          string                                @[omitempty]
-	description       string                                @[omitempty]
+	subtitle          ?string                               @[omitempty]
+	description       ?string                               @[omitempty]
 	category_ids      []string                              @[json: 'categoryIds'; omitempty]
 	thumbnail         ProductImageResponse                  @[omitempty]
 	images            []ProductImageResponse                @[omitempty]
@@ -922,8 +930,10 @@ fn format_product_response(p conduit.Product) ProductResponse {
 		image := p.images[i]
 		external_image := format_product_image_response(image)
 		images[i] = external_image
-		if p.thumbnail_id != '' && p.thumbnail_id == image.id {
-			thumbnail = external_image
+		if thumbnail_id := p.thumbnail_id {
+			if thumbnail_id == image.id {
+				thumbnail = external_image
+			}
 		}
 	}
 
@@ -938,25 +948,25 @@ fn format_product_response(p conduit.Product) ProductResponse {
 	}
 
 	return ProductResponse{
-		id:                p.id
+		id:                p.id.string()
 		created_at:        p.created_at.Time
 		updated_at:        p.updated_at.Time
-		deleted_at:        p.deleted_at.value.Time
+		deleted_at:        format_none_date_time(p.deleted_at)
 		handle:            p.handle
 		is_giftcard:       p.is_giftcard
 		status:            p.status
-		type_id:           p.type_id
+		type_id:           format_none_id(p.type_id)
 		discountable:      p.discountable
-		metadata:          p.metadata.value
+		metadata:          p.metadata
 		title:             p.title
-		subtitle:          p.subtitle.value
-		description:       p.description.value
+		subtitle:          p.subtitle
+		description:       p.description
 		thumbnail:         thumbnail
 		images:            images
 		options:           options
 		variants:          variants
-		category_ids:      p.category_ids
-		sales_channel_ids: p.sales_channels_ids
+		category_ids:      format_array_id(p.category_ids)
+		sales_channel_ids: format_array_id(p.sales_channels_ids)
 		translations:      format_product_translations(p.translations)
 		seo:               format_seo_response(p.seo.SEO)
 		// tags:          tags
@@ -979,18 +989,18 @@ pub:
 pub struct ProductResponseStore {
 pub:
 	id           string
-	created_at   time.Time @[json: 'createdAt']
-	updated_at   time.Time @[json: 'updatedAt']
-	deleted_at   time.Time @[json: 'deletedAt'; omitempty]
+	created_at   time.Time  @[json: 'createdAt']
+	updated_at   time.Time  @[json: 'updatedAt']
+	deleted_at   ?time.Time @[json: 'deletedAt'; omitempty]
 	handle       string
 	is_giftcard  bool @[json: 'isGiftcard']
 	status       string
-	type_id      string @[json: 'typeId'; omitempty]
+	type_id      ?string @[json: 'typeId'; omitempty]
 	discountable bool
-	metadata     string @[omitempty]
+	metadata     ?string @[omitempty]
 	title        string
-	subtitle     string                  @[omitempty]
-	description  string                  @[omitempty]
+	subtitle     ?string                 @[omitempty]
+	description  ?string                 @[omitempty]
 	category_ids []string                @[json: 'categoryIds'; omitempty]
 	thumbnail    ProductImageResponse    @[omitempty]
 	images       []ProductImageResponse  @[omitempty]
@@ -1007,8 +1017,10 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, default_r
 		image := p.images[i]
 		external_image := format_product_image_response(image)
 		images[i] = external_image
-		if p.thumbnail_id != '' && p.thumbnail_id == image.id {
-			thumbnail = external_image
+		if thumbnail_id := p.thumbnail_id {
+			if thumbnail_id == image.id {
+				thumbnail = external_image
+			}
 		}
 	}
 
@@ -1024,53 +1036,50 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, default_r
 		variants[i] = format_variant_response_store(variant, prices, product_variants_availability)
 	}
 
-	mut seo := SEOResponseStore{
-		title:       p.seo.title.value
-		description: p.seo.description.value
-	}
+	mut seo_title := p.seo.title
+	mut seo_description := p.seo.description
 
 	if locale_id := locale_context.locale_id {
 		for i := 0; i < p.seo.translations.len; i++ {
 			translation := p.seo.translations[i]
-			if translation.locale_id != locale_id.string() {
+			if translation.locale_id.string() != locale_id.string() {
 				continue
 			}
 
-			if !translation.title.is_null {
-				seo = SEOResponseStore{
-					title:       translation.title.value
-					description: seo.description
-				}
+			if title := translation.title {
+				seo_title = title
 			}
 
-			if !translation.description.is_null {
-				seo = SEOResponseStore{
-					title:       seo.title
-					description: translation.description.value
-				}
+			if description := translation.description {
+				seo_description = description
 			}
 		}
 	}
 
+	seo := SEOResponseStore{
+		title:       seo_title
+		description: seo_description
+	}
+
 	return ProductResponseStore{
-		id:           p.id
+		id:           p.id.string()
 		created_at:   p.created_at.Time
 		updated_at:   p.updated_at.Time
-		deleted_at:   p.deleted_at.value.Time
+		deleted_at:   format_none_date_time(p.deleted_at)
 		handle:       p.handle
 		is_giftcard:  p.is_giftcard
 		status:       p.status
-		type_id:      p.type_id
+		type_id:      format_none_id(p.type_id)
 		discountable: p.discountable
-		metadata:     p.metadata.value
+		metadata:     p.metadata
 		title:        p.title
-		subtitle:     p.subtitle.value
-		description:  p.description.value
+		subtitle:     p.subtitle
+		description:  p.description
 		thumbnail:    thumbnail
 		images:       images
 		options:      options
 		variants:     variants
-		category_ids: p.category_ids
+		category_ids: format_array_id(p.category_ids)
 		seo:          seo
 		// tags:          tags
 	}
@@ -1102,18 +1111,18 @@ pub struct UploadsDeleteResponse {
 
 pub struct StockLocationResponse {
 	id         string
-	created_at time.Time @[json: 'createdAt']
-	updated_at time.Time @[json: 'updatedAt']
-	deleted_at time.Time @[json: 'deletedAt'; omitempty]
+	created_at time.Time  @[json: 'createdAt']
+	updated_at time.Time  @[json: 'updatedAt']
+	deleted_at ?time.Time @[json: 'deletedAt'; omitempty]
 	name       string
 }
 
 fn format_stock_location_response(p conduit.StockLocation) StockLocationResponse {
 	return StockLocationResponse{
-		id:         p.id
+		id:         p.id.string()
 		created_at: p.created_at.Time
 		updated_at: p.updated_at.Time
-		deleted_at: p.deleted_at.value.Time
+		deleted_at: format_none_date_time(p.deleted_at)
 		name:       p.name
 	}
 }

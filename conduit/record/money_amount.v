@@ -141,4 +141,3 @@ pub fn variant_money_amount_update(mut tx firebird.Transaction, p []VariantMoney
 
 	tx.execute(query, ...params)!
 }
-

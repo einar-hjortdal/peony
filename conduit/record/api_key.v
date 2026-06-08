@@ -8,7 +8,7 @@ pub:
 	id               ID
 	created_at       firebird.DateTime
 	updated_at       firebird.DateTime
-	deleted_at       firebird.NullDateTime
+	deleted_at       ?firebird.DateTime
 	name             string
 	sales_channel_id ID
 }
@@ -99,7 +99,7 @@ pub fn api_key_retrieve(mut tx firebird.Transaction, p APIKeyRetrieveParams) ![]
 			id:               id
 			created_at:       created_at
 			updated_at:       updated_at
-			deleted_at:       deleted_at
+			deleted_at:       deleted_at.none_value()
 			name:             name
 			sales_channel_id: sales_channel_id
 		}
@@ -135,4 +135,3 @@ pub fn api_key_update(mut tx firebird.Transaction, api_key_id ID, p APIKeyUpdate
 pub fn api_key_delete(mut tx firebird.Transaction, api_key ID) ! {
 	tx.execute('UPDATE api_key SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', api_key.bytes())!
 }
-

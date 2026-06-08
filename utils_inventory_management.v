@@ -1,12 +1,13 @@
 module peony
 
 import arrays
+import conduit
 
 // used by admin endpoints.
 // returns available items across all stock locations.
 // an available item is not reserved.
 // returns 0 if peony does not manage the inventory for this variant.
-fn get_inventory_quantity(v InventoryItem) i32 {
+fn get_inventory_quantity(v conduit.InventoryItem) i32 {
 	mut inventory_quantity := i32(0)
 	if !v.manage_inventory {
 		return inventory_quantity
@@ -134,4 +135,3 @@ fn get_variants_availability(p GetProductVariantsAvailabilityParams) map[string]
 	}
 	return res
 }
-

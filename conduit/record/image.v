@@ -46,7 +46,7 @@ pub struct Image {
 pub:
 	id  ID
 	url string
-	alt firebird.NullString
+	alt ?string
 pub mut:
 	translations []ImageTranslation
 }
@@ -100,7 +100,7 @@ pub fn product_image_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]
 		product_images[i] = ProductImage{
 			id:         id
 			url:        url
-			alt:        alt
+			alt:        alt.none_value()
 			image_rank: image_rank
 			product_id: product_id
 		}
@@ -333,4 +333,3 @@ pub fn product_image_update(mut tx firebird.Transaction, product_id ID, images [
 	query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
 	tx.execute(query, ...params)!
 }
-

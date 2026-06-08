@@ -6,6 +6,7 @@ import einar_hjortdal.firebird
 import einar_hjortdal.luuid
 import einar_hjortdal.redict
 import einar_hjortdal.sessions
+import conduit
 
 @[heap]
 pub struct App {
@@ -22,7 +23,7 @@ mut:
 pub struct Context {
 	veb.Context
 mut:
-	api_key             ?APIKey
+	api_key             ?conduit.APIKey
 	user_session        sessions.Session
 	user_session_values UserSessionValues
 	// customer_session        sessions.Session
@@ -86,4 +87,3 @@ pub fn (mut app App) run() ! {
 	app.initiate_cache()!
 	veb.run[App, Context](mut app, app.config.port)
 }
-

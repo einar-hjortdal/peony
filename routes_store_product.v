@@ -46,4 +46,3 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 		order:  order_default
 	}, api_key.sales_channel_id, price_context, locale_context)
 }
-

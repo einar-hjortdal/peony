@@ -140,4 +140,3 @@ pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales
 	return conduit_sales_channel_stock_location_delete(mut app, mut ctx, parsed_sales_channel_id,
 		parsed_stock_location_id)
 }
-

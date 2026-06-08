@@ -3,7 +3,6 @@ module peony
 import json
 import veb
 import conduit
-import conduit.record
 
 // lists users
 @['/admin/users'; get]
@@ -12,9 +11,7 @@ pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	users := conduit.user_list(mut tx, record.UserListParams{
-		// TODO
-	}) or {
+	users := conduit.user_list(mut tx, p) or {
 		tx.rollback() or {}
 		return ctx.handle_error(err)
 	}
@@ -48,7 +45,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	password_details := conduit.password_details_get(mut tx, record.PasswordDetailsGetParams, {
+	password_details := conduit.password_details_get(mut tx, PasswordDetailsGetParams, {
 		hash: password_parameters_hash
 	}) or {
 		password_parameters_id := app.gen_id()
@@ -70,7 +67,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 		// TODO
 	}
 
-	conduit.user_create(mut tx, mut ctx, record.UserCreateParams{
+	conduit.user_create(mut tx, mut ctx, conduit.UserCreateParams{
 		user_id:                user_id
 		handle:                 user_id.string() // TODO validate and format
 		email:                  p.email
@@ -155,7 +152,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	conduit.user_update(mut tx, parsed_user_id, record.UserUpdateParams{
+	conduit.user_update(mut tx, parsed_user_id, conduit.UserUpdateParams, {
 		email:      p.email
 		first_name: p.first_name
 		last_name:  p.last_name
@@ -207,4 +204,3 @@ pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.
 
 	return ctx.handle_deleted()
 }
-

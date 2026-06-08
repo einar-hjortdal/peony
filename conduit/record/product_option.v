@@ -660,4 +660,3 @@ pub fn product_option_value_variant_update(mut tx firebird.Transaction, p []Prod
 
 	tx.execute(query, ...params)!
 }
-

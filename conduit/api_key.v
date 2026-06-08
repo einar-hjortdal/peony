@@ -3,7 +3,9 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub fn api_key_create(mut tx firebird.Transaction, api_key_id record.ID, name string, sales_channel_id record.ID) ! {
+pub type APIKey = record.APIKey
+
+pub fn api_key_create(mut tx firebird.Transaction, api_key_id ID, name string, sales_channel_id ID) ! {
 	record.api_key_create(mut tx, api_key_id, name, sales_channel_id) or {
 		return new_error_internal('Could not create api_key', err.msg())
 	}
@@ -11,7 +13,7 @@ pub fn api_key_create(mut tx firebird.Transaction, api_key_id record.ID, name st
 
 pub type APIKeyRetrieveParams = record.APIKeyRetrieveParams
 
-pub fn api_key_get(mut tx firebird.Transaction, api_key_id record.ID) !record.APIKey {
+pub fn api_key_get(mut tx firebird.Transaction, api_key_id ID) !record.APIKey {
 	api_keys := record.api_key_retrieve(mut tx, APIKeyRetrieveParams{
 		ids:    [api_key_id]
 		offset: 0
@@ -42,15 +44,14 @@ pub fn api_key_list(mut tx firebird.Transaction, p APIKeyRetrieveParams) ![]reco
 
 pub type APIKeyUpdateParams = record.APIKeyUpdateParams
 
-pub fn api_key_update(mut tx firebird.Transaction, api_key record.ID, p APIKeyUpdateParams) ! {
+pub fn api_key_update(mut tx firebird.Transaction, api_key ID, p APIKeyUpdateParams) ! {
 	record.api_key_update(mut tx, api_key, p) or {
 		return new_error_internal('Could not update api_key', err.msg())
 	}
 }
 
-pub fn api_key_delete(mut tx firebird.Transaction, api_key record.ID) ! {
+pub fn api_key_delete(mut tx firebird.Transaction, api_key ID) ! {
 	record.api_key_delete(mut tx, api_key) or {
 		return new_error_internal('Could not delete api_key', err.msg())
 	}
 }
-

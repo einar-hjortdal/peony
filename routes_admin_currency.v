@@ -69,4 +69,3 @@ pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) 
 		currencies: format_currency_response(currency)
 	})
 }
-

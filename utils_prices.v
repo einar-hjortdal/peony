@@ -1,6 +1,7 @@
 module peony
 
 import arrays
+import conduit
 
 // VariantPrice is for the store frontend
 // `original_price` is the price of the item before an adjustment or a sale.
@@ -91,7 +92,7 @@ fn get_lowest_price(mas []VariantMoneyAmount) VariantMoneyAmount {
 // this function should find the lowest possible price that fits all the criteria.
 // it considers: quantity, region.
 // TODO Consider price_list when in context.
-fn calculate_price(variant ProductVariant, default_region_id ID, price_context PriceContext, quantity i32) VariantPrice {
+fn calculate_price(variant conduit.Variant, default_region_id ID, price_context PriceContext, quantity i32) VariantPrice {
 	// for now just consider variant.money_amounts and pctx.region
 	region_id := price_context.region_id or { default_region_id }
 	original_price := get_original_price(variant.money_amounts, region_id)
@@ -110,4 +111,3 @@ fn calculate_price(variant ProductVariant, default_region_id ID, price_context P
 // a tax of type override will override all taxes of lower hierarchy.
 // the tax hierarchy, from most important to least important, is as follows:
 // product -> product type -> region (TODO verify)
-

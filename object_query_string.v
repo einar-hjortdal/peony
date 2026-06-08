@@ -305,7 +305,7 @@ fn extract_sales_channels_list_query_params(m map[string]string) SalesChannelLis
 	}
 }
 
-fn hygienise_sales_channels_list_query_params(m map[string]string) !SalesChannelRetrieveParams {
+fn hygienise_sales_channels_list_query_params(m map[string]string) !conduit.SalesChannelRetrieveParams {
 	p := extract_sales_channels_list_query_params(m)
 
 	mut ids := ?[]ID(none)
@@ -313,7 +313,7 @@ fn hygienise_sales_channels_list_query_params(m map[string]string) !SalesChannel
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	return SalesChannelRetrieveParams{
+	return conduit.SalesChannelRetrieveParams{
 		ids:    ids
 		offset: get_offset_or_default(p.offset)!
 		fetch:  get_fetch_or_default(p.fetch)!

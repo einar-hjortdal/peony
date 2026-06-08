@@ -1,6 +1,5 @@
 module record
 
-import arrays
 import einar_hjortdal.firebird
 
 pub const tax_additive = 'additive'
@@ -16,9 +15,9 @@ pub:
 	id         ID
 	created_at firebird.DateTime
 	updated_at firebird.DateTime
-	deleted_at firebird.NullDateTime
+	deleted_at ?firebird.DateTime
 	rate       f32
-	code       firebird.NullString
+	code       ?string
 	name       string
 	tax_type   string
 }
@@ -61,13 +60,12 @@ pub fn tax_rate_retrieve(mut tx firebird.Transaction, tax_rate_ids []ID) ![]TaxR
 			id:         id
 			created_at: created_at
 			updated_at: updated_at
-			deleted_at: deleted_at
+			deleted_at: deleted_at.none_value()
 			rate:       rate
-			code:       code
+			code:       code.none_value()
 			name:       name
 			tax_type:   tax_type
 		}
 	}
 	return tax_rates
 }
-

@@ -12,15 +12,15 @@ pub:
 	id           ID
 	created_at   firebird.DateTime
 	updated_at   firebird.DateTime
-	deleted_at   firebird.NullDateTime
+	deleted_at   ?firebird.DateTime
 	product_id   ID
 	image_id     ?ID
-	title        firebird.NullString
-	barcode      firebird.NullString
-	ean          firebird.NullString
-	upc          firebird.NullString
+	title        ?string
+	barcode      ?string
+	ean          ?string
+	upc          ?string
 	variant_rank i32
-	metadata     firebird.NullString
+	metadata     ?string
 pub mut:
 	inventory_item InventoryItem
 	money_amounts  []VariantMoneyAmount
@@ -134,15 +134,15 @@ pub fn variant_retrieve(mut tx firebird.Transaction, p VariantRetrieveParams) ![
 			id:           id
 			created_at:   created_at
 			updated_at:   updated_at
-			deleted_at:   deleted_at
+			deleted_at:   deleted_at.none_value()
 			product_id:   product_id
 			image_id:     image_id
-			title:        title
-			barcode:      barcode
-			ean:          ean
-			upc:          upc
+			title:        title.none_value()
+			barcode:      barcode.none_value()
+			ean:          ean.none_value()
+			upc:          upc.none_value()
 			variant_rank: variant_rank
-			metadata:     metadata
+			metadata:     metadata.none_value()
 		}
 	}
 	return variants
@@ -387,4 +387,3 @@ pub fn variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
 		variant_id.bytes())!
 }
-

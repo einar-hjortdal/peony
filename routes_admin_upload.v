@@ -16,17 +16,20 @@ const uploads_field_name = 'files'
 @['/admin/uploads'; post]
 pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
-		perr := new_error_bad_request(error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
+		perr := new_error_bad_request(error_header_missing,
+			'Expected `Content-Type` header with `multipart/form-data` value')
 		return ctx.handle_error(perr)
 	}
 
 	if content_type != 'multipart/form-data' {
-		perr := new_error_bad_request(error_header_missing, 'Expected `Content-Type` header with `multipart/form-data` value')
+		perr := new_error_bad_request(error_header_missing,
+			'Expected `Content-Type` header with `multipart/form-data` value')
 		return ctx.handle_error(perr)
 	}
 
 	if ctx.files.len == 0 || uploads_field_name !in ctx.files {
-		perr := new_error_bad_request('No files provided', 'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
+		perr := new_error_bad_request('No files provided',
+			'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
 		return ctx.handle_error(perr)
 	}
 

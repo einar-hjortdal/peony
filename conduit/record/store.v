@@ -164,4 +164,3 @@ pub fn store_update(mut tx firebird.Transaction, store_id ID, p StoreUpdateParam
 	tx.execute('UPDATE store SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
 }
-

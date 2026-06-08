@@ -13,15 +13,15 @@ pub const order_asc = record.order_asc
 pub const order_desc = record.order_desc
 pub const order_default = record.order_default
 
-// pub type ID = record.ID
+pub type ID = record.ID
 
-// pub fn new_id(mut g luuid.Generator) ID {
-// 	return record.new_id(mut g)
-// }
-//
-// pub fn id_from_string(s string) !ID {
-// 	return record.id_from_string(s)
-// }
+pub fn new_id(mut g luuid.Generator) ID {
+	return record.new_id(mut g)
+}
+
+pub fn id_from_string(s string) !ID {
+	return record.id_from_string(s)
+}
 
 // PeonyError contains the appropriate http status code for the error.
 pub struct PeonyError {
@@ -79,9 +79,9 @@ pub fn new_error_fetch_zero() PeonyError {
 	return new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
 }
 
-fn make_identifiable_map[T](identifiables []T) (map[string]T, []record.ID) {
+fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
 	mut map_res := map[string]T{}
-	mut arr_res := []record.ID{len: identifiables.len}
+	mut arr_res := []ID{len: identifiables.len}
 	for i := 0; i < identifiables.len; i++ {
 		identifiable := identifiables[i]
 		id := identifiable.id()
@@ -90,4 +90,3 @@ fn make_identifiable_map[T](identifiables []T) (map[string]T, []record.ID) {
 	}
 	return map_res, arr_res
 }
-

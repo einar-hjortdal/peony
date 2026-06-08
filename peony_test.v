@@ -71,7 +71,8 @@ fn container_firebird_clean() {
 // Remember to `sudo usermod -aG docker $USER`
 fn container_firebird_start() ! {
 	container_firebird_clean() // kill container if already running
-	result := os.execute('docker run --rm --detach --name=${firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${firebird_root_password} --env=FIREBIRD_USER=${firebird_user} --env=FIREBIRD_PASSWORD=${firebird_password} --env=FIREBIRD_DATABASE=${firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${firebird_port}:3050 firebirdsql/firebird')
+	result :=
+		os.execute('docker run --rm --detach --name=${firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${firebird_root_password} --env=FIREBIRD_USER=${firebird_user} --env=FIREBIRD_PASSWORD=${firebird_password} --env=FIREBIRD_DATABASE=${firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${firebird_port}:3050 firebirdsql/firebird')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -89,7 +90,8 @@ fn container_redict_clean() {
 
 fn container_redict_start() ! {
 	container_redict_clean() // kill container if already running
-	result := os.execute('docker run --rm --detach --name=${redict_container_name} --publish=${redict_port}:6379 registry.redict.io/redict')
+	result :=
+		os.execute('docker run --rm --detach --name=${redict_container_name} --publish=${redict_port}:6379 registry.redict.io/redict')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -100,7 +102,8 @@ fn containers_are_ready() {
 	mut redict_is_loading := true
 	for firebird_is_loading || redict_is_loading {
 		if firebird_is_loading {
-			check := os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${firebird_container_name} isql localhost:${firebird_database_path} -user ${firebird_user} -password ${firebird_password} -q')
+			check :=
+				os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${firebird_container_name} isql localhost:${firebird_database_path} -user ${firebird_user} -password ${firebird_password} -q')
 			if check.output.contains('ALIVE') {
 				firebird_is_loading = false
 			}
@@ -153,8 +156,7 @@ fn run_app() !chan bool {
 	go app_routine(ch)
 	mut app_is_loading := true
 	for app_is_loading {
-		request := http.new_request(http.Method.get, 'http://localhost:${port}/admin/auth',
-			'')
+		request := http.new_request(http.Method.get, 'http://localhost:${port}/admin/auth', '')
 		if r := request.do() {
 			app_is_loading = false
 		}
@@ -264,7 +266,8 @@ fn expect(condition bool, error_message string) ! {
 
 fn auth_middleware_rejects_unauthorized() ! {
 	response := do_get_request(endpoint_admin_auth)!
-	expect(response.status_code == 401, 'Unathorized request should have been rejected, but it was not.')!
+	expect(response.status_code == 401,
+		'Unathorized request should have been rejected, but it was not.')!
 }
 
 fn auth_middleware_allows_logins_and_logouts() ! {
@@ -284,7 +287,8 @@ fn auth_middleware_allows_logins_and_logouts() ! {
 	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_auth, cookie_value)!
-	expect(response.status_code == 401, 'Expired session was accepted, but it should have not been.')!
+	expect(response.status_code == 401,
+		'Expired session was accepted, but it should have not been.')!
 }
 
 fn admin_auth_returns_user_data(cookie_value string) ! {
@@ -358,14 +362,16 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 		email:    'new_user@peony.com'
 		password: 'new user password'
 	}
-	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json.encode(valid_new_user))!
+	response = do_authenticated_post_request(endpoint_admin_users, cookie_value,
+		json.encode(valid_new_user))!
 	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	is_ok(response)!
 	r = json.decode(peony.UserListResponseEnvelope, response.body)!
 	expect(r.count == old_count + 1, 'Unexpected count. Count does not include new user')!
-	expect(r.users.len == old_users_len + 1, 'Unexpected users.len. Count does not include new user')!
+	expect(r.users.len == old_users_len + 1,
+		'Unexpected users.len. Count does not include new user')!
 
 	mut new_user := peony.UserResponse{}
 	mut found := false
@@ -402,7 +408,8 @@ fn admin_locales_lists_locales(cookie_value string) ! {
 	locale_codes_file := os.read_file('${os.getwd()}/migrations/seed-locale-codes.txt')!
 	lines := locale_codes_file.split('\n')
 	locale_codes := lines[..lines.len - 1] // remove last character \n (posix)
-	expect(r.count == locale_codes.len, 'Count does not match amount of locales that should be in the db')!
+	expect(r.count == locale_codes.len,
+		'Count does not match amount of locales that should be in the db')!
 	expect(r.offset == 0, 'Wrong page')!
 	expect(r.fetch == peony.max_fetch, 'Maximum number of items fetched does not match max_fetch')!
 }
@@ -431,8 +438,8 @@ fn admin_store(cookie_value string) ! {
 		// default_sales_channel_id
 	}
 	time.sleep(1 * time.second) // for updated_at
-	response = do_authenticated_post_request('${endpoint_admin_store}/${r.store.id}',
-		cookie_value, json.encode(new_store_data))!
+	response = do_authenticated_post_request('${endpoint_admin_store}/${r.store.id}', cookie_value,
+		json.encode(new_store_data))!
 	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
@@ -474,7 +481,8 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
 	r = json.decode(peony.StoreResponseEnvelope, response.body)!
 	new_store := r.store
-	expect(new_store.locales.len == new_locale_ids.len, 'Locales array length does not match expectations')!
+	expect(new_store.locales.len == new_locale_ids.len,
+		'Locales array length does not match expectations')!
 
 	restore_old_data := json.encode(peony.StoreUpdateRequest{
 		locale_ids: [old_store.default_locale_id]
@@ -507,7 +515,8 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == expected_categories_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
+	expect(r.categories.len == expected_categories_len,
+		'Categories returned do not include newly created category: ${r.categories.len}')!
 
 	mut category_to_delete := peony.CategoryResponse{}
 	mut found := false
@@ -564,8 +573,8 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 			description: seo_description
 		}
 	})
-	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
-		category_data)!
+	response =
+		do_authenticated_post_request(endpoint_admin_categories, cookie_value, category_data)!
 	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
@@ -573,7 +582,8 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
 	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == expected_categories_len, 'Categories returned do not include newly created category: ${r.categories.len}')!
+	expect(r.categories.len == expected_categories_len,
+		'Categories returned do not include newly created category: ${r.categories.len}')!
 
 	mut new_category := peony.CategoryResponse{}
 	mut found := false
@@ -658,7 +668,8 @@ fn admin_categories_updates_category(cookie_value string) ! {
 		}
 	}
 
-	expect(updated_category.updated_at > new_category.updated_at, 'updated_at field was not updated')!
+	expect(updated_category.updated_at > new_category.updated_at,
+		'updated_at field was not updated')!
 	expect(updated_category.name == new_name, 'name does not match')!
 	expect(updated_category.description == new_description, 'description does not match')!
 	expect(updated_category.handle == new_handle, 'handle does not match')!
@@ -787,7 +798,8 @@ fn handles_unique_product_handles(cookie_value string) ! {
 	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	mut created_product := r.product
 
-	expect(created_product.handle == created_product.title, 'product created with no explicit handle has a handle that does not match title')!
+	expect(created_product.handle == created_product.title,
+		'product created with no explicit handle has a handle that does not match title')!
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
 
@@ -798,11 +810,13 @@ fn handles_unique_product_handles(cookie_value string) ! {
 		title:  new_product_title
 		handle: new_product_handle
 	}
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	is_created(response)!
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	created_product = r.product
-	expect(created_product.handle == new_product_handle, 'product created with explicit handle has a handle that does not match the given handle')!
+	expect(created_product.handle == new_product_handle,
+		'product created with explicit handle has a handle that does not match the given handle')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
@@ -829,7 +843,8 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		options: [peony.ProductOptionCreateRequest{}]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with one option without title')!
 
 	new_option_title := luuid.v2()
@@ -842,7 +857,8 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with one option without values')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -855,8 +871,10 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with one option with explicitly no values')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with one option with explicitly no values')!
 
 	new_value_name := luuid.v2()
 	new_product_data = peony.ProductCreateRequest{
@@ -873,7 +891,8 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with one option but no variants')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -891,7 +910,8 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		variants: []peony.ProductVariantCreateRequest{}
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created with explicitly no variants')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -913,8 +933,10 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with one variant with explicitly no option values')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with one variant with explicitly no option values')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title:    new_product_title
@@ -935,8 +957,10 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with option_values referencing too many options')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with option_values referencing too many options')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title:    new_product_title
@@ -957,8 +981,10 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with option_values referencing non-existing options')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with option_values referencing non-existing options')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title:    new_product_title
@@ -979,19 +1005,22 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	is_created(response)!
 
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := r.product
 	options := product.options
-	expect(options.len == 1, 'Product contains unexpected number of options: expected 1, got ${options.len}')!
+	expect(options.len == 1,
+		'Product contains unexpected number of options: expected 1, got ${options.len}')!
 
 	option := options[0]
 	expect(option.title == new_option_title, 'Created option has the wrong title.')!
 
 	values := option.values
-	expect(values.len == 1, 'Created option has unexpected number of values: expected 1, got ${values.len}')!
+	expect(values.len == 1,
+		'Created option has unexpected number of values: expected 1, got ${values.len}')!
 
 	value := values[0]
 	expect(value.name == new_value_name, 'Created value has the wrong name')!
@@ -1035,7 +1064,8 @@ fn creates_product_without_options_with_variant(cookie_value string) ! {
 	product := r.product
 
 	variants := product.variants
-	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
+	expect(variants.len == 1,
+		'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
 
 	variant := variants[0]
 	expect(variant.title != '', 'Variant title was not set')!
@@ -1083,10 +1113,12 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := r.product
 	options := product.options
-	expect(options.len == 1, 'Product contains unexpected number of options: expected 1, got ${options.len}')!
+	expect(options.len == 1,
+		'Product contains unexpected number of options: expected 1, got ${options.len}')!
 
 	variants := product.variants
-	expect(variants.len == 2, 'Product contains unexpected number of variants: expected 2, got ${variants.len}')!
+	expect(variants.len == 2,
+		'Product contains unexpected number of variants: expected 2, got ${variants.len}')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1135,10 +1167,12 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := r.product
 	options := product.options
-	expect(options.len == 2, 'Product contains unexpected number of options: expected 2, got ${options.len}')!
+	expect(options.len == 2,
+		'Product contains unexpected number of options: expected 2, got ${options.len}')!
 
 	variants := product.variants
-	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
+	expect(variants.len == 1,
+		'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1168,10 +1202,12 @@ fn creates_product_with_variant_image(cookie_value string) ! {
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := r.product
 	images := product.images
-	expect(images.len == 1, 'Product created with an unexpected number of images. Expected 1, got ${images.len}')!
+	expect(images.len == 1,
+		'Product created with an unexpected number of images. Expected 1, got ${images.len}')!
 
 	variants := product.variants
-	expect(variants.len == 1, 'Product created with an unexpected number of variants. Expected 1, got ${variants.len}')!
+	expect(variants.len == 1,
+		'Product created with an unexpected number of variants. Expected 1, got ${variants.len}')!
 
 	image := images[0]
 	variant := variants[0]
@@ -1204,9 +1240,11 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 
 	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	mut product := r.product
-	expect(product.images.len == 1, 'Product created with an unexpected number of images. Expected 1, got ${product.images.len}')!
+	expect(product.images.len == 1,
+		'Product created with an unexpected number of images. Expected 1, got ${product.images.len}')!
 
-	expect(product.variants.len == 1, 'Product created with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
+	expect(product.variants.len == 1,
+		'Product created with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
 
 	mut image := product.images[0]
 	mut variant := product.variants[0]
@@ -1235,8 +1273,10 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
 
-	expect(product.images.len == 2, 'Product created with an unexpected number of images. Expected 2, got ${product.images.len}')!
-	expect(product.variants.len == 1, 'Product created with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
+	expect(product.images.len == 2,
+		'Product created with an unexpected number of images. Expected 2, got ${product.images.len}')!
+	expect(product.variants.len == 1,
+		'Product created with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
 
 	variant = product.variants[0]
 	new_image_id := product.images[0].id
@@ -1279,9 +1319,11 @@ fn updates_product_replaces_default_variant(cookie_value string) ! {
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
 
-	expect(product.variants.len == 1, 'Product updated with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
+	expect(product.variants.len == 1,
+		'Product updated with an unexpected number of variants. Expected 1, got ${product.variants.len}')!
 	new_variant_id := product.variants[0].id
-	expect(old_variant_id != new_variant_id, 'Old variant was not deleted, the new variant shares its same id.')!
+	expect(old_variant_id != new_variant_id,
+		'Old variant was not deleted, the new variant shares its same id.')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1326,17 +1368,21 @@ fn creates_a_variant(cookie_value string) ! {
 	is_created(response)!
 	pr := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := pr.product
-	expect(product.options.len == 1, 'Unexpected number of options: expected 1, got ${product.options.len}')!
-	expect(product.images.len == 2, 'Unexpected number of images: expected 1, got ${product.images.len}')!
+	expect(product.options.len == 1,
+		'Unexpected number of options: expected 1, got ${product.options.len}')!
+	expect(product.images.len == 2,
+		'Unexpected number of images: expected 1, got ${product.images.len}')!
 
 	image_0 := product.images[0]
 	expect(image_0.url == image_0_url, 'Image at rank 0 does not match expected url')!
 
 	option := product.options[0]
-	expect(option.values.len == 2, 'Unexpected number of option_value: expected 2, got ${option.values.len}')!
+	expect(option.values.len == 2,
+		'Unexpected number of option_value: expected 2, got ${option.values.len}')!
 
 	value_1 := option.values[1]
-	expect(value_1.value_rank == 1, 'Unexpected value_rank for value at index 1: expected 1, got ${value_1.value_rank}')!
+	expect(value_1.value_rank == 1,
+		'Unexpected value_rank for value at index 1: expected 1, got ${value_1.value_rank}')!
 
 	title := luuid.v2()
 	ean := rand.ascii(peony.max_length_ean)
@@ -1359,10 +1405,12 @@ fn creates_a_variant(cookie_value string) ! {
 	vr := json.decode(peony.VariantResponseEnvelope, response.body)!
 	variant := vr.variant
 
-	expect(variant.title == title, 'Variant title does not match: expected ${title}, got ${variant.title}')!
+	expect(variant.title == title,
+		'Variant title does not match: expected ${title}, got ${variant.title}')!
 	expect(variant.ean == ean, 'Variant ean does not match: expected ${ean}, got ${variant.ean}')!
 	expect(variant.upc == upc, 'Variant upc does not match: expected ${upc}, got ${variant.upc}')!
-	expect(variant.barcode == barcode, 'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
+	expect(variant.barcode == barcode,
+		'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1407,17 +1455,22 @@ fn updates_a_variant(cookie_value string) ! {
 	is_created(response)!
 	pr := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := pr.product
-	expect(product.variants.len == 1, 'Unexpected number of variants: expected 1, got ${product.variants.len}')!
-	expect(product.images.len == 2, 'Unexpected number of images: expected 2, got ${product.images.len}')!
-	expect(product.options.len == 1, 'Unexpected number of options: expected 1, got ${product.options.len}')!
+	expect(product.variants.len == 1,
+		'Unexpected number of variants: expected 1, got ${product.variants.len}')!
+	expect(product.images.len == 2,
+		'Unexpected number of images: expected 2, got ${product.images.len}')!
+	expect(product.options.len == 1,
+		'Unexpected number of options: expected 1, got ${product.options.len}')!
 
 	default_variant := product.variants[0]
 	image_1 := product.images[1]
 	option := product.options[0]
-	expect(option.values.len == 2, 'Unexpected number of option_value: expected 2, got ${option.values.len}')!
+	expect(option.values.len == 2,
+		'Unexpected number of option_value: expected 2, got ${option.values.len}')!
 
 	value_1 := option.values[1]
-	expect(value_1.value_rank == 1, 'Unexpected value_rank for value at index 1: expected 1, got ${value_1.value_rank}')!
+	expect(value_1.value_rank == 1,
+		'Unexpected value_rank for value at index 1: expected 1, got ${value_1.value_rank}')!
 
 	title := luuid.v2()
 	ean := rand.ascii(peony.max_length_ean)
@@ -1440,12 +1493,15 @@ fn updates_a_variant(cookie_value string) ! {
 	vr := json.decode(peony.VariantResponseEnvelope, response.body)!
 	variant := vr.variant
 
-	expect(variant.title == title, 'Variant title does not match: expected ${title}, got ${variant.title}')!
+	expect(variant.title == title,
+		'Variant title does not match: expected ${title}, got ${variant.title}')!
 	expect(variant.ean == ean, 'Variant ean does not match: expected ${ean}, got ${variant.ean}')!
 	expect(variant.upc == upc, 'Variant upc does not match: expected ${upc}, got ${variant.upc}')!
-	expect(variant.barcode == barcode, 'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
+	expect(variant.barcode == barcode,
+		'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
 	expect(variant.image_id == image_1.id, 'Variant image_id does not match')!
-	expect(variant.option_values.len == 1, 'Unexpected number of option_values: expected 1, got ${variant.option_values.len}')!
+	expect(variant.option_values.len == 1,
+		'Unexpected number of option_values: expected 1, got ${variant.option_values.len}')!
 
 	option_value := variant.option_values[0]
 	expect(option_value.id == value_1.id, 'option_value id does not match')!
@@ -1487,7 +1543,8 @@ fn deletes_a_variant(cookie_value string) ! {
 	is_created(response)!
 	pr := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := pr.product
-	expect(product.variants.len == 2, 'Unexpected number of variants: expected 1, got ${product.variants.len}')!
+	expect(product.variants.len == 2,
+		'Unexpected number of variants: expected 1, got ${product.variants.len}')!
 
 	variant_0 := product.variants[0]
 	variant_1 := product.variants[1]
@@ -1529,27 +1586,32 @@ fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	is_created(response)!
 
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	product := r.product
 	variants := product.variants
-	expect(variants.len == 1, 'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
+	expect(variants.len == 1,
+		'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
 
 	variant := variants[0]
-	expect(variant.regional_prices.len == regions.len, 'Variant contains unexpected number of regional prices, expected ${regions.len}, got ${variant.regional_prices.len}')!
+	expect(variant.regional_prices.len == regions.len,
+		'Variant contains unexpected number of regional prices, expected ${regions.len}, got ${variant.regional_prices.len}')!
 
 	region_ids := variant.regional_prices.keys()
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
 		base_expected := regional_prices[region_id].base_price
 		base_received := variant.regional_prices[region_id].base_price
-		expect(base_expected == base_received, 'regional base_price does not match: expected ${base_expected}, received ${base_received}')!
+		expect(base_expected == base_received,
+			'regional base_price does not match: expected ${base_expected}, received ${base_received}')!
 
 		if original_expected := regional_prices[region_id].original_price {
 			original_received := variant.regional_prices[region_id].original_price
-			expect(original_expected == original_received, 'regional base_price does not match: expected ${original_expected}, received ${original_received}')!
+			expect(original_expected == original_received,
+				'regional base_price does not match: expected ${original_expected}, received ${original_received}')!
 		}
 	}
 
@@ -1585,7 +1647,8 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 
 	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
 		json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with 1 option, 1 value and 2 variants with the same values')!
+	expect(response.status_code == 422,
+		'Product was created with 1 option, 1 value and 2 variants with the same values')!
 
 	// 1 option, 2 values, 2 variants
 	new_product_data = peony.ProductCreateRequest{
@@ -1614,8 +1677,10 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 	}
 
 	// 2 options, 1 value each, 2 variants
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with 1 option, 2 value and 2 variants with the same values')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with 1 option, 2 value and 2 variants with the same values')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title:    luuid.v2()
@@ -1647,12 +1712,16 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with 2 options, 1 value each and 2 variants with the same values')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with 2 options, 1 value each and 2 variants with the same values')!
 
 	// 2 options, 2 values each, 2 variants
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with 1 option, 2 value and 2 variants with the same values')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with 1 option, 2 value and 2 variants with the same values')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title:    luuid.v2()
@@ -1690,8 +1759,10 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
-	expect(response.status_code == 422, 'Product was created with 2 options, 1 value each and 2 variants with the same values')!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
+	expect(response.status_code == 422,
+		'Product was created with 2 options, 1 value each and 2 variants with the same values')!
 }
 
 fn admin_products_updates_product(cookie_value string) ! {
@@ -1758,7 +1829,8 @@ fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	new_product_data = peony.ProductCreateRequest{
 		title: ''
 	}
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json.encode(new_product_data))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
+		json.encode(new_product_data))!
 	expect(response.status_code == 422, 'Product was created despite request having empty title')!
 }
 
@@ -1798,7 +1870,8 @@ fn updates_product_options_ranking(cookie_value string) ! {
 	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	mut product := r.product
 	old_options := product.options
-	expect(old_options.len == 2, 'Product contains unexpected number of options: expected 2, got ${old_options.len}')!
+	expect(old_options.len == 2,
+		'Product contains unexpected number of options: expected 2, got ${old_options.len}')!
 
 	old_option_0 := old_options[0]
 	old_option_1 := old_options[1]
@@ -1821,7 +1894,8 @@ fn updates_product_options_ranking(cookie_value string) ! {
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
 	new_options := product.options
-	expect(new_options.len == 2, 'Product contains unexpected number of options: expected 2, got ${new_options.len}')!
+	expect(new_options.len == 2,
+		'Product contains unexpected number of options: expected 2, got ${new_options.len}')!
 
 	new_option_0 := new_options[0]
 	new_option_1 := new_options[1]
@@ -1867,7 +1941,8 @@ fn updates_variants_ranking(cookie_value string) ! {
 	mut r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	mut product := r.product
 	old_variants := product.variants
-	expect(old_variants.len == 2, 'Product contains unexpected number of variants: expected 2, got ${old_variants.len}')!
+	expect(old_variants.len == 2,
+		'Product contains unexpected number of variants: expected 2, got ${old_variants.len}')!
 
 	variant_0_id := old_variants[0].id
 	variant_1_id := old_variants[1].id
@@ -1890,7 +1965,8 @@ fn updates_variants_ranking(cookie_value string) ! {
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	product = r.product
 	new_variants := product.variants
-	expect(new_variants.len == 2, 'Product contains unexpected number of variants: expected 2, got ${new_variants.len}')!
+	expect(new_variants.len == 2,
+		'Product contains unexpected number of variants: expected 2, got ${new_variants.len}')!
 
 	new_variant_0_id := new_variants[0].id
 	new_variant_1_id := new_variants[1].id
@@ -2017,10 +2093,12 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 
 		// verify all requested translations were created
 		if requested_image_translations := requested_image.translations {
-			expect(new_image.translations.len == requested_image_translations.len, 'image ${i} translations differ in number')!
+			expect(new_image.translations.len == requested_image_translations.len,
+				'image ${i} translations differ in number')!
 			for j := 0; j < secondary_locales.len; j++ {
 				locale := secondary_locales[j]
-				expect(locale.id in new_image.translations, 'secondary locale not found in image ${i} translations')!
+				expect(locale.id in new_image.translations,
+					'secondary locale not found in image ${i} translations')!
 			}
 		}
 	}
@@ -2127,14 +2205,22 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	category_translation_2 := new_category.translations[secondary_locale_2.id]
 	mut seo_translation_1 := new_category.seo.translations[secondary_locale_1.id]
 	mut seo_translation_2 := new_category.seo.translations[secondary_locale_2.id]
-	expect(category_translation_1.name == category_translation_1_name, 'category translation 1 title does not match')!
-	expect(category_translation_1.description == category_translation_1_description, 'category translation 1 description does not match')!
-	expect(category_translation_2.name == category_translation_2_name, 'category translation 2 title does not match')!
-	expect(category_translation_2.description == category_translation_2_description, 'category translation 2 description does not match')!
-	expect(seo_translation_1.title == category_seo_translation_1_title, 'seo translation 1 title does not match')!
-	expect(seo_translation_1.description == category_seo_translation_1_description, 'seo translation 1 description does not match')!
-	expect(seo_translation_2.title == category_seo_translation_2_title, 'seo translation 2 title does not match')!
-	expect(seo_translation_2.description == category_seo_translation_2_description, 'seo translation 2 description does not match')!
+	expect(category_translation_1.name == category_translation_1_name,
+		'category translation 1 title does not match')!
+	expect(category_translation_1.description == category_translation_1_description,
+		'category translation 1 description does not match')!
+	expect(category_translation_2.name == category_translation_2_name,
+		'category translation 2 title does not match')!
+	expect(category_translation_2.description == category_translation_2_description,
+		'category translation 2 description does not match')!
+	expect(seo_translation_1.title == category_seo_translation_1_title,
+		'seo translation 1 title does not match')!
+	expect(seo_translation_1.description == category_seo_translation_1_description,
+		'seo translation 1 description does not match')!
+	expect(seo_translation_2.title == category_seo_translation_2_title,
+		'seo translation 2 title does not match')!
+	expect(seo_translation_2.description == category_seo_translation_2_description,
+		'seo translation 2 description does not match')!
 
 	new_category_data := json.encode(peony.CategoryUpdateRequest{
 		translations: map[string]peony.CategoryTranslationRequest{}
@@ -2220,16 +2306,26 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	product_translation_2 := new_product.translations[secondary_locale_2.id]
 	seo_translation_1 := new_product.seo.translations[secondary_locale_1.id]
 	seo_translation_2 := new_product.seo.translations[secondary_locale_2.id]
-	expect(product_translation_1.title == product_translation_1_title, 'product translation 1 title does not match')!
-	expect(product_translation_1.subtitle == product_translation_1_subtitle, 'product translation 1 subtitle does not match')!
-	expect(product_translation_1.description == product_translation_1_description, 'product translation 1 description does not match')!
-	expect(product_translation_2.title == product_translation_2_title, 'product translation 2 title does not match')!
-	expect(product_translation_2.subtitle == product_translation_2_subtitle, 'product translation 2 subtitle does not match')!
-	expect(product_translation_2.description == product_translation_2_description, 'product translation 2 description does not match')!
-	expect(seo_translation_1.title == product_seo_translation_1_title, 'seo translation 1 title does not match')!
-	expect(seo_translation_1.description == product_seo_translation_1_description, 'seo translation 1 description does not match')!
-	expect(seo_translation_2.title == product_seo_translation_2_title, 'seo translation 2 title does not match')!
-	expect(seo_translation_2.description == product_seo_translation_2_description, 'seo translation 2 description does not match')!
+	expect(product_translation_1.title == product_translation_1_title,
+		'product translation 1 title does not match')!
+	expect(product_translation_1.subtitle == product_translation_1_subtitle,
+		'product translation 1 subtitle does not match')!
+	expect(product_translation_1.description == product_translation_1_description,
+		'product translation 1 description does not match')!
+	expect(product_translation_2.title == product_translation_2_title,
+		'product translation 2 title does not match')!
+	expect(product_translation_2.subtitle == product_translation_2_subtitle,
+		'product translation 2 subtitle does not match')!
+	expect(product_translation_2.description == product_translation_2_description,
+		'product translation 2 description does not match')!
+	expect(seo_translation_1.title == product_seo_translation_1_title,
+		'seo translation 1 title does not match')!
+	expect(seo_translation_1.description == product_seo_translation_1_description,
+		'seo translation 1 description does not match')!
+	expect(seo_translation_2.title == product_seo_translation_2_title,
+		'seo translation 2 title does not match')!
+	expect(seo_translation_2.description == product_seo_translation_2_description,
+		'seo translation 2 description does not match')!
 
 	// Product
 	// product_data = peony.ProductCreateRequest{

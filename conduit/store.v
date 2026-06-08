@@ -3,7 +3,9 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub fn store_get(mut tx firebird.Transaction) !record.Store {
+pub type Store = record.Store
+
+pub fn store_get(mut tx firebird.Transaction) !Store {
 	mut store := record.store_retrieve(mut tx) or {
 		return new_error_internal('Failed to retrieve store', err.msg())
 	}
@@ -18,11 +20,11 @@ pub fn store_get(mut tx firebird.Transaction) !record.Store {
 
 pub struct StoreUpdateData {
 	store      record.StoreUpdateParams
-	locale_ids ?[]record.ID
+	locale_ids ?[]ID
 }
 
 // TODO always run store_update for updated_at
-pub fn conduit_store_update(mut tx firebird.Transaction, store_id record.ID, p StoreUpdateData) ! {
+pub fn conduit_store_update(mut tx firebird.Transaction, store_id ID, p StoreUpdateData) ! {
 	if p.store.name != none || p.store.default_locale_id != none
 		|| p.store.default_region_id != none || p.store.default_stock_location_id != none
 		|| p.store.default_sales_channel_id != none {
@@ -37,4 +39,3 @@ pub fn conduit_store_update(mut tx firebird.Transaction, store_id record.ID, p S
 		}
 	}
 }
-

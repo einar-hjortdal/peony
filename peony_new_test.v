@@ -67,7 +67,8 @@ fn container_firebird_clean() {
 // Remember to `sudo usermod -aG docker $USER`
 fn container_firebird_start() ! {
 	container_firebird_clean() // kill container if already running
-	result := os.execute('docker run --rm --detach --name=${firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${firebird_root_password} --env=FIREBIRD_USER=${firebird_user} --env=FIREBIRD_PASSWORD=${firebird_password} --env=FIREBIRD_DATABASE=${firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${firebird_port}:3050 firebirdsql/firebird')
+	result :=
+		os.execute('docker run --rm --detach --name=${firebird_container_name} --env=FIREBIRD_ROOT_PASSWORD=${firebird_root_password} --env=FIREBIRD_USER=${firebird_user} --env=FIREBIRD_PASSWORD=${firebird_password} --env=FIREBIRD_DATABASE=${firebird_database} --env=FIREBIRD_DATABASE_DEFAULT_CHARSET=UTF8 --publish=${firebird_port}:3050 firebirdsql/firebird')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -85,7 +86,8 @@ fn container_redict_clean() {
 
 fn container_redict_start() ! {
 	container_redict_clean() // kill container if already running
-	result := os.execute('docker run --rm --detach --name=${redict_container_name} --publish=${redict_port}:6379 registry.redict.io/redict')
+	result :=
+		os.execute('docker run --rm --detach --name=${redict_container_name} --publish=${redict_port}:6379 registry.redict.io/redict')
 	if result.exit_code != 0 {
 		return error(result.output)
 	}
@@ -96,7 +98,8 @@ fn containers_are_ready() {
 	mut redict_is_loading := true
 	for firebird_is_loading || redict_is_loading {
 		if firebird_is_loading {
-			check := os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${firebird_container_name} isql localhost:${firebird_database_path} -user ${firebird_user} -password ${firebird_password} -q')
+			check :=
+				os.execute('echo "SELECT \'ALIVE\' FROM RDB\\\$DATABASE; quit;" | docker exec -i ${firebird_container_name} isql localhost:${firebird_database_path} -user ${firebird_user} -password ${firebird_password} -q')
 			if check.output.contains('ALIVE') {
 				firebird_is_loading = false
 			}
@@ -149,8 +152,7 @@ fn run_app() !chan bool {
 	go app_routine(ch)
 	mut app_is_loading := true
 	for app_is_loading {
-		request := http.new_request(http.Method.get, 'http://localhost:${port}/admin/auth',
-			'')
+		request := http.new_request(http.Method.get, 'http://localhost:${port}/admin/auth', '')
 		if r := request.do() {
 			app_is_loading = false
 		}

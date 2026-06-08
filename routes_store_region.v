@@ -70,4 +70,3 @@ pub fn (mut app App) store_region_get(mut ctx Context, region_id string) veb.Res
 		regions: format_region_response(region)
 	})
 }
-

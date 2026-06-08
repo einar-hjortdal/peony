@@ -283,4 +283,3 @@ fn (mut app App) prepare_db() ! {
 
 	log.info('Database setup complete')
 }
-

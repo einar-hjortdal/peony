@@ -9,12 +9,12 @@ pub:
 	name               string
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
-	deleted_at         firebird.NullDateTime
+	deleted_at         ?firebird.DateTime
 	currency_code      string
 	includes_tax       bool
 	gift_cards_taxable bool
 	automatic_taxes    bool
-mut:
+pub mut:
 	tax_rates []TaxRate
 }
 
@@ -101,7 +101,7 @@ pub fn region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]Re
 			name:               name
 			created_at:         created_at
 			updated_at:         updated_at
-			deleted_at:         deleted_at
+			deleted_at:         deleted_at.none_value()
 			currency_code:      currency_code
 			includes_tax:       includes_tax
 			gift_cards_taxable: gift_cards_taxable

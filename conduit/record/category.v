@@ -7,8 +7,8 @@ pub struct CategoryTranslation {
 pub:
 	category_id ID
 	locale_id   ID
-	name        firebird.NullString
-	description firebird.NullString
+	name        ?string
+	description ?string
 }
 
 pub fn (ct CategoryTranslation) locale_id() ID {
@@ -80,8 +80,8 @@ pub fn category_translations_get(mut tx firebird.Transaction, category_ids []ID)
 		category_translations[i] = CategoryTranslation{
 			category_id: category_id
 			locale_id:   locale_id
-			name:        name
-			description: description
+			name:        name.none_value()
+			description: description.none_value()
 		}
 	}
 	return category_translations
@@ -92,14 +92,14 @@ pub:
 	id                 ID
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
-	deleted_at         firebird.NullDateTime
+	deleted_at         ?firebird.DateTime
 	name               string
-	description        firebird.NullString
+	description        ?string
 	handle             string
 	is_active          bool
 	is_internal        bool
 	parent_category_id ?ID
-	metadata           firebird.NullString
+	metadata           ?string
 pub mut:
 	seo          CategorySEO
 	translations []CategoryTranslation
@@ -301,22 +301,22 @@ pub fn category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) 
 		id := id_from_bytes(id_bin)!
 
 		mut parent_category_id := ?ID(none)
-		if !parent_category_id_bin.is_null {
-			parent_category_id = id_from_bytes(parent_category_id_bin.value)!
+		if !parent_category_id_bin.is_null() {
+			parent_category_id = id_from_bytes(parent_category_id_bin.value())!
 		}
 
 		categories[i] = Category{
 			id:                 id
 			created_at:         created_at
 			updated_at:         updated_at
-			deleted_at:         deleted_at
+			deleted_at:         deleted_at.null_value()
 			handle:             handle
 			is_active:          is_active
 			is_internal:        is_internal
 			parent_category_id: parent_category_id
-			metadata:           metadata
+			metadata:           metadata.null_value()
 			name:               name
-			description:        description
+			description:        description.null_value()
 		}
 	}
 
@@ -408,4 +408,3 @@ pub fn category_product_update(mut tx firebird.Transaction, product_id ID, categ
 				DELETE',
 		...params)!
 }
-

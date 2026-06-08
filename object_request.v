@@ -2,7 +2,6 @@ module peony
 
 import arrays
 import json
-import conduit
 
 pub struct AuthRequest {
 pub:
@@ -302,23 +301,14 @@ pub:
 }
 
 fn (p UserCreateRequest) hygienise() ! {
-	if p.email == '' {
-		return new_error_bad_request(error_field_empty, 'email')
-	}
+	email_is_valid(p.email) or { return new_error_bad_request('invalid email', err.msg()) }
 
 	if p.password == '' {
 		return new_error_bad_request(error_field_empty, 'password')
 	}
 
-	email_is_valid(p.email) or { return new_error_bad_request('invalid email', err.msg()) }
-
 	if role := p.role {
-		match role {
-			role_admin, role_member, role_developer, role_author, role_contributor {}
-			else {
-				return new_error_role_invalid()
-			}
-		}
+		role_is_valid(role)!
 	}
 
 	if first_name := p.first_name {
@@ -357,20 +347,11 @@ pub:
 
 fn (p UserUpdateRequest) hygienise() ! {
 	if email := p.email {
-		if email == '' {
-			return new_error_bad_request(error_field_empty, 'email')
-		}
+		email_is_valid(email) or { return new_error_bad_request('invalid email', err.msg()) }
 	}
 
-	email_is_valid(p.email) or { return new_error_bad_request('invalid email', err.msg()) }
-
 	if role := p.role {
-		match role {
-			role_admin, role_member, role_developer, role_author, role_contributor {}
-			else {
-				return new_error_role_invalid()
-			}
-		}
+		role_is_valid(role)!
 	}
 
 	if first_name := p.first_name {
@@ -2473,4 +2454,3 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 
 	return ph
 }
-

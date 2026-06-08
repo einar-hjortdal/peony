@@ -121,17 +121,13 @@
 - [ ] Transaction management
 - [ ] Worker mode
 - [x] Routes should not call models, only conduit.
-- [ ] Refactor record fields to use option types instead of firebird.NullT
+- [x] Refactor record fields to use option types instead of firebird.NullT
 
 ## Upstream
 
-- [ ] [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)
-- [ ] V aliases don't quite work. Top level package should never import record, only conduit.
-  - [#27006](https://github.com/vlang/v/issues/27006)
-  - [#27055](https://github.com/vlang/v/issues/27055)
-- [ ] [Firebird connection pooling with connection management and transaction attempts](https://github.com/einar-hjortdal/firebird/tree/feat_client)
-- [ ] Feature: [handle firebird affected rows in results](https://github.com/einar-hjortdal/firebird)
-- [ ] [Firebird currently does not support JSON data type](https://github.com/FirebirdSQL/firebird/issues/5431). Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` when possible.
+- [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)
+- [Firebird connection pooling with connection management and transaction attempts](https://github.com/einar-hjortdal/firebird/tree/feat_client)
+- [Firebird currently does not support JSON data type](https://github.com/FirebirdSQL/firebird/issues/5431). Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` when possible.
 
 ## Considerations
 

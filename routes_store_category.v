@@ -31,4 +31,3 @@ pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb
 		order:        order_default
 	})
 }
-

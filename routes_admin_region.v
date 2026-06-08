@@ -145,4 +145,3 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 
 	return conduit_region_delete(mut app, mut ctx, id)
 }
-

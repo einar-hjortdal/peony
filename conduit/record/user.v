@@ -10,6 +10,7 @@ pub const role_author = 'author'
 pub const role_contributor = 'contributor'
 
 pub struct User {
+pub:
 	id                     ID
 	handle                 string
 	email                  string
@@ -19,11 +20,11 @@ pub struct User {
 	role                   string
 	created_at             firebird.DateTime
 	updated_at             firebird.DateTime
-	deleted_at             firebird.DateTime
+	deleted_at             ?firebird.DateTime
 	first_name             string
 	last_name              string
-	metadata               firebird.NullString
-mut:
+	metadata               ?string
+pub mut:
 	image UserImage
 }
 
@@ -178,7 +179,7 @@ pub fn user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 		role, _ := v[6].get_string()!
 		created_at, _ := v[7].get_date_time()!
 		updated_at, _ := v[8].get_date_time()!
-		deleted_at, _ := v[9].get_date_time()!
+		deleted_at := v[9].get_null_date_time()!
 		first_name, _ := v[10].get_string()!
 		last_name, _ := v[11].get_string()!
 		metadata := v[12].get_null_string()!
@@ -196,10 +197,10 @@ pub fn user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
 			role:                   role
 			created_at:             created_at
 			updated_at:             updated_at
-			deleted_at:             deleted_at
+			deleted_at:             deleted_at.none_value()
 			first_name:             first_name
 			last_name:              last_name
-			metadata:               metadata
+			metadata:               metadata.none_value()
 		}
 	}
 
@@ -263,4 +264,3 @@ pub fn user_update(mut tx firebird.Transaction, user_id ID, p UserUpdateParams) 
 pub fn user_delete(mut tx firebird.Transaction, user_id ID) ! {
 	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id.bytes())!
 }
-

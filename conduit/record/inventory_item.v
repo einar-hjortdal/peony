@@ -85,17 +85,17 @@ pub:
 	id                ID
 	created_at        firebird.DateTime
 	updated_at        firebird.DateTime
-	deleted_at        firebird.NullDateTime
+	deleted_at        ?firebird.DateTime
 	variant_id        ID
-	sku               firebird.NullString
-	origin_country    firebird.NullString
-	hs_code           firebird.NullString
-	mid_code          firebird.NullString
-	material          firebird.NullString
-	weight            firebird.NullI32
-	length            firebird.NullI32
-	height            firebird.NullI32
-	width             firebird.NullI32
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
 	requires_shipping bool
 	manage_inventory  bool
 	allow_backorder   bool
@@ -166,17 +166,17 @@ pub fn inventory_item_retrieve(mut tx firebird.Transaction, variant_ids []ID) ![
 			id:                id
 			created_at:        created_at
 			updated_at:        updated_at
-			deleted_at:        deleted_at
+			deleted_at:        deleted_at.none_value()
 			variant_id:        variant_id
-			sku:               sku
-			origin_country:    origin_country
-			hs_code:           hs_code
-			mid_code:          mid_code
-			material:          material
-			weight:            weight
-			length:            length
-			height:            height
-			width:             width
+			sku:               sku.none_value()
+			origin_country:    origin_country.none_value()
+			hs_code:           hs_code.none_value()
+			mid_code:          mid_code.none_value()
+			material:          material.none_value()
+			weight:            weight.none_value()
+			length:            length.none_value()
+			height:            height.none_value()
+			width:             width.none_value()
 			requires_shipping: requires_shipping
 			manage_inventory:  manage_inventory
 			allow_backorder:   allow_backorder
@@ -186,6 +186,7 @@ pub fn inventory_item_retrieve(mut tx firebird.Transaction, variant_ids []ID) ![
 	return inventory_items
 }
 
+// TODO fix option types
 pub struct InventoryItemCreateParams {
 pub:
 	id                ID
@@ -459,4 +460,3 @@ pub fn inventory_item_sync_delete(mut tx firebird.Transaction, product_id ID) ! 
 			SET t.deleted_at = s.deleted_at',
 		product_id.bytes())!
 }
-

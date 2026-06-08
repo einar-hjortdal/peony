@@ -122,4 +122,3 @@ fn get_where_conditions(c []string) string {
 fn get_merge_source(s []string) string {
 	return s.join('\nUNION ALL\n')
 }
-

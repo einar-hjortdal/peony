@@ -1,7 +1,8 @@
-module cache
+module peony
 
 import json
 import time
+import conduit
 
 // TODO cache for store endpoints:
 // store items in redis after retrieving from db
@@ -17,8 +18,6 @@ import time
 // when updating translations: accept map with locale_code keys, match to id at validation.
 // accepting a map makes more sense than accepting an array, as translations have no order.
 
-// Distributed FIFO queue for "important" operations (orders, etc)
-
 const one_day = 24 * time.hour
 const one_month = 30 * one_day
 const api_key_prefix = 'api_key'
@@ -31,14 +30,14 @@ fn get_api_key_key(api_key_id ID) string {
 	return build_key(lib, api_key_prefix, api_key_id.string())
 }
 
-fn (mut app App) cache_set_api_key(api_key APIKey) ! {
+fn (mut app App) cache_set_api_key(api_key conduit.APIKey) ! {
 	api_key_key := get_api_key_key(api_key.id)
 	app.redict.set(api_key_key, json.encode(api_key), one_month).error()!
 }
 
-fn (mut app App) cache_get_api_key(api_key_id ID) !APIKey {
+fn (mut app App) cache_get_api_key(api_key_id ID) !conduit.APIKey {
 	v := app.redict.get(get_api_key_key(api_key_id)).result()!
-	api_key := json.decode(APIKey, v)!
+	api_key := json.decode(conduit.APIKey, v)!
 	return api_key
 }
 
@@ -51,4 +50,3 @@ fn (mut app App) cache_delete_api_key(api_key_id ID) ! {
 fn (mut app App) initiate_cache() ! {
 	// build cache
 }
-

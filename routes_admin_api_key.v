@@ -158,4 +158,3 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 
 	return ctx.handle_deleted()
 }
-

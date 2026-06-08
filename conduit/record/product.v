@@ -117,17 +117,17 @@ pub:
 	id           ID
 	created_at   firebird.DateTime
 	updated_at   firebird.DateTime
-	deleted_at   firebird.NullDateTime
+	deleted_at   ?firebird.DateTime
 	handle       string
 	title        string
-	subtitle     firebird.NullString
-	description  firebird.NullString
+	subtitle     ?string
+	description  ?string
 	is_giftcard  bool
 	status       string
 	thumbnail_id ?ID
 	type_id      ?ID
 	discountable bool
-	metadata     firebird.NullString
+	metadata     ?string
 pub mut:
 	seo                ProductSEO
 	images             []ProductImage
@@ -303,17 +303,17 @@ pub fn product_retrieve(mut tx firebird.Transaction, p ProductRetrieveParams) ![
 			id:           id
 			created_at:   created_at
 			updated_at:   updated_at
-			deleted_at:   deleted_at
+			deleted_at:   deleted_at.none_value()
 			handle:       handle
 			is_giftcard:  is_giftcard
 			status:       status
 			thumbnail_id: thumbnail_id
 			type_id:      type_id
 			discountable: discountable
-			metadata:     metadata
+			metadata:     metadata.none_value()
 			title:        title
-			subtitle:     subtitle
-			description:  description
+			subtitle:     subtitle.none_value()
+			description:  description.none_value()
 		}
 	}
 	return products
@@ -460,4 +460,3 @@ pub fn product_thumbnail_update(mut tx firebird.Transaction, product_id ID, imag
 pub fn product_thumbnail_delete(mut tx firebird.Transaction, product_id ID) ! {
 	tx.execute('UPDATE product SET thumbnail_id = NULL WHERE id = ?', product_id.bytes())!
 }
-

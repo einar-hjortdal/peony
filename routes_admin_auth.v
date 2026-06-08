@@ -1,7 +1,6 @@
 module peony
 
 import json
-import log
 import veb
 import conduit
 
@@ -117,4 +116,3 @@ pub fn (mut app App) admin_auth_del(mut ctx Context) veb.Result {
 	ctx.user_session.to_prune = true
 	return success(mut ctx)
 }
-

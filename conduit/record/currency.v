@@ -6,7 +6,7 @@ import einar_hjortdal.firebird
 pub struct Currency {
 pub:
 	code           string
-	decimal_digits firebird.NullI32
+	decimal_digits ?i32
 }
 
 pub struct CurrencyRetrieveParams {
@@ -59,10 +59,9 @@ pub fn currency_retrieve(mut tx firebird.Transaction, p CurrencyRetrieveParams) 
 
 		currencies[i] = Currency{
 			code:           code
-			decimal_digits: decimal_digits
+			decimal_digits: decimal_digits.none_value()
 		}
 	}
 
 	return currencies
 }
-

@@ -67,4 +67,3 @@ pub fn password_details_create(mut tx firebird.Transaction, id ID, function_name
 	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
 		id.bytes(), function_name, parameters, hash)!
 }
-

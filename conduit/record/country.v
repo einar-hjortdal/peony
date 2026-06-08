@@ -70,4 +70,3 @@ pub fn country_retrieve(mut tx firebird.Transaction, p CountryRetrieveParams) ![
 
 	return countries
 }
-

@@ -70,4 +70,3 @@ pub fn locale_retrieve(mut tx firebird.Transaction, p LocaleRetrieveParams) ![]L
 
 	return locales
 }
-

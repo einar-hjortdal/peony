@@ -4,10 +4,11 @@ import arrays
 import einar_hjortdal.firebird
 
 pub struct SalesChannel {
+pub:
 	id          ID
 	created_at  firebird.DateTime
 	updated_at  firebird.DateTime
-	deleted_at  firebird.DateTime
+	deleted_at  ?firebird.DateTime
 	name        string
 	description string
 	is_disabled bool
@@ -78,7 +79,7 @@ pub fn sales_channel_retrieve(mut tx firebird.Transaction, p SalesChannelRetriev
 		id_bin, _ := v[0].get_array_u8()!
 		created_at, _ := v[1].get_date_time()!
 		updated_at, _ := v[2].get_date_time()!
-		deleted_at, _ := v[3].get_date_time()!
+		deleted_at := v[3].get_null_date_time()!
 		name, _ := v[4].get_string()!
 		description, _ := v[5].get_string()!
 		is_disabled, _ := v[6].get_bool()!
@@ -89,7 +90,7 @@ pub fn sales_channel_retrieve(mut tx firebird.Transaction, p SalesChannelRetriev
 			id:          id
 			created_at:  created_at
 			updated_at:  updated_at
-			deleted_at:  deleted_at
+			deleted_at:  deleted_at.none_value()
 			name:        name
 			description: description
 			is_disabled: is_disabled
@@ -281,4 +282,3 @@ pub fn sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_ch
 	tx.execute('DELETE FROM sales_channel_stock_location WHERE sales_channel_id = ? AND stock_location_id = ?)',
 		sales_channel_id.bytes(), stock_location_id.bytes())!
 }
-

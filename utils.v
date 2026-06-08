@@ -6,7 +6,6 @@ import veb
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import conduit
-import conduit.record
 
 pub const lib = 'peony'
 
@@ -82,11 +81,22 @@ const roles = [
 	role_contributor,
 ]
 
-fn new_id(mut g luuid.Generator) record.ID {
+fn role_is_valid(role string) ! {
+	match role {
+		role_admin, role_member, role_developer, role_author, role_contributor {}
+		else {
+			return new_error_role_invalid()
+		}
+	}
+}
+
+pub type ID = conduit.ID
+
+fn new_id(mut g luuid.Generator) ID {
 	return conduit.new_id(mut g)
 }
 
-fn id_from_string(s string) !record.ID {
+fn id_from_string(s string) !ID {
 	return conduit.id_from_string(s)
 }
 
@@ -132,21 +142,21 @@ fn get_none_bool(m map[string]string, k string) ?bool {
 }
 
 // to parse query strings
-fn ids_from_array_string(ids_string []string) ![]record.ID {
-	mut ids := []record.ID{len: ids_string.len}
+fn ids_from_array_string(ids_string []string) ![]ID {
+	mut ids := []ID{len: ids_string.len}
 	for i := 0; i < ids_string.len; i++ {
 		ids[i] = id_from_string(ids_string[i])!
 	}
 	return ids
 }
 
-fn (mut app App) gen_id() record.ID {
+fn (mut app App) gen_id() ID {
 	return conduit.new_id(mut app.luuid_generator)
 }
 
 // WIP
 interface Translation {
-	locale_id() record.ID
+	locale_id() ID
 }
 
 interface Translatable {
@@ -314,7 +324,7 @@ fn get_order_direction_or_default(direction ?string) !string {
 }
 
 struct LocaleContext {
-	locale_id ?record.ID
+	locale_id ?ID
 }
 
 // TODO delete (use conduit.)
@@ -376,9 +386,9 @@ fn new_error_role_invalid() PeonyError {
 		'role must be one of: ${roles.join(', ')}')
 }
 
-fn make_identifiable_map[T](identifiables []T) (map[string]T, []record.ID) {
+fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
 	mut map_res := map[string]T{}
-	mut arr_res := []record.ID{len: identifiables.len}
+	mut arr_res := []ID{len: identifiables.len}
 	for i := 0; i < identifiables.len; i++ {
 		identifiable := identifiables[i]
 		id := identifiable.id()
@@ -387,4 +397,3 @@ fn make_identifiable_map[T](identifiables []T) (map[string]T, []record.ID) {
 	}
 	return map_res, arr_res
 }
-

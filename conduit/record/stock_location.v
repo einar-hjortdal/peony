@@ -4,10 +4,11 @@ import arrays
 import einar_hjortdal.firebird
 
 pub struct StockLocation {
+pub:
 	id         ID
 	created_at firebird.DateTime
 	updated_at firebird.DateTime
-	deleted_at firebird.NullDateTime
+	deleted_at ?firebird.DateTime
 	name       string
 	// address Address
 }
@@ -68,11 +69,10 @@ pub fn stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRetri
 			id:         id
 			created_at: created_at
 			updated_at: updated_at
-			deleted_at: deleted_at
+			deleted_at: deleted_at.none_value()
 			name:       name
 		}
 	}
 
 	return stock_locations
 }
-
