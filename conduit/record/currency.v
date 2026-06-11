@@ -29,7 +29,7 @@ pub fn currency_retrieve_conditions(p CurrencyRetrieveParams) (string, []firebir
 	return get_where_conditions(conditions), params
 }
 
-pub fn currency_retrieve_count(mut tx firebird.Transaction, p CurrencyRetrieveParams) !i64 {
+pub fn currency_retrieve_count(mut tx firebird.ClientTransaction, p CurrencyRetrieveParams) !i64 {
 	conditions, params := currency_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM currency ${conditions}', ...params)!
 	rows := data.rows()
@@ -38,7 +38,7 @@ pub fn currency_retrieve_count(mut tx firebird.Transaction, p CurrencyRetrievePa
 	return count
 }
 
-pub fn currency_retrieve(mut tx firebird.Transaction, p CurrencyRetrieveParams) ![]Currency {
+pub fn currency_retrieve(mut tx firebird.ClientTransaction, p CurrencyRetrieveParams) ![]Currency {
 	conditions, mut params := currency_retrieve_conditions(p)
 
 	mut sorting := 'ORDER BY created_at ${p.order} 

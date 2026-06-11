@@ -100,7 +100,7 @@ fn id_from_string(s string) !ID {
 	return conduit.id_from_string(s)
 }
 
-fn (mut app App) start_transaction() !&firebird.Transaction {
+fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 	tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
 		return conduit.new_error_internal(error_transaction_start, err.msg())
 	}

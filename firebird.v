@@ -47,7 +47,7 @@ fn firebird_get_locale_codes() []string {
 	return locale_codes[..locale_codes.len - 1] // remove last character \n (posix)
 }
 
-fn firebird_insert_country_codes(mut tx firebird.Transaction) ! {
+fn firebird_insert_country_codes(mut tx firebird.ClientTransaction) ! {
 	log.debug('insert_country_codes')
 	country_codes := firebird_get_country_codes()
 	mut stmt := tx.prepare('INSERT INTO country (code) VALUES (?)')!
@@ -58,7 +58,7 @@ fn firebird_insert_country_codes(mut tx firebird.Transaction) ! {
 	stmt.close()!
 }
 
-fn firebird_insert_currency_data(mut tx firebird.Transaction) ! {
+fn firebird_insert_currency_data(mut tx firebird.ClientTransaction) ! {
 	log.debug('insert_currency_data')
 	currency_data := firebird_get_currency_data()
 	mut stmt := tx.prepare('INSERT INTO currency (code, decimal_digits) VALUES (?, ?)')!
@@ -75,7 +75,7 @@ fn firebird_insert_currency_data(mut tx firebird.Transaction) ! {
 	stmt.close()!
 }
 
-fn firebird_insert_locale_codes(mut tx firebird.Transaction, mut g luuid.Generator) ! {
+fn firebird_insert_locale_codes(mut tx firebird.ClientTransaction, mut g luuid.Generator) ! {
 	log.debug('insert_locale_codes')
 	locale_codes := firebird_get_locale_codes()
 	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
@@ -87,7 +87,7 @@ fn firebird_insert_locale_codes(mut tx firebird.Transaction, mut g luuid.Generat
 	stmt.close()!
 }
 
-fn firebird_insert_default_user(mut tx firebird.Transaction, email string, password string, password_parameters_id ID, user_id ID) ! {
+fn firebird_insert_default_user(mut tx firebird.ClientTransaction, email string, password string, password_parameters_id ID, user_id ID) ! {
 	log.debug('insert_default_user')
 	password_hash := hash_password(password)!
 	parameters_encoded, parameters_hash := password_hash.parameters.encode()!
@@ -99,39 +99,39 @@ fn firebird_insert_default_user(mut tx firebird.Transaction, email string, passw
 		password_parameters_id.bytes(), role_admin)!
 }
 
-fn firebird_insert_default_region(mut tx firebird.Transaction, region_id ID) ! {
+fn firebird_insert_default_region(mut tx firebird.ClientTransaction, region_id ID) ! {
 	log.debug('insert_default_region')
 	tx.execute('INSERT INTO region (id, name, currency_code) VALUES (?, ?, ?)', region_id.bytes(),
 		seed_default_region_name, seed_default_currency_code)!
 	tx.execute('UPDATE country SET region_id = ?', region_id.bytes())!
 }
 
-fn firebird_insert_default_stock_location(mut tx firebird.Transaction, stock_location_id ID) ! {
+fn firebird_insert_default_stock_location(mut tx firebird.ClientTransaction, stock_location_id ID) ! {
 	log.debug('insert_default_stock_location')
 	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', stock_location_id.bytes(),
 		seed_default_stock_location_name)!
 }
 
-fn firebird_insert_default_sales_channel(mut tx firebird.Transaction, sales_channel_id ID) ! {
+fn firebird_insert_default_sales_channel(mut tx firebird.ClientTransaction, sales_channel_id ID) ! {
 	log.debug('insert_default_sales_channel')
 	tx.execute('INSERT INTO sales_channel (id, name) VALUES (?, ?)', sales_channel_id.bytes(),
 		seed_default_sales_channel_name)!
 }
 
-fn firebird_insert_default_sales_channel_stock_location(mut tx firebird.Transaction, sales_channel_id ID, stock_location_id ID) ! {
+fn firebird_insert_default_sales_channel_stock_location(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
 	log.debug('insert_sales_channel_stock_location')
 	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id)
 		VALUES (?, ?)',
 		sales_channel_id.bytes(), stock_location_id.bytes())!
 }
 
-fn firebird_insert_default_api_key(mut tx firebird.Transaction, api_key ID, sales_channel_id ID) ! {
+fn firebird_insert_default_api_key(mut tx firebird.ClientTransaction, api_key ID, sales_channel_id ID) ! {
 	log.debug('firebird_insert_default_api_key')
 	tx.execute('INSERT INTO api_key (id, name, sales_channel_id) VALUES (?, ?, ?)',
 		api_key.bytes(), seed_default_api_key_name, sales_channel_id.bytes())!
 }
 
-fn firebird_insert_default_store(mut tx firebird.Transaction, region_id ID, store_id ID, sales_channel_id ID, stock_location_id ID) ! {
+fn firebird_insert_default_store(mut tx firebird.ClientTransaction, region_id ID, store_id ID, sales_channel_id ID, stock_location_id ID) ! {
 	log.debug('insert_default_store')
 	tx.execute('INSERT INTO store 
 		(
@@ -155,19 +155,19 @@ fn firebird_insert_default_store(mut tx firebird.Transaction, region_id ID, stor
 		stock_location_id.bytes(), sales_channel_id.bytes())!
 }
 
-fn firebird_insert_default_store_locale(mut tx firebird.Transaction, store_id ID) ! {
+fn firebird_insert_default_store_locale(mut tx firebird.ClientTransaction, store_id ID) ! {
 	log.debug('insert_default_store_locale')
 	tx.execute('INSERT INTO store_locales (store_id, locale_id)
 		VALUES (?, (SELECT id FROM locale WHERE code = ?))',
 		store_id.bytes(), seed_default_locale_code)!
 }
 
-fn firebird_create_schema(mut conn firebird.Connection) ! {
+fn firebird_create_schema(mut fbclient firebird.Client) ! {
 	log.debug('create_schema')
 	schema_queries := firebird_get_schema_queries()
 	for i := 0; i < schema_queries.len; i++ {
 		q := schema_queries[i]
-		mut tx := conn.start_transaction(firebird.isolation_level_read_commited)!
+		mut tx := fbclient.start_transaction(firebird.isolation_level_read_commited)!
 		tx.execute(q) or {
 			log.debug('Failed to execute query: ${q}')
 			return err
@@ -176,13 +176,13 @@ fn firebird_create_schema(mut conn firebird.Connection) ! {
 	}
 }
 
-fn firebird_rollback_schema(mut conn firebird.Connection) {
+fn firebird_rollback_schema(mut fbclient firebird.Client) {
 	log.debug('rollback_schema')
 	rollback_queries := firebird_get_schema_rollback_queries()
 	for i := 0; i < rollback_queries.len; i++ {
 		q := rollback_queries[i]
 
-		mut tx := conn.start_transaction(firebird.isolation_level_read_commited) or {
+		mut tx := fbclient.start_transaction(firebird.isolation_level_read_commited) or {
 			log.debug('Failed to rollback schema. Failed to start transaction. Manual intervention may be required.')
 			log.error(err.msg())
 			return
@@ -199,7 +199,7 @@ fn firebird_rollback_schema(mut conn firebird.Connection) {
 	log.debug('Rollback complete')
 }
 
-fn (mut app App) add_data(mut tx firebird.Transaction) ! {
+fn (mut app App) add_data(mut tx firebird.ClientTransaction) ! {
 	user_id := app.gen_id()
 	password_parameters_id := app.gen_id()
 	stock_location_id := app.gen_id()
@@ -225,7 +225,7 @@ fn (mut app App) add_data(mut tx firebird.Transaction) ! {
 	conduit.migration_create(mut tx, migration_id, seed_migration_name)!
 }
 
-fn (mut app App) is_ready(mut tx firebird.Transaction) !bool {
+fn (mut app App) is_ready(mut tx firebird.ClientTransaction) !bool {
 	migrations := conduit.migration_list(mut tx) or {
 		if err.msg().contains('Table unknown') {
 			log.info('Database needs setup: migration table missing')

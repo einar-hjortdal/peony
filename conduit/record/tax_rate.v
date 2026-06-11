@@ -26,7 +26,7 @@ pub fn (r TaxRate) id() ID {
 	return r.id
 }
 
-pub fn tax_rate_retrieve(mut tx firebird.Transaction, tax_rate_ids []ID) ![]TaxRate {
+pub fn tax_rate_retrieve(mut tx firebird.ClientTransaction, tax_rate_ids []ID) ![]TaxRate {
 	data := tx.execute('SELECT
 		id,
 		created_at,

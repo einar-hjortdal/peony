@@ -21,7 +21,7 @@ pub fn (s Store) id() ID {
 	return s.id
 }
 
-pub fn store_retrieve(mut tx firebird.Transaction) !Store {
+pub fn store_retrieve(mut tx firebird.ClientTransaction) !Store {
 	store_data := tx.execute('SELECT
 		id,
 		created_at,
@@ -68,7 +68,7 @@ pub fn store_retrieve(mut tx firebird.Transaction) !Store {
 	}
 }
 
-pub fn store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
+pub fn store_locales_retrieve(mut tx firebird.ClientTransaction) ![]Locale {
 	data := tx.execute('SELECT id, code FROM locale l WHERE EXISTS (
 		SELECT 1 FROM store_locales sl WHERE sl.locale_id = l.id)')!
 
@@ -92,7 +92,7 @@ pub fn store_locales_retrieve(mut tx firebird.Transaction) ![]Locale {
 	return locales
 }
 
-pub fn store_locales_update(mut tx firebird.Transaction, store_id ID, locale_ids []ID) ! {
+pub fn store_locales_update(mut tx firebird.ClientTransaction, store_id ID, locale_ids []ID) ! {
 	mut src := []string{len: locale_ids.len}
 	mut params := []firebird.Value{len: locale_ids.len * 2 + 2, init: firebird.Null{}}
 	for i := 0; i < locale_ids.len; i++ {
@@ -131,7 +131,7 @@ pub:
 	default_sales_channel_id  ?ID
 }
 
-pub fn store_update(mut tx firebird.Transaction, store_id ID, p StoreUpdateParams) ! {
+pub fn store_update(mut tx firebird.ClientTransaction, store_id ID, p StoreUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 

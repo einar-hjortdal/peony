@@ -40,7 +40,7 @@ fn sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, []fi
 	return get_where_conditions(conditions), params
 }
 
-pub fn sales_channel_retrieve_count(mut tx firebird.Transaction, p SalesChannelRetrieveParams) !i64 {
+pub fn sales_channel_retrieve_count(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) !i64 {
 	conditions, params := sales_channel_retrieve_conditions(p)
 	query := 'SELECT COUNT(*) FROM sales_channel ${conditions}'
 	data := tx.execute(query, ...params)!
@@ -50,7 +50,7 @@ pub fn sales_channel_retrieve_count(mut tx firebird.Transaction, p SalesChannelR
 	return count
 }
 
-pub fn sales_channel_retrieve(mut tx firebird.Transaction, p SalesChannelRetrieveParams) ![]SalesChannel {
+pub fn sales_channel_retrieve(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) ![]SalesChannel {
 	conditions, mut params := sales_channel_retrieve_conditions(p)
 	mut sorting := 'ORDER BY created_at ${p.order}
 		OFFSET ? ROWS
@@ -106,7 +106,7 @@ pub struct SalesChannelCreateParams {
 	is_disabled ?bool
 }
 
-pub fn sales_channel_create(mut tx firebird.Transaction, sales_channel_id ID, p SalesChannelCreateParams) ! {
+pub fn sales_channel_create(mut tx firebird.ClientTransaction, sales_channel_id ID, p SalesChannelCreateParams) ! {
 	mut columns := ['id', 'name']
 	mut params := [firebird.Value(sales_channel_id.bytes()), p.name]
 
@@ -130,7 +130,7 @@ pub struct SalesChannelUpdateParams {
 	is_disabled ?bool
 }
 
-pub fn sales_channel_update(mut tx firebird.Transaction, sales_channel_id ID, p SalesChannelUpdateParams) ! {
+pub fn sales_channel_update(mut tx firebird.ClientTransaction, sales_channel_id ID, p SalesChannelUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -155,7 +155,7 @@ pub fn sales_channel_update(mut tx firebird.Transaction, sales_channel_id ID, p 
 		...params)!
 }
 
-pub fn sales_channel_delete(mut tx firebird.Transaction, sales_channel_id ID) ! {
+pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id ID) ! {
 	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		sales_channel_id.bytes())!
 }
@@ -166,7 +166,7 @@ pub:
 	sales_channel_id ID
 }
 
-pub fn product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductSalesChannel {
+pub fn product_sales_channel_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductSalesChannel {
 	data := tx.execute('SELECT product_id, sales_channel_id FROM product_sales_channel
 		WHERE product_id IN (${get_placeholders(product_ids)})',
 		...ids_values(product_ids))!
@@ -192,7 +192,7 @@ pub fn product_sales_channel_retrieve(mut tx firebird.Transaction, product_ids [
 	return product_sales_channels
 }
 
-pub fn product_sales_channel_update(mut tx firebird.Transaction, product_id ID, sales_channel_ids []ID) ! {
+pub fn product_sales_channel_update(mut tx firebird.ClientTransaction, product_id ID, sales_channel_ids []ID) ! {
 	mut d := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < sales_channel_ids.len; i++ {
@@ -227,7 +227,7 @@ pub struct SalesChannelStockLocationRetrieveParams {
 	sales_channel_ids  ?[]ID
 }
 
-pub fn sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p SalesChannelStockLocationRetrieveParams) ![]SalesChannelStockLocation {
+pub fn sales_channel_stock_location_retrieve(mut tx firebird.ClientTransaction, p SalesChannelStockLocationRetrieveParams) ![]SalesChannelStockLocation {
 	if p.stock_location_ids == none && p.sales_channel_ids == none {
 		return []SalesChannelStockLocation{}
 	}
@@ -272,13 +272,13 @@ pub fn sales_channel_stock_location_retrieve(mut tx firebird.Transaction, p Sale
 	return sales_channel_stock_locations
 }
 
-pub fn sales_channel_stock_location_add(mut tx firebird.Transaction, sales_channel_id ID, stock_location_id ID) ! {
+pub fn sales_channel_stock_location_add(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
 	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id) 
 		VALUES (?, ?)',
 		sales_channel_id.bytes(), stock_location_id.bytes())!
 }
 
-pub fn sales_channel_stock_location_delete(mut tx firebird.Transaction, sales_channel_id ID, stock_location_id ID) ! {
+pub fn sales_channel_stock_location_delete(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
 	tx.execute('DELETE FROM sales_channel_stock_location WHERE sales_channel_id = ? AND stock_location_id = ?)',
 		sales_channel_id.bytes(), stock_location_id.bytes())!
 }

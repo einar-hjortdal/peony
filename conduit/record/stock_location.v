@@ -35,7 +35,7 @@ fn stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []
 	return get_where_conditions(conditions), params
 }
 
-pub fn stock_location_retrieve_count(mut tx firebird.Transaction, p StockLocationRetrieveParams) !i64 {
+pub fn stock_location_retrieve_count(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) !i64 {
 	conditions, params := stock_location_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM stock_location ${conditions}', ...params)!
 	rows := data.rows()
@@ -44,7 +44,7 @@ pub fn stock_location_retrieve_count(mut tx firebird.Transaction, p StockLocatio
 	return count
 }
 
-pub fn stock_location_retrieve(mut tx firebird.Transaction, p StockLocationRetrieveParams) ![]StockLocation {
+pub fn stock_location_retrieve(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) ![]StockLocation {
 	conditions, mut params := stock_location_retrieve_conditions(p)
 
 	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, name, address_id 

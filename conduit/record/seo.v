@@ -28,7 +28,7 @@ pub fn (seo SEO) id() ID {
 	return seo.id
 }
 
-pub fn seo_translation_retrieve(mut tx firebird.Transaction, seo_ids []ID) ![]SEOTranslation {
+pub fn seo_translation_retrieve(mut tx firebird.ClientTransaction, seo_ids []ID) ![]SEOTranslation {
 	data := tx.execute('SELECT seo_id, locale_id, title, description
 		FROM seo_translations
 		WHERE seo_id IN (${get_placeholders(seo_ids)})',
@@ -65,7 +65,7 @@ pub:
 	product_id ID
 }
 
-pub fn product_seo_create_default(mut tx firebird.Transaction, seo_id ID, product_id ID) ! {
+pub fn product_seo_create_default(mut tx firebird.ClientTransaction, seo_id ID, product_id ID) ! {
 	tx.execute('INSERT INTO seo (id, product_id) VALUES (?, ?)', seo_id.bytes(), product_id.bytes())!
 }
 
@@ -82,7 +82,7 @@ pub:
 	product_id ID
 }
 
-pub fn product_seo_create(mut tx firebird.Transaction, p ProductSEOCreateParams) ! {
+pub fn product_seo_create(mut tx firebird.ClientTransaction, p ProductSEOCreateParams) ! {
 	mut columns := ['id', 'product_id']
 	mut params := [firebird.Value(p.id.bytes()), p.product_id.bytes()]
 	if title := p.title {
@@ -107,7 +107,7 @@ pub fn product_seo_create(mut tx firebird.Transaction, p ProductSEOCreateParams)
 		...params)!
 }
 
-pub fn product_seo_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductSEO {
+pub fn product_seo_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductSEO {
 	data := tx.execute('SELECT id, product_id, title, description FROM seo
 		WHERE product_id IN (${get_placeholders(product_ids)})',
 		...ids_values(product_ids))!
@@ -144,7 +144,7 @@ pub:
 	description ?string
 }
 
-pub fn seo_update(mut tx firebird.Transaction, p SEOUpdateParams) ! {
+pub fn seo_update(mut tx firebird.ClientTransaction, p SEOUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 	if title := p.title {
@@ -177,7 +177,7 @@ pub struct SEOTranslationCreateParams {
 	description ?string
 }
 
-pub fn seo_translations_create(mut tx firebird.Transaction, p []SEOTranslationCreateParams) ! {
+pub fn seo_translations_create(mut tx firebird.ClientTransaction, p []SEOTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -209,7 +209,7 @@ pub fn seo_translations_create(mut tx firebird.Transaction, p []SEOTranslationCr
 		...params)!
 }
 
-pub fn category_seo_translations_delete(mut tx firebird.Transaction, category_id ID) ! {
+pub fn category_seo_translations_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
 	tx.execute('DELETE FROM seo_translations st 
 		WHERE EXISTS (
 			SELECT 1 FROM seo s
@@ -219,7 +219,7 @@ pub fn category_seo_translations_delete(mut tx firebird.Transaction, category_id
 		category_id.bytes())!
 }
 
-pub fn product_seo_translations_delete(mut tx firebird.Transaction, product_id ID) ! {
+pub fn product_seo_translations_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
 	tx.execute('DELETE FROM seo_translations st 
 		WHERE EXISTS (
 			SELECT 1 FROM seo s
@@ -235,7 +235,7 @@ pub:
 	category_id ID
 }
 
-pub fn category_seo_create_default(mut tx firebird.Transaction, seo_id ID, category_id ID) ! {
+pub fn category_seo_create_default(mut tx firebird.ClientTransaction, seo_id ID, category_id ID) ! {
 	tx.execute('INSERT INTO seo (id, category_id) VALUES (?, ?)', seo_id.bytes(),
 		category_id.bytes())!
 }
@@ -246,7 +246,7 @@ pub:
 	category_id ID
 }
 
-pub fn category_seo_create(mut tx firebird.Transaction, p CategorySEOCreateParams) ! {
+pub fn category_seo_create(mut tx firebird.ClientTransaction, p CategorySEOCreateParams) ! {
 	mut columns := ['id', 'category_id']
 	mut params := [firebird.Value(p.id.bytes()), p.category_id.bytes()]
 	if title := p.title {
@@ -271,7 +271,7 @@ pub fn category_seo_create(mut tx firebird.Transaction, p CategorySEOCreateParam
 		...params)!
 }
 
-pub fn category_seo_retrieve(mut tx firebird.Transaction, category_ids []ID) ![]CategorySEO {
+pub fn category_seo_retrieve(mut tx firebird.ClientTransaction, category_ids []ID) ![]CategorySEO {
 	data := tx.execute('SELECT id, category_id, title, description FROM seo
 		WHERE category_id IN (${get_placeholders(category_ids)})',
 		...ids_bytes(category_ids))!

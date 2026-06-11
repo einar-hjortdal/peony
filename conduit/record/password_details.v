@@ -21,7 +21,7 @@ pub:
 	id   ?ID
 }
 
-pub fn password_details_get(mut tx firebird.Transaction, p PasswordDetailsGetParams) !PasswordDetails {
+pub fn password_details_get(mut tx firebird.ClientTransaction, p PasswordDetailsGetParams) !PasswordDetails {
 	if p.hash.len == 0 && p.id == none {
 		return error('could not get password_details: received neither hash nor id')
 	}
@@ -63,7 +63,7 @@ pub fn password_details_get(mut tx firebird.Transaction, p PasswordDetailsGetPar
 	}
 }
 
-pub fn password_details_create(mut tx firebird.Transaction, id ID, function_name string, parameters string, hash []u8) ! {
+pub fn password_details_create(mut tx firebird.ClientTransaction, id ID, function_name string, parameters string, hash []u8) ! {
 	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
 		id.bytes(), function_name, parameters, hash)!
 }

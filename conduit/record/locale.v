@@ -33,7 +33,7 @@ pub fn locale_retrieve_conditions(p LocaleRetrieveParams) (string, []firebird.Va
 	return get_where_conditions(conditions), params
 }
 
-pub fn locale_retrieve_count(mut tx firebird.Transaction, p LocaleRetrieveParams) !i64 {
+pub fn locale_retrieve_count(mut tx firebird.ClientTransaction, p LocaleRetrieveParams) !i64 {
 	conditions, params := locale_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM locale ${conditions}', ...params)!
 	rows := data.rows()
@@ -42,7 +42,7 @@ pub fn locale_retrieve_count(mut tx firebird.Transaction, p LocaleRetrieveParams
 	return count
 }
 
-pub fn locale_retrieve(mut tx firebird.Transaction, p LocaleRetrieveParams) ![]Locale {
+pub fn locale_retrieve(mut tx firebird.ClientTransaction, p LocaleRetrieveParams) ![]Locale {
 	conditions, mut params := locale_retrieve_conditions(p)
 	mut sorting := 'ORDER BY code ${p.order}
 		OFFSET ? ROWS

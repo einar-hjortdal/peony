@@ -47,7 +47,7 @@ pub fn region_retrieve_conditions(p RegionRetriveParams) (string, []firebird.Val
 	return get_where_conditions(conditions), params
 }
 
-pub fn region_retrieve_count(mut tx firebird.Transaction, p RegionRetriveParams) !i64 {
+pub fn region_retrieve_count(mut tx firebird.ClientTransaction, p RegionRetriveParams) !i64 {
 	conditions, params := region_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM region ${conditions}', ...params)!
 	rows := data.rows()
@@ -56,7 +56,7 @@ pub fn region_retrieve_count(mut tx firebird.Transaction, p RegionRetriveParams)
 	return count
 }
 
-pub fn region_retrieve(mut tx firebird.Transaction, p RegionRetriveParams) ![]Region {
+pub fn region_retrieve(mut tx firebird.ClientTransaction, p RegionRetriveParams) ![]Region {
 	query := 'SELECT
 		id,
 		name,
@@ -123,7 +123,7 @@ pub:
 }
 
 // TODO handle tax rate: f32 is provided, create tax rate and add relation.
-pub fn region_create(mut tx firebird.Transaction, region_id ID, p RegionCreateParams) ! {
+pub fn region_create(mut tx firebird.ClientTransaction, region_id ID, p RegionCreateParams) ! {
 	mut columns := [
 		'id',
 		'name',
@@ -158,7 +158,7 @@ pub:
 	country_codes      ?[]string
 }
 
-pub fn region_update(mut tx firebird.Transaction, region_id ID, p RegionUpdateParams) ! {
+pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p RegionUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -193,6 +193,6 @@ pub fn region_update(mut tx firebird.Transaction, region_id ID, p RegionUpdatePa
 	}
 }
 
-pub fn region_delete(mut tx firebird.Transaction, region_id ID) ! {
+pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
 	tx.execute('UPDATE region SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', region_id.bytes())!
 }

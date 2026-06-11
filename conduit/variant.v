@@ -4,7 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-fn get_variants_money_amounts(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
+fn get_variants_money_amounts(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
 	money_amounts := record.variant_money_amount_retrieve(mut tx, variant_ids) or {
 		return new_error_internal('Failed to retrieve product_variant_money_amount', err.msg())
 	}
@@ -17,7 +17,7 @@ fn get_variants_money_amounts(mut tx firebird.Transaction, mut variants_map map[
 	}
 }
 
-fn get_variants_inventory_items(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
+fn get_variants_inventory_items(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
 	inventory_items := record.inventory_item_retrieve(mut tx, variant_ids) or {
 		return new_error_internal('Failed to retrieve inventory_item', err.msg())
 	}
@@ -26,7 +26,7 @@ fn get_variants_inventory_items(mut tx firebird.Transaction, mut variants_map ma
 	get_inventory_items_levels(mut tx, mut item_map, item_ids)!
 }
 
-fn get_variants_option_values(mut tx firebird.Transaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
+fn get_variants_option_values(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
 	option_value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
 		variant_ids: variant_ids
 	}) or {
@@ -59,7 +59,7 @@ fn get_variants_option_values(mut tx firebird.Transaction, mut variants_map map[
 	}
 }
 
-pub fn variant_get(mut tx firebird.Transaction, variant_id ID) !record.Variant {
+pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Variant {
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
@@ -143,7 +143,7 @@ pub struct VariantCreateData {
 	money_amounts  []record.VariantMoneyAmountUpdateParams
 }
 
-pub fn variant_create(mut tx firebird.Transaction, p VariantCreateData) ! {
+pub fn variant_create(mut tx firebird.ClientTransaction, p VariantCreateData) ! {
 	record.variant_create(mut tx, [p.variant]) or {
 		return new_error_internal('Could not create product_variant', err.msg())
 	}
@@ -168,7 +168,7 @@ pub struct VariantUpdateData {
 	money_amounts  ?[]record.VariantMoneyAmountUpdateParams
 }
 
-pub fn variant_update(mut tx firebird.Transaction, p VariantUpdateData) ! {
+pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateData) ! {
 	record.variant_update(mut tx, p.variant) or {
 		return new_error_internal('Could not update product_variant', err.msg())
 	}
@@ -192,7 +192,7 @@ pub fn variant_update(mut tx firebird.Transaction, p VariantUpdateData) ! {
 	}
 }
 
-fn conduit_variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
+fn conduit_variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
 	record.variant_delete(mut tx, variant_id) or {
 		return new_error_internal('Could not delete variant', err.msg())
 	}

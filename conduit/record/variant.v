@@ -68,7 +68,7 @@ pub fn variant_retrieve_conditions(p VariantRetrieveParams) (string, []firebird.
 	return get_where_conditions(conditions), params
 }
 
-pub fn variant_retrieve_count(mut tx firebird.Transaction, p VariantRetrieveParams) !i64 {
+pub fn variant_retrieve_count(mut tx firebird.ClientTransaction, p VariantRetrieveParams) !i64 {
 	conditions, mut params := variant_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM variant ${conditions}', ...params)!
 	rows := data.rows()
@@ -77,7 +77,7 @@ pub fn variant_retrieve_count(mut tx firebird.Transaction, p VariantRetrievePara
 	return count
 }
 
-pub fn variant_retrieve(mut tx firebird.Transaction, p VariantRetrieveParams) ![]Variant {
+pub fn variant_retrieve(mut tx firebird.ClientTransaction, p VariantRetrieveParams) ![]Variant {
 	conditions, mut params := variant_retrieve_conditions(p)
 
 	mut sorting := 'ORDER BY c.created_at ${p.order}
@@ -162,7 +162,7 @@ pub:
 }
 
 // TODO validate struct fields
-pub fn variant_create(mut tx firebird.Transaction, p []VariantCreateParams) ! {
+pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 9
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -239,7 +239,7 @@ pub:
 	metadata     string
 }
 
-pub fn variant_update(mut tx firebird.Transaction, p VariantUpdateParams) ! {
+pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) ! {
 	columns := [
 		'image_id',
 		'title',
@@ -287,7 +287,7 @@ pub fn variant_update(mut tx firebird.Transaction, p VariantUpdateParams) ! {
 }
 
 // used in product endpoints
-pub fn product_variant_update(mut tx firebird.Transaction, product_id ID, p []VariantUpdateParams) ! {
+pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, p []VariantUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 9
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -382,7 +382,7 @@ pub fn product_variant_update(mut tx firebird.Transaction, product_id ID, p []Va
 	tx.execute(query, ...params)!
 }
 
-pub fn variant_delete(mut tx firebird.Transaction, variant_id ID) ! {
+pub fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
 	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id.bytes())!
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
 		variant_id.bytes())!

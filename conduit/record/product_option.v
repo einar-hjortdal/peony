@@ -14,7 +14,7 @@ pub fn (pov_t ProductOptionValueTranslation) locale_id() ID {
 	return pov_t.locale_id
 }
 
-pub fn product_option_value_translations_retrieve(mut tx firebird.Transaction, product_option_value_ids []ID) ![]ProductOptionValueTranslation {
+pub fn product_option_value_translations_retrieve(mut tx firebird.ClientTransaction, product_option_value_ids []ID) ![]ProductOptionValueTranslation {
 	data := tx.execute('SELECT product_option_value_id, locale_id, name
 	FROM product_option_value_translations
 	WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids)})',
@@ -85,7 +85,7 @@ fn product_option_values_retrieve_conditions(p ProductOptionValueRetrieveParams)
 	return get_conditions(conditions), params
 }
 
-pub fn product_option_values_retrieve(mut tx firebird.Transaction, p ProductOptionValueRetrieveParams) ![]ProductOptionValue {
+pub fn product_option_values_retrieve(mut tx firebird.ClientTransaction, p ProductOptionValueRetrieveParams) ![]ProductOptionValue {
 	conditions, params := product_option_values_retrieve_conditions(p)
 	sorting := 'ORDER BY pov.value_rank'
 	query := 'SELECT
@@ -131,7 +131,7 @@ pub:
 	name       string
 }
 
-pub fn product_option_value_update(mut tx firebird.Transaction, p []ProductOptionValueUpdateParams) ! {
+pub fn product_option_value_update(mut tx firebird.ClientTransaction, p []ProductOptionValueUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 4
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -171,7 +171,7 @@ pub fn product_option_value_update(mut tx firebird.Transaction, p []ProductOptio
 	tx.execute(query, ...params)!
 }
 
-pub fn product_option_value_delete(mut tx firebird.Transaction, product_option_value_id_bin []u8) ! {
+pub fn product_option_value_delete(mut tx firebird.ClientTransaction, product_option_value_id_bin []u8) ! {
 	tx.execute('DELETE FROM product_option_value WHERE id = ?', product_option_value_id_bin)!
 }
 
@@ -186,7 +186,7 @@ pub fn (po_t ProductOptionTranslation) locale_id() ID {
 	return po_t.locale_id
 }
 
-pub fn product_option_translations_retrieve(mut tx firebird.Transaction, product_option_ids []ID) ![]ProductOptionTranslation {
+pub fn product_option_translations_retrieve(mut tx firebird.ClientTransaction, product_option_ids []ID) ![]ProductOptionTranslation {
 	data := tx.execute('SELECT product_option_id, locale_id, title
 		FROM product_option_translations
 		WHERE product_option_id IN (${get_placeholders(product_option_ids)})',
@@ -230,7 +230,7 @@ pub fn (p ProductOption) id() ID {
 	return p.id
 }
 
-pub fn product_option_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductOption {
+pub fn product_option_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductOption {
 	query := 'SELECT id, product_id, option_rank, title FROM product_option
 		WHERE product_id IN (${get_placeholders(product_ids)})
 		ORDER BY option_rank'
@@ -277,7 +277,7 @@ pub:
 }
 
 // used to create new product options during product creation
-pub fn product_option_create(mut tx firebird.Transaction, p []ProductOptionCreateParams) ! {
+pub fn product_option_create(mut tx firebird.ClientTransaction, p []ProductOptionCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -307,7 +307,7 @@ pub:
 	title             string
 }
 
-pub fn product_option_translations_create(mut tx firebird.Transaction, p []ProductOptionTranslationCreateParams) ! {
+pub fn product_option_translations_create(mut tx firebird.ClientTransaction, p []ProductOptionTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -346,7 +346,7 @@ pub:
 	name       string
 }
 
-pub fn product_option_value_create(mut tx firebird.Transaction, p []ProductOptionValueCreateParams) ! {
+pub fn product_option_value_create(mut tx firebird.ClientTransaction, p []ProductOptionValueCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -376,7 +376,7 @@ pub:
 	name                    string
 }
 
-pub fn product_option_value_translations_create(mut tx firebird.Transaction, p []ProductOptionValueTranslationCreateParams) ! {
+pub fn product_option_value_translations_create(mut tx firebird.ClientTransaction, p []ProductOptionValueTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -412,7 +412,7 @@ pub:
 	translations             []ProductOptionValueTranslationCreateParams
 }
 
-pub fn product_option_value_translations_update(mut tx firebird.Transaction, p ProductOptionValueTranslationUpdateParams) ! {
+pub fn product_option_value_translations_update(mut tx firebird.ClientTransaction, p ProductOptionValueTranslationUpdateParams) ! {
 	mut src := []string{len: p.translations.len}
 	n_params := 3
 	mut params := []firebird.Value{len: p.translations.len * n_params, init: firebird.Null{}}
@@ -459,7 +459,7 @@ pub:
 	title       string
 }
 
-pub fn product_option_update(mut tx firebird.Transaction, p []ProductOptionUpdateParams) ! {
+pub fn product_option_update(mut tx firebird.ClientTransaction, p []ProductOptionUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 4
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -526,7 +526,7 @@ pub:
 	translations       []ProductOptionTranslationCreateParams
 }
 
-pub fn product_option_translations_update(mut tx firebird.Transaction, p ProductOptionTranslationUpdateParams) ! {
+pub fn product_option_translations_update(mut tx firebird.ClientTransaction, p ProductOptionTranslationUpdateParams) ! {
 	mut src := []string{len: p.translations.len}
 	n_params := 3
 	mut params := []firebird.Value{len: p.translations.len * n_params + 1, init: firebird.Null{}}
@@ -567,7 +567,7 @@ pub fn product_option_translations_update(mut tx firebird.Transaction, p Product
 	tx.execute(query, ...params)!
 }
 
-pub fn product_option_delete(mut tx firebird.Transaction, id_bin []u8) ! {
+pub fn product_option_delete(mut tx firebird.ClientTransaction, id_bin []u8) ! {
 	tx.execute('DELETE FROM product_option WHERE id = ?', id_bin)!
 }
 
@@ -583,7 +583,7 @@ pub:
 	variant_ids      ?[]ID
 }
 
-pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p ProductOptionValueVariantRetrieveParams) ![]ProductOptionValueVariant {
+pub fn product_option_value_variant_retrieve(mut tx firebird.ClientTransaction, p ProductOptionValueVariantRetrieveParams) ![]ProductOptionValueVariant {
 	if p.option_value_ids == none && p.variant_ids == none {
 		return error('Cannot retrieve product_option_value_variant: neither option_value_ids nor variant_ids provided')
 	}
@@ -626,7 +626,7 @@ pub fn product_option_value_variant_retrieve(mut tx firebird.Transaction, p Prod
 	return product_option_value_variants
 }
 
-pub fn product_option_value_variant_update(mut tx firebird.Transaction, p []ProductOptionValueVariant) ! {
+pub fn product_option_value_variant_update(mut tx firebird.ClientTransaction, p []ProductOptionValueVariant) ! {
 	mut src := []string{len: p.len}
 	n_params := 2
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}

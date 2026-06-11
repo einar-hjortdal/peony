@@ -24,7 +24,7 @@ pub:
 	includes_tax  bool   // from region
 }
 
-pub fn variant_money_amount_retrieve(mut tx firebird.Transaction, variant_ids []ID) ![]VariantMoneyAmount {
+pub fn variant_money_amount_retrieve(mut tx firebird.ClientTransaction, variant_ids []ID) ![]VariantMoneyAmount {
 	data := tx.execute('SELECT
 		ma.id,
 		ma.amount,
@@ -82,7 +82,7 @@ pub:
 	is_original     bool
 }
 
-pub fn variant_money_amount_update(mut tx firebird.Transaction, p []VariantMoneyAmountUpdateParams) ! {
+pub fn variant_money_amount_update(mut tx firebird.ClientTransaction, p []VariantMoneyAmountUpdateParams) ! {
 	// deduplicate variant ids
 	mut variant_ids_map := map[string]ID{}
 	for i := 0; i < p.len; i++ {

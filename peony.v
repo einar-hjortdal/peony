@@ -15,7 +15,7 @@ pub struct App {
 	providers &Providers
 mut:
 	luuid_generator &luuid.Generator
-	firebird        &firebird.Connection
+	firebird        &firebird.Client
 	redict          &redict.Client
 	session_store   &sessions.Store
 }
@@ -57,7 +57,7 @@ pub fn new_peony_app(config Config, providers &Providers) !&App {
 		url: c.redict_url
 	}
 
-	firebird_connection := firebird.new_connection(c.firebird_url)!
+	firebird_client := firebird.new_client(firebird.ClientConfig{ url: c.firebird_url })!
 	redict_client := redict.new_client(ro)!
 	session_store := sessions.new_redict_store_cookie_from_redict_client(rso, co, redict_client)
 
@@ -65,7 +65,7 @@ pub fn new_peony_app(config Config, providers &Providers) !&App {
 		config:          c
 		providers:       providers
 		luuid_generator: luuid.new_generator()
-		firebird:        firebird_connection
+		firebird:        firebird_client
 		redict:          redict_client
 		session_store:   session_store
 	}
@@ -87,3 +87,4 @@ pub fn (mut app App) run() ! {
 	// app.initiate_cache()!
 	veb.run[App, Context](mut app, app.config.port)
 }
+

@@ -13,7 +13,7 @@ pub:
 	sales_channel_id ID
 }
 
-pub fn api_key_create(mut tx firebird.Transaction, api_key ID, name string, sales_channel_id ID) ! {
+pub fn api_key_create(mut tx firebird.ClientTransaction, api_key ID, name string, sales_channel_id ID) ! {
 	tx.execute('INSERT INTO api_key (id, name, sales_channel_id) VALUES (?, ?, ?)',
 		api_key.bytes(), name, sales_channel_id.bytes())!
 }
@@ -50,7 +50,7 @@ pub fn api_key_retrieve_conditions(p APIKeyRetrieveParams) (string, []firebird.V
 	return get_where_conditions(conditions), params
 }
 
-pub fn api_key_retrieve_count(mut tx firebird.Transaction, p APIKeyRetrieveParams) !i64 {
+pub fn api_key_retrieve_count(mut tx firebird.ClientTransaction, p APIKeyRetrieveParams) !i64 {
 	conditions, params := api_key_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM api_key ${conditions}', ...params)!
 	rows := data.rows()
@@ -59,7 +59,7 @@ pub fn api_key_retrieve_count(mut tx firebird.Transaction, p APIKeyRetrieveParam
 	return count
 }
 
-pub fn api_key_retrieve(mut tx firebird.Transaction, p APIKeyRetrieveParams) ![]APIKey {
+pub fn api_key_retrieve(mut tx firebird.ClientTransaction, p APIKeyRetrieveParams) ![]APIKey {
 	conditions, mut params := api_key_retrieve_conditions(p)
 
 	mut sorting := 'ORDER BY created_at ${p.order}
@@ -113,7 +113,7 @@ pub:
 	sales_channel_id ?ID
 }
 
-pub fn api_key_update(mut tx firebird.Transaction, api_key_id ID, p APIKeyUpdateParams) ! {
+pub fn api_key_update(mut tx firebird.ClientTransaction, api_key_id ID, p APIKeyUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -132,6 +132,6 @@ pub fn api_key_update(mut tx firebird.Transaction, api_key_id ID, p APIKeyUpdate
 	tx.execute(query, ...params)!
 }
 
-pub fn api_key_delete(mut tx firebird.Transaction, api_key ID) ! {
+pub fn api_key_delete(mut tx firebird.ClientTransaction, api_key ID) ! {
 	tx.execute('UPDATE api_key SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', api_key.bytes())!
 }

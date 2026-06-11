@@ -4,7 +4,7 @@ import arrays
 import einar_hjortdal.firebird
 import record
 
-pub fn category_list_count(mut tx firebird.Transaction, p CategoryRetrieveParams) !i64 {
+pub fn category_list_count(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) !i64 {
 	count := record.category_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve category count', err.msg())
 	}
@@ -12,7 +12,7 @@ pub fn category_list_count(mut tx firebird.Transaction, p CategoryRetrieveParams
 }
 
 // TODO split store/admin conduit to fetch only data required by the endpoint
-pub fn category_list(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
+pub fn category_list(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) ![]Category {
 	categories := record.category_retrieve(mut tx, p) or {
 		return new_error_internal('Could not retrieve category', err.msg())
 	}
@@ -61,7 +61,7 @@ pub fn category_list(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]C
 	return complete_categories
 }
 
-pub fn category_get(mut tx firebird.Transaction, category_id ID) !Category {
+pub fn category_get(mut tx firebird.ClientTransaction, category_id ID) !Category {
 	categories := record.category_retrieve(mut tx, CategoryRetrieveParams{
 		ids:          [category_id]
 		with_deleted: false
@@ -112,7 +112,7 @@ pub:
 	seo_translations ?[]SEOTranslationCreateParams
 }
 
-pub fn category_create(mut tx firebird.Transaction, p CateogryCreateData) ! {
+pub fn category_create(mut tx firebird.ClientTransaction, p CateogryCreateData) ! {
 	record.category_create(mut tx, p.category) or {
 		return new_error_internal('Could not create category', err.msg())
 	}
@@ -146,7 +146,7 @@ pub:
 	seo_translations ?[]SEOTranslationCreateParams
 }
 
-pub fn category_update(mut tx firebird.Transaction, p CategoryUpdateData) ! {
+pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateData) ! {
 	record.category_update(mut tx, p.category) or {
 		return new_error_internal('Could not update category', err.msg())
 	}
@@ -184,7 +184,7 @@ pub fn category_update(mut tx firebird.Transaction, p CategoryUpdateData) ! {
 	}
 }
 
-pub fn category_delete(mut tx firebird.Transaction, category_id ID) ! {
+pub fn category_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
 	record.category_delete(mut tx, category_id) or {
 		return new_error_internal('Could not delete category', err.msg())
 	}

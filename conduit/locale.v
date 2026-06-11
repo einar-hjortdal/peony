@@ -3,21 +3,21 @@ module conduit
 import einar_hjortdal.firebird
 import record
 
-pub fn locale_list_count(mut tx firebird.Transaction, p record.LocaleRetrieveParams) !i64 {
+pub fn locale_list_count(mut tx firebird.ClientTransaction, p record.LocaleRetrieveParams) !i64 {
 	count := record.locale_retrieve_count(mut tx, p) or {
 		return new_error_internal('Could not retrieve locale count', err.msg())
 	}
 	return count
 }
 
-pub fn locale_list(mut tx firebird.Transaction, p record.LocaleRetrieveParams) ![]Locale {
+pub fn locale_list(mut tx firebird.ClientTransaction, p record.LocaleRetrieveParams) ![]Locale {
 	locales := record.locale_retrieve(mut tx, p) or {
 		return new_error_internal('Could not retrieve locale', err.msg())
 	}
 	return locales
 }
 
-fn conduit_locale_get(mut tx firebird.Transaction, locale_id ID) !Locale {
+fn conduit_locale_get(mut tx firebird.ClientTransaction, locale_id ID) !Locale {
 	locales := record.locale_retrieve(mut tx, record.LocaleRetrieveParams{
 		ids:    [locale_id]
 		fetch:  1

@@ -14,7 +14,7 @@ pub fn (it ImageTranslation) locale_id() ID {
 	return it.locale_id
 }
 
-pub fn image_translation_retrieve(mut tx firebird.Transaction, image_ids []ID) ![]ImageTranslation {
+pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids []ID) ![]ImageTranslation {
 	data := tx.execute('SELECT image_id, locale_id, alt FROM image_translations
 		WHERE image_id IN (${get_placeholders(image_ids)})',
 		...ids_bytes(image_ids))!
@@ -68,7 +68,7 @@ pub:
 	image_rank i32
 }
 
-pub fn product_image_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]ProductImage {
+pub fn product_image_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductImage {
 	data := tx.execute('SELECT
 		i.id,
 		i.url,
@@ -110,7 +110,7 @@ pub fn product_image_retrieve(mut tx firebird.Transaction, product_ids []ID) ![]
 }
 
 // delete all product images belonging to one product
-pub fn product_image_delete(mut tx firebird.Transaction, product_id ID) ! {
+pub fn product_image_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
 	tx.execute('DELETE FROM image i
 		WHERE EXISTS (
 			SELECT 1 FROM product_image pi
@@ -137,7 +137,7 @@ pub:
 }
 
 // TODO split operations
-pub fn product_image_create(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
+pub fn product_image_create(mut tx firebird.ClientTransaction, product_id ID, images []ProductImageCreateParams) ! {
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
 	mut translation_n := i32(0)
@@ -219,7 +219,7 @@ pub fn product_image_create(mut tx firebird.Transaction, product_id ID, images [
 }
 
 // TODO split operations
-pub fn product_image_update(mut tx firebird.Transaction, product_id ID, images []ProductImageCreateParams) ! {
+pub fn product_image_update(mut tx firebird.ClientTransaction, product_id ID, images []ProductImageCreateParams) ! {
 	mut image_ids := []ID{len: images.len}
 	mut n_translations := 0
 	mut src := []string{len: images.len}
@@ -333,3 +333,4 @@ pub fn product_image_update(mut tx firebird.Transaction, product_id ID, images [
 	query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
 	tx.execute(query, ...params)!
 }
+

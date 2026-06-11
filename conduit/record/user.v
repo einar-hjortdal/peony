@@ -46,7 +46,7 @@ pub struct UserCreateParams {
 	metadata               ?string
 }
 
-pub fn user_create(mut tx firebird.Transaction, p UserCreateParams) ! {
+pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 	mut c := [
 		'id',
 		'handle',
@@ -129,7 +129,7 @@ pub fn user_list_conditions(p UserListParams) (string, []firebird.Value) {
 	return get_where_conditions(conditions), params
 }
 
-pub fn user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
+pub fn user_list_count(mut tx firebird.ClientTransaction, p UserListParams) !i64 {
 	conditions, params := user_list_conditions(p)
 	query := 'SELECT COUNT(*) FROM app_user ${conditions}'
 	data := tx.execute(query, ...params)!
@@ -139,7 +139,7 @@ pub fn user_list_count(mut tx firebird.Transaction, p UserListParams) !i64 {
 	return count
 }
 
-pub fn user_list(mut tx firebird.Transaction, p UserListParams) ![]User {
+pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 	conditions, mut params := user_list_conditions(p)
 
 	mut sorting := 'ORDER BY created_at ${p.order} 
@@ -218,7 +218,7 @@ pub:
 
 // TODO handle password
 // TODO validate params
-pub fn user_update(mut tx firebird.Transaction, user_id ID, p UserUpdateParams) ! {
+pub fn user_update(mut tx firebird.ClientTransaction, user_id ID, p UserUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -261,6 +261,6 @@ pub fn user_update(mut tx firebird.Transaction, user_id ID, p UserUpdateParams) 
 		...params)!
 }
 
-pub fn user_delete(mut tx firebird.Transaction, user_id ID) ! {
+pub fn user_delete(mut tx firebird.ClientTransaction, user_id ID) ! {
 	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id.bytes())!
 }

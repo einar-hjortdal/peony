@@ -9,11 +9,11 @@ pub:
 	name       string
 }
 
-pub fn migration_create(mut tx firebird.Transaction, migration_id ID, name string) ! {
+pub fn migration_create(mut tx firebird.ClientTransaction, migration_id ID, name string) ! {
 	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', migration_id.bytes(), name)!
 }
 
-pub fn migration_retrieve(mut tx firebird.Transaction) ![]Migration {
+pub fn migration_retrieve(mut tx firebird.ClientTransaction) ![]Migration {
 	data := tx.execute('SELECT id, created_at, name FROM migration ORDER BY created_at ASC')!
 	rows := data.rows()
 	mut migrations := []Migration{len: rows.len}

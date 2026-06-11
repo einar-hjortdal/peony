@@ -11,7 +11,7 @@ pub:
 	reserved_quantity i32
 }
 
-pub fn inventory_level_get(mut tx firebird.Transaction, inventory_item_ids []ID) ![]InventoryLevel {
+pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]InventoryLevel {
 	mut params := arrays.concat(ids_values(inventory_item_ids), ...ids_values(inventory_item_ids))
 
 	data := tx.execute('SELECT 
@@ -61,7 +61,7 @@ pub:
 	stocked_quantity  i32
 }
 
-pub fn inventory_level_update(mut tx firebird.Transaction, p InventoryLevelUpdateParams) ! {
+pub fn inventory_level_update(mut tx firebird.ClientTransaction, p InventoryLevelUpdateParams) ! {
 	tx.execute('MERGE INTO inventory_level t
 		USING (
 			SELECT
@@ -114,7 +114,7 @@ pub fn (ii InventoryItem) id() ID {
 // - purchasable (!manage_inventory || iventory_quantity > 0 || allow_backorder)
 // The frontend can assume the variant can be backordered if (inventoryQuantity === 0 && purchasable)
 
-pub fn inventory_item_retrieve(mut tx firebird.Transaction, variant_ids []ID) ![]InventoryItem {
+pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []ID) ![]InventoryItem {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -206,7 +206,7 @@ pub:
 }
 
 // TODO validate params
-pub fn inventory_item_create(mut tx firebird.Transaction, p []InventoryItemCreateParams) ! {
+pub fn inventory_item_create(mut tx firebird.ClientTransaction, p []InventoryItemCreateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 14
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -313,7 +313,7 @@ pub:
 	allow_backorder   bool
 }
 
-pub fn inventory_item_update(mut tx firebird.Transaction, p []InventoryItemUpdateParams) ! {
+pub fn inventory_item_update(mut tx firebird.ClientTransaction, p []InventoryItemUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 14
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -438,13 +438,13 @@ pub fn inventory_item_update(mut tx firebird.Transaction, p []InventoryItemUpdat
 	tx.execute(query, ...params)!
 }
 
-pub fn inventory_item_delete(mut tx firebird.Transaction, inventory_item_id ID) ! {
+pub fn inventory_item_delete(mut tx firebird.ClientTransaction, inventory_item_id ID) ! {
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		inventory_item_id.bytes())!
 }
 
 // used when updating variants within a product update
-pub fn inventory_item_sync_delete(mut tx firebird.Transaction, product_id ID) ! {
+pub fn inventory_item_sync_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
 	tx.execute('MERGE INTO inventory_item t
 		USING
 			(
@@ -460,3 +460,4 @@ pub fn inventory_item_sync_delete(mut tx firebird.Transaction, product_id ID) ! 
 			SET t.deleted_at = s.deleted_at',
 		product_id.bytes())!
 }
+

@@ -29,7 +29,7 @@ pub fn country_retrieve_conditions(p CountryRetrieveParams) (string, []firebird.
 	return get_where_conditions(conditions), params
 }
 
-pub fn country_retrieve_count(mut tx firebird.Transaction, p CountryRetrieveParams) !i64 {
+pub fn country_retrieve_count(mut tx firebird.ClientTransaction, p CountryRetrieveParams) !i64 {
 	conditions, params := country_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM region ${conditions}', ...params)!
 	rows := data.rows()
@@ -38,7 +38,7 @@ pub fn country_retrieve_count(mut tx firebird.Transaction, p CountryRetrievePara
 	return count
 }
 
-pub fn country_retrieve(mut tx firebird.Transaction, p CountryRetrieveParams) ![]Country {
+pub fn country_retrieve(mut tx firebird.ClientTransaction, p CountryRetrieveParams) ![]Country {
 	conditions, mut params := country_retrieve_conditions(p)
 
 	mut sorting := 'ORDER BY created_at ${p.order} 
@@ -57,8 +57,8 @@ pub fn country_retrieve(mut tx firebird.Transaction, p CountryRetrieveParams) ![
 		region_id_bin := v[1].get_null_array_u8()!
 
 		mut region_id := ?ID(none)
-		if !region_id_bin.is_null {
-			region_id = id_from_bytes(region_id_bin.value)!
+		if !region_id_bin.is_null() {
+			region_id = id_from_bytes(region_id_bin.value())!
 		}
 
 		country := Country{
@@ -70,3 +70,4 @@ pub fn country_retrieve(mut tx firebird.Transaction, p CountryRetrieveParams) ![
 
 	return countries
 }
+

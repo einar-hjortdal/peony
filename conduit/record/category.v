@@ -15,7 +15,7 @@ pub fn (ct CategoryTranslation) locale_id() ID {
 	return ct.locale_id
 }
 
-pub fn category_translations_delete(mut tx firebird.Transaction, category_id ID) ! {
+pub fn category_translations_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
 	tx.execute('DELETE FROM category_translations WHERE category_id = ?', category_id.bytes())!
 }
 
@@ -26,7 +26,7 @@ pub:
 	description ?string
 }
 
-pub fn category_translations_update(mut tx firebird.Transaction, category_id ID, p []CategoryTranslationUpdateParams) ! {
+pub fn category_translations_update(mut tx firebird.ClientTransaction, category_id ID, p []CategoryTranslationUpdateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -58,7 +58,7 @@ pub fn category_translations_update(mut tx firebird.Transaction, category_id ID,
 		...params)!
 }
 
-pub fn category_translations_get(mut tx firebird.Transaction, category_ids []ID) ![]CategoryTranslation {
+pub fn category_translations_get(mut tx firebird.ClientTransaction, category_ids []ID) ![]CategoryTranslation {
 	data := tx.execute('SELECT category_id, locale_id, name, description
 		FROM category_translations
 		WHERE category_id IN (${get_placeholders(category_ids)})',
@@ -121,7 +121,7 @@ pub:
 	parent_category_id ?ID
 }
 
-pub fn category_create(mut tx firebird.Transaction, p CategoryCreateParams) ! {
+pub fn category_create(mut tx firebird.ClientTransaction, p CategoryCreateParams) ! {
 	mut columns := ['id', 'name', 'handle', 'is_active', 'is_internal']
 	mut params := [firebird.Value(p.id.bytes()), p.name, p.handle, p.is_active, p.is_internal]
 
@@ -157,7 +157,7 @@ pub:
 	parent_category_id ?ID
 }
 
-pub fn category_update(mut tx firebird.Transaction, p CategoryUpdateParams) ! {
+pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateParams) ! {
 	mut columns := ['is_active', 'is_internal']
 	mut params := [firebird.Value(p.is_active), p.is_internal]
 
@@ -246,7 +246,7 @@ pub fn category_retrieve_conditions(p CategoryRetrieveParams) (string, []firebir
 	return get_where_conditions(conditions), params
 }
 
-pub fn category_retrieve_count(mut tx firebird.Transaction, p CategoryRetrieveParams) !i64 {
+pub fn category_retrieve_count(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) !i64 {
 	conditions, params := category_retrieve_conditions(p)
 	data := tx.execute('SELECT COUNT(*) FROM category c ${conditions}', ...params)!
 	rows := data.rows()
@@ -255,7 +255,7 @@ pub fn category_retrieve_count(mut tx firebird.Transaction, p CategoryRetrievePa
 	return count
 }
 
-pub fn category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) ![]Category {
+pub fn category_retrieve(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) ![]Category {
 	conditions, mut params := category_retrieve_conditions(p)
 
 	mut sorting := 'ORDER BY c.created_at ${p.order}
@@ -323,7 +323,7 @@ pub fn category_retrieve(mut tx firebird.Transaction, p CategoryRetrieveParams) 
 	return categories
 }
 
-pub fn category_delete(mut tx firebird.Transaction, category_id ID) ! {
+pub fn category_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
 	tx.execute('UPDATE category SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		category_id.bytes())!
 }
@@ -340,7 +340,7 @@ pub:
 	product_ids  ?[]ID
 }
 
-pub fn category_product_retrieve(mut tx firebird.Transaction,
+pub fn category_product_retrieve(mut tx firebird.ClientTransaction,
 	p CategoryProductRetrieveParams) ![]CategoryProduct {
 	if p.category_ids == none && p.product_ids == none {
 		return []CategoryProduct{}
@@ -385,7 +385,7 @@ pub fn category_product_retrieve(mut tx firebird.Transaction,
 	return category_products
 }
 
-pub fn category_product_update(mut tx firebird.Transaction, product_id ID, category_ids []ID) ! {
+pub fn category_product_update(mut tx firebird.ClientTransaction, product_id ID, category_ids []ID) ! {
 	mut src := []string{len: category_ids.len}
 	mut params := []firebird.Value{len: category_ids.len * 2 + 1, init: firebird.Null{}}
 	for i := 0; i < category_ids.len; i++ {
