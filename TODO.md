@@ -123,7 +123,6 @@
 ## Upstream
 
 - [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)
-- [Firebird connection pooling with connection management and transaction attempts](https://github.com/einar-hjortdal/firebird/tree/feat_client)
 - [Firebird currently does not support JSON data type](https://github.com/FirebirdSQL/firebird/issues/5431). Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` when possible.
 
 ## Considerations

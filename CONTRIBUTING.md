@@ -28,7 +28,6 @@ Please follow these standards
 - No logical assignment operators.
 - No static methods.
 - No lambdas.
-- Use `arrays.concat` instead of `<<`.
 
 ### veb
 
