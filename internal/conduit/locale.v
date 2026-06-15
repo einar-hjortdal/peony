@@ -32,4 +32,3 @@ fn conduit_locale_get(mut tx firebird.ClientTransaction, locale_id ID) !Locale {
 	locale := locales[0]
 	return locale
 }
-

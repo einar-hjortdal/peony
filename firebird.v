@@ -4,7 +4,7 @@ import log
 import strconv
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
-import conduit
+import internal.conduit
 
 const schema_file = $embed_file('migrations/seed-schema.sql')
 const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')

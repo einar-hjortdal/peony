@@ -5,12 +5,13 @@ import net.http
 import veb
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
-import conduit
+import internal.conduit
+import common
 
 pub const lib = 'peony'
 
-pub const min_fetch = conduit.min_fetch
-pub const max_fetch = conduit.max_fetch
+const min_fetch = common.min_fetch
+const max_fetch = common.max_fetch
 
 pub const length_currency_code = 3
 pub const length_country_code = 2
@@ -62,16 +63,16 @@ const error_handle_fallback_too_long = 'The provided handle already exists. The 
 
 const details_order_direction_invalid = 'order must either be ${order_asc} or ${order_desc}'
 
-pub const offset_default = conduit.offset_default
-pub const order_asc = conduit.order_asc
-pub const order_desc = conduit.order_desc
-pub const order_default = conduit.order_default
+const offset_default = common.offset_default
+const order_asc = common.order_asc
+const order_desc = common.order_desc
+const order_default = common.order_default
 
-pub const role_admin = conduit.role_admin
-pub const role_member = conduit.role_member
-pub const role_developer = conduit.role_developer
-pub const role_author = conduit.role_author
-pub const role_contributor = conduit.role_contributor
+const role_admin = common.role_admin
+const role_member = common.role_member
+const role_developer = common.role_developer
+const role_author = common.role_author
+const role_contributor = common.role_contributor
 
 const roles = [
 	role_admin,

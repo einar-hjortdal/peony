@@ -72,4 +72,3 @@ pub fn user_get_by_email(mut tx firebird.ClientTransaction, email string) !User 
 
 	return users[0]
 }
-

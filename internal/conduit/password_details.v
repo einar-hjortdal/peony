@@ -15,4 +15,3 @@ pub fn password_details_create(mut tx firebird.ClientTransaction, id ID, functio
 		return new_error_internal('Failed to create password_parameters', err.msg())
 	}
 }
-

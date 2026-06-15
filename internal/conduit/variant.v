@@ -197,4 +197,3 @@ fn conduit_variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
 		return new_error_internal('Could not delete variant', err.msg())
 	}
 }
-

@@ -2,7 +2,7 @@ module peony
 
 import json
 import veb
-import conduit
+import internal.conduit
 
 // lists users
 @['/admin/users'; get]

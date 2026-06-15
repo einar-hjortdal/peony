@@ -333,4 +333,3 @@ pub fn product_image_update(mut tx firebird.ClientTransaction, product_id ID, im
 	query = 'INSERT INTO image_translations (image_id, locale_id, alt) ${get_merge_source(src)}'
 	tx.execute(query, ...params)!
 }
-

@@ -2,7 +2,7 @@ module peony
 
 import json
 import time
-import conduit
+import internal.conduit
 
 // TODO cache for store endpoints:
 // store items in redis after retrieving from db

@@ -1,7 +1,7 @@
 module peony
 
 import arrays
-import conduit
+import internal.conduit
 
 // used by admin endpoints.
 // returns available items across all stock locations.

@@ -460,4 +460,3 @@ pub fn inventory_item_sync_delete(mut tx firebird.ClientTransaction, product_id 
 			SET t.deleted_at = s.deleted_at',
 		product_id.bytes())!
 }
-

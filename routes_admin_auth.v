@@ -2,7 +2,7 @@ module peony
 
 import json
 import veb
-import conduit
+import internal.conduit
 
 // returns details about the user that performed the request
 @['/admin/auth'; get]
@@ -109,4 +109,3 @@ pub fn (mut app App) admin_auth_del(mut ctx Context) veb.Result {
 	ctx.user_session.to_prune = true
 	return ctx.handle_ok('logged out')
 }
-

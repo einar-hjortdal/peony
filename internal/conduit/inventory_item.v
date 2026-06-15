@@ -22,4 +22,3 @@ fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map m
 		items_map[item_id.string()].inventory_levels = arrays.concat(old, level)
 	}
 }
-

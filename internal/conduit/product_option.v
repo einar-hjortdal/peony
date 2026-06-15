@@ -47,4 +47,3 @@ fn get_product_option_values(mut tx firebird.ClientTransaction, mut options_map 
 		options_map[option_id.string()].values = arrays.concat(old, complete_value)
 	}
 }
-

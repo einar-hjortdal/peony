@@ -456,4 +456,3 @@ pub fn product_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
 		return new_error_internal('Failed to delete product', err.msg())
 	}
 }
-

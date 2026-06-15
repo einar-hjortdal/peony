@@ -2,7 +2,7 @@ module peony
 
 import veb
 import json
-import conduit
+import internal.conduit
 import log
 
 // list api keys

@@ -1,7 +1,7 @@
 module peony
 
 import arrays
-import conduit
+import internal.conduit
 
 // VariantPrice is for the store frontend
 // `original_price` is the price of the item before an adjustment or a sale.

@@ -3,7 +3,7 @@ module peony
 import net.http
 import json
 import log
-import conduit
+import internal.conduit
 
 pub const header_store_api_key = 'Peony-Store-API-Key'
 
@@ -82,4 +82,3 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 	ctx.api_key = api_key
 	return true
 }
-

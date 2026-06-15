@@ -1,7 +1,7 @@
 module peony
 
 import veb
-import conduit
+import internal.conduit
 
 // list locales
 @['/admin/locales/'; get]

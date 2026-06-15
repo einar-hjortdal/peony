@@ -115,4 +115,3 @@ fn (c Config) verify() !Config {
 		session_admin_prefix:   c.get_session_admin_prefix()!
 	}
 }
-

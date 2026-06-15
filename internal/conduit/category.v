@@ -189,4 +189,3 @@ pub fn category_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
 		return new_error_internal('Could not delete category', err.msg())
 	}
 }
-

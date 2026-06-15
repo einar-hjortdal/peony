@@ -1,63 +1,21 @@
 module record
 
-import einar_hjortdal.luuid
 import einar_hjortdal.firebird
+import common
 
-pub const offset_default = i32(0)
-pub const order_asc = 'ASC'
-pub const order_desc = 'DESC'
-pub const order_default = order_asc
+const offset_default = common.offset_default
+const order_asc = common.order_asc
+const order_desc = common.order_desc
+const order_default = common.order_default
 
-pub interface Identifiable {
-	id() ID
-}
+type ID = common.ID
 
-pub struct ID {
-	s string
-	b []u8
-}
-
-pub fn new_id(mut g luuid.Generator) ID {
-	s := g.v1().to_upper()
-	return ID{
-		s: s
-		b: luuid.to_bytes(s) or { panic(err) } // should never panic
-	}
-}
-
-// detects if the ID is its zero value
-fn (id ID) is_zero() bool {
-	return id.s == '' && id.b.len == 0
-}
-
-pub fn (id ID) string() string {
-	return id.s
-}
-
-pub fn (id ID) bytes() []u8 {
-	return id.b
-}
-
-pub fn id_from_string(s string) !ID {
-	return ID{
-		s: s
-		b: luuid.to_bytes(s)!
-	}
+fn id_from_string(s string) !ID {
+	return common.id_from_string(s)
 }
 
 fn id_from_bytes(b []u8) !ID {
-	return ID{
-		s: luuid.from_bytes(b)!
-		b: b
-	}
-}
-
-fn get_placeholders[T](a []T) string {
-	mut res := []string{len: a.len}
-	for i := 0; i < a.len; i++ {
-		res[i] = '?'
-	}
-	return res.join(', ')
+	return common.id_from_bytes(b)
 }
 
 fn ids_bytes(ids []ID) [][]u8 {
@@ -75,6 +33,14 @@ fn ids_values(ids []ID) []firebird.Value {
 		r[i] = bs[i]
 	}
 	return r
+}
+
+fn get_placeholders[T](a []T) string {
+	mut res := []string{len: a.len}
+	for i := 0; i < a.len; i++ {
+		res[i] = '?'
+	}
+	return res.join(', ')
 }
 
 fn newln(ln string) string {

@@ -1,7 +1,7 @@
 module peony
 
 import veb
-import conduit
+import internal.conduit
 
 @['/admin/currencies/'; get]
 pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {

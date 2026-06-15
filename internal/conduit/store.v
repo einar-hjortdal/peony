@@ -37,4 +37,3 @@ pub fn conduit_store_update(mut tx firebird.ClientTransaction, store_id ID, p St
 		}
 	}
 }
-

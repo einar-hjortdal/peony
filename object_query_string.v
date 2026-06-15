@@ -1,6 +1,6 @@
 module peony
 
-import conduit
+import internal.conduit
 
 // Whenever a translateable resource is requested, the request may contain a LocaleContextQueryParams.
 // If translations exist for the resource requested, the resource will use them.

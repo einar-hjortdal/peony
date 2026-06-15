@@ -2,8 +2,6 @@ module conduit
 
 import record
 
-pub type ID = record.ID
-
 pub type APIKey = record.APIKey
 pub type APIKeyRetrieveParams = record.APIKeyRetrieveParams
 pub type APIKeyUpdateParams = record.APIKeyUpdateParams

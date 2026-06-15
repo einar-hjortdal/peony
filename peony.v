@@ -6,7 +6,7 @@ import einar_hjortdal.firebird
 import einar_hjortdal.luuid
 import einar_hjortdal.redict
 import einar_hjortdal.sessions
-import conduit
+import internal.conduit
 
 @[heap]
 pub struct App {
@@ -87,4 +87,3 @@ pub fn (mut app App) run() ! {
 	// app.initiate_cache()!
 	veb.run[App, Context](mut app, app.config.port)
 }
-
