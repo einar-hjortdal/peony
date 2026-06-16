@@ -1,6 +1,5 @@
 module conduit
 
-import net.http
 import einar_hjortdal.luuid
 import common
 
