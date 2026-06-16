@@ -35,7 +35,7 @@ pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 @['/admin/api-keys'; post]
 pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
 	p := json.decode(APIKeyCreateRequest, ctx.req.data) or {
-		return ctx.handle_error(errors.new_error_bad_request('Could not decode APIKeyCreateRequest',
+		return ctx.handle_error(errors.bad_request('Could not decode APIKeyCreateRequest',
 			err.msg()))
 	}
 	ph := hygienise_api_key_create_request(p) or { return ctx.handle_error(err) }
@@ -56,7 +56,8 @@ pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
 @['/admin/api-keys/:api_key_id'; get]
 pub fn (mut app App) api_keys_get(mut ctx Context, api_key_id string) veb.Result {
 	parsed_api_key_id := id_from_string(api_key_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'api_key_id'))
+		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid,
+			'api_key_id'))
 	}
 
 	api_key := app.with_rollback(fn [parsed_api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
@@ -72,11 +73,12 @@ pub fn (mut app App) api_keys_get(mut ctx Context, api_key_id string) veb.Result
 @['/admin/api-keys/:api_key_id'; post]
 pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Result {
 	parsed_api_key_id := id_from_string(api_key_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'api_key_id'))
+		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid,
+			'api_key_id'))
 	}
 	p := json.decode(APIKeyUpdateRequest, ctx.req.data) or {
-		return ctx.handle_error(new_error_bad_request('Could not decode APIKeyUpdateRequest',
-			err.msg()))
+		return ctx.handle_error(errors.bad_request('Could not decode APIKeyUpdateRequest',
+			err.msg())) 
 	}
 	ph := hygienise_api_key_update_request(p) or { return ctx.handle_error(err) }
 
@@ -101,7 +103,8 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 @['/admin/api-keys/:api_key_id'; delete]
 pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Result {
 	parsed_api_key_id := id_from_string(api_key_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(error_id_invalid, 'api_key_id'))
+		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid,
+			'api_key_id'))
 	}
 
 	app.with_commit(fn [parsed_api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
@@ -114,3 +117,4 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 
 	return ctx.handle_deleted()
 }
+

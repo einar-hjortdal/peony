@@ -2,27 +2,21 @@ module peony
 
 import json
 import veb
+import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 
 // returns details about the user that performed the request
 @['/admin/auth'; get]
 pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 	user_id := ctx.user_session_values.id or {
-		return ctx.handle_error(new_error_internal('User is not authorized',
+		return ctx.handle_error(errors.internal('User is not authorized',
 			'user session has no user id'))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	user := conduit.user_get_by_id(mut tx, user_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
+	user := app.with_rollback(fn [user_id] (mut tx firebird.ClientTransaction) !conduit.User {
+		return conduit.user_get_by_id(mut tx, user_id)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -33,48 +27,33 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 @['/admin/auth'; post]
 pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 	if ctx.user_session_values.id != none {
-		perr := new_error_bad_request('Already logged in', 'user session exists')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('Already logged in', 'user session exists'))
 	}
 
 	p := json.decode(AuthRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode AuthRequest', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('Could not decode AuthRequest', err.msg()))
 	}
 
 	if p.password == '' {
-		perr := new_error_bad_request(error_field_empty, 'password')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_field_empty, 'password'))
 	}
 
 	email_is_valid(p.email) or {
-		perr := new_error_bad_request('Invalid email', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('Invalid email', err.msg()))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	user := conduit.user_get_by_email(mut tx, p.email) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
-		id: user.password_parameters_id
-	}) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
+	user, password_details := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !(conduit.User, conduit.PasswordDetails) {
+		user := conduit.user_get_by_email(mut tx, p.email)!
+		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
+			id: user.password_parameters_id
+		})
+		return user, password_details
+	}) or { return ctx.handle_error() }
 
 	match password_details.function_name {
 		argon2id_name {
 			parameters := decode_argon2id_parameters(password_details.parameters) or {
-				return ctx.handle_error(new_error_login())
+				return ctx.handle_error(errors.login())
 			}
 
 			argon2id_hash := Argon2idHash{
@@ -84,7 +63,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 			}
 
 			argon2id_hash.verify_password(p.password) or {
-				return ctx.handle_error(new_error_login())
+				return ctx.handle_error(errors.login())
 			}
 
 			ctx.user_session_values = UserSessionValues{
@@ -96,9 +75,8 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 			})
 		}
 		else {
-			perr := new_error_internal('Unsupported password hashing algorithm',
-				'decoded function name: `${password_details.function_name}`')
-			return ctx.handle_error(perr)
+			return ctx.handle_error(errors.internal('Unsupported password hashing algorithm',
+				'decoded function name: `${password_details.function_name}`'))
 		}
 	}
 }
