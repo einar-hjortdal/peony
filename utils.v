@@ -108,12 +108,13 @@ fn id_from_string(s string) !ID {
 
 fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 	tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
-		return new_error_internal(error_transaction_start, err.msg())
+		return errors.internal(error_transaction_start, err.msg())
 	}
 	return tx
 }
 
-fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
+fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
+	finalize fn (mut tx firebird.ClientTransaction) !) !T {
 	for i = 0; i < transaction_attempts; i++ {
 		mut tx := app.start_transaction() or {
 			if i == transaction_attempts - 1 {
@@ -134,35 +135,21 @@ fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T)
 			continue
 		}
 
-		tx.rollback() or { return new_error_internal(error_transaction_rollback, error.msg()) }
+		finalize(mut tx)!
 		return res
 	}
 }
 
+fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
+	return attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
+		tx.rollback() or { return errors.internal(error_transaction_rollback, error.msg()) }
+	})
+}
+
 fn (mut app App) with_commit[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
-	for i = 0; i < transaction_attempts; i++ {
-		mut tx := app.start_transaction() or {
-			if i == transaction_attempts - 1 {
-				return err
-			}
-
-			time.sleep(transaction_retry_backoff)
-			continue
-		}
-
-		res := ops(mut tx) or {
-			tx.rollback() or {}
-			if i == transaction_attempts - 1 {
-				return err
-			}
-
-			time.sleep(transaction_retry_backoff)
-			continue
-		}
-
-		tx.rollback() or { return new_error_internal(error_transaction_rollback, error.msg()) }
-		return res
-	}
+	return attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
+		tx.commit() or { return errors.internal(error_transaction_commit, error.msg()) }
+	})
 }
 
 // parse_bool returns true if the string represents a true bool.
@@ -275,7 +262,7 @@ fn (mut ctx Context) handle_deleted() veb.Result {
 
 fn (ctx Context) get_api_key() !APIKey {
 	api_key := ctx.api_key or {
-		return new_error_internal('API Key missing from request context', 'ctx.api_key == none')
+		return errors.internal('API Key missing from request context', 'ctx.api_key == none')
 	}
 
 	return api_key

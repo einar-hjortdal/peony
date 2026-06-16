@@ -1,6 +1,7 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 import internal.conduit
 
 // list countries
@@ -8,12 +9,15 @@ import internal.conduit
 pub fn (mut app App) admin_countries_list(mut ctx Context) veb.Result {
 	p := hygienise_country_list_query(ctx.query) or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	count, countries := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !(i64, []conduit.Country) {
+		count := conduit.country_retrieve_count(mut tx, p)!
+		if count == 0 {
+			return count, []conduit.Country{}
+		}
 
-	count := conduit.country_retrieve_count(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(perr)
-	}
+		countries := conduit.country_list(mut tx, p)!
+		return count, countries
+	}) or { return ctx.handle_error() }
 
 	if count == 0 {
 		tx.rollback() or {}
@@ -21,16 +25,6 @@ pub fn (mut app App) admin_countries_list(mut ctx Context) veb.Result {
 			offset: p.offset
 			fetch:  p.fetch
 		})
-	}
-
-	countries := conduit.country_list(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
 	}
 
 	mut external_countries := []CountryResponse{len: countries.len}

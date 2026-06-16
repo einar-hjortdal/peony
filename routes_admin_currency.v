@@ -1,34 +1,30 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 
 @['/admin/currencies/'; get]
 pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 	p := hygienise_currency_list_query(ctx.query) or { return ctx.handle_error(err) }
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
-	count := conduit.currency_list_count(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(perr)
-	}
+	count, currencies := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !(i64, []conduit.Currency) {
+		count := conduit.currency_list_count(mut tx, p)!
+		if count == 0 {
+			return count, []conduit.Currency{}
+		}
+
+		currencies := conduit.currency_list(mut tx, p)!
+		return count, currencies
+	}) or { return ctx.handle_error() }
 
 	if count == 0 {
 		tx.rollback() or {}
-		return ctx.handle_ok(CountryResponseListEnvelope{
+		return ctx.handle_ok(CurrencyResponseListEnvelope{
 			offset: p.offset
 			fetch:  p.fetch
 		})
-	}
-
-	currencies := conduit.currency_list(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
 	}
 
 	mut external_currencies := []CurrencyResponse{len: currencies.len}
@@ -48,22 +44,13 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 @['/admin/currencies/:code'; get]
 pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) veb.Result {
 	if utf8_str_visible_length(code) > length_currency_code {
-		perr := new_error_unprocessable_entity(error_field_too_long,
-			'currency code must be exactly ${length_currency_code} UTF8 characters long')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.unprocessable_entity(error_field_too_long,
+			'currency code must be exactly ${length_currency_code} UTF8 characters long'))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	currency := conduit.currency_get(mut tx, code) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
+	currency := app.with_rollback(fn [code] (mut tx firebird.ClientTransaction) !conduit.Currency {
+		return conduit.currency_get(mut tx, code)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(CurrencyResponseEnvelope{
 		currencies: format_currency_response(currency)
