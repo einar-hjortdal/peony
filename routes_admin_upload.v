@@ -2,6 +2,7 @@ module peony
 
 import veb
 import net.http
+import providers
 
 const uploads_field_name = 'files'
 
@@ -34,7 +35,7 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	}
 
 	files := ctx.files[uploads_field_name]
-	mut files_data := []ProviderBlobFileData{len: files.len}
+	mut files_data := []providers.BlobFileData{len: files.len}
 	for i := 0; i < files.len; i++ {
 		f := files[i]
 		file_data := app.providers.blob.create(f) or {
@@ -99,3 +100,4 @@ pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Res
 		deleted: true
 	})
 }
+

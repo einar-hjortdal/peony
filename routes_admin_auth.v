@@ -7,12 +7,12 @@ import internal.conduit
 // returns details about the user that performed the request
 @['/admin/auth'; get]
 pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
 	user_id := ctx.user_session_values.id or {
-		perr := new_error_internal('User is not authorized', 'user session has no user id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(new_error_internal('User is not authorized',
+			'user session has no user id'))
 	}
+
+	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	user := conduit.user_get_by_id(mut tx, user_id) or {
 		tx.rollback() or {}

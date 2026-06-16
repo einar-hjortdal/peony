@@ -1,4 +1,5 @@
 import peony
+import peony.providers
 
 // deps
 import os
@@ -36,13 +37,13 @@ fn new_provider_blob_dummy() &BlobProviderDummy {
 	return &BlobProviderDummy{}
 }
 
-fn (bp BlobProviderDummy) create(fd http.FileData) !peony.ProviderBlobFileData {
+fn (bp BlobProviderDummy) create(fd http.FileData) !providers.BlobFileData {
 	if fd.filename == fail_key {
 		return error('failed to create file, filename == ${fail_key}')
 	}
 
 	id := luuid.v2()
-	return peony.ProviderBlobFileData{
+	return providers.BlobFileData{
 		id:  id
 		url: 'https://BlobProvider.Dummy/${id}'
 	}

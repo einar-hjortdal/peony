@@ -1,4 +1,4 @@
-module peony
+module providers
 
 import crypto.hmac
 import crypto.sha256
@@ -78,7 +78,7 @@ fn (b Blobly) init() ! {
 }
 
 // fulfill BlobProvider interface
-fn (b Blobly) create(f http.FileData) !ProviderBlobFileData {
+fn (b Blobly) create(f http.FileData) !BlobFileData {
 	url := '${b.url}/api/files/${blobly_blobs_dirname}/${f.filename}'
 	request := b.new_signed_http_request(http.Method.post, url, f.data)!
 	response := request.do()!
@@ -87,7 +87,7 @@ fn (b Blobly) create(f http.FileData) !ProviderBlobFileData {
 		data := json.decode(BloblySuccess, response.body) or {
 			return error('Could not decode BloblySuccess')
 		}
-		return ProviderBlobFileData{
+		return BlobFileData{
 			id:  data.file_name
 			url: '${b.url}/public/${blobly_blobs_dirname}/${data.file_name}'
 		}
@@ -112,3 +112,6 @@ fn (b Blobly) delete(filename string) ! {
 	}
 	return error(data.message)
 }
+
+
+

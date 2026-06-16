@@ -1,15 +1,15 @@
-module peony
+module providers
 
 import net.http
 
-pub struct ProviderBlobFileData {
+pub struct BlobFileData {
 pub:
 	id  string
 	url string
 }
 
 pub interface BlobProvider {
-	create(http.FileData) !ProviderBlobFileData
+	create(http.FileData) !BlobFileData
 	delete(string) !
 }
 

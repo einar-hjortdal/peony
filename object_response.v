@@ -1,8 +1,9 @@
 module peony
 
 import time
-import internal.conduit
 import einar_hjortdal.firebird
+import providers
+import internal.conduit
 
 fn format_none_date_time(ndt ?firebird.DateTime) ?time.Time {
 	date_time := ndt or { return none }
@@ -1084,11 +1085,11 @@ pub struct ProductResponseStoreListEnvelope {
 }
 
 pub struct UploadsUploadResponseEnvelope {
-	uploads []ProviderBlobFileData
+	uploads []providers.BlobFileData
 }
 
 pub struct UploadsUploadOneResponseEnvelope {
-	upload ProviderBlobFileData
+	upload providers.BlobFileData
 }
 
 pub struct UploadsDeleteResponse {
@@ -1124,3 +1125,6 @@ pub struct StockLocationResponseListEnvelope {
 pub struct StockLocationResponseEnvelope {
 	stock_location StockLocationResponse @[json: 'stockLocation']
 }
+
+
+
