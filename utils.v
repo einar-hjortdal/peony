@@ -235,7 +235,7 @@ fn (mut ctx Context) handle_error(error IError) veb.Result {
 			return ctx.handle_peony_error(error)
 		}
 		else {
-			return ctx.handle_peony_error(errors.new_error_internal('Unhandled error', error.msg()))
+			return ctx.handle_peony_error(errors.internal('Unhandled error', error.msg()))
 		}
 	}
 }
@@ -251,7 +251,7 @@ fn (mut ctx Context) middleware_handle_error(error IError) bool {
 		}
 		else {
 			ctx.res.set_status(http.Status.internal_server_error)
-			ctx.json(errors.new_error_internal('Unhandled middleware error', error.msg()))
+			ctx.json(errors.internal('Unhandled middleware error', error.msg()))
 		}
 	}
 
@@ -351,7 +351,7 @@ fn parse_order_direction(s string) !string {
 		return order_desc
 	}
 
-	return errors.new_error_unprocessable_entity(error_order_direction_invalid,
+	return errors.unprocessable_entity(error_order_direction_invalid,
 		details_order_direction_invalid)
 }
 
@@ -362,12 +362,12 @@ fn get_header_content_type(mut ctx Context) !string {
 fn get_fetch_or_default(fetch ?i32) !i32 {
 	f := fetch or { return max_fetch }
 	if f < min_fetch {
-		return errors.new_error_unprocessable_entity('Too few objects requested. Minimum ${min_fetch} must be requested',
+		return errors.unprocessable_entity('Too few objects requested. Minimum ${min_fetch} must be requested',
 			'requested ${f}')
 	}
 
 	if f > max_fetch {
-		return errors.new_error_unprocessable_entity('Too many objects requested. Maximum ${max_fetch} can be requested',
+		return errors.unprocessable_entity('Too many objects requested. Maximum ${max_fetch} can be requested',
 			'requested ${f}')
 	}
 
@@ -377,8 +377,7 @@ fn get_fetch_or_default(fetch ?i32) !i32 {
 fn get_offset_or_default(offset ?i32) !i32 {
 	o := offset or { return offset_default }
 	if o < offset_default {
-		return errors.new_error_unprocessable_entity('Minimum offset is ${offset_default}',
-			'requested ${o}')
+		return errors.unprocessable_entity('Minimum offset is ${offset_default}', 'requested ${o}')
 	}
 	return o
 }
@@ -393,10 +392,10 @@ struct LocaleContext {
 }
 
 fn new_error_fetch_zero() errors.PeonyError {
-	return errors.new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
+	return errors.bad_request('Requested 0 results', 'fetch cannot be 0')
 }
 
 fn new_error_role_invalid() errors.PeonyError {
-	return errors.new_error_unprocessable_entity(error_field_invalid,
+	return errors.unprocessable_entity(error_field_invalid,
 		'role must be one of: ${roles.join(', ')}')
 }
