@@ -71,6 +71,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 			if store_locales_exist[locale_id] {
 				continue
 			}
+			tx.rollback() or {}
 			perr := new_error_bad_request(error_id_invalid, 'translation locale_id')
 			return ctx.handle_error(perr)
 		}
@@ -84,6 +85,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 				if store_locales_exist[locale_id] {
 					continue
 				}
+				tx.rollback() or {}
 				perr := new_error_bad_request(error_id_invalid, 'seo_translation locale_id')
 				return ctx.handle_error(perr)
 			}
@@ -100,6 +102,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 					if store_locales_exist[locale_id] {
 						continue
 					}
+					tx.rollback() or {}
 					perr := new_error_bad_request(error_id_invalid, 'image_translation locale_id')
 					return ctx.handle_error(perr)
 				}
@@ -120,6 +123,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 					if store_locales_exist[locale_id] {
 						continue
 					}
+					tx.rollback() or {}
 					perr := new_error_bad_request(error_id_invalid, 'option_translation locale_id')
 					return ctx.handle_error(perr)
 				}
@@ -134,6 +138,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 						if store_locales_exist[locale_id] {
 							continue
 						}
+						tx.rollback() or {}
 						perr := new_error_bad_request(error_id_invalid,
 							'option_value_translation locale_id')
 						return ctx.handle_error(perr)
@@ -783,3 +788,4 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 
 	return ctx.handle_deleted()
 }
+

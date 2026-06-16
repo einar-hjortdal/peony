@@ -88,6 +88,10 @@
 
 - [x] Blobly
 
+#### Email
+
+- [ ] SMTP
+
 #### Payment
 
 - [ ] Manual
@@ -127,7 +131,7 @@
 - [x] Soft-delete only where needed
 - [x] Remove all unnecessary `product_` prefixes from database, structs and function names
 - [ ] Attach function name to each error
-- [ ] Transaction management
+- [x] Transaction management
 - [x] Routes should not call models, only conduit.
 - [x] Refactor record fields to use option types instead of firebird.NullT
 

@@ -2,12 +2,13 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import common
 
-pub const role_admin = 'admin'
-pub const role_member = 'member'
-pub const role_developer = 'developer'
-pub const role_author = 'author'
-pub const role_contributor = 'contributor'
+const role_admin = common.role_admin
+const role_member = common.role_member
+const role_developer = common.role_developer
+const role_author = common.role_author
+const role_contributor = common.role_contributor
 
 pub struct User {
 pub:

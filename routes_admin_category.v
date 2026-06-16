@@ -25,7 +25,7 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 
 	external_categories := []CategoryResponse{len: categories.len}
 	for i := 0; i < categories.len; i++ {
-		external_categories[i] = foramt_category_response(categories[i])
+		external_categories[i] = format_category_response(categories[i])
 	}
 
 	return ctx.handle_ok(CategoryListResponseEnvelope{
@@ -165,3 +165,4 @@ pub fn (mut app App) category_delete(mut ctx Context, category_id string) veb.Re
 
 	return ctx.handle_deleted()
 }
+

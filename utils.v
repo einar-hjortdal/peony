@@ -6,7 +6,9 @@ import veb
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 import common
+import time
 
 pub const lib = 'peony'
 
@@ -63,6 +65,9 @@ const error_handle_fallback_too_long = 'The provided handle already exists. The 
 
 const details_order_direction_invalid = 'order must either be ${order_asc} or ${order_desc}'
 
+const transaction_attempts = 3
+const transaction_retry_backoff = 8 * time.millisecond
+
 const offset_default = common.offset_default
 const order_asc = common.order_asc
 const order_desc = common.order_desc
@@ -91,21 +96,73 @@ fn role_is_valid(role string) ! {
 	}
 }
 
-pub type ID = conduit.ID
+pub type ID = common.ID
 
 fn new_id(mut g luuid.Generator) ID {
-	return conduit.new_id(mut g)
+	return common.new_id(mut g)
 }
 
 fn id_from_string(s string) !ID {
-	return conduit.id_from_string(s)
+	return common.id_from_string(s)
 }
 
 fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 	tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
-		return conduit.new_error_internal(error_transaction_start, err.msg())
+		return new_error_internal(error_transaction_start, err.msg())
 	}
 	return tx
+}
+
+fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
+	for i = 0; i < transaction_attempts; i++ {
+		mut tx := app.start_transaction() or {
+			if i == transaction_attempts - 1 {
+				return err
+			}
+
+			time.sleep(transaction_retry_backoff)
+			continue
+		}
+
+		res := ops(mut tx) or {
+			tx.rollback() or {}
+			if i == transaction_attempts - 1 {
+				return err
+			}
+
+			time.sleep(transaction_retry_backoff)
+			continue
+		}
+
+		tx.rollback() or { return new_error_internal(error_transaction_rollback, error.msg()) }
+		return res
+	}
+}
+
+fn (mut app App) with_commit[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
+	for i = 0; i < transaction_attempts; i++ {
+		mut tx := app.start_transaction() or {
+			if i == transaction_attempts - 1 {
+				return err
+			}
+
+			time.sleep(transaction_retry_backoff)
+			continue
+		}
+
+		res := ops(mut tx) or {
+			tx.rollback() or {}
+			if i == transaction_attempts - 1 {
+				return err
+			}
+
+			time.sleep(transaction_retry_backoff)
+			continue
+		}
+
+		tx.rollback() or { return new_error_internal(error_transaction_rollback, error.msg()) }
+		return res
+	}
 }
 
 // parse_bool returns true if the string represents a true bool.
@@ -152,7 +209,7 @@ fn ids_from_array_string(ids_string []string) ![]ID {
 }
 
 fn (mut app App) gen_id() ID {
-	return conduit.new_id(mut app.luuid_generator)
+	return common.new_id(mut app.luuid_generator)
 }
 
 // WIP
@@ -164,7 +221,7 @@ interface Translatable {
 	translations() ?[]Translation
 }
 
-fn (mut ctx Context) handle_peony_error(error conduit.PeonyError) veb.Result {
+fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {
 	ctx.res.set_status(error.status_code)
 	return ctx.json(json.encode(PeonyErrorResponse{
 		message: error.message
@@ -173,23 +230,31 @@ fn (mut ctx Context) handle_peony_error(error conduit.PeonyError) veb.Result {
 }
 
 fn (mut ctx Context) handle_error(error IError) veb.Result {
-	if error is conduit.PeonyError {
-		return ctx.handle_peony_error(error)
+	match error {
+		PeonyError {
+			return ctx.handle_peony_error(error)
+		}
+		else {
+			return ctx.handle_peony_error(errors.new_error_internal('Unhandled error', error.msg()))
+		}
 	}
-	return ctx.handle_peony_error(conduit.new_error_internal('Unhandled error', error.msg()))
 }
 
 fn (mut ctx Context) middleware_handle_error(error IError) bool {
-	if error is conduit.PeonyError {
-		ctx.res.set_status(error.status_code)
-		ctx.json(json.encode(PeonyErrorResponse{
-			message: error.message
-			details: error.details
-		}))
-	} else {
-		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(conduit.new_error_internal('Unhandled middleware error', error.msg()))
+	match error {
+		errors.PeonyError {
+			ctx.res.set_status(error.status_code)
+			ctx.json(json.encode(PeonyErrorResponse{
+				message: error.message
+				details: error.details
+			}))
+		}
+		else {
+			ctx.res.set_status(http.Status.internal_server_error)
+			ctx.json(errors.new_error_internal('Unhandled middleware error', error.msg()))
+		}
 	}
+
 	return false
 }
 
@@ -210,8 +275,7 @@ fn (mut ctx Context) handle_deleted() veb.Result {
 
 fn (ctx Context) get_api_key() !APIKey {
 	api_key := ctx.api_key or {
-		return conduit.new_error_internal('API Key missing from request context',
-			'ctx.api_key == none')
+		return new_error_internal('API Key missing from request context', 'ctx.api_key == none')
 	}
 
 	return api_key
@@ -287,7 +351,7 @@ fn parse_order_direction(s string) !string {
 		return order_desc
 	}
 
-	return conduit.new_error_unprocessable_entity(error_order_direction_invalid,
+	return errors.new_error_unprocessable_entity(error_order_direction_invalid,
 		details_order_direction_invalid)
 }
 
@@ -298,12 +362,12 @@ fn get_header_content_type(mut ctx Context) !string {
 fn get_fetch_or_default(fetch ?i32) !i32 {
 	f := fetch or { return max_fetch }
 	if f < min_fetch {
-		return conduit.new_error_unprocessable_entity('Too few objects requested. Minimum ${min_fetch} must be requested',
+		return errors.new_error_unprocessable_entity('Too few objects requested. Minimum ${min_fetch} must be requested',
 			'requested ${f}')
 	}
 
 	if f > max_fetch {
-		return conduit.new_error_unprocessable_entity('Too many objects requested. Maximum ${max_fetch} can be requested',
+		return errors.new_error_unprocessable_entity('Too many objects requested. Maximum ${max_fetch} can be requested',
 			'requested ${f}')
 	}
 
@@ -313,7 +377,7 @@ fn get_fetch_or_default(fetch ?i32) !i32 {
 fn get_offset_or_default(offset ?i32) !i32 {
 	o := offset or { return offset_default }
 	if o < offset_default {
-		return conduit.new_error_unprocessable_entity('Minimum offset is ${offset_default}',
+		return errors.new_error_unprocessable_entity('Minimum offset is ${offset_default}',
 			'requested ${o}')
 	}
 	return o
@@ -328,61 +392,11 @@ struct LocaleContext {
 	locale_id ?ID
 }
 
-// TODO delete (use conduit.)
-
-// PeonyError contains the appropriate http status code for the error.
-struct PeonyError {
-	message     string
-	details     string
-	status_code http.Status
+fn new_error_fetch_zero() errors.PeonyError {
+	return errors.new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
 }
 
-// implement IError
-fn (e PeonyError) msg() string {
-	return e.message
-}
-
-fn (e PeonyError) code() int {
-	return i32(e.status_code)
-}
-
-fn new_peony_error(message string, details string, code http.Status) PeonyError {
-	return PeonyError{
-		message:     message
-		details:     details
-		status_code: code
-	}
-}
-
-fn new_error_bad_request(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.bad_request)
-}
-
-fn new_error_unauthorized(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.unauthorized)
-}
-
-fn new_error_not_found(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.not_found)
-}
-
-fn new_error_unprocessable_entity(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.unprocessable_entity)
-}
-
-fn new_error_internal(message string, details string) PeonyError {
-	return new_peony_error(message, details, http.Status.internal_server_error)
-}
-
-fn new_error_login() PeonyError {
-	return new_error_unauthorized('Invalid email or password', '')
-}
-
-fn new_error_fetch_zero() PeonyError {
-	return new_error_bad_request('Requested 0 results', 'fetch cannot be 0')
-}
-
-fn new_error_role_invalid() PeonyError {
-	return new_error_unprocessable_entity(error_field_invalid,
+fn new_error_role_invalid() errors.PeonyError {
+	return errors.new_error_unprocessable_entity(error_field_invalid,
 		'role must be one of: ${roles.join(', ')}')
 }

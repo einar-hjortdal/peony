@@ -1,13 +1,14 @@
 module conduit
 
 import einar_hjortdal.firebird
+import common
 import record
 
-pub const role_admin = record.role_admin
-pub const role_member = record.role_member
-pub const role_developer = record.role_developer
-pub const role_author = record.role_author
-pub const role_contributor = record.role_contributor
+const role_admin = common.role_admin
+const role_member = common.role_member
+const role_developer = common.role_developer
+const role_author = common.role_author
+const role_contributor = common.role_contributor
 
 // TODO create image
 pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
@@ -72,3 +73,4 @@ pub fn user_get_by_email(mut tx firebird.ClientTransaction, email string) !User 
 
 	return users[0]
 }
+
