@@ -9,7 +9,24 @@
 - [x] Write a BLOB storage service <!-- https://github.com/einar-hjortdal/blobly -->
 - [x] Write a sessions management library <!-- https://github.com/einar-hjortdal/sessions -->
 
-## Features
+## CMS features
+
+### Implemented
+
+### Currently being implemented
+
+### To be implemented
+
+- [ ] Blog
+- [ ] Post
+- [ ] Page
+- [ ] Topics
+
+## Commerce features
+
+### Low-priority
+
+- [ ] Comment
 
 ### Implemented
 
@@ -32,34 +49,26 @@
 
 - [ ] Multi-warehouse
 
-### Soon to be implemented
+### To be implemented
 
-- [ ] Product types
-- [ ] Unit pricing
-
-### To be implement
-
-- [ ] Reservations
-- [ ] Cart rules
-- [ ] Price lists
-- [ ] Product tags
-- [ ] Product bundles
-- [ ] Blog
-- [ ] Post
-- [ ] Page
-- [ ] Topics
-- [ ] Customer
 - [ ] Cart
+- [ ] Cart rules
+- [ ] Customer
 - [ ] Orders
 - [ ] Payments
-- [ ] User permissions
+- [ ] Price lists
+- [ ] Product bundles
+- [ ] Product tags
+- [ ] Product types
+- [ ] Reservations
 - [ ] Taxes
+- [ ] Unit pricing
+- [ ] User permissions
 
 ### Low-priority
 
 - [ ] OAuth
 - [ ] Sub-divisions of country
-- [ ] Comment
 
 ### Not planned
 
@@ -89,18 +98,20 @@
 
 ## Changes
 
-- [ ] Separate sales from price_list.
-- [ ] Limit returned list items to 250 in all requests.
-- [ ] Return created resources on creation.
-- [ ] Return updated resources on update.
-- [x] Add variant endpoints.
-- [ ] Add product option endpoints.
-- [ ] Add product option value endpoints.
-- [ ] Add product image endpoints.
-- [x] Move cors handling to starter.
-- [x] Return and accept translations as a map rather than an array.
-- [x] Return and accept variant prices as a map rather than an array.
-- [ ] Database setup and migrations should be separate from startup.
+- [ ] Worker mode
+- [ ] Search layer
+- [ ] Separate sales from price_list
+- [ ] Limit returned list items to 250 in all requests
+- [ ] Return created resources on creation
+- [ ] Return updated resources on update
+- [x] Add variant endpoints
+- [ ] Add product option endpoints
+- [ ] Add product option value endpoints
+- [ ] Add product image endpoints
+- [x] Move cors handling to starter
+- [x] Return and accept translations as a map rather than an array
+- [x] Return and accept variant prices as a map rather than an array
+- [ ] Database setup and migrations should be triggered manually, not by startup
 
 ## Internals
 
@@ -117,7 +128,6 @@
 - [x] Remove all unnecessary `product_` prefixes from database, structs and function names
 - [ ] Attach function name to each error
 - [ ] Transaction management
-- [ ] Worker mode
 - [x] Routes should not call models, only conduit.
 - [x] Refactor record fields to use option types instead of firebird.NullT
 
@@ -126,13 +136,8 @@
 - [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)
 - [Firebird currently does not support JSON data type](https://github.com/FirebirdSQL/firebird/issues/5431). Change `metadata` fields from `BLOB SUB_TYPE TEXT` to `JSON` when possible.
 
-## Considerations
-
-
-
 ## Documentation
 
 - [ ] Endpoints
 - [ ] Parameters
 - [ ] Query strings
-
