@@ -2,17 +2,18 @@ module conduit
 
 import einar_hjortdal.firebird
 import record
+import errors
 
 pub fn region_list_count(mut tx firebird.ClientTransaction, p RegionRetriveParams) !i64 {
 	count := record.region_retrieve_count(mut tx, p) or {
-		return new_error_internal('Failed to retrieve region count', err.msg())
+		return errors.internal('Failed to retrieve region count', err.msg())
 	}
 	return count
 }
 
 pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) ![]record.Region {
 	regions := record.region_retrieve(mut tx, p) or {
-		return new_error_internal('Failed to retrieve regions', err.msg())
+		return errors.internal('Failed to retrieve regions', err.msg())
 	}
 
 	// TODO fetch taxes
@@ -35,20 +36,20 @@ pub fn region_get_by_id(mut tx firebird.ClientTransaction, region_id ID) !record
 	return region
 }
 
-pub fn region_create(mut tx firebird.ClientTransaction, region_id ID, p record.RegionCreateParams) ! {
+pub fn region_create(mut tx firebird.ClientTransaction, region_id ID, p RegionCreateParams) ! {
 	record.region_create(mut tx, region_id, p) or {
-		return new_error_internal('Could not create region', err.msg())
+		return errors.internal('Could not create region', err.msg())
 	}
 }
 
-pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p record.RegionUpdateParams) ! {
+pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p RegionUpdateParams) ! {
 	record.region_update(mut tx, region_id, p) or {
-		return new_error_internal('Could not update region', err.msg())
+		return errors.internal('Could not update region', err.msg())
 	}
 }
 
 pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
 	record.region_delete(mut tx, region_id) or {
-		return new_error_internal('Could not delete region', err.msg())
+		return errors.internal('Could not delete region', err.msg())
 	}
 }

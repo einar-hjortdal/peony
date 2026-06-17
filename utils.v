@@ -121,7 +121,7 @@ struct ListReturn[T] {
 }
 
 fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
-	finalize fn (mut tx firebird.ClientTransaction) !) !T {
+	finalise fn (mut tx firebird.ClientTransaction) !) !T {
 	for i = 0; i < transaction_attempts; i++ {
 		mut tx := app.start_transaction() or {
 			if i == transaction_attempts - 1 {
@@ -142,7 +142,7 @@ fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransactio
 			continue
 		}
 
-		finalize(mut tx)!
+		finalise(mut tx)!
 		return res
 	}
 }

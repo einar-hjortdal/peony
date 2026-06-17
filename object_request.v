@@ -2,6 +2,12 @@ module peony
 
 import arrays
 import json
+import internal.errors
+import internal.conduit
+
+pub const region_default_automatic_taxes = true
+pub const region_default_includes_tax = false
+pub const region_default_gift_cards_taxable = true
 
 pub struct AuthRequest {
 pub:
@@ -22,12 +28,12 @@ struct APIKeyCreateRequestHygienised {
 
 fn hygienise_api_key_create_request(p APIKeyCreateRequest) !APIKeyCreateRequestHygienised {
 	if utf8_str_visible_length(p.name) > max_length_api_key_name {
-		return new_error_bad_request(error_field_too_long,
+		return errors.bad_request(error_field_too_long,
 			'name can be at most ${max_length_api_key_name} UTF8 characters long')
 	}
 
 	sales_channel_id := id_from_string(p.sales_channel_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
+		return errors.unprocessable_entity(error_id_invalid, 'sales_channel_id')
 	}
 
 	return APIKeyCreateRequestHygienised{
@@ -50,7 +56,7 @@ struct APIKeyUpdateRequestHygienised {
 fn hygienise_api_key_update_request(p APIKeyUpdateRequest) !APIKeyUpdateRequestHygienised {
 	if name := p.name {
 		if utf8_str_visible_length(name) > max_length_api_key_name {
-			return new_error_bad_request(error_field_too_long,
+			return errors.bad_request(error_field_too_long,
 				'name can be at most ${max_length_api_key_name} UTF8 characters long')
 		}
 	}
@@ -58,7 +64,7 @@ fn hygienise_api_key_update_request(p APIKeyUpdateRequest) !APIKeyUpdateRequestH
 	mut sales_channel_id := ?ID(none)
 	if id_string := p.sales_channel_id {
 		sales_channel_id = id_from_string(id_string) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_id')
+			return errors.unprocessable_entity(error_id_invalid, 'sales_channel_id')
 		}
 	}
 
@@ -91,35 +97,35 @@ fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 	mut parsed_default_locale_id := ?ID(none)
 	if id := p.default_locale_id {
 		parsed_default_locale_id = id_from_string(id) or {
-			return new_error_bad_request(error_id_invalid, 'default_locale_id')
+			return errors.bad_request(error_id_invalid, 'default_locale_id')
 		}
 	}
 
 	mut parsed_default_region_id := ?ID(none)
 	if id := p.default_region_id {
 		parsed_default_region_id = id_from_string(id) or {
-			return new_error_bad_request(error_id_invalid, 'default_region_id')
+			return errors.bad_request(error_id_invalid, 'default_region_id')
 		}
 	}
 
 	mut parsed_default_stock_location_id := ?ID(none)
 	if id := p.default_stock_location_id {
 		parsed_default_stock_location_id = id_from_string(id) or {
-			return new_error_bad_request(error_id_invalid, 'default_stock_location_id')
+			return errors.bad_request(error_id_invalid, 'default_stock_location_id')
 		}
 	}
 
 	mut parsed_default_sales_channel_id := ?ID(none)
 	if id := p.default_sales_channel_id {
 		parsed_default_sales_channel_id = id_from_string(id) or {
-			return new_error_bad_request(error_id_invalid, 'default_sales_channel_id')
+			return errors.bad_request(error_id_invalid, 'default_sales_channel_id')
 		}
 	}
 
 	mut parsed_locale_ids := ?[]ID(none)
 	if ids := p.locale_ids {
 		parsed_locale_ids = ids_from_array_string(ids) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_ids')
 		}
 	}
 
@@ -162,7 +168,7 @@ fn hygienise_image_translations(p map[string]ImageTranslationRequest) ![]ImageTr
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ImageTranslationRequestHygienised{
@@ -203,7 +209,7 @@ mut:
 fn (p ImageCreateRequest) hygienise() !ImageCreateRequestHygienised {
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_bad_request(error_field_too_long,
+			return errors.bad_request(error_field_too_long,
 				'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
@@ -254,18 +260,17 @@ mut:
 
 fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	if p.id != none && p.url != none {
-		return new_error_unprocessable_entity('unable to update image url',
-			'both id and url are set')
+		return errors.unprocessable_entity('unable to update image url', 'both id and url are set')
 	}
 
 	if p.id == none && p.url == none {
-		return new_error_unprocessable_entity('unable to create image without url',
+		return errors.unprocessable_entity('unable to create image without url',
 			'both id and url are unset')
 	}
 
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
-			return new_error_unprocessable_entity(error_field_too_long,
+			return errors.unprocessable_entity(error_field_too_long,
 				'alt can be at most ${max_length_alt} UTF8 characters long')
 		}
 	}
@@ -273,7 +278,7 @@ fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(error_id_invalid, 'id')
 		}
 	}
 
@@ -301,10 +306,10 @@ pub:
 }
 
 fn (p UserCreateRequest) hygienise() ! {
-	email_is_valid(p.email) or { return new_error_bad_request('invalid email', err.msg()) }
+	email_is_valid(p.email) or { return errors.bad_request('invalid email', err.msg()) }
 
 	if p.password == '' {
-		return new_error_bad_request(error_field_empty, 'password')
+		return errors.bad_request(error_field_empty, 'password')
 	}
 
 	if role := p.role {
@@ -313,14 +318,14 @@ fn (p UserCreateRequest) hygienise() ! {
 
 	if first_name := p.first_name {
 		if utf8_str_visible_length(first_name) > max_length_first_name {
-			return new_error_bad_request('first_name too long',
+			return errors.bad_request('first_name too long',
 				'first_name can be at most ${max_length_first_name} UTF8 characters long')
 		}
 	}
 
 	if last_name := p.last_name {
 		if utf8_str_visible_length(last_name) > max_length_last_name {
-			return new_error_bad_request('last_name too long',
+			return errors.bad_request('last_name too long',
 				'last_name can be at most ${max_length_last_name} UTF8 characters long')
 		}
 	}
@@ -328,7 +333,7 @@ fn (p UserCreateRequest) hygienise() ! {
 	if image := p.image {
 		if alt := image.alt {
 			if utf8_str_visible_length(alt) > max_length_alt {
-				return new_error_bad_request('alt too long',
+				return errors.bad_request('alt too long',
 					'alt can be at most ${max_length_alt} UTF8 characters long')
 			}
 		}
@@ -347,7 +352,7 @@ pub:
 
 fn (p UserUpdateRequest) hygienise() ! {
 	if email := p.email {
-		email_is_valid(email) or { return new_error_bad_request('invalid email', err.msg()) }
+		email_is_valid(email) or { return errors.bad_request('invalid email', err.msg()) }
 	}
 
 	if role := p.role {
@@ -356,14 +361,14 @@ fn (p UserUpdateRequest) hygienise() ! {
 
 	if first_name := p.first_name {
 		if utf8_str_visible_length(first_name) > max_length_first_name {
-			return new_error_bad_request('first_name too long',
+			return errors.bad_request('first_name too long',
 				'first_name can be at most ${max_length_first_name} UTF8 characters long')
 		}
 	}
 
 	if last_name := p.last_name {
 		if utf8_str_visible_length(last_name) > max_length_last_name {
-			return new_error_bad_request('last_name too long',
+			return errors.bad_request('last_name too long',
 				'last_name can be at most ${max_length_last_name} UTF8 characters long')
 		}
 	}
@@ -371,7 +376,7 @@ fn (p UserUpdateRequest) hygienise() ! {
 	if image := p.image {
 		if alt := image.alt {
 			if utf8_str_visible_length(alt) > max_length_alt {
-				return new_error_bad_request('alt too long',
+				return errors.bad_request('alt too long',
 					'alt can be at most ${max_length_alt} UTF8 characters long')
 			}
 		}
@@ -397,7 +402,7 @@ fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]Pro
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductTranslationRequestHygienised{
@@ -426,7 +431,7 @@ fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTr
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductOptionValueTranslationRequestHygienised{
@@ -452,7 +457,7 @@ mut:
 
 fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
 	if p.name == '' {
-		return new_error_bad_request(error_field_empty, 'product_option_value name is required')
+		return errors.bad_request(error_field_empty, 'product_option_value name is required')
 	}
 
 	mut ph := ProductOptionValueRequestHygienised{
@@ -501,13 +506,13 @@ mut:
 
 fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequestHygienised {
 	if p.name == none && p.translations == none {
-		return new_error_bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
+		return errors.bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
 	}
 
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(error_id_invalid, 'id')
 		}
 	}
 
@@ -538,7 +543,7 @@ fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRe
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductOptionTranslationRequestHygienised{
@@ -566,11 +571,11 @@ mut:
 
 fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
 	if p.title == '' {
-		return new_error_bad_request(error_field_empty, 'product_option title is required')
+		return errors.bad_request(error_field_empty, 'product_option title is required')
 	}
 
 	if p.values.len == 0 {
-		return new_error_bad_request(error_field_empty,
+		return errors.bad_request(error_field_empty,
 			'The product_option lacks values, at least one value must be provided.')
 	}
 
@@ -635,7 +640,7 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(error_id_invalid, 'id')
 		}
 	}
 
@@ -671,15 +676,14 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
 		parsed_region_id := id_from_string(region_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'region_id')
+			return errors.unprocessable_entity(error_id_invalid, 'region_id')
 		}
 
 		price := p[region_id]
 
 		base_price := price.base_price
 		if base_price < 0 {
-			return new_error_unprocessable_entity('invalid money amount',
-				'A price cannot be negative')
+			return errors.unprocessable_entity('invalid money amount', 'A price cannot be negative')
 		}
 
 		money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
@@ -690,7 +694,7 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 
 		if original_price := price.original_price {
 			if original_price < 0 {
-				return new_error_unprocessable_entity('invalid money amount',
+				return errors.unprocessable_entity('invalid money amount',
 					'A price cannot be negative')
 			}
 
@@ -719,7 +723,7 @@ struct InventoryLevelCreateRequestHygienised {
 
 fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygienised {
 	parsed_stock_location_id := id_from_string(p.stock_location_id) or {
-		return new_error_unprocessable_entity(error_id_invalid, 'stock_location_id')
+		return errors.unprocessable_entity(error_id_invalid, 'stock_location_id')
 	}
 
 	return InventoryLevelCreateRequestHygienised{
@@ -769,34 +773,34 @@ struct InventoryItemCreateRequestHygienised {
 fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygienised {
 	if sku := p.sku {
 		if utf8_str_visible_length(sku) > max_length_sku {
-			return new_error_unprocessable_entity(error_field_too_long, 'sku')
+			return errors.unprocessable_entity(error_field_too_long, 'sku')
 		}
 	}
 
 	if origin_country := p.origin_country {
 		if utf8_str_visible_length(origin_country) > max_length_country {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('origin_country',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('origin_country',
 				max_length_country))
 		}
 	}
 
 	if hs_code := p.hs_code {
 		if utf8_str_visible_length(hs_code) > max_length_hs_code {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('hs_code',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('hs_code',
 				max_length_hs_code))
 		}
 	}
 
 	if mid_code := p.mid_code {
 		if utf8_str_visible_length(mid_code) > max_length_mid_code {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('mid_code',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('mid_code',
 				max_length_mid_code))
 		}
 	}
 
 	if material := p.material {
 		if utf8_str_visible_length(material) > max_length_material {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('material',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('material',
 				max_length_material))
 		}
 	}
@@ -859,34 +863,34 @@ struct InventoryItemUpdateRequestHygienised {
 fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygienised {
 	if sku := p.sku {
 		if utf8_str_visible_length(sku) > max_length_sku {
-			return new_error_unprocessable_entity(error_field_too_long, 'sku')
+			return errors.unprocessable_entity(error_field_too_long, 'sku')
 		}
 	}
 
 	if origin_country := p.origin_country {
 		if utf8_str_visible_length(origin_country) > max_length_country {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('origin_country',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('origin_country',
 				max_length_country))
 		}
 	}
 
 	if hs_code := p.hs_code {
 		if utf8_str_visible_length(hs_code) > max_length_hs_code {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('hs_code',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('hs_code',
 				max_length_hs_code))
 		}
 	}
 
 	if mid_code := p.mid_code {
 		if utf8_str_visible_length(mid_code) > max_length_mid_code {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('mid_code',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('mid_code',
 				max_length_mid_code))
 		}
 	}
 
 	if material := p.material {
 		if utf8_str_visible_length(material) > max_length_material {
-			return new_error_unprocessable_entity(error_field_too_long, format_field_too_long_details('material',
+			return errors.unprocessable_entity(error_field_too_long, format_field_too_long_details('material',
 				max_length_material))
 		}
 	}
@@ -983,28 +987,28 @@ mut:
 fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
 	if title := p.title {
 		if utf8_str_visible_length(title) > max_length_variant_title {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('title',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('title',
 				max_length_variant_title))
 		}
 	}
 
 	if ean := p.ean {
 		if utf8_str_visible_length(ean) > max_length_ean {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('ean',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('ean',
 				max_length_ean))
 		}
 	}
 
 	if upc := p.upc {
 		if utf8_str_visible_length(upc) > max_length_upc {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('upc',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('upc',
 				max_length_upc))
 		}
 	}
 
 	if barcode := p.barcode {
 		if utf8_str_visible_length(barcode) > max_length_barcode {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('barcode',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('barcode',
 				max_length_barcode))
 		}
 	}
@@ -1012,7 +1016,7 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 	// Reject creation of a variant with 0 option values
 	if option_values := p.option_values {
 		if option_values.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'A variant must reference at least one option')
 		}
 	}
@@ -1033,7 +1037,7 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 
 	if prices := p.regional_prices {
 		if prices.len == 0 {
-			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
+			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
 		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
@@ -1132,27 +1136,27 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(error_id_invalid, 'id')
 		}
 	}
 
 	if ean := p.ean {
 		if utf8_str_visible_length(ean) > max_length_ean {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('ean',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('ean',
 				max_length_ean))
 		}
 	}
 
 	if upc := p.upc {
 		if utf8_str_visible_length(upc) > max_length_upc {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('upc',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('upc',
 				max_length_upc))
 		}
 	}
 
 	if barcode := p.barcode {
 		if utf8_str_visible_length(barcode) > max_length_barcode {
-			return new_error_bad_request(error_field_too_long, format_field_too_long_details('barcode',
+			return errors.bad_request(error_field_too_long, format_field_too_long_details('barcode',
 				max_length_barcode))
 		}
 	}
@@ -1164,7 +1168,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 
 	if option_values := p.option_values {
 		if option_values.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'A variant must reference at least one option')
 		}
 	}
@@ -1183,7 +1187,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 
 	if prices := p.regional_prices {
 		if prices.len == 0 {
-			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
+			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
 		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
@@ -1256,7 +1260,7 @@ mut:
 
 fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	if p.option_value_ids.len == 0 {
-		return new_error_unprocessable_entity(error_field_empty,
+		return errors.unprocessable_entity(error_field_empty,
 			'option_value_ids cannot be an empty array')
 	}
 
@@ -1264,14 +1268,14 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
 		parsed_option_value_ids[i] = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'option_value_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'option_value_ids')
 		}
 	}
 
 	mut parsed_image_id := ?ID(none)
 	if id := p.image_id {
 		parsed_image_id = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+			return errors.unprocessable_entity(error_id_invalid, 'image_id')
 		}
 	}
 
@@ -1287,7 +1291,7 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 
 	if prices := p.regional_prices {
 		if prices.len == 0 {
-			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
+			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
 		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
@@ -1381,14 +1385,14 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 	mut parsed_option_value_ids := ?[]ID(none)
 	if ids := p.option_value_ids {
 		parsed_option_value_ids = ids_from_array_string(ids) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'option_value_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'option_value_ids')
 		}
 	}
 
 	mut parsed_image_id := ?ID(none)
 	if id := p.image_id {
 		parsed_image_id = id_from_string(id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'image_id')
+			return errors.unprocessable_entity(error_id_invalid, 'image_id')
 		}
 	}
 
@@ -1404,7 +1408,7 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 
 	if prices := p.regional_prices {
 		if prices.len == 0 {
-			new_error_bad_request(error_field_empty, 'prices cannot be an empty map')
+			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
 		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
@@ -1421,22 +1425,56 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 // for a region to limit the requests being sent to a tax provider.
 pub struct RegionCreateRequest {
 pub:
-	automatic_taxes ?bool    @[json: 'automaticTaxes']
-	country_codes   []string @[json: 'countryCodes']
-	currency_code   string   @[json: 'currencyCode']
-	includes_tax    ?bool    @[json: 'includesTax']
-	name            string
-	// taxes
+	automatic_taxes    ?bool    @[json: 'automaticTaxes']
+	country_codes      []string @[json: 'countryCodes']
+	currency_code      string   @[json: 'currencyCode']
+	includes_tax       ?bool    @[json: 'includesTax']
+	gift_cards_taxable ?bool    @[json: 'giftCardsTaxable']
+	name               string
+	//  taxes
+}
+
+fn (p RegionCreateRequest) hygienise() !conduit.RegionCreateParams {
+	if p.country_codes.len == 0 {
+		return errors.bad_request(error_empty_object, 'country_codes')
+	}
+
+	return conduit.RegionCreateParams{
+		name:               p.name
+		currency_code:      p.currency_code
+		includes_tax:       bool_or(p.includes_tax, region_default_includes_tax)
+		gift_cards_taxable: bool_or(p.gift_cards_taxable, region_default_gift_cards_taxable)
+		automatic_taxes:    bool_or(p.automatic_taxes, region_default_automatic_taxes)
+		country_codes:      p.country_codes
+	}
 }
 
 pub struct RegionUpdateRequest {
 pub:
-	automatic_taxes ?bool     @[json: 'automaticTaxes']
-	country_codes   ?[]string @[json: 'countryCodes']
-	currency_code   ?string   @[json: 'currencyCode']
-	includes_tax    ?bool     @[json: 'includesTax']
-	name            ?string
+	automatic_taxes    ?bool     @[json: 'automaticTaxes']
+	country_codes      ?[]string @[json: 'countryCodes']
+	currency_code      ?string   @[json: 'currencyCode']
+	includes_tax       ?bool     @[json: 'includesTax']
+	gift_cards_taxable ?bool     @[json: 'giftCardsTaxable']
+	name               ?string
 	//  taxes
+}
+
+fn (p RegionUpdateRequest) hygienise() !conduit.RegionUpdateParams {
+	if country_codes := p.country_codes {
+		if country_codes.len == 0 {
+			return errors.bad_request(error_empty_object, 'country_codes')
+		}
+	}
+
+	return conduit.RegionUpdateParams{
+		name:               p.name
+		currency_code:      p.currency_code
+		includes_tax:       p.includes_tax
+		gift_cards_taxable: p.gift_cards_taxable
+		automatic_taxes:    p.automatic_taxes
+		country_codes:      p.country_codes
+	}
 }
 
 pub struct CategoryTranslationRequest {
@@ -1456,7 +1494,7 @@ fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]C
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = CategoryTranslationRequestHygienised{
@@ -1486,7 +1524,7 @@ fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]SEOTranslat
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
 		res[i] = SEOTranslationRequestHygienised{
@@ -1536,7 +1574,7 @@ fn (r SEORequestHygienised) translations() ?[]SEOTranslationRequestHygienised {
 
 fn (p SEORequest) hygienise() !SEORequestHygienised {
 	if p.title == none && p.description == none && p.translations == none {
-		return new_error_unprocessable_entity(error_empty_object, 'SEORequest')
+		return errors.unprocessable_entity(error_empty_object, 'SEORequest')
 	}
 
 	mut ph := SEORequestHygienised{
@@ -1599,7 +1637,7 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {
-			return new_error_bad_request(error_id_invalid, 'parent_category_id')
+			return errors.bad_request(error_id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -1671,18 +1709,18 @@ mut:
 
 fn hygienise_category_update_request(s string) !CategoryUpdateRequestHygienised {
 	p := json.decode(CategoryUpdateRequest, s) or {
-		return new_error_bad_request('Could not decode CategoryUpdateRequest', err.msg())
+		return errors.bad_request('Could not decode CategoryUpdateRequest', err.msg())
 	}
 
 	if p.handle == none && p.is_internal == none && p.is_active == none
 		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
-		return new_error_bad_request(error_empty_object, 'CategoryUpdateRequest')
+		return errors.bad_request(error_empty_object, 'CategoryUpdateRequest')
 	}
 
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {
-			return new_error_bad_request(error_id_invalid, 'parent_category_id')
+			return errors.bad_request(error_id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -1823,12 +1861,12 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() 
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
 		option_values := variant.option_values or {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'Each variant must reference all options with the option_values field')
 		}
 
 		if option_values.len != options.len {
-			return new_error_unprocessable_entity('option_values length does not match options length. Got ${option_values.len}, expected ${options.len}',
+			return errors.unprocessable_entity('option_values length does not match options length. Got ${option_values.len}, expected ${options.len}',
 				'Each variant must reference all options')
 		}
 	}
@@ -1843,7 +1881,7 @@ fn (p ProductCreateRequestHygienised) validate_no_orphan_option_values() ! {
 		}
 
 		if p.options == none {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'option_values cannot be provided because no options are defined')
 		}
 	}
@@ -1856,7 +1894,7 @@ fn (p ProductCreateRequestHygienised) validate_no_too_many_variants() ! {
 	}
 
 	options := p.options or {
-		return new_error_unprocessable_entity(error_field_empty,
+		return errors.unprocessable_entity(error_field_empty,
 			'Empty `options` field not allowed: an option must be created in order to create variants')
 	}
 
@@ -1867,7 +1905,7 @@ fn (p ProductCreateRequestHygienised) validate_no_too_many_variants() ! {
 	}
 
 	if variants.len > possible_combinations {
-		return new_error_unprocessable_entity('too_many_variants',
+		return errors.unprocessable_entity('too_many_variants',
 			'Provided ${variants.len} variants but there can only be ${possible_combinations} possible combinations with the provided options and values.')
 	}
 }
@@ -1882,7 +1920,7 @@ fn (p ProductCreateRequestHygienised) validate_no_duplicate_variants() ! {
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
 		option_values := variant.option_values or {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'Empty option_values field not allowed: each variant must reference all options')
 		}
 
@@ -1898,7 +1936,7 @@ fn (p ProductCreateRequestHygienised) validate_no_duplicate_variants() ! {
 		}
 
 		if seen_combinations[combination] {
-			return new_error_unprocessable_entity('Duplicate variant.',
+			return errors.unprocessable_entity('Duplicate variant.',
 				'2 variants have the same option values')
 		}
 
@@ -1913,14 +1951,14 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_valid_values()
 	}
 
 	options := p.options or {
-		return new_error_unprocessable_entity(error_field_empty,
+		return errors.unprocessable_entity(error_field_empty,
 			'Empty `options` field not allowed: an option must be created in order to create variants')
 	}
 
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
 		option_values := variant.option_values or {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'Empty option_values field not allowed: each variant must reference all options')
 		}
 
@@ -1929,12 +1967,12 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_valid_values()
 			value_index := option_values[option_index]
 			max_value_index := option.values.len - 1
 			if value_index < 0 {
-				return new_error_unprocessable_entity('Invalid value index.',
+				return errors.unprocessable_entity('Invalid value index.',
 					'An index cannot be a negative integer')
 			}
 
 			if value_index > max_value_index {
-				return new_error_unprocessable_entity('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
+				return errors.unprocessable_entity('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
 					'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
 			}
 		}
@@ -1953,7 +1991,7 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 	options := p.options or { return }
 
 	option_values := variant.option_values or {
-		return new_error_unprocessable_entity(error_field_empty,
+		return errors.unprocessable_entity(error_field_empty,
 			'Empty option_values field not allowed: each variant must reference all options')
 	}
 
@@ -1962,12 +2000,12 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 		value_index := option_values[option_index]
 		max_value_index := option.values.len - 1
 		if value_index < 0 {
-			return new_error_unprocessable_entity('Invalid value index.',
+			return errors.unprocessable_entity('Invalid value index.',
 				'An index cannot be a negative integer')
 		}
 
 		if value_index > max_value_index {
-			return new_error_unprocessable_entity('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
+			return errors.unprocessable_entity('Invalid value index. Got: ${value_index}, maximum allowed: ${max_value_index}',
 				'The option at index ${option_index} contains an array of ${option.values.len} values (max index: ${max_value_index}), a value cannot have index ${value_index}.')
 		}
 	}
@@ -1979,17 +2017,17 @@ fn (p ProductCreateRequestHygienised) validate_variant_image() ! {
 		variant := variants[i]
 		variant_image := variant.image or { continue }
 		if variant_image < 0 {
-			return new_error_unprocessable_entity(error_reference_invalid,
+			return errors.unprocessable_entity(error_reference_invalid,
 				'The variant image index cannot be negative')
 		}
 
 		product_images := p.images or {
-			return new_error_unprocessable_entity(error_reference_invalid,
+			return errors.unprocessable_entity(error_reference_invalid,
 				'A variant image is defined but the product has no images. A variant image is a reference to a product image, therefore a variant cannot have an image if the product has no images.')
 		}
 
 		if variant_image >= product_images.len {
-			return new_error_unprocessable_entity(error_reference_invalid, 'Out of bounds:
+			return errors.unprocessable_entity(error_reference_invalid, 'Out of bounds:
 				variant image: `${variant_image}`
 				product_images.len: `${product_images.len}`')
 		}
@@ -1998,85 +2036,85 @@ fn (p ProductCreateRequestHygienised) validate_variant_image() ! {
 
 fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if p.title == '' {
-		return new_error_unprocessable_entity(error_field_empty, 'title')
+		return errors.unprocessable_entity(error_field_empty, 'title')
 	}
 
 	if utf8_str_visible_length(p.title) > max_length_product_title {
-		return new_error_unprocessable_entity(error_field_too_long, 'title')
+		return errors.unprocessable_entity(error_field_too_long, 'title')
 	}
 
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
-			return new_error_unprocessable_entity(error_field_too_long, 'subtitle')
+			return errors.unprocessable_entity(error_field_too_long, 'subtitle')
 		}
 	}
 
 	if handle := p.handle {
 		if utf8_str_visible_length(handle) > max_length_handle {
-			return new_error_unprocessable_entity(error_field_too_long, 'handle')
+			return errors.unprocessable_entity(error_field_too_long, 'handle')
 		}
 	}
 
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
-			return new_error_unprocessable_entity('thumbnail invalid', 'negative value')
+			return errors.unprocessable_entity('thumbnail invalid', 'negative value')
 		}
 
 		if images := p.images {
 			if !(thumbnail < images.len) {
-				return new_error_unprocessable_entity('thumbnail invalid', 'index out of range')
+				return errors.unprocessable_entity('thumbnail invalid', 'index out of range')
 			}
 		} else {
-			return new_error_unprocessable_entity('thumbnail invalid', 'images array not provided')
+			return errors.unprocessable_entity('thumbnail invalid', 'images array not provided')
 		}
 	}
 
 	if status := p.status {
 		if !product_status_is_valid(status) {
-			return new_error_unprocessable_entity('status is invalid', status)
+			return errors.unprocessable_entity('status is invalid', status)
 		}
 	}
 
 	mut parsed_sales_channel_ids := ?[]ID(none)
 	if ids := p.sales_channel_ids {
 		parsed_sales_channel_ids = ids_from_array_string(ids) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'sales_channel_ids')
 		}
 	}
 
 	mut parsed_category_ids := ?[]ID(none)
 	if ids := p.category_ids {
 		parsed_category_ids = ids_from_array_string(ids) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'category_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'category_ids')
 		}
 	}
 
 	if options := p.options {
 		// Reject creation of a product with 0 options
 		if options.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'A product must have at least one option.')
 		}
 
 		variants := p.variants or {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'variants must be provided when options are specified')
 		}
 
 		if variants.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'At least one variant must be provided when options are specified')
 		}
 
 		for i := 0; i < variants.len; i++ {
 			variant := variants[i]
 			option_values := variant.option_values or {
-				return new_error_unprocessable_entity(error_field_empty,
+				return errors.unprocessable_entity(error_field_empty,
 					'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
 			}
 
 			if option_values.len != options.len {
-				return new_error_unprocessable_entity(error_reference_invalid,
+				return errors.unprocessable_entity(error_reference_invalid,
 					'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
 			}
 
@@ -2085,7 +2123,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 				values := option.values
 				value_index := option_values[j]
 				if values.len <= value_index {
-					return new_error_unprocessable_entity(error_reference_invalid,
+					return errors.unprocessable_entity(error_reference_invalid,
 						'Out of bounds: the option at index `${j}` has a total of `${values.len}` values, there cannot be a value at index `${value_index}`')
 				}
 			}
@@ -2095,7 +2133,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	if variants := p.variants {
 		// Reject creation of a product with 0 variants
 		if variants.len == 0 {
-			return new_error_unprocessable_entity(error_field_explicit_empty,
+			return errors.unprocessable_entity(error_field_explicit_empty,
 				'A product must have at least one variant.')
 		}
 
@@ -2105,12 +2143,12 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 				variant := variants[i]
 				if variant_image := variant.image {
 					if variant_image < 0 {
-						return new_error_unprocessable_entity(error_reference_invalid,
+						return errors.unprocessable_entity(error_reference_invalid,
 							'Negative index')
 					}
 
 					if variant_image > max_image_index {
-						return new_error_unprocessable_entity(error_reference_invalid,
+						return errors.unprocessable_entity(error_reference_invalid,
 							'Out of bounds: the product has a total of ${images.len} images, but the variant references an image at index `${variant_image}`')
 					}
 				}
@@ -2291,64 +2329,64 @@ mut:
 fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	if title := p.title {
 		if title == '' {
-			return new_error_unprocessable_entity(error_field_empty, 'title')
+			return errors.unprocessable_entity(error_field_empty, 'title')
 		}
 
 		if utf8_str_visible_length(title) > max_length_product_title {
-			return new_error_unprocessable_entity(error_field_too_long, 'title')
+			return errors.unprocessable_entity(error_field_too_long, 'title')
 		}
 	}
 
 	if subtitle := p.subtitle {
 		if utf8_str_visible_length(subtitle) > max_length_product_subtitle {
-			return new_error_unprocessable_entity(error_field_too_long, 'subtitle')
+			return errors.unprocessable_entity(error_field_too_long, 'subtitle')
 		}
 	}
 
 	if handle := p.handle {
 		if utf8_str_visible_length(handle) > max_length_handle {
-			return new_error_unprocessable_entity(error_field_too_long, 'handle')
+			return errors.unprocessable_entity(error_field_too_long, 'handle')
 		}
 	}
 
 	if thumbnail := p.thumbnail {
 		if thumbnail < 0 {
-			return new_error_unprocessable_entity('thumbnail invalid', 'negative value')
+			return errors.unprocessable_entity('thumbnail invalid', 'negative value')
 		}
 
 		if images := p.images {
 			if !(thumbnail < images.len) {
-				return new_error_unprocessable_entity('thumbnail invalid', 'index out of range')
+				return errors.unprocessable_entity('thumbnail invalid', 'index out of range')
 			}
 		} else {
-			return new_error_unprocessable_entity('thumbnail invalid', 'images array not provided')
+			return errors.unprocessable_entity('thumbnail invalid', 'images array not provided')
 		}
 	}
 
 	if status := p.status {
 		if !product_status_is_valid(status) {
-			return new_error_unprocessable_entity('status is invalid', status)
+			return errors.unprocessable_entity('status is invalid', status)
 		}
 	}
 
 	mut parsed_sales_channel_ids := ?[]ID(none)
 	if ids := p.sales_channel_ids {
 		parsed_sales_channel_ids = ids_from_array_string(ids) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'sales_channel_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'sales_channel_ids')
 		}
 	}
 
 	mut parsed_category_ids := ?[]ID(none)
 	if ids := p.category_ids {
 		parsed_category_ids = ids_from_array_string(ids) or {
-			return new_error_unprocessable_entity(error_id_invalid, 'category_ids')
+			return errors.unprocessable_entity(error_id_invalid, 'category_ids')
 		}
 	}
 
 	if options := p.options {
 		// Reject deleting all options
 		if options.len == 0 {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'A product must have at least one option.')
 		}
 
@@ -2363,26 +2401,26 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 		}
 
 		if has_new_options && p.variants == none {
-			return new_error_unprocessable_entity(error_field_empty,
+			return errors.unprocessable_entity(error_field_empty,
 				'variants must be provided when new options are specified')
 		}
 
 		if variants := p.variants {
 			// reject deleting all variants
 			if variants.len == 0 {
-				return new_error_unprocessable_entity(error_field_empty,
+				return errors.unprocessable_entity(error_field_empty,
 					'A product must have at least one variant')
 			}
 
 			for i := 0; i < variants.len; i++ {
 				variant := variants[i]
 				option_values := variant.option_values or {
-					return new_error_unprocessable_entity(error_field_empty,
+					return errors.unprocessable_entity(error_field_empty,
 						'Each variant must reference all options. The variant at index `${i}` has no defined option_values')
 				}
 
 				if option_values.len != options.len {
-					return new_error_unprocessable_entity(error_reference_invalid,
+					return errors.unprocessable_entity(error_reference_invalid,
 						'Each variant must reference all options. The variant at index `${i}` references `${option_values.len}` options, but `${options.len}` options are defined.')
 				}
 
@@ -2390,7 +2428,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 					option := options[j]
 					values := option.values or {
 						if variant.id == none {
-							return new_error_unprocessable_entity(error_field_empty,
+							return errors.unprocessable_entity(error_field_empty,
 								'A new variant must reference all product options. The variant at index `${j}` has no option_values.')
 						}
 						continue
@@ -2398,7 +2436,7 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 
 					value_index := option_values[j]
 					if values.len <= value_index {
-						return new_error_unprocessable_entity(error_reference_invalid,
+						return errors.unprocessable_entity(error_reference_invalid,
 							'Out of bounds: the option at index `${j}` has a total of `${values.len}` values, there cannot be a value at index `${value_index}`')
 					}
 				}

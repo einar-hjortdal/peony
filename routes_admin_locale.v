@@ -66,6 +66,3 @@ pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) 
 		locale: format_locale_response(locale)
 	})
 }
-
-
-

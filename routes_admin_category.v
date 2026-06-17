@@ -151,4 +151,3 @@ pub fn (mut app App) category_delete(mut ctx Context, category_id string) veb.Re
 
 	return ctx.handle_deleted()
 }
-

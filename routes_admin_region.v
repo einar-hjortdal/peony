@@ -31,13 +31,8 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 		})
 	}
 
-	mut external_regions := []RegionResponse{len: data.items.len}
-	for i := 0; i < data.items.len; i++ {
-		external_regions[i] = format_region_response(data.items[i])
-	}
-
 	return ctx.handle_ok(RegionResponseListEnvelope{
-		regions: external_regions
+		regions: format_locale_response_list(data.items)
 		count:   count
 		offset:  p.offset
 		fetch:   p.fetch
@@ -48,47 +43,66 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 @['/admin/regions/'; post]
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	data := json.decode(RegionCreateRequest, ctx.req.data) or {
-		perr := errors.bad_request('Could not decode RegionCreateRequest', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('Could not decode RegionCreateRequest',
+			err.msg()))
 	}
+	p := data.hygienise() or { return ctx.handle_error(err) }
+	region_id := app.gen_id()
 
-	if data.country_codes.len == 0 {
-		perr := errors.bad_request(error_empty_object, 'country_codes')
-		return ctx.handle_error(perr)
-	}
+	region := app.with_commit(fn [p, region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
+		// TODO validation
+		// error if currency_code not in currency table
+		// for each country_code error if code not in country table
+		// for each country_code error if country already in another region
+		// this can be abstracted to a utility function because it would be reused in region update endpoint
+		conduit.region_create(mut tx, region_id, p)!
+		return conduit.region_get_by_id(mut tx, region_id)
+	}) or { return ctx.handle_error() }
 
-	// TODO validation
-	// error if currency_code not in currency table
-	// for each country_code error if code not in country table
-	// for each country_code error if country already in another region
-	// this can be abstracted to a utility function because it would be reused in region update endpoint
-
-	return conduit_region_create(mut app, mut ctx, data)
+	return ctx.handle_ok(RegionResponseEnvelope{
+		region: format_region_response(region)
+	})
 }
 
 // get a region
 // TODO add query params
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
-	id := id_from_string(region_id) or {
-		perr := errors.bad_request(error_id_invalid, err.msg())
-		return ctx.handle_error(perr)
+	parsed_region_id := id_from_string(region_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
 	}
-	return conduit_region_get_by_id(mut app, mut ctx, id)
+
+	region := app.with_rollback(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
+		return conduit.region_get_by_id(mut tx, region_id)
+	}) or { return ctx.handle_error() }
+
+	return ctx.handle_ok(RegionResponseEnvelope{
+		region: format_region_response(region)
+	})
 }
 
 // updates a region
 @['/admin/regions/:region_id'; post]
 pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.Result {
-	region_id_bin := id_string_to_bin(region_id) or {
-		perr := errors.bad_request(error_id_invalid, err.msg())
-		return ctx.handle_error(perr)
+	parsed_region_id := id_from_string(region_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
 	}
 
 	data := json.decode(RegionUpdateRequest, ctx.req.data) or {
-		perr := errors.bad_request('Could not decode RegionUpdateRequest', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('Could not decode RegionUpdateRequest',
+			err.msg()))
 	}
+	p := data.hygienise() or { return ctx.handle_error(err) }
+
+	region := app.with_commit(fn [p, parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
+		// TODO validation
+		// error if currency_code not in currency table
+		// for each country_code error if code not in country table
+		// for each country_code error if country already in another region
+		// this can be abstracted to a utility function because it would be reused in region update endpoint
+		conduit.region_update(mut tx, region_id, p)!
+		return conduit.region_get_by_id(mut tx, region_id)
+	}) or { return ctx.handle_error() }
 
 	if country_codes := data.country_codes {
 		if country_codes.len == 0 {
@@ -104,8 +118,7 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 @['/admin/regions/:region_id'; delete]
 pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
 	parsed_region_id := id_from_string(region_id) or {
-		perr := errors.bad_request(error_id_invalid, err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
 	}
 
 	p := RegionRetriveParams{
@@ -135,4 +148,3 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 
 	return ctx.handle_deleted()
 }
-

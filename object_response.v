@@ -134,6 +134,14 @@ pub:
 	locale LocaleResponse
 }
 
+fn format_locale_response_list(ls []conduit.Locale) []LocaleResponse {
+	mut external := []LocaleResponse{len: ls.len}
+	for i := 0; i < ls.len; i++ {
+		external[i] = format_locale_response(ls[i])
+	}
+	return external
+}
+
 pub struct LocaleResponseListEnvelope {
 pub:
 	locales []LocaleResponse
@@ -1125,6 +1133,3 @@ pub struct StockLocationResponseListEnvelope {
 pub struct StockLocationResponseEnvelope {
 	stock_location StockLocationResponse @[json: 'stockLocation']
 }
-
-
-

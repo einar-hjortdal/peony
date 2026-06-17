@@ -101,4 +101,3 @@ pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Res
 		deleted: true
 	})
 }
-

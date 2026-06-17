@@ -42,4 +42,3 @@ pub fn (mut app App) admin_countries_list(mut ctx Context) veb.Result {
 		fetch:     p.fetch
 	})
 }
-

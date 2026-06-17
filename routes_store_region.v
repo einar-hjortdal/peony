@@ -32,13 +32,8 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 		})
 	}
 
-	mut external_regions := []RegionResponse{len: data.items.len}
-	for i := 0; i < data.items.len; i++ {
-		external_regions[i] = format_region_response(data.items[i])
-	}
-
 	return ctx.handle_ok(RegionResponseListEnvelope{
-		regions: external_regions
+		regions: format_locale_response_list(data.items)
 		count:   count
 		offset:  p.offset
 		fetch:   p.fetch
@@ -62,5 +57,3 @@ pub fn (mut app App) store_region_get(mut ctx Context, region_id string) veb.Res
 		regions: format_region_response(region)
 	})
 }
-
-

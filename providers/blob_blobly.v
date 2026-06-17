@@ -112,4 +112,3 @@ fn (b BloblyClient) delete(filename string) ! {
 	}
 	return error(data.message)
 }
-

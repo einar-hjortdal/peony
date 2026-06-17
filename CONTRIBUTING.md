@@ -27,14 +27,14 @@ Please follow these standards
 - No enums.
 - No logical assignment operators.
 - No static methods.
-- No lambdas.
+- No lambda expressions.
 
 ### veb
 
-- `object_` files contain request/response data structures and related functions.
 - `route_` files define endpoints, validate request inputs and send responses.
-- `module conduit` orchestrates database operations.
-- `module record` defines individual database operations.
+- `object_` files contain request/response data structures.
+- `internal.conduit` orchestrates database operations.
+- `internal.conduit.record` defines individual database operations.
 
 ### FirebirdSQL
 
