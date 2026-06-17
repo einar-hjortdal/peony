@@ -62,7 +62,7 @@ pub:
 	api_key APIKeyResponse @[json: 'apiKey']
 }
 
-pub struct APIKeyListResponseEnvelope {
+pub struct APIKeyResponseListEnvelope {
 pub:
 	api_keys []APIKeyResponse @[json: 'apiKeys']
 	count    i64
@@ -108,7 +108,7 @@ pub:
 // count: the total count of items.
 // offset: the number of items skipped before retrieving the returned items.
 // fetch: the maximum number of items returned.
-pub struct UserListResponseEnvelope {
+pub struct UserResponseListEnvelope {
 pub:
 	users  []UserResponse
 	count  i64
@@ -377,7 +377,7 @@ fn format_product_option_response(p conduit.ProductOption) ProductOptionResponse
 	}
 }
 
-pub struct PriceListPriceResponse {
+pub struct PriceResponse {
 pub:
 	id            string
 	currency_code string @[json: 'currencyCode']

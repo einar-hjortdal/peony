@@ -2,97 +2,97 @@ module peony
 
 import json
 import veb
+import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 
 // lists users
 @['/admin/users'; get]
 pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 	p := hygienise_user_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
+		count := conduit.user_list_count(mut tx, p)!
+		if count == 0 {
+			return ListReturn{}
+		}
 
-	users := conduit.user_list(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
+		users := conduit.user_list(mut tx, p)
+		return ListReturn{
+			count: count
+			items: users
+		}
+	}) or { return ctx.handle_error() }
+
+	if data.count == 0 {
+		return ctx.json(UserResponseListEnvelope{
+			offset: p.offset
+			fetch:  p.fetch
+		})
 	}
 
-	tx.rollback() or {
-		return ctx.handle_error(new_error_internal(error_transaction_rollback, err.msg()))
+	mut external_users := []UserResponse{len: data.items.len}
+	for i := 0; i < data.items.len; i++ {
+		external_users[i] = format_user_response(data.items[i])
 	}
 
-	return handle_ok()
+	return ctx.handle_ok(UserResponseListEnvelope{
+		users:  external_users
+		count:  count
+		offset: p.offset
+		fetch:  p.fetch
+	})
 }
 
 // creates a user
 @['/admin/users'; post]
 pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	p := json.decode(UserCreateRequest, ctx.req.data) or {
-		return ctx.handle_error(new_error_bad_request('Could not decode UserCreateRequest',
-			err.msg()))
+		return ctx.handle_error(errors.bad_request('Could not decode UserCreateRequest', err.msg()))
 	}
 
 	p.hygienise() or { return ctx.handle_error(err) }
 
 	user_id := app.gen_id()
-
 	password_hash := hash_password(p.password) or {
-		perr := new_error_internal('Failed hash password', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.internal('Failed hash password', err.msg()))
 	}
 	password_parameters_encoded, password_parameters_hash := password_hash.parameters.encode() or {
-		return new_error_internal('Failed to encode password_parameters', err.msg())
+		return ctx.handle_error(errors.internal('Failed to encode password_parameters', err.msg()))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	password_details := conduit.password_details_get(mut tx, PasswordDetailsGetParams, {
-		hash: password_parameters_hash
-	}) or {
-		password_parameters_id := app.gen_id()
-		conduit.password_details_create(mut tx, password_parameters_id, argon2id_name,
-			password_parameters_encoded, password_parameters_hash) or {
-			tx.rollback() or {}
-			return ctx.handle_error(err)
-		}
-
-		conduit.password_details_get(mut tx, PasswordDetailsGetParams{
+	user := app.with_commit(fn [p, user_id, password_hash, password_parameters_encoded, password_parameters_hash] (mut tx firebird.ClientTransaction) !conduit.User {
+		password_details := conduit.password_details_get(mut tx, PasswordDetailsGetParams, {
 			hash: password_parameters_hash
 		}) or {
-			tx.rollback() or {}
-			return ctx.handle_error(err)
+			password_parameters_id := app.gen_id()
+			conduit.password_details_create(mut tx, password_parameters_id, argon2id_name,
+				password_parameters_encoded, password_parameters_hash)!
+			conduit.password_details_get(mut tx, PasswordDetailsGetParams{
+				hash: password_parameters_hash
+			})!
 		}
-	}
 
-	if _ := p.image {
-		// TODO
-	}
+		if _ := p.image {
+			// TODO
+		}
 
-	conduit.user_create(mut tx, mut ctx, conduit.UserCreateParams{
-		user_id:                user_id
-		handle:                 user_id.string() // TODO validate and format
-		email:                  p.email
-		password_hash:          password_hash.hash
-		password_salt:          password_hash.salt
-		password_parameters_id: password_details.id
-		role:                   unwrap_option_or(p.role, role_admin)
-		first_name:             p.first_name
-		last_name:              p.last_name
-		// image_id
-		metadata: p.metadata
-	}) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
+		conduit.user_create(mut tx, mut ctx, conduit.UserCreateParams{
+			user_id:                user_id
+			handle:                 user_id.string() // TODO validate and format
+			email:                  p.email
+			password_hash:          password_hash.hash
+			password_salt:          password_hash.salt
+			password_parameters_id: password_details.id
+			role:                   unwrap_option_or(p.role, role_admin)
+			first_name:             p.first_name
+			last_name:              p.last_name
+			// image_id
+			metadata: p.metadata
+		})!
 
-	user := conduit.user_get_by_id(mut tx, user_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.commit() or {
-		tx.rollback() or {}
-		return ctx.handle_error(new_error_internal(error_transaction_rollback, err.msg()))
-	}
+		return conduit.user_get_by_id(mut tx, user_id)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_created(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -115,20 +115,12 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 @['/admin/users/:user_id'; get]
 pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
-		perr := new_error_unprocessable_entity(error_id_invalid, 'user_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'user_id'))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	user := conduit.user_get_by_id(mut tx, parsed_user_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		return ctx.handle_error(new_error_internal(error_transaction_rollback, err.msg()))
-	}
+	user := app.with_rollback(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !conduit.User {
+		return conduit.user_get_by_id(mut tx, parsed_user_id)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -139,43 +131,31 @@ pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result 
 @['/admin/users/:user_id'; post]
 pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'user_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'user_id'))
 	}
 
 	p := json.decode(UserUpdateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode UserUpdateRequest', err.msg())
+		perr := errors.bad_request('Could not decode UserUpdateRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	p.hygienise() or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	user := app.with_commit(fn [parsed_user_id, p] (mut tx firebird.ClientTransaction) !conduit.User {
+		conduit.user_update(mut tx, parsed_user_id, conduit.UserUpdateParams, {
+			email:      p.email
+			first_name: p.first_name
+			last_name:  p.last_name
+			role:       p.role
+			metadata:   p.metadata
+		})!
 
-	conduit.user_update(mut tx, parsed_user_id, conduit.UserUpdateParams, {
-		email:      p.email
-		first_name: p.first_name
-		last_name:  p.last_name
-		role:       p.role
-		metadata:   p.metadata
-	}) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
+		if _ := p.image {
+			// TODO
+		}
 
-	if _ := p.image {
-		// TODO
-	}
-
-	user := conduit.user_get_by_id(mut tx, parsed_user_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.commit() or {
-		tx.rollback() or {}
-		return ctx.handle_error(new_error_internal(error_transaction_rollback, err.msg()))
-	}
+		return conduit.user_get_by_id(mut tx, parsed_user_id)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -186,21 +166,13 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 @['/admin/users/:user_id'; delete]
 pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'user_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'user_id'))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	conduit.user_delete(mut tx, parsed_user_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.commit() or {
-		tx.rollback() or {}
-		return ctx.handle_error(new_error_internal(error_transaction_rollback, err.msg()))
-	}
+	user := app.with_commit(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !NilReturn {
+		conduit.user_delete(mut tx, parsed_user_id)!
+		return NilReturn{}
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_deleted()
 }

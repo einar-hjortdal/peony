@@ -2,6 +2,8 @@ module peony
 
 import veb
 import json
+import einar_hjortdal.firebird
+import internal.errors
 import internal.conduit
 
 // lists category
@@ -9,23 +11,29 @@ import internal.conduit
 pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 	p := hygienise_category_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
+		count := conduit.category_list_count(mut tx, p)!
+		if count == 0 {
+			return ListReturn{}
+		}
 
-	count := conduit.category_list_count(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
+		categories := conduit.category_list(mut tx, p)!
+		return ListReturn{
+			count: count
+			items: categories
+		}
+	}) or { return ctx.handle_error() }
+
+	if data.count == 0 {
+		return ctx.handle_ok(CategoryListResponseEnvelope{
+			fetch:  p.fetch
+			offset: p.offset
+		})
 	}
 
-	categories := conduit.category_list(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {}
-
-	external_categories := []CategoryResponse{len: categories.len}
-	for i := 0; i < categories.len; i++ {
-		external_categories[i] = format_category_response(categories[i])
+	external_categories := []CategoryResponse{len: data.items.len}
+	for i := 0; i < data.items.len; i++ {
+		external_categories[i] = format_category_response(data.items[i])
 	}
 
 	return ctx.handle_ok(CategoryListResponseEnvelope{
@@ -40,8 +48,8 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 @['/admin/categories'; post]
 pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 	p := json.decode(CategoryCreateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode CategoryCreateRequest', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('Could not decode CategoryCreateRequest',
+			err.msg()))
 	}
 
 	ph := p.hygienise() or { return ctx.handle_error(err) }
@@ -53,17 +61,12 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 		}
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	params := conduit.CateogryCreateData{} // TODO
 
-	conduit.category_create(mut tx, ph) or {
-	}
-
-	category := conduit.category_get(mut tx) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.commit() or {}
+	category := app.with_commit(fn [params] (mut tx firebird.ClientTransaction) !conduit.Category {
+		conduit.category_create(mut tx)!
+		return conduit.category_get(mut tx)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(CategoryResponseEnvelope{
 		category: format_category_response(category)
@@ -74,18 +77,13 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 @['/admin/categories/:category_id'; get]
 pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := id_from_string(category_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'category_id')
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
 		return ctx.handle_error(perr)
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	category := conduit_category_get(mut tx, parsed_category_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {}
+	category := app.with_rollback(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !conduit.Category {
+		return conduit.category_get(mut tx, parsed_category_id)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(CategoryResponseEnvelope{
 		category: format_category_response(category)
@@ -96,18 +94,14 @@ pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Resul
 @['/admin/categories/:category_id'; post]
 pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := id_from_string(category_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'category_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
 	}
 
 	p := hygienise_category_update_request(ctx.req.data) or { return ctx.handle_error(perr) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
 	seos := model_category_seo_retrieve(mut tx, [category_id_bin]) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve seo', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.internal('Could not retrieve seo', err.msg()))
 	}
 
 	if _ := ph.parent_category_id {
@@ -125,25 +119,18 @@ pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Re
 	}
 
 	if seos.len == 0 {
-		perr := new_error_internal(error_database_data_malformed,
-			'Missing category seo for category with id ${category_id}')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.internal(error_database_data_malformed,
+			'Missing category seo for category with id ${category_id}'))
 	}
 
 	seo := seos[0]
 
-	conduit.category_update(mut tx, conduit.CategoryUpdateData, {
-	}) or {
-		tx.rollback() or {}
-		ctx.handle_error(err)
-	}
+	params := conduit.CategoryUpdateData{} // TODO
 
-	category := conduit.category_get(mut tx, parsed_category_id) or {
-		tx.rollback() or {}
-		ctx.handle_error(err)
-	}
-
-	tx.commit() or {}
+	category := app.with_commit(fn [parsed_category_id, params] (mut tx firebird.ClientTransaction) !conduit.Category {
+		conduit.category_update(mut tx, params)
+		return conduit.category_get(mut tx, parsed_category_id)
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(CategoryResponseEnvelope{
 		category: format_category_response(category)
@@ -154,14 +141,13 @@ pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Re
 @['/admin/categories/:category_id'; delete]
 pub fn (mut app App) category_delete(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := is_from_string(category_id) or {
-		return ctx.handle_error(new_error_bad_request(error_id_invalid, 'category_id'))
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	conduit_category_delete(mut tx, category_id)
-
-	tx.commit() or {}
+	app.with_commit(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !NilReturn {
+		conduit.category_delete(mut tx, parsed_category_id)!
+		return NilReturn{}
+	}) or { return ctx.handle_error() }
 
 	return ctx.handle_deleted()
 }

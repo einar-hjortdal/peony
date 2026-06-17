@@ -2,6 +2,7 @@ module peony
 
 import json
 import veb
+import einar_hjortdal.firebird
 import einar_hjortdal.slugify
 
 // lists products
@@ -788,4 +789,5 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 
 	return ctx.handle_deleted()
 }
+
 
