@@ -1,18 +1,19 @@
 module conduit
 
+import arrays
 import einar_hjortdal.firebird
 import record
-import arrays
+import internal.errors
 
 pub fn inventory_level_update(mut tx firebird.ClientTransaction, p record.InventoryLevelUpdateParams) ! {
 	record.inventory_level_update(mut tx, p) or {
-		return new_error_internal('Could not create inventory_level', err.msg())
+		return errors.internal('Could not create inventory_level', err.msg())
 	}
 }
 
 fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map map[string]record.InventoryItem, items_ids []ID) ! {
 	inventory_levels := record.inventory_level_get(mut tx, items_ids) or {
-		return new_error_internal('Failed to retrieve inventory_level', err.msg())
+		return errors.internal('Failed to retrieve inventory_level', err.msg())
 	}
 
 	for i := 0; i < inventory_levels.len; i++ {
@@ -22,3 +23,4 @@ fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map m
 		items_map[item_id.string()].inventory_levels = arrays.concat(old, level)
 	}
 }
+

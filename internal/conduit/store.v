@@ -2,14 +2,15 @@ module conduit
 
 import einar_hjortdal.firebird
 import record
+import internal.errors
 
 pub fn store_get(mut tx firebird.ClientTransaction) !Store {
 	mut store := record.store_retrieve(mut tx) or {
-		return new_error_internal('Failed to retrieve store', err.msg())
+		return errors.internal('Failed to retrieve store', err.msg())
 	}
 
 	locales := record.store_locales_retrieve(mut tx) or {
-		return new_error_internal('Failed to retrieve store locales', err.msg())
+		return errors.internal('Failed to retrieve store locales', err.msg())
 	}
 
 	store.locales = locales
@@ -22,18 +23,26 @@ pub struct StoreUpdateData {
 }
 
 // TODO always run store_update for updated_at
-pub fn conduit_store_update(mut tx firebird.ClientTransaction, store_id ID, p StoreUpdateData) ! {
+pub fn store_update(mut tx firebird.ClientTransaction, store_id ID, p StoreUpdateData) ! {
 	if p.store.name != none || p.store.default_locale_id != none
 		|| p.store.default_region_id != none || p.store.default_stock_location_id != none
 		|| p.store.default_sales_channel_id != none {
 		record.store_update(mut tx, store_id, p.store) or {
-			return new_error_internal('Could not update store data', err.msg())
+			return errors.internal('Could not update store data', err.msg())
 		}
 	}
 
 	if locale_ids := p.locale_ids {
 		record.store_locales_update(mut tx, store_id, locale_ids) or {
-			return new_error_internal('Could not update store locales', err.msg())
+			return errors.internal('Could not update store locales', err.msg())
 		}
 	}
 }
+
+pub fn store_locale_list(mut tx firebird.ClientTransaction) ![]Locale {
+	locales := record.store_locales_retrieve(mut tx) or {
+		return errors.internal('Could not retrieve store locales', err.msg())
+	}
+	return locales
+}
+

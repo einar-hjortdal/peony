@@ -1,45 +1,38 @@
 module conduit
 
 import einar_hjortdal.firebird
-import common
 import record
-
-const role_admin = common.role_admin
-const role_member = common.role_member
-const role_developer = common.role_developer
-const role_author = common.role_author
-const role_contributor = common.role_contributor
+import internal.common
+import internal.errors
 
 // TODO create image
 pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
-	record.user_create(mut tx, p) or {
-		return new_error_internal('Failed to create user', err.msg())
-	}
+	record.user_create(mut tx, p) or { return errors.internal('Failed to create user', err.msg()) }
 }
 
 // TODO update image
 pub fn user_update(mut tx firebird.ClientTransaction, user_id ID, p record.UserUpdateParams) ! {
 	record.user_update(mut tx, user_id, p) or {
-		return new_error_internal('Failed to create user', err.msg())
+		return errors.internal('Failed to create user', err.msg())
 	}
 }
 
 pub fn user_delete(mut tx firebird.ClientTransaction, user_id ID) ! {
 	record.user_delete(mut tx, user_id) or {
-		return new_error_internal('Failed to delete user', err.msg())
+		return errors.internal('Failed to delete user', err.msg())
 	}
 }
 
 pub fn user_list_count(mut tx firebird.ClientTransaction, p UserListParams) !i64 {
 	count := record.user_list_count(mut tx, p) or {
-		return new_error_internal('Failed to retrieve user count', err.msg())
+		return errors.internal('Failed to retrieve user count', err.msg())
 	}
 	return count
 }
 
 pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 	users := record.user_list(mut tx, p) or {
-		return new_error_internal('Failed to retrieve users', err.msg())
+		return errors.internal('Failed to retrieve users', err.msg())
 	}
 	return users
 }
@@ -50,10 +43,10 @@ pub fn user_get_by_id(mut tx firebird.ClientTransaction, user_id ID) !User {
 		offset: offset_default
 		fetch:  1
 		order:  order_default
-	}) or { return new_error_internal('Failed to retrieve users', err.msg()) }
+	}) or { return errors.internal('Failed to retrieve users', err.msg()) }
 
 	if users.len == 0 {
-		return new_error_not_found('user not found', 'No user exists with id `${user_id.string()}`')
+		return errors.not_found('user not found', 'No user exists with id `${user_id.string()}`')
 	}
 
 	return users[0]
@@ -65,11 +58,13 @@ pub fn user_get_by_email(mut tx firebird.ClientTransaction, email string) !User 
 		offset: offset_default
 		fetch:  1
 		order:  order_default
-	}) or { return new_error_internal('Failed to retrieve users', err.msg()) }
+	}) or { return errors.internal('Failed to retrieve users', err.msg()) }
 
 	if users.len == 0 {
-		return new_error_not_found('user not found', 'No user exists with email `${email}`')
+		return errors.not_found('user not found', 'No user exists with email `${email}`')
 	}
 
 	return users[0]
 }
+
+

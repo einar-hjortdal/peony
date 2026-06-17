@@ -177,6 +177,10 @@ pub struct SEOTranslationCreateParams {
 	description ?string
 }
 
+pub fn (p SEOTranslationCreateParams) locale_id() ID {
+	return p.locale_id
+}
+
 pub fn seo_translations_create(mut tx firebird.ClientTransaction, p []SEOTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}

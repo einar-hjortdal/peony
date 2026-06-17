@@ -2,7 +2,7 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
-import common
+import internal.common
 
 const role_admin = common.role_admin
 const role_member = common.role_member

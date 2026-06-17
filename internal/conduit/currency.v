@@ -2,17 +2,18 @@ module conduit
 
 import einar_hjortdal.firebird
 import record
+import internal.errors
 
 pub fn currency_list_count(mut tx firebird.ClientTransaction, p CurrencyRetrieveParams) !i64 {
 	count := record.currency_retrieve_count(mut tx, p) or {
-		return new_error_internal('Could not retrieve currency count', err.msg())
+		return errors.internal('Could not retrieve currency count', err.msg())
 	}
 	return count
 }
 
 pub fn currency_list(mut tx firebird.ClientTransaction, p CurrencyRetrieveParams) ![]Currency {
 	currencies := record.currency_retrieve(mut tx, p) or {
-		return new_error_internal('Could not retrieve currencies from database', err.msg())
+		return errors.internal('Could not retrieve currencies from database', err.msg())
 	}
 	return currencies
 }
@@ -23,11 +24,12 @@ pub fn currency_get(mut tx firebird.ClientTransaction, code string) !Currency {
 		offset: offset_default
 		fetch:  1
 		order:  order_default
-	}) or { return new_error_internal('Could not retrieve currencies from database', err.msg()) }
+	}) or { return errors.internal('Could not retrieve currencies from database', err.msg()) }
 
 	if currencies.len == 0 {
-		return new_error_internal('currency not found', 'No currency was found with code `${code}`')
+		return errors.internal('currency not found', 'No currency was found with code `${code}`')
 	}
 	currency := currencies[0]
 	return currency
 }
+

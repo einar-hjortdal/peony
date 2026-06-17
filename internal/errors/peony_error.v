@@ -2,6 +2,8 @@ module errors
 
 import net.http
 
+pub const msg_id_invalid = 'Invalid ID'
+
 // PeonyError contains the appropriate http status code for the error.
 pub struct PeonyError {
 	message     string

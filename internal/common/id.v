@@ -6,6 +6,18 @@ pub interface Identifiable {
 	id() ID
 }
 
+pub fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
+	mut map_res := map[string]T{}
+	mut arr_res := []ID{len: identifiables.len}
+	for i := 0; i < identifiables.len; i++ {
+		identifiable := identifiables[i]
+		id := identifiable.id()
+		map_res[id.string()] = identifiable
+		arr_res[i] = id
+	}
+	return map_res, arr_res
+}
+
 pub struct ID {
 	s string
 	b []u8
@@ -44,4 +56,12 @@ pub fn id_from_bytes(b []u8) !ID {
 		s: luuid.from_bytes(b)!
 		b: b
 	}
+}
+
+pub interface Translation {
+	locale_id() ID
+}
+
+pub interface Translatable {
+	translations() ?[]Translation
 }

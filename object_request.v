@@ -2,8 +2,12 @@ module peony
 
 import arrays
 import json
+import einar_hjortdal.luuid
 import internal.errors
 import internal.conduit
+
+pub const category_default_is_active = true
+pub const category_default_is_internal = false
 
 pub const region_default_automatic_taxes = true
 pub const region_default_includes_tax = false
@@ -1620,20 +1624,7 @@ pub:
 	seo                ?SEORequest
 }
 
-struct CategoryCreateRequestHygienised {
-	name               string
-	description        ?string
-	handle             ?string
-	is_internal        ?bool
-	is_active          ?bool
-	parent_category_id ?ID
-	metadata           ?string
-mut:
-	seo          ?SEORequestHygienised
-	translations ?[]CategoryTranslationRequestHygienised
-}
-
-fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
+fn (p CategoryCreateRequest) hygienise(mut g luuid.Generator, category_id ID) !conduit.CateogryCreateData {
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {
@@ -1641,25 +1632,69 @@ fn (p CategoryCreateRequest) hygienise() !CategoryCreateRequestHygienised {
 		}
 	}
 
-	mut ph := CategoryCreateRequestHygienised{
-		name:               p.name
-		description:        p.description
-		handle:             p.handle
-		is_internal:        p.is_internal
-		is_active:          p.is_active
-		parent_category_id: parsed_parent_category_id
-		metadata:           p.metadata
+	if utf8_str_visible_length(p.name) > max_length_category_name {
+		return errors.unprocessable_entity(error_field_too_long, 'name')
 	}
 
-	if translations := p.translations {
-		ph.translations = hygienise_category_translations(translations)!
+	if description := p.description {
+		if utf8_str_visible_length(p.name) > max_length_category_description {
+			return errors.unprocessable_entity(error_field_too_long, 'description')
+		}
 	}
 
+	if handle := p.handle {
+		if utf8_str_visible_length(handle) > max_length_handle {
+			return errors.unprocessable_entity(error_field_too_long, 'handle')
+		}
+	}
+
+	mut valid_seo := ?conduit.CategorySEOCreateParams(none)
+	mut valid_seo_translations := ?[]conduit.SEOTranslationCreateParams(none)
 	if seo := p.seo {
-		ph.seo = seo.hygienise()!
+		seo_id := new_id(mut g)
+		seo_hygienised = seo.hygienise()
+		valid_seo = conduit.CategorySEOCreateParams{
+			category_id: category_id
+			id:          seo_id
+			title:       seo_hygienised.title
+			description: seo_hygienised.description
+		}
+
+		if translations := seo.translations {
+			translations_hygienised = hygienise_seo_translations(translations)!
+			valid_seo_translations = []conduit.SEOTranslationCreateParams{len: translations_hygienised.len}
+			for i := 0; i < translations_hygienised.len; i++ {
+				translation := translations_hygienised[i]
+				valid_seo_translations[i] = conduit.SEOTranslationCreateParams{
+					seo_id:      seo_id
+					locale_id:   translation.locale_id
+					title:       translation.title
+					description: translation.description
+				}
+			}
+		}
 	}
 
-	return ph
+	mut valid_translations := ?[]conduit.CategoryTranslationUpdateParams(none)
+	if translations := p.translations {
+		valid_translations = hygienise_category_translations(translations)!
+	}
+
+	return conduit.CateogryCreateData{
+		category:         CategoryCreateParams{
+			id:                 category_id
+			name:               p.name
+			handle:             p.handle
+			description:        p.description
+			is_active:          bool_or(p.is_active, category_default_is_active)
+			is_internal:        bool_or(p.is_internal, category_default_is_internal)
+			metadata:           p.metadata
+			parent_category_id: parsed_parent_category_id
+		}
+		seo:              valid_seo
+		translations:     valid_translations
+		seo_translations: valid_seo_translations
+	}
 }
 
 // CategoryUpdateRequest describes the body of the request to update an existing category.
@@ -2492,3 +2527,5 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 
 	return ph
 }
+
+

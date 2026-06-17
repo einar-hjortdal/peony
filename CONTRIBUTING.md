@@ -31,9 +31,9 @@ Please follow these standards
 
 ### veb
 
-- `route_` files define endpoints, validate request inputs and send responses.
-- `object_` files contain request/response data structures.
-- `internal.conduit` orchestrates database operations.
+- `route_` files define endpoints, hygienise request inputs and send responses.
+- `object` contains request/response data structures.
+- `internal.conduit` orchestrates database operations, checks request inputs against the database.
 - `internal.conduit.record` defines individual database operations.
 
 ### FirebirdSQL

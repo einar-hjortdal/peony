@@ -1,7 +1,7 @@
 module record
 
 import einar_hjortdal.firebird
-import common
+import internal.common
 
 const offset_default = common.offset_default
 const order_asc = common.order_asc

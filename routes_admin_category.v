@@ -52,20 +52,12 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 			err.msg()))
 	}
 
-	ph := p.hygienise() or { return ctx.handle_error(err) }
+	category_id := app.gen_id()
+	ph := p.hygienise(mut app.luuid_generator, category_id) or { return ctx.handle_error(err) }
 
-	if translations := ph.translations {
-		for i := 0; i < translations.len; i++ {
-			// TODO verify default locale is in array
-			// TODO verify locale_ids exist
-		}
-	}
-
-	params := conduit.CateogryCreateData{} // TODO
-
-	category := app.with_commit(fn [params] (mut tx firebird.ClientTransaction) !conduit.Category {
-		conduit.category_create(mut tx)!
-		return conduit.category_get(mut tx)
+	category := app.with_commit(fn [ph, category_id] (mut tx firebird.ClientTransaction) !conduit.Category {
+		conduit.category_create(mut tx, ph)!
+		return conduit.category_get(mut tx, category_id)
 	}) or { return ctx.handle_error() }
 
 	return ctx.handle_ok(CategoryResponseEnvelope{

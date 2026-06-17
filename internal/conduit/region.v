@@ -2,7 +2,7 @@ module conduit
 
 import einar_hjortdal.firebird
 import record
-import errors
+import internal.errors
 
 pub fn region_list_count(mut tx firebird.ClientTransaction, p RegionRetriveParams) !i64 {
 	count := record.region_retrieve_count(mut tx, p) or {
@@ -26,10 +26,10 @@ pub fn region_get_by_id(mut tx firebird.ClientTransaction, region_id ID) !record
 		offset: offset_default
 		fetch:  1
 		order:  order_default
-	}) or { return new_error_internal('Failed to retrieve region', err.msg()) }
+	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	if regions.len == 0 {
-		return new_error_not_found('region not found', 'No region exists with the given id')
+		return errors.not_found('region not found', 'No region exists with the given id')
 	}
 
 	region := regions[0]
@@ -53,3 +53,4 @@ pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
 		return errors.internal('Could not delete region', err.msg())
 	}
 }
+

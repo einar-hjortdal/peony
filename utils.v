@@ -7,7 +7,7 @@ import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import internal.conduit
 import internal.errors
-import common
+import internal.common
 import time
 
 pub const lib = 'peony'
@@ -54,7 +54,7 @@ const error_field_too_long = 'Field too long'
 const error_header_invalid = 'Invalid header'
 const error_header_missing = 'Missing header'
 const error_id_generation = 'Failed to generate ID'
-const error_id_invalid = 'Invalid ID'
+const error_id_invalid = errors.msg_id_invalid
 const error_order_direction_invalid = 'Invalid order direction'
 const error_reference_invalid = 'Field references invalid object'
 const error_transaction_commit = 'Failed to start transaction'
@@ -204,15 +204,6 @@ fn ids_from_array_string(ids_string []string) ![]ID {
 
 fn (mut app App) gen_id() ID {
 	return common.new_id(mut app.luuid_generator)
-}
-
-// WIP
-interface Translation {
-	locale_id() ID
-}
-
-interface Translatable {
-	translations() ?[]Translation
 }
 
 fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {

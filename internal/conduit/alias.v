@@ -7,6 +7,9 @@ pub type APIKeyRetrieveParams = record.APIKeyRetrieveParams
 pub type APIKeyUpdateParams = record.APIKeyUpdateParams
 
 pub type Category = record.Category
+pub type CategoryCreateParams = record.CategoryCreateParams
+pub type CategoryUpdateParams = record.CategoryUpdateParams
+pub type CategoryTranslationUpdateParams = record.CategoryTranslationUpdateParams
 pub type CategoryTranslation = record.CategoryTranslation
 pub type CategoryRetrieveParams = record.CategoryRetrieveParams
 pub type CategorySEOCreateParams = record.CategorySEOCreateParams
@@ -24,6 +27,7 @@ pub type InventoryItem = record.InventoryItem
 pub type InventoryLevel = record.InventoryLevel
 
 pub type Locale = record.Locale
+pub type LocaleRetrieveParams = record.LocaleRetrieveParams
 pub type VariantMoneyAmount = record.VariantMoneyAmount
 pub type PasswordDetails = record.PasswordDetails
 pub type PasswordDetailsGetParams = record.PasswordDetailsGetParams

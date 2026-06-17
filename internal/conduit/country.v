@@ -2,17 +2,19 @@ module conduit
 
 import einar_hjortdal.firebird
 import record
+import internal.errors
 
 pub fn country_list_count(mut tx firebird.ClientTransaction, p CountryRetrieveParams) !i64 {
 	count := record.country_retrieve_count(mut tx, p) or {
-		return new_error_internal('Could not retrieve country count', err.msg())
+		return errors.internal('Could not retrieve country count', err.msg())
 	}
 	return count
 }
 
 pub fn country_list(mut tx firebird.ClientTransaction, p CountryRetrieveParams) ![]Country {
 	countries := record.country_retrieve(mut tx, p) or {
-		return new_error_internal('Could not retrieve country', err.msg())
+		return errors.internal('Could not retrieve country', err.msg())
 	}
 	return countries
 }
+

@@ -26,6 +26,10 @@ pub:
 	description ?string
 }
 
+pub fn (p CategoryTranslationUpdateParams) locale_id() ID {
+	return p.locale_id
+}
+
 pub fn category_translations_update(mut tx firebird.ClientTransaction, category_id ID, p []CategoryTranslationUpdateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
@@ -151,15 +155,15 @@ pub:
 	name               ?string
 	description        ?string
 	handle             ?string
-	is_active          bool
-	is_internal        bool
+	is_active          ?bool
+	is_internal        ?bool
 	metadata           ?string
 	parent_category_id ?ID
 }
 
 pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateParams) ! {
-	mut columns := ['is_active', 'is_internal']
-	mut params := [firebird.Value(p.is_active), p.is_internal]
+	mut columns := []string{}
+	mut params := []firebird.Value{}
 
 	if name := p.name {
 		columns = arrays.concat(columns, 'name')
@@ -174,6 +178,16 @@ pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateParams
 	if handle := p.handle {
 		columns = arrays.concat(columns, 'handle')
 		params = arrays.concat(params, handle)
+	}
+
+	if is_active := p.is_active {
+		columns = arrays.concat(columns, 'is_active')
+		params = arrays.concat(params, is_active)
+	}
+
+	if is_internal := p.is_internal {
+		columns = arrays.concat(columns, 'is_internal')
+		params = arrays.concat(params, is_internal)
 	}
 
 	if metadata := p.metadata {
@@ -309,14 +323,14 @@ pub fn category_retrieve(mut tx firebird.ClientTransaction, p CategoryRetrievePa
 			id:                 id
 			created_at:         created_at
 			updated_at:         updated_at
-			deleted_at:         deleted_at.null_value()
+			deleted_at:         deleted_at.none_value()
 			handle:             handle
 			is_active:          is_active
 			is_internal:        is_internal
 			parent_category_id: parent_category_id
-			metadata:           metadata.null_value()
+			metadata:           metadata.none_value()
 			name:               name
-			description:        description.null_value()
+			description:        description.none_value()
 		}
 	}
 

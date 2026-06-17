@@ -1,7 +1,7 @@
 module conduit
 
 import einar_hjortdal.luuid
-import common
+import internal.common
 
 pub const error_database_data_malformed = 'Data retrieved from database is malformed'
 
@@ -12,6 +12,12 @@ const order_asc = common.order_asc
 const order_desc = common.order_desc
 const order_default = common.order_default
 
+const role_admin = common.role_admin
+const role_member = common.role_member
+const role_developer = common.role_developer
+const role_author = common.role_author
+const role_contributor = common.role_contributor
+
 pub type ID = common.ID
 
 pub fn new_id(mut g luuid.Generator) ID {
@@ -20,16 +26,4 @@ pub fn new_id(mut g luuid.Generator) ID {
 
 pub fn id_from_string(s string) !ID {
 	return common.id_from_string(s)
-}
-
-fn make_identifiable_map[T](identifiables []T) (map[string]T, []ID) {
-	mut map_res := map[string]T{}
-	mut arr_res := []ID{len: identifiables.len}
-	for i := 0; i < identifiables.len; i++ {
-		identifiable := identifiables[i]
-		id := identifiable.id()
-		map_res[id.string()] = identifiable
-		arr_res[i] = id
-	}
-	return map_res, arr_res
 }
