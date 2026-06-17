@@ -23,6 +23,11 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 	})
 }
 
+struct LoginData {
+	user             conduit.User
+	password_details conduit.PasswordDetails
+}
+
 // logs in user
 @['/admin/auth'; post]
 pub fn (mut app App) user_login(mut ctx Context) veb.Result {
@@ -42,32 +47,34 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		return ctx.handle_error(errors.bad_request('Invalid email', err.msg()))
 	}
 
-	user, password_details := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !(conduit.User, conduit.PasswordDetails) {
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !LoginData {
 		user := conduit.user_get_by_email(mut tx, p.email)!
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			id: user.password_parameters_id
 		})
-		return user, password_details
+
+		return LoginData{
+			user:             user
+			password_details: password_details
+		}
 	}) or { return ctx.handle_error() }
 
-	match password_details.function_name {
+	match data.password_details.function_name {
 		argon2id_name {
-			parameters := decode_argon2id_parameters(password_details.parameters) or {
+			parameters := decode_argon2id_parameters(data.password_details.parameters) or {
 				return ctx.handle_error(errors.login())
 			}
 
 			argon2id_hash := Argon2idHash{
-				hash:       user.password_hash
-				salt:       user.password_salt
+				hash:       data.user.password_hash
+				salt:       data.user.password_salt
 				parameters: parameters
 			}
 
-			argon2id_hash.verify_password(p.password) or {
-				return ctx.handle_error(errors.login())
-			}
+			argon2id_hash.verify_password(p.password) or { return ctx.handle_error(errors.login()) }
 
 			ctx.user_session_values = UserSessionValues{
-				id: user.id
+				id: data.user.id
 			}
 
 			return ctx.handle_ok(UserResponseEnvelope{
@@ -76,7 +83,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		}
 		else {
 			return ctx.handle_error(errors.internal('Unsupported password hashing algorithm',
-				'decoded function name: `${password_details.function_name}`'))
+				'decoded function name: `${data.password_details.function_name}`'))
 		}
 	}
 }

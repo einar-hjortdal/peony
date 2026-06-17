@@ -113,6 +113,13 @@ fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 	return tx
 }
 
+struct NilReturn {}
+
+struct ListReturn[T] {
+	count i64
+	items []T
+}
+
 fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
 	finalize fn (mut tx firebird.ClientTransaction) !) !T {
 	for i = 0; i < transaction_attempts; i++ {

@@ -9,17 +9,20 @@ import internal.errors
 pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 	p := hygienise_currency_list_query(ctx.query) or { return ctx.handle_error(err) }
 
-	count, currencies := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !(i64, []conduit.Currency) {
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
 		count := conduit.currency_list_count(mut tx, p)!
 		if count == 0 {
-			return count, []conduit.Currency{}
+			return ListReturn{}
 		}
 
 		currencies := conduit.currency_list(mut tx, p)!
-		return count, currencies
+		return ListReturn{
+			count: count
+			items: currencies
+		}
 	}) or { return ctx.handle_error() }
 
-	if count == 0 {
+	if data.count == 0 {
 		tx.rollback() or {}
 		return ctx.handle_ok(CurrencyResponseListEnvelope{
 			offset: p.offset
@@ -27,9 +30,9 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 		})
 	}
 
-	mut external_currencies := []CurrencyResponse{len: currencies.len}
-	for i := 0; i < currencies.len; i++ {
-		external_currencies[i] = format_currency_response(currencies[i])
+	mut external_currencies := []CurrencyResponse{len: data.items.len}
+	for i := 0; i < data.items.len; i++ {
+		external_currencies[i] = format_currency_response(data.items[i])
 	}
 
 	return ctx.handle_ok(CurrencyResponseListEnvelope{
@@ -56,3 +59,4 @@ pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) 
 		currencies: format_currency_response(currency)
 	})
 }
+

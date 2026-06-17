@@ -9,17 +9,20 @@ import internal.conduit
 pub fn (mut app App) admin_countries_list(mut ctx Context) veb.Result {
 	p := hygienise_country_list_query(ctx.query) or { return ctx.handle_error(err) }
 
-	count, countries := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !(i64, []conduit.Country) {
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
 		count := conduit.country_retrieve_count(mut tx, p)!
 		if count == 0 {
-			return count, []conduit.Country{}
+			return ListReturn{}
 		}
 
 		countries := conduit.country_list(mut tx, p)!
-		return count, countries
+		return ListReturn{
+			count: count
+			items: countries
+		}
 	}) or { return ctx.handle_error() }
 
-	if count == 0 {
+	if data.count == 0 {
 		tx.rollback() or {}
 		return ctx.handle_ok(CountryResponseListEnvelope{
 			offset: p.offset
@@ -27,9 +30,9 @@ pub fn (mut app App) admin_countries_list(mut ctx Context) veb.Result {
 		})
 	}
 
-	mut external_countries := []CountryResponse{len: countries.len}
-	for i := 0; i < countries.len; i++ {
-		external_countries[i] = format_country_response(countries[i])
+	mut external_countries := []CountryResponse{len: data.items.len}
+	for i := 0; i < data.items.len; i++ {
+		external_countries[i] = format_country_response(data.items[i])
 	}
 
 	return ctx.handle_ok(CountryResponseListEnvelope{
@@ -39,3 +42,4 @@ pub fn (mut app App) admin_countries_list(mut ctx Context) veb.Result {
 		fetch:     p.fetch
 	})
 }
+
