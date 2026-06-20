@@ -20,6 +20,14 @@ pub:
 	translations ?[]SEOTranslationParams
 }
 
+fn (p SEOParams) parse_update(id ID) record.SEOUpdateParams {
+	return SEOUpdateParams{
+		id:          id
+		title:       p.title
+		description: p.description
+	}
+}
+
 fn (p SEOParams) parse_translation_params(seo_id ID) ?[]record.SEOTranslationCreateParams {
 	t := p.translations or { return none }
 

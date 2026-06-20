@@ -1558,13 +1558,6 @@ pub:
 	translations ?map[string]SEOTranslationRequest
 }
 
-// struct SEORequestHygienised {
-// 	title       ?string
-// 	description ?string
-// mut:
-// 	translations ?[]SEOTranslationRequestHygienised
-// }
-
 fn (p SEORequest) hygienise() !conduit.SEOParams {
 	if p.title == none && p.description == none && p.translations == none {
 		return errors.unprocessable_entity(error_empty_object, 'SEORequest')
@@ -1613,7 +1606,7 @@ pub:
 	seo                ?SEORequest
 }
 
-fn hygienise_category_create_request(s string) !conduit.CategoryCreateParams {
+fn hygienise_category_create_request(s string, category_id ID) !conduit.CategoryCreateParams {
 	p := json.decode(CategoryCreateRequest, s) or {
 		return errors.bad_request('Could not decode CategoryCreateRequest', err.msg())
 	}
@@ -1652,6 +1645,7 @@ fn hygienise_category_create_request(s string) !conduit.CategoryCreateParams {
 	}
 
 	return conduit.CategoryCreateParams{
+		id:                 category_id
 		name:               p.name
 		handle:             p.handle
 		description:        p.description
@@ -1696,26 +1690,14 @@ pub:
 	seo                ?SEORequest
 }
 
-struct CategoryUpdateRequestHygienised {
-	name               ?string
-	description        ?string
-	handle             ?string
-	is_internal        ?bool
-	is_active          ?bool
-	parent_category_id ?ID
-	metadata           ?string
-mut:
-	seo          ?SEORequestHygienised
-	translations ?[]CategoryTranslationRequestHygienised
-}
-
-fn hygienise_category_update_request(s string) !CategoryUpdateRequestHygienised {
+fn hygienise_category_update_request(s string, category_id ID) !conduit.CategoryUpdateParams {
 	p := json.decode(CategoryUpdateRequest, s) or {
 		return errors.bad_request('Could not decode CategoryUpdateRequest', err.msg())
 	}
 
-	if p.handle == none && p.is_internal == none && p.is_active == none
-		&& p.parent_category_id == none && p.metadata == none && p.translations == none {
+	if p.name == none && p.description == none && p.handle == none && p.is_internal == none
+		&& p.is_active == none && p.parent_category_id == none && p.metadata == none
+		&& p.translations == none && p.seo == none {
 		return errors.bad_request(error_empty_object, 'CategoryUpdateRequest')
 	}
 
@@ -1726,25 +1708,46 @@ fn hygienise_category_update_request(s string) !CategoryUpdateRequestHygienised 
 		}
 	}
 
-	mut ph := CategoryUpdateRequestHygienised{
+	if name := p.name {
+		if utf8_str_visible_length(name) > max_length_category_name {
+			return errors.unprocessable_entity(error_field_too_long, 'name')
+		}
+	}
+
+	if description := p.description {
+		if utf8_str_visible_length(description) > max_length_category_description {
+			return errors.unprocessable_entity(error_field_too_long, 'description')
+		}
+	}
+
+	if handle := p.handle {
+		if utf8_str_visible_length(handle) > max_length_handle {
+			return errors.unprocessable_entity(error_field_too_long, 'handle')
+		}
+	}
+
+	mut seo := ?conduit.SEOParams(none)
+	if o := p.seo {
+		seo = o.hygienise()!
+	}
+
+	mut translations := ?[]conduit.CategoryTranslationParams(none)
+	if t := p.translations {
+		translations = hygienise_category_translations(t)!
+	}
+
+	return conduit.CategoryUpdateParams{
+		id:                 category_id
 		name:               p.name
-		description:        p.description
 		handle:             p.handle
-		is_internal:        p.is_internal
+		description:        p.description
 		is_active:          p.is_active
+		is_internal:        p.is_internal
 		parent_category_id: parsed_parent_category_id
 		metadata:           p.metadata
+		translations:       translations
+		seo:                seo
 	}
-
-	if translations := p.translations {
-		ph.translations = hygienise_category_translations(translations)!
-	}
-
-	if seo := p.seo {
-		ph.seo = seo.hygienise()!
-	}
-
-	return ph
 }
 
 // ProductCreateRequest describes the body of the request to create a new product.

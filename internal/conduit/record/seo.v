@@ -240,11 +240,6 @@ pub:
 	category_id ID
 }
 
-pub fn category_seo_create_default(mut tx firebird.ClientTransaction, seo_id ID, category_id ID) ! {
-	tx.execute('INSERT INTO seo (id, category_id) VALUES (?, ?)', seo_id.bytes(),
-		category_id.bytes())!
-}
-
 pub struct CategorySEOCreateParams {
 	SEOCreateParams
 pub:

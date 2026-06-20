@@ -19,18 +19,18 @@ pub fn category_translations_delete(mut tx firebird.ClientTransaction, category_
 	tx.execute('DELETE FROM category_translations WHERE category_id = ?', category_id.bytes())!
 }
 
-pub struct CategoryTranslationUpdateParams {
+pub struct CategoryTranslationCreateParams {
 pub:
 	locale_id   ID
 	name        ?string
 	description ?string
 }
 
-pub fn (p CategoryTranslationUpdateParams) locale_id() ID {
+pub fn (p CategoryTranslationCreateParams) locale_id() ID {
 	return p.locale_id
 }
 
-pub fn category_translations_update(mut tx firebird.ClientTransaction, category_id ID, p []CategoryTranslationUpdateParams) ! {
+pub fn category_translations_create(mut tx firebird.ClientTransaction, category_id ID, p []CategoryTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
