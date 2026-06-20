@@ -1,6 +1,5 @@
 module peony
 
-import json
 import log
 import veb
 import einar_hjortdal.firebird
@@ -106,8 +105,9 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'api_key_id'))
 	}
 
-	app.with_commit(fn [parsed_api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
-		return conduit.api_key_delete(mut tx, parsed_api_key_id)
+	app.with_commit(fn [parsed_api_key_id] (mut tx firebird.ClientTransaction) !NilReturn {
+		conduit.api_key_delete(mut tx, parsed_api_key_id)!
+		return NilReturn{}
 	}) or { return ctx.handle_error(err) }
 
 	app.cache_delete_api_key(parsed_api_key_id) or {

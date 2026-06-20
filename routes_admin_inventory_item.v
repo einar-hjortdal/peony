@@ -1,27 +1,28 @@
 module peony
 
 import veb
-import json
 import internal.errors
 
 // creates or updates an inventory level
 @['/admin/inventory-items/:inventory_item_id/stock-locations/:stock_location_id'; post]
 pub fn (mut app App) admin_inventory_level_update(mut ctx Context, inventory_item_id string, stock_location_id string) veb.Result {
-	inventory_item_id_bin := id_string_to_bin(inventory_item_id) or {
-		perr := errors.bad_request(error_id_invalid, 'inventory_item_id')
-		return ctx.handle_error(perr)
+	parsed_inventory_item_id := id_from_string(inventory_item_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'inventory_item_id'))
 	}
 
-	stock_location_id_bin := id_string_to_bin(stock_location_id) or {
-		perr := errors.bad_request(error_id_invalid, 'stock_location_id')
-		return ctx.handle_error(perr)
+	parsed_stock_location_id := id_from_string(stock_location_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'stock_location_id'))
 	}
 
-	p := json.decode(InventoryLevelUpdateRequest, ctx.req.data) or {
-		perr := errors.bad_request('Could not decode InventoryLevelUpdateRequest', err.msg())
-		return ctx.handle_error(perr)
-	}
+	p := hygienise_inventory_level_update_request(ctx.req.data, parsed_inventory_item_id,
+		parsed_stock_location_id) or { return ctx.handle_error(err) }
 
-	return conduit_inventory_level_update(mut app, mut ctx, inventory_item_id_bin,
-		stock_location_id_bin, p)
+	inventory_level := app.with_commit(fn [p] (mut tx firebird.ClientTransaction) !conduit.InventoryLevel {
+		conduit.inventory_level_update(mut tx, p)!
+		return conduit.inventory_level_get(mut tx, p.inventory_item_id, p.stock_location_id)
+	}) or { return ctx.handle_error(err) }
+
+	return ctx.handle_ok(InventoryLevelResponseEnvelope{
+		inventory_level: format_inventory_level_response(inventory_level)
+	})
 }

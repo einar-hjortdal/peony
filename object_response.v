@@ -537,6 +537,11 @@ fn format_inventory_level_response(v conduit.InventoryLevel) InventoryLevelRespo
 	}
 }
 
+pub struct InventoryLevelResponseEnvelope {
+pub:
+	inventory_level InventoryLevelResponse @[json: 'inventoryLevel']
+}
+
 pub struct InventoryItemResponse {
 pub:
 	id                string

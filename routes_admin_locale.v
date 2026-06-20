@@ -21,7 +21,7 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 			count: count
 			items: locales
 		}
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
@@ -59,8 +59,8 @@ pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) 
 	}
 
 	locale := app.with_rollback(fn [parsed_locale_id] (mut tx firebird.ClientTransaction) !conduit.Locale {
-		return conduit.locale_get(mut tx, parsed_locale_id)
-	}) or { return ctx.handle_error() }
+		return conduit.locale_get_by_id(mut tx, parsed_locale_id)
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(LocaleResponseEnvelope{
 		locale: format_locale_response(locale)

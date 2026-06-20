@@ -117,6 +117,7 @@
 - [x] Return and accept variant prices as a map rather than an array
 - [ ] Database setup and migrations should be triggered manually, not by startup
 - [ ] Accept slugify options
+- [ ] Create record.NotFound error or return PeonyError from record
 
 ## Internals
 

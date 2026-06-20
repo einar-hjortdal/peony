@@ -20,10 +20,9 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 			count: count
 			items: currencies
 		}
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	if data.count == 0 {
-		tx.rollback() or {}
 		return ctx.handle_ok(CurrencyResponseListEnvelope{
 			offset: p.offset
 			fetch:  p.fetch
@@ -37,7 +36,7 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 
 	return ctx.handle_ok(CurrencyResponseListEnvelope{
 		currencies: external_currencies
-		count:      count
+		count:      data.count
 		offset:     p.offset
 		fetch:      p.fetch
 	})
@@ -53,9 +52,9 @@ pub fn (mut app App) admin_currencies_get_by_code(mut ctx Context, code string) 
 
 	currency := app.with_rollback(fn [code] (mut tx firebird.ClientTransaction) !conduit.Currency {
 		return conduit.currency_get(mut tx, code)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(CurrencyResponseEnvelope{
-		currencies: format_currency_response(currency)
+		currency: format_currency_response(currency)
 	})
 }

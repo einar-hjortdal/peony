@@ -18,21 +18,18 @@ const uploads_field_name = 'files'
 @['/admin/uploads'; post]
 pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
-		perr := errors.bad_request(error_header_missing,
-			'Expected `Content-Type` header with `multipart/form-data` value')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_header_missing,
+			'Expected `Content-Type` header with `multipart/form-data` value'))
 	}
 
 	if content_type != 'multipart/form-data' {
-		perr := errors.bad_request(error_header_missing,
-			'Expected `Content-Type` header with `multipart/form-data` value')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_header_missing,
+			'Expected `Content-Type` header with `multipart/form-data` value'))
 	}
 
 	if ctx.files.len == 0 || uploads_field_name !in ctx.files {
-		perr := errors.bad_request('No files provided',
-			'At least one file is required, files must be submitted in the `${uploads_field_name}` field')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request('No files provided',
+			'At least one file is required, files must be submitted in the `${uploads_field_name}` field'))
 	}
 
 	files := ctx.files[uploads_field_name]
@@ -46,14 +43,12 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 			}
 
 			if fail_deletion {
-				perr := errors.internal('Failed to upload file, any successfully uploaded file may have not been kept',
-					'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}')
-				return ctx.handle_error(perr)
+				return ctx.handle_error(errors.internal('Failed to upload file, any successfully uploaded file may have not been kept',
+					'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}'))
 			}
 
-			perr := errors.internal('Failed to upload file, any successfully uploaded file was deleted',
-				'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}')
-			return ctx.handle_error(perr)
+			return ctx.handle_error(errors.internal('Failed to upload file, any successfully uploaded file was deleted',
+				'Failed to create file at index ${i} with name ${f.filename}: ${err.msg()}'))
 		}
 
 		files_data[i] = file_data
@@ -68,8 +63,8 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 @['/admin/uploads/:filename'; post]
 pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) veb.Result {
 	content_type := get_header_content_type(mut ctx) or {
-		perr := errors.bad_request(error_header_missing, 'Expected `Content-Type` header')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_header_missing,
+			'Expected `Content-Type` header'))
 	}
 
 	f := http.FileData{
@@ -79,8 +74,7 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 	}
 
 	file_data := app.providers.blob.create(f) or {
-		perr := errors.internal('Failed to upload file', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.internal('Failed to upload file', err.msg()))
 	}
 
 	return ctx.json(UploadsUploadOneResponseEnvelope{
@@ -92,8 +86,7 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 @['/admin/uploads/:id'; delete]
 pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
 	app.providers.blob.delete(id) or {
-		perr := errors.internal('Failed to delete file', err.msg())
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.internal('Failed to delete file', err.msg()))
 	}
 
 	return ctx.json(UploadsDeleteResponse{

@@ -22,7 +22,7 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 			count: count
 			items: regions
 		}
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	if data.count == 0 {
 		return ctx.json(RegionResponseListEnvelope{
@@ -57,7 +57,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 		// this can be abstracted to a utility function because it would be reused in region update endpoint
 		conduit.region_create(mut tx, region_id, p)!
 		return conduit.region_get_by_id(mut tx, region_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
 		region: format_region_response(region)
@@ -74,7 +74,7 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 
 	region := app.with_rollback(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
 		return conduit.region_get_by_id(mut tx, region_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
 		region: format_region_response(region)
@@ -102,7 +102,7 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 		// this can be abstracted to a utility function because it would be reused in region update endpoint
 		conduit.region_update(mut tx, region_id, p)!
 		return conduit.region_get_by_id(mut tx, region_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	if country_codes := data.country_codes {
 		if country_codes.len == 0 {
@@ -144,7 +144,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 
 		conduit.region_delete(mut ctx, parsed_region_id)!
 		return NilReturn{}
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()
 }

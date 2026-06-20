@@ -11,7 +11,41 @@ pub:
 	reserved_quantity i32
 }
 
-pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]InventoryLevel {
+pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id ID, stock_location_id ID) !InventoryLevel {
+	data := tx.execute('SELECT 
+		il.stocked_quantity,
+		COALESCE(r.reserved_quantity, 0) as reserved_quantity
+		FROM inventory_level il
+		LEFT JOIN (
+			SELECT item_id, stock_location_id, SUM(amount) AS reserved_quantity
+			FROM item_reservation
+			WHERE item_id = ? AND stock_location_id = ?
+			GROUP BY item_id, stock_location_id
+		) r
+			ON r.item_id = il.inventory_item_id
+  		AND r.stock_location_id = il.stock_location_id
+		WHERE il.inventory_item_id = ? and il.stock_location_id = ?',
+		inventory_item_id.bytes(), stock_location_id.bytes(), inventory_item_id.bytes(),
+		stock_location_id.bytes())!
+
+	rows := data.rows()
+	if rows.len == 0 {
+		return error('No inventory_level found with inventory_item_id `${inventory_item_id.string()}` and stock_location_id `${stock_location_id}`')
+	}
+
+	v := rows[0].values()
+	stocked_quantity, _ := v[0].get_i32()!
+	reserved_quantity, _ := v[1].get_i32()!
+
+	return InventoryLevel{
+		inventory_item_id: inventory_item_id
+		stock_location_id: stock_location_id
+		stocked_quantity:  stocked_quantity
+		reserved_quantity: reserved_quantity
+	}
+}
+
+pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]InventoryLevel {
 	mut params := arrays.concat(ids_values(inventory_item_ids), ...ids_values(inventory_item_ids))
 
 	data := tx.execute('SELECT 

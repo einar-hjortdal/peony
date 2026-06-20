@@ -16,7 +16,7 @@ pub fn (mut app App) admin_auth_get(mut ctx Context) veb.Result {
 
 	user := app.with_rollback(fn [user_id] (mut tx firebird.ClientTransaction) !conduit.User {
 		return conduit.user_get_by_id(mut tx, user_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -51,13 +51,13 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		user := conduit.user_get_by_email(mut tx, p.email)!
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			id: user.password_parameters_id
-		})
+		})!
 
 		return LoginData{
 			user:             user
 			password_details: password_details
 		}
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	match data.password_details.function_name {
 		argon2id_name {
@@ -78,7 +78,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 			}
 
 			return ctx.handle_ok(UserResponseEnvelope{
-				user: format_user_response(user)
+				user: format_user_response(data.user)
 			})
 		}
 		else {

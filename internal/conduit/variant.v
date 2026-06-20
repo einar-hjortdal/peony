@@ -26,6 +26,11 @@ fn get_variants_inventory_items(mut tx firebird.ClientTransaction, mut variants_
 
 	mut item_map, item_ids := common.make_identifiable_map(inventory_items)
 	get_inventory_items_levels(mut tx, mut item_map, item_ids)!
+
+	for item_id, item in item_map {
+		variant_id := item.variant_id.string()
+		variants_map[variant_id].inventory_item = item_map[item_id]
+	}
 }
 
 fn get_variants_option_values(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
@@ -87,7 +92,7 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 	}
 
 	mut inventory_item := inventory_items[0]
-	inventory_levels := record.inventory_level_get(mut tx, [inventory_item.id]) or {
+	inventory_levels := record.inventory_level_retrieve(mut tx, [inventory_item.id]) or {
 		return errors.internal('Could not retrieve inventory_level', err.msg())
 	}
 

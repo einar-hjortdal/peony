@@ -12,7 +12,6 @@ pub:
 }
 
 fn (p APIKeyCreateParams) check(mut _ firebird.ClientTransaction) ! {
-	// does id already exist
 	// does sales_channel_id exist
 }
 

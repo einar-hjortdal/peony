@@ -2,6 +2,8 @@ module peony
 
 import veb
 import json
+import internal.conduit
+import internal.errors
 
 // lists sales channels
 @['/admin/sales-channels'; get]
@@ -15,11 +17,10 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 @['/admin/sales-channels/:sales_channel_id'; get]
 pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_id string) veb.Result {
 	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'sales_channel_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'sales_channel_id'))
 	}
 
-	return conduit_sales_channels_get(mut app, mut ctx, SalesChannelRetrieveParams{
+	return conduit.sales_channels_get(mut app, mut ctx, SalesChannelRetrieveParams{
 		ids:    [parsed_sales_channel_id]
 		offset: offset_default
 		fetch:  1

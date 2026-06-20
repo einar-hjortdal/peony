@@ -91,16 +91,11 @@ pub:
 	locale_ids                ?[]string @[json: 'localeIds']
 }
 
-struct StoreUpdateRequestHygienised {
-	name                      ?string
-	default_locale_id         ?ID
-	default_region_id         ?ID
-	default_stock_location_id ?ID
-	default_sales_channel_id  ?ID
-	locale_ids                ?[]ID
-}
+fn hygienise_store_request(s string, store_id ID) !conduit.StoreUpdateParams {
+	p := json.decode(StoreUpdateRequest, s) or {
+		return errors.bad_request('Could not decode StoreUpdateRequest', err.msg())
+	}
 
-fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 	mut parsed_default_locale_id := ?ID(none)
 	if id := p.default_locale_id {
 		parsed_default_locale_id = id_from_string(id) or {
@@ -136,7 +131,8 @@ fn hygienise_store_request(p StoreUpdateRequest) !StoreUpdateRequestHygienised {
 		}
 	}
 
-	return StoreUpdateRequestHygienised{
+	return conduit.StoreUpdateParams{
+		id:                        store_id
 		name:                      p.name
 		default_locale_id:         parsed_default_locale_id
 		default_region_id:         parsed_default_region_id
@@ -742,6 +738,18 @@ fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygie
 pub struct InventoryLevelUpdateRequest {
 pub:
 	stocked_quantity i32 @[json: 'stockedQuantity']
+}
+
+fn hygienise_inventory_level_update_request(s string, inventory_item_id ID, stock_location_id ID) !conduit.InventoryLevelUpdateParams {
+	p := json.decode(InventoryLevelUpdateRequest, s) or {
+		return errors.bad_request('Could not decode InventoryLevelUpdateRequest', err.msg())
+	}
+
+	return conduit.InventoryLevelUpdateParams{
+		inventory_item_id: inventory_item_id
+		stock_location_id: stock_location_id
+		stocked_quantity:  p.stocked_quantity
+	}
 }
 
 // used during product and variant creation
