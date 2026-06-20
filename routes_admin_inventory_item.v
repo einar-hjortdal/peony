@@ -1,6 +1,8 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
+import internal.conduit
 import internal.errors
 
 // creates or updates an inventory level

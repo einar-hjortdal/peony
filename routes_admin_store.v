@@ -1,7 +1,6 @@
 module peony
 
 import veb
-import json
 import einar_hjortdal.firebird
 import internal.conduit
 import internal.errors
