@@ -4,7 +4,6 @@ import record
 
 pub type APIKey = record.APIKey
 pub type APIKeyRetrieveParams = record.APIKeyRetrieveParams
-pub type APIKeyUpdateParams = record.APIKeyUpdateParams
 
 pub type Category = record.Category
 pub type CategoryTranslation = record.CategoryTranslation

@@ -24,12 +24,11 @@ pub:
 	sales_channel_id string
 }
 
-struct APIKeyCreateRequestHygienised {
-	name             string
-	sales_channel_id ID
-}
+fn hygienise_api_key_create_request(s string, api_key_id ID) !conduit.APIKeyCreateParams {
+	p := json.decode(APIKeyCreateRequest, s) or {
+		return errors.bad_request('Could not decode APIKeyCreateRequest', err.msg())
+	}
 
-fn hygienise_api_key_create_request(p APIKeyCreateRequest) !APIKeyCreateRequestHygienised {
 	if utf8_str_visible_length(p.name) > max_length_api_key_name {
 		return errors.bad_request(error_field_too_long,
 			'name can be at most ${max_length_api_key_name} UTF8 characters long')
@@ -39,7 +38,8 @@ fn hygienise_api_key_create_request(p APIKeyCreateRequest) !APIKeyCreateRequestH
 		return errors.unprocessable_entity(error_id_invalid, 'sales_channel_id')
 	}
 
-	return APIKeyCreateRequestHygienised{
+	return conduit.APIKeyCreateParams{
+		id:               api_key_id
 		name:             p.name
 		sales_channel_id: sales_channel_id
 	}
@@ -51,12 +51,15 @@ pub:
 	sales_channel_id ?string
 }
 
-struct APIKeyUpdateRequestHygienised {
-	name             ?string
-	sales_channel_id ?ID
-}
+fn hygienise_api_key_update_request(s string, api_key_id ID) !conduit.APIKeyUpdateParams {
+	p := json.decode(APIKeyUpdateRequest, s) or {
+		return errors.bad_request('Could not decode APIKeyUpdateRequest', err.msg())
+	}
 
-fn hygienise_api_key_update_request(p APIKeyUpdateRequest) !APIKeyUpdateRequestHygienised {
+	if p.name == none && p.sales_channel_id == none {
+		return errors.bad_request(error_empty_object, 'APIKeyUpdateRequest')
+	}
+
 	if name := p.name {
 		if utf8_str_visible_length(name) > max_length_api_key_name {
 			return errors.bad_request(error_field_too_long,
@@ -71,7 +74,8 @@ fn hygienise_api_key_update_request(p APIKeyUpdateRequest) !APIKeyUpdateRequestH
 		}
 	}
 
-	return APIKeyUpdateRequestHygienised{
+	return conduit.APIKeyUpdateParams{
+		id:               api_key_id
 		name:             p.name
 		sales_channel_id: sales_channel_id
 	}

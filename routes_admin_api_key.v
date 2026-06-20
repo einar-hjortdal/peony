@@ -12,14 +12,22 @@ import internal.errors
 pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 	p := hygienise_api_key_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	api_keys := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) ![]conduit.APIKey {
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
 		count := conduit.api_key_list_count(mut tx, p)!
-		return conduit.api_key_list(mut tx, p)
-	}) or { return ctx.handle_error() }
+		if count == 0 {
+			return ListReturn{}
+		}
 
-	mut external_api_keys := []APIKeyResponse{len: api_keys.len}
-	for i := 0; i < api_keys.len; i++ {
-		api_key := api_keys[i]
+		api_keys := conduit.api_key_list(mut tx, p)!
+		return ListReturn{
+			count: count
+			items: api_keys
+		}
+	}) or { return ctx.handle_error(err) }
+
+	mut external_api_keys := []APIKeyResponse{len: data.items.len}
+	for i := 0; i < data.items.len; i++ {
+		api_key := data.items[i]
 		external_api_keys[i] = format_api_key_response(api_key)
 	}
 
@@ -34,17 +42,15 @@ pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 // create api key
 @['/admin/api-keys'; post]
 pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
-	p := json.decode(APIKeyCreateRequest, ctx.req.data) or {
-		return ctx.handle_error(errors.bad_request('Could not decode APIKeyCreateRequest',
-			err.msg()))
-	}
-	ph := hygienise_api_key_create_request(p) or { return ctx.handle_error(err) }
 	api_key_id := app.gen_id()
+	p := hygienise_api_key_create_request(ctx.req.data, api_key_id) or {
+		return ctx.handle_error(err)
+	}
 
-	api_key := app.with_commit(fn [ph, api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
+	api_key := app.with_commit(fn [p] (mut tx firebird.ClientTransaction) !conduit.APIKey {
 		// TODO verify ph.sales_channel_id exists
-		conduit.api_key_create(mut tx, api_key_id, ph.name, ph.sales_channel_id)!
-		return conduit.api_key_get(mut tx, api_key_id)
+		conduit.api_key_create(mut tx, p)!
+		return conduit.api_key_get(mut tx, p.id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(APIKeyResponseEnvelope{
@@ -74,18 +80,14 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 	parsed_api_key_id := id_from_string(api_key_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'api_key_id'))
 	}
-	p := json.decode(APIKeyUpdateRequest, ctx.req.data) or {
-		return ctx.handle_error(errors.bad_request('Could not decode APIKeyUpdateRequest',
-			err.msg()))
-	}
-	ph := hygienise_api_key_update_request(p) or { return ctx.handle_error(err) }
 
-	api_key := app.with_commit(fn [ph, parsed_api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
-		conduit.api_key_update(mut tx, parsed_api_key_id, APIKeyUpdateParams{
-			name:             ph.name
-			sales_channel_id: ph.sales_channel_id
-		})!
-		return conduit.api_key_get(mut tx, parsed_api_key_id)
+	p := hygienise_api_key_update_request(ctx.req.data, parsed_api_key_id) or {
+		return ctx.handle_error(err)
+	}
+
+	api_key := app.with_commit(fn [p] (mut tx firebird.ClientTransaction) !conduit.APIKey {
+		conduit.api_key_update(mut tx, p)!
+		return conduit.api_key_get(mut tx, p.id)
 	}) or { return ctx.handle_error(err) }
 
 	app.cache_set_api_key(api_key) or {

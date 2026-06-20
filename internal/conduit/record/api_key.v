@@ -13,9 +13,16 @@ pub:
 	sales_channel_id ID
 }
 
-pub fn api_key_create(mut tx firebird.ClientTransaction, api_key ID, name string, sales_channel_id ID) ! {
-	tx.execute('INSERT INTO api_key (id, name, sales_channel_id) VALUES (?, ?, ?)',
-		api_key.bytes(), name, sales_channel_id.bytes())!
+pub struct APIKeyCreateParams {
+pub:
+	id               ID
+	name             string
+	sales_channel_id ID
+}
+
+pub fn api_key_create(mut tx firebird.ClientTransaction, p APIKeyCreateParams) ! {
+	tx.execute('INSERT INTO api_key (id, name, sales_channel_id) VALUES (?, ?, ?)', p.id.bytes(),
+		p.name, p.sales_channel_id.bytes())!
 }
 
 pub struct APIKeyRetrieveParams {
@@ -109,11 +116,12 @@ pub fn api_key_retrieve(mut tx firebird.ClientTransaction, p APIKeyRetrieveParam
 
 pub struct APIKeyUpdateParams {
 pub:
+	id               ID
 	name             ?string
 	sales_channel_id ?ID
 }
 
-pub fn api_key_update(mut tx firebird.ClientTransaction, api_key_id ID, p APIKeyUpdateParams) ! {
+pub fn api_key_update(mut tx firebird.ClientTransaction, p APIKeyUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -128,7 +136,7 @@ pub fn api_key_update(mut tx firebird.ClientTransaction, api_key_id ID, p APIKey
 	}
 
 	query := 'UPDATE api_key ${get_set_columns_with_updated_at(columns)} WHERE id = ?'
-	params = arrays.concat(params, api_key_id.bytes())
+	params = arrays.concat(params, p.id.bytes())
 	tx.execute(query, ...params)!
 }
 

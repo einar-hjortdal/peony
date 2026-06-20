@@ -266,17 +266,29 @@ pub:
 }
 
 fn (p CategoryUpdateParams) check(mut tx firebird.ClientTransaction) ! {
+	count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
+		ids:          [p.id]
+		with_deleted: true
+		offset:       offset_default
+		fetch:        min_fetch
+		order:        order_default
+	}) or { return errors.internal('Could not retrieve category count', err.msg()) }
+	if count == 0 {
+		return errors.unprocessable_entity(errors.msg_id_invalid,
+			'Category does not exist. No category exists with id `${p.id}`')
+	}
+
 	if parent_category_id := p.parent_category_id {
-		count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
+		parent_count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
 			ids:          [parent_category_id]
 			with_deleted: true
 			offset:       offset_default
 			fetch:        min_fetch
 			order:        order_default
 		}) or { return errors.internal('Could not retrieve category count', err.msg()) }
-		if count == 0 {
+		if parent_count == 0 {
 			return errors.unprocessable_entity(errors.msg_id_invalid,
-				'No category exists with id `${parent_category_id}`')
+				'Parent category does not exist. No category exists with id `${parent_category_id}`')
 		}
 	}
 
