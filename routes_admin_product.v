@@ -2,7 +2,6 @@ module peony
 
 import json
 import veb
-import einar_hjortdal.firebird
 import einar_hjortdal.slugify
 
 // lists products

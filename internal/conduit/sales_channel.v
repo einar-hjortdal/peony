@@ -45,4 +45,3 @@ pub fn sales_channel_stock_location_delete(mut tx firebird.ClientTransaction, sa
 		return errors.internal('Could not remove stock_location from sales_channel', err.msg())
 	}
 }
-

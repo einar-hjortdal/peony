@@ -3,7 +3,6 @@ module peony
 import veb
 import einar_hjortdal.firebird
 import internal.conduit
-import internal.errors
 
 // lists regions
 // TODO cache

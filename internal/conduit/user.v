@@ -2,7 +2,6 @@ module conduit
 
 import einar_hjortdal.firebird
 import record
-import internal.common
 import internal.errors
 
 // TODO create image
@@ -66,5 +65,3 @@ pub fn user_get_by_email(mut tx firebird.ClientTransaction, email string) !User 
 
 	return users[0]
 }
-
-

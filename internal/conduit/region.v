@@ -53,4 +53,3 @@ pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
 		return errors.internal('Could not delete region', err.msg())
 	}
 }
-

@@ -32,4 +32,3 @@ pub fn currency_get(mut tx firebird.ClientTransaction, code string) !Currency {
 	currency := currencies[0]
 	return currency
 }
-

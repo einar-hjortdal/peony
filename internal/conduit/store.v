@@ -45,4 +45,3 @@ pub fn store_locale_list(mut tx firebird.ClientTransaction) ![]Locale {
 	}
 	return locales
 }
-

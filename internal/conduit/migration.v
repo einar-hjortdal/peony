@@ -16,4 +16,3 @@ pub fn migration_list(mut tx firebird.ClientTransaction) ![]record.Migration {
 	}
 	return migrations
 }
-

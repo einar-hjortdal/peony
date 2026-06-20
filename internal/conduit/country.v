@@ -17,4 +17,3 @@ pub fn country_list(mut tx firebird.ClientTransaction, p CountryRetrieveParams) 
 	}
 	return countries
 }
-

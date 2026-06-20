@@ -171,6 +171,7 @@ pub fn seo_update(mut tx firebird.ClientTransaction, p SEOUpdateParams) ! {
 }
 
 pub struct SEOTranslationCreateParams {
+pub:
 	seo_id      ID
 	locale_id   ID
 	title       ?string

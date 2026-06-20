@@ -33,4 +33,3 @@ pub fn locale_get_by_id(mut tx firebird.ClientTransaction, locale_id ID) !Locale
 	locale := locales[0]
 	return locale
 }
-

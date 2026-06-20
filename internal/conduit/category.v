@@ -2,6 +2,7 @@ module conduit
 
 import arrays
 import einar_hjortdal.firebird
+import einar_hjortdal.luuid
 import record
 import internal.errors
 import internal.common
@@ -106,16 +107,39 @@ pub fn category_get(mut tx firebird.ClientTransaction, category_id ID) !Category
 	return category
 }
 
-pub struct CategoryCreateData {
+pub struct CategoryTranslationParams {
 pub:
-	category         CategoryCreateParams
-	seo              CategorySEOCreateParams
-	translations     ?[]CategoryTranslationUpdateParams
-	seo_translations ?[]SEOTranslationCreateParams
+	locale_id   ID
+	name        ?string
+	description ?string
 }
 
-fn check_category_create_data(mut tx firebird.ClientTransaction, p CategoryCreateData) ! {
-	if parent_category_id := p.category.parent_category_id {
+fn (p CategoryTranslationParams) locale_id() ID {
+	return p.locale_id
+}
+
+pub struct CategoryCreateParams {
+pub:
+	name               string
+	description        ?string
+	handle             ?string
+	is_internal        bool
+	is_active          bool
+	parent_category_id ?ID
+	metadata           ?string
+	seo                ?SEOParams
+	translations       ?[]CategoryTranslationParams
+}
+
+struct CategoryCreateData {
+	category         record.CategoryCreateParams
+	seo              record.CategorySEOCreateParams
+	translations     ?record.CategoryTranslationsCreateParams
+	seo_translations ?record.SEOTranslationCreateParams
+}
+
+fn check_category_create_data(mut tx firebird.ClientTransaction, mut g luuid.Generator, category_id ID, p CategoryCreateParams) !CategoryCreateData {
+	if parent_category_id := p.parent_category_id {
 		count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
 			ids:          [parent_category_id]
 			with_deleted: true
@@ -129,6 +153,32 @@ fn check_category_create_data(mut tx firebird.ClientTransaction, p CategoryCreat
 		}
 	}
 
+	mut seo_create_params := ?record.CategorySEOCreateParams(none)
+	mut seo_translations_create_params := ?[]record.SEOTranslationCreateParams(none)
+	if seo := p.seo {
+		seo_id := new_id(mut g)
+		seo_create_params = record.CategorySEOCreateParams{
+			category_id: category_id
+			id:          seo_id
+			title:       seo.title
+			description: seo.description
+		}
+
+		if translations := seo.translations {
+			mut s := []record.SEOTranslationCreateParams{len: translations.len}
+			for i := 0; i < translations.len; i++ {
+				translation := translations[i]
+				s[i] = record.SEOTranslationCreateParams{
+					seo_id:      seo_id
+					locale_id:   translation.locale_id
+					title:       translation.title
+					description: translation.description
+				}
+			}
+			seo_translations_create_params = s
+		}
+	}
+
 	if translations := p.translations {
 		check_translation_locale_ids(mut tx, translations)!
 	}
@@ -138,8 +188,8 @@ fn check_category_create_data(mut tx firebird.ClientTransaction, p CategoryCreat
 	}
 }
 
-pub fn category_create(mut tx firebird.ClientTransaction, p CategoryCreateData) ! {
-	check_category_create_data(mut tx, p)!
+pub fn category_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, category_id ID, p CategoryCreateParams) ! {
+	check_category_create_data(mut tx, mut g, category_id, p)!
 
 	record.category_create(mut tx, p.category) or {
 		return errors.internal('Could not create category', err.msg())

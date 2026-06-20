@@ -7,6 +7,21 @@ import einar_hjortdal.luuid
 import einar_hjortdal.redict
 import einar_hjortdal.sessions
 import internal.conduit
+import providers
+
+// Providers are services used by peony.
+// BlobProvider stores and serves files sich as product images, videos, etc.
+// EmailProvider allows peony to send transactional emails, security emails, etc..
+// PaymentProvider enable peony to receive payments from customers, issue refunds, etc.
+// FulfillmentProvider enable peony to schedule shipments of products, book returns, etc.
+pub struct Providers {
+pub mut:
+	blob &providers.BlobProvider
+	// tax &providers.TaxProvider
+	// email &providers.EmailProvider
+	// payment []&providers.PaymentProvider
+	// fulfillment []&providers.FulfillmentProvider
+}
 
 @[heap]
 pub struct App {
@@ -32,7 +47,7 @@ mut:
 
 // returns the initialized peony App, you can register your custom veb middleware on it.
 // An error is returned if config is invalid or if cannot establish a connection to firebird/redict.
-pub fn new_peony_app(config Config, providers &Providers) !&App {
+pub fn new_peony_app(config Config, p &Providers) !&App {
 	c := config.verify()!
 
 	if c.debug {
@@ -63,7 +78,7 @@ pub fn new_peony_app(config Config, providers &Providers) !&App {
 
 	mut app := &App{
 		config:          c
-		providers:       providers
+		providers:       p
 		luuid_generator: luuid.new_generator()
 		firebird:        firebird_client
 		redict:          redict_client

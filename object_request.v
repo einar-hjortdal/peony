@@ -2,9 +2,8 @@ module peony
 
 import arrays
 import json
-import einar_hjortdal.luuid
-import internal.errors
 import internal.conduit
+import internal.errors
 
 pub const category_default_is_active = true
 pub const category_default_is_internal = false
@@ -1487,21 +1486,15 @@ pub:
 	description ?string
 }
 
-struct CategoryTranslationRequestHygienised {
-	locale_id   ID
-	name        ?string
-	description ?string
-}
-
-fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]CategoryTranslationRequestHygienised {
-	mut res := []CategoryTranslationRequestHygienised{len: p.len}
+fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]conduit.CategoryTranslationParams {
+	mut res := []conduit.CategoryTranslationParams{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
 			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
-		res[i] = CategoryTranslationRequestHygienised{
+		res[i] = conduit.CategoryTranslationParams{
 			locale_id:   parsed_locale_id
 			name:        translation.name
 			description: translation.description
@@ -1523,15 +1516,15 @@ struct SEOTranslationRequestHygienised {
 	description ?string
 }
 
-fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]SEOTranslationRequestHygienised {
-	mut res := []SEOTranslationRequestHygienised{len: p.len}
+fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]conduit.SEOTranslationParams {
+	mut res := []conduit.SEOTranslationParams{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
 			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
 		}
 
-		res[i] = SEOTranslationRequestHygienised{
+		res[i] = conduit.SEOTranslationParams{
 			locale_id:   parsed_locale_id
 			title:       translation.title
 			description: translation.description
@@ -1565,32 +1558,28 @@ pub:
 	translations ?map[string]SEOTranslationRequest
 }
 
-struct SEORequestHygienised {
-	title       ?string
-	description ?string
-mut:
-	translations ?[]SEOTranslationRequestHygienised
-}
+// struct SEORequestHygienised {
+// 	title       ?string
+// 	description ?string
+// mut:
+// 	translations ?[]SEOTranslationRequestHygienised
+// }
 
-fn (r SEORequestHygienised) translations() ?[]SEOTranslationRequestHygienised {
-	return r.translations
-}
-
-fn (p SEORequest) hygienise() !SEORequestHygienised {
+fn (p SEORequest) hygienise() !conduit.SEOParams {
 	if p.title == none && p.description == none && p.translations == none {
 		return errors.unprocessable_entity(error_empty_object, 'SEORequest')
 	}
 
-	mut ph := SEORequestHygienised{
-		title:       p.title
-		description: p.description
+	mut translations := ?[]conduit.SEOTranslationParams(none)
+	if t := p.translations {
+		translations = hygienise_seo_translations(t)!
 	}
 
-	if translations := p.translations {
-		ph.translations = hygienise_seo_translations(translations)!
+	return conduit.SEOParams{
+		title:        p.title
+		description:  p.description
+		translations: translations
 	}
-
-	return ph
 }
 
 // CategoryCreateRequest describes the body of the request to create a new category.
@@ -1624,7 +1613,11 @@ pub:
 	seo                ?SEORequest
 }
 
-fn (p CategoryCreateRequest) hygienise(mut g luuid.Generator, category_id ID) !conduit.CateogryCreateData {
+fn hygienise_category_create_request(s string) !conduit.CategoryCreateParams {
+	p := json.decode(CategoryCreateRequest, s) or {
+		return errors.bad_request('Could not decode CategoryCreateRequest', err.msg())
+	}
+
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {
@@ -1637,7 +1630,7 @@ fn (p CategoryCreateRequest) hygienise(mut g luuid.Generator, category_id ID) !c
 	}
 
 	if description := p.description {
-		if utf8_str_visible_length(p.name) > max_length_category_description {
+		if utf8_str_visible_length(description) > max_length_category_description {
 			return errors.unprocessable_entity(error_field_too_long, 'description')
 		}
 	}
@@ -1648,52 +1641,26 @@ fn (p CategoryCreateRequest) hygienise(mut g luuid.Generator, category_id ID) !c
 		}
 	}
 
-	mut valid_seo := ?conduit.CategorySEOCreateParams(none)
-	mut valid_seo_translations := ?[]conduit.SEOTranslationCreateParams(none)
-	if seo := p.seo {
-		seo_id := new_id(mut g)
-		seo_hygienised = seo.hygienise()
-		valid_seo = conduit.CategorySEOCreateParams{
-			category_id: category_id
-			id:          seo_id
-			title:       seo_hygienised.title
-			description: seo_hygienised.description
-		}
-
-		if translations := seo.translations {
-			translations_hygienised = hygienise_seo_translations(translations)!
-			valid_seo_translations = []conduit.SEOTranslationCreateParams{len: translations_hygienised.len}
-			for i := 0; i < translations_hygienised.len; i++ {
-				translation := translations_hygienised[i]
-				valid_seo_translations[i] = conduit.SEOTranslationCreateParams{
-					seo_id:      seo_id
-					locale_id:   translation.locale_id
-					title:       translation.title
-					description: translation.description
-				}
-			}
-		}
+	mut seo := ?conduit.SEOParams(none)
+	if o := p.seo {
+		seo = o.hygienise()!
 	}
 
-	mut valid_translations := ?[]conduit.CategoryTranslationUpdateParams(none)
-	if translations := p.translations {
-		valid_translations = hygienise_category_translations(translations)!
+	mut translations := ?[]conduit.CategoryTranslationParams(none)
+	if t := p.translations {
+		translations = hygienise_category_translations(t)!
 	}
 
-	return conduit.CateogryCreateData{
-		category:         CategoryCreateParams{
-			id:                 category_id
-			name:               p.name
-			handle:             p.handle
-			description:        p.description
-			is_active:          bool_or(p.is_active, category_default_is_active)
-			is_internal:        bool_or(p.is_internal, category_default_is_internal)
-			metadata:           p.metadata
-			parent_category_id: parsed_parent_category_id
-		}
-		seo:              valid_seo
-		translations:     valid_translations
-		seo_translations: valid_seo_translations
+	return conduit.CategoryCreateParams{
+		name:               p.name
+		handle:             p.handle
+		description:        p.description
+		is_active:          bool_or(p.is_active, category_default_is_active)
+		is_internal:        bool_or(p.is_internal, category_default_is_internal)
+		parent_category_id: parsed_parent_category_id
+		metadata:           p.metadata
+		translations:       translations
+		seo:                seo
 	}
 }
 
@@ -2527,5 +2494,3 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 
 	return ph
 }
-
-

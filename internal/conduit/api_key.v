@@ -50,4 +50,3 @@ pub fn api_key_delete(mut tx firebird.ClientTransaction, api_key ID) ! {
 		return errors.internal('Could not delete api_key', err.msg())
 	}
 }
-

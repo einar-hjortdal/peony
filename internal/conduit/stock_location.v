@@ -24,4 +24,3 @@ pub fn stock_location_get(mut tx firebird.ClientTransaction, stock_location_id I
 	stock_location := stock_locations[0]
 	return stock_location
 }
-
