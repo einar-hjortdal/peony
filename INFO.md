@@ -15,8 +15,7 @@ store frontends must attach an API key to every request using the custom header 
 - search engine indexing 
   TODO decide: leave it up to API consumers or integrate with worker? integration is more consistent with the objective of the project. If integration is chosen: store endpoints should query the data from the search engine instead of the database, invalidation and re-indexing can be done as soon as data changes. List database queries can be simplified. No adapter interface.
 
-*WIP*
-### Data layers abstractions
+### Layers
 
 We are not looking for flexibility: tight coupling with the database is not an issue as we are always going to be using FirebirdSQL. We do not mock the database because we write raw queries and mistakes must be caught by the database. This means that we are not going to be using a repository pattern.
 
@@ -25,7 +24,9 @@ We want:
 - a low level layer that contains the insert/update/delete SQL statements.
 - a higher level layer that orchestrates the lower level operations.
 
-TODO: should route handlers call either, or should it only be allowed to call conduit functions? I am used to MVC, which makes me think it would be best if routes should only invoke conduit functions.
+The higher layer is called `conduit`. Because this layer orchestrates database operations, it also has the task of validating request inputs, when such validation requires access to the database.
+
+The lower level is called `record`.
 
 ### Translations
 

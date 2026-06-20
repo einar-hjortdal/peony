@@ -7,11 +7,8 @@ pub type APIKeyRetrieveParams = record.APIKeyRetrieveParams
 pub type APIKeyUpdateParams = record.APIKeyUpdateParams
 
 pub type Category = record.Category
-pub type CategoryUpdateParams = record.CategoryUpdateParams
-pub type CategoryTranslationUpdateParams = record.CategoryTranslationUpdateParams
 pub type CategoryTranslation = record.CategoryTranslation
 pub type CategoryRetrieveParams = record.CategoryRetrieveParams
-pub type CategorySEOCreateParams = record.CategorySEOCreateParams
 
 pub type Country = record.Country
 pub type CountryRetrieveParams = record.CountryRetrieveParams

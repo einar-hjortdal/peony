@@ -49,9 +49,8 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 	p := hygienise_category_create_request(ctx.req.data) or { return ctx.handle_error(perr) }
 	category_id := app.gen_id()
 
-	mut g := app.luuid_generator
-	category := app.with_commit(fn [mut g, p, category_id] (mut tx firebird.ClientTransaction) !conduit.Category {
-		conduit.category_create(mut tx, mut g, category_id, p)!
+	category := app.with_commit(fn [mut app, p, category_id] (mut tx firebird.ClientTransaction) !conduit.Category {
+		conduit.category_create(mut tx, mut app.luuid_generator, category_id, p)!
 		return conduit.category_get(mut tx, category_id)
 	}) or { return ctx.handle_error() }
 
@@ -65,7 +64,6 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := id_from_string(category_id) or {
 		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
-		return ctx.handle_error(perr)
 	}
 
 	category := app.with_rollback(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !conduit.Category {

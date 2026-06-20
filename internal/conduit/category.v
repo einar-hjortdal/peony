@@ -3,6 +3,7 @@ module conduit
 import arrays
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
+import einar_hjortdal.slugify
 import record
 import internal.errors
 import internal.common
@@ -121,12 +122,12 @@ fn (p CategoryTranslationParams) locale_id() ID {
 pub struct CategoryCreateParams {
 pub:
 	name               string
-	description        ?string
 	handle             ?string
+	description        ?string
 	is_internal        bool
 	is_active          bool
-	parent_category_id ?ID
 	metadata           ?string
+	parent_category_id ?ID
 	seo                ?SEOParams
 	translations       ?[]CategoryTranslationParams
 }
@@ -134,11 +135,11 @@ pub:
 struct CategoryCreateData {
 	category         record.CategoryCreateParams
 	seo              record.CategorySEOCreateParams
-	translations     ?record.CategoryTranslationsCreateParams
-	seo_translations ?record.SEOTranslationCreateParams
+	translations     ?[]record.CategoryTranslationUpdateParams
+	seo_translations ?[]record.SEOTranslationCreateParams
 }
 
-fn check_category_create_data(mut tx firebird.ClientTransaction, mut g luuid.Generator, category_id ID, p CategoryCreateParams) !CategoryCreateData {
+fn (p CategoryCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	if parent_category_id := p.parent_category_id {
 		count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
 			ids:          [parent_category_id]
@@ -153,61 +154,92 @@ fn check_category_create_data(mut tx firebird.ClientTransaction, mut g luuid.Gen
 		}
 	}
 
-	mut seo_create_params := ?record.CategorySEOCreateParams(none)
-	mut seo_translations_create_params := ?[]record.SEOTranslationCreateParams(none)
-	if seo := p.seo {
-		seo_id := new_id(mut g)
-		seo_create_params = record.CategorySEOCreateParams{
-			category_id: category_id
-			id:          seo_id
-			title:       seo.title
-			description: seo.description
-		}
-
-		if translations := seo.translations {
-			mut s := []record.SEOTranslationCreateParams{len: translations.len}
-			for i := 0; i < translations.len; i++ {
-				translation := translations[i]
-				s[i] = record.SEOTranslationCreateParams{
-					seo_id:      seo_id
-					locale_id:   translation.locale_id
-					title:       translation.title
-					description: translation.description
-				}
-			}
-			seo_translations_create_params = s
-		}
+	if translations := p.translations {
+		check_translation_locale_ids(mut tx, translations)!
 	}
 
 	if translations := p.translations {
 		check_translation_locale_ids(mut tx, translations)!
 	}
+}
 
-	if seo_translations := p.seo_translations {
-		check_translation_locale_ids(mut tx, seo_translations)!
+fn (p CategoryCreateParams) parse_translations() ?[]record.CategoryTranslationUpdateParams {
+	t := p.translations or { return none }
+	mut res := []record.CategoryTranslationUpdateParams{len: t.len}
+	for i := 0; i < t.len; i++ {
+		ct := t[i]
+		res[i] = record.CategoryTranslationUpdateParams{
+			locale_id:   ct.locale_id
+			name:        ct.name
+			description: ct.description
+		}
+	}
+	return res
+}
+
+fn (p CategoryCreateParams) parse_seo(seo_id ID, category_id ID) record.CategorySEOCreateParams {
+	s := p.seo or {
+		return record.CategorySEOCreateParams{
+			id:          seo_id
+			category_id: category_id
+		}
+	}
+
+	return s.parse_category_create(seo_id, category_id)
+}
+
+fn (p CategoryCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
+	s := p.seo or { return none }
+	return s.parse_translation_params(seo_id)
+}
+
+fn (p CategoryCreateParams) parse(mut _ firebird.ClientTransaction, mut g luuid.Generator, category_id ID) !CategoryCreateData {
+	handle := p.handle or { slugify.default().make(p.name) } // TODO check handle is unique, if not append id, use id only if append makes handle too long
+	category := record.CategoryCreateParams{
+		id:                 category_id
+		name:               p.name
+		handle:             handle
+		description:        p.description
+		is_internal:        p.is_internal
+		is_active:          p.is_active
+		metadata:           p.metadata
+		parent_category_id: p.parent_category_id
+	}
+	translations := p.parse_translations()
+
+	seo_id := new_id(mut g)
+	seo := p.parse_seo(seo_id, category_id)
+	seo_translations := p.parse_seo_translations(seo_id)
+
+	return CategoryCreateData{
+		category:         category
+		seo:              seo
+		translations:     translations
+		seo_translations: seo_translations
 	}
 }
 
 pub fn category_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, category_id ID, p CategoryCreateParams) ! {
-	check_category_create_data(mut tx, mut g, category_id, p)!
+	p.check(mut tx)!
+	data := p.parse(mut tx, mut g, category_id)!
 
-	record.category_create(mut tx, p.category) or {
+	record.category_create(mut tx, data.category) or {
 		return errors.internal('Could not create category', err.msg())
 	}
 
-	record.category_seo_create(mut tx, p.seo) or {
+	record.category_seo_create(mut tx, data.seo) or {
 		return errors.internal('Failed to insert seo data', err.msg())
 	}
 
-	if translations := p.translations {
+	if translations := data.translations {
 		if translations.len > 0 {
-			record.category_translations_update(mut tx, p.category.id, translations) or {
+			record.category_translations_update(mut tx, category_id, translations) or {
 				return errors.internal('Could not create category_translations', err.msg())
 			}
 		}
 	}
 
-	if seo_translations := p.seo_translations {
+	if seo_translations := data.seo_translations {
 		if seo_translations.len > 0 {
 			record.seo_translations_create(mut tx, seo_translations) or {
 				return errors.internal('Failed to insert seo_translations data', err.msg())

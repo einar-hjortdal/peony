@@ -8,6 +8,7 @@ import internal.errors
 
 // TODO further abstract? now requests store_locales each time a translation is created/updated (many times per payload).
 // Low priority: this is just needed on admin create/update requests, performance and efficiency are not critical.
+// instead: gather all locale_id and select from locale. count must match or some don't exist -> error
 fn check_translation_locale_ids(mut tx firebird.ClientTransaction, translations []common.Translation) ! {
 	if translations.len == 0 {
 		return
