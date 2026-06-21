@@ -7,7 +7,7 @@ import internal.conduit
 // lists stock locations
 @['/admin/stock-locations'; get]
 pub fn (mut app App) admin_stock_location_list(mut ctx Context) veb.Result {
-	p := hygienise_stock_location_query_params(ctx.query) or { return ctx.handle_error(err) }
+	p := hygienise_stock_location_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) ![]ListReturn {
 		count := conduit.region_list_count(mut tx, p)!
 		if count == 0 {

@@ -3,6 +3,7 @@ module record
 import arrays
 import einar_hjortdal.firebird
 
+// TODO include stock locations
 pub struct SalesChannel {
 pub:
 	id          ID
@@ -22,10 +23,11 @@ pub fn (sc SalesChannel) id() ID {
 
 pub struct SalesChannelRetrieveParams {
 pub:
-	ids    ?[]ID
-	offset i32
-	fetch  i32
-	order  string
+	ids          ?[]ID
+	with_deleted bool
+	offset       i32
+	fetch        i32
+	order        string
 }
 
 fn sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, []firebird.Value) {
@@ -35,6 +37,10 @@ fn sales_channel_retrieve_conditions(p SalesChannelRetrieveParams) (string, []fi
 	if ids := p.ids {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
 		params = arrays.concat(params, ...ids_bytes(ids))
+	}
+
+	if !p.with_deleted {
+		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 
 	return get_where_conditions(conditions), params
@@ -101,23 +107,20 @@ pub fn sales_channel_retrieve(mut tx firebird.ClientTransaction, p SalesChannelR
 }
 
 pub struct SalesChannelCreateParams {
+pub:
+	id          ID
 	name        string
 	description ?string
-	is_disabled ?bool
+	is_disabled bool
 }
 
-pub fn sales_channel_create(mut tx firebird.ClientTransaction, sales_channel_id ID, p SalesChannelCreateParams) ! {
-	mut columns := ['id', 'name']
-	mut params := [firebird.Value(sales_channel_id.bytes()), p.name]
+pub fn sales_channel_create(mut tx firebird.ClientTransaction, p SalesChannelCreateParams) ! {
+	mut columns := ['id', 'name', 'is_disabled']
+	mut params := [firebird.Value(p.id.bytes()), p.name, p.is_disabled]
 
 	if description := p.description {
 		columns = arrays.concat(columns, 'description')
 		params = arrays.concat(params, description)
-	}
-
-	if is_disabled := p.is_disabled {
-		columns = arrays.concat(columns, 'is_disabled')
-		params = arrays.concat(params, is_disabled)
 	}
 
 	tx.execute('INSERT INTO sales_channel (${get_columns(columns)}) VALUES (${get_placeholders(columns)})',
@@ -125,12 +128,13 @@ pub fn sales_channel_create(mut tx firebird.ClientTransaction, sales_channel_id 
 }
 
 pub struct SalesChannelUpdateParams {
+	id          ID
 	name        ?string
 	description ?string
 	is_disabled ?bool
 }
 
-pub fn sales_channel_update(mut tx firebird.ClientTransaction, sales_channel_id ID, p SalesChannelUpdateParams) ! {
+pub fn sales_channel_update(mut tx firebird.ClientTransaction, p SalesChannelUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -149,7 +153,7 @@ pub fn sales_channel_update(mut tx firebird.ClientTransaction, sales_channel_id 
 		params = arrays.concat(params, is_disabled)
 	}
 
-	params = arrays.concat(params, sales_channel_id.bytes())
+	params = arrays.concat(params, p.id.bytes())
 
 	tx.execute('UPDATE sales_channel ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!

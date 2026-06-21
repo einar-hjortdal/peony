@@ -892,10 +892,23 @@ fn format_sales_channel_response(v conduit.SalesChannel) SalesChannelResponse {
 
 pub struct SalesChannelResponseEnvelope {
 pub:
+	sales_channel SalesChannelResponse
+}
+
+pub struct SalesChannelResponseListEnvelope {
+pub:
 	sales_channels []SalesChannelResponse @[json: 'salesChannels']
 	count          i64
 	offset         i32
 	fetch          i32
+}
+
+fn format_sales_channel_response_list(p []conduit.SalesChannel) []SalesChannelResponse {
+	mut res := []SalesChannelResponse{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] = format_sales_channel_response(p[i])
+	}
+	return res
 }
 
 pub struct ProductResponse {

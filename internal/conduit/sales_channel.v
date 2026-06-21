@@ -4,14 +4,28 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 
-pub fn sales_channel_create(mut tx firebird.ClientTransaction, sales_channel_id ID, p record.SalesChannelCreateParams) ! {
-	record.sales_channel_create(mut tx, sales_channel_id, p) or {
+pub fn sales_channel_list_count(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) !i64 {
+	count := record.sales_channel_retrieve_count(mut tx, p) or {
+		return errors.internal('Could not retrieve sales_channel count', err.msg())
+	}
+	return count
+}
+
+pub fn sales_channel_list(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) ![]SalesChannel {
+	sales_channels := record.sales_channel_retrieve(mut tx, p) or {
+		return errors.internal('Could not retrieve sales_channel', err.msg())
+	}
+	return sales_channels
+}
+
+pub fn sales_channel_create(mut tx firebird.ClientTransaction, p SalesChannelCreateParams) ! {
+	record.sales_channel_create(mut tx, p) or {
 		return errors.internal('Could not create sales_channel', err.msg())
 	}
 }
 
-pub fn sales_channel_update(mut tx firebird.ClientTransaction, sales_channel_id ID, p record.SalesChannelUpdateParams) ! {
-	record.sales_channel_update(mut tx, sales_channel_id, p) or {
+pub fn sales_channel_update(mut tx firebird.ClientTransaction, p record.SalesChannelUpdateParams) ! {
+	record.sales_channel_update(mut tx, p) or {
 		return errors.internal('Could not create sales_channel', err.msg())
 	}
 }
@@ -31,6 +45,18 @@ pub fn sales_channel_get(mut tx firebird.ClientTransaction, sales_channel_id ID)
 
 	sales_channel := sales_channels[0]
 	return sales_channel
+}
+
+pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id ID) ! {
+	store := store_get(mut tx)!
+	if store.default_sales_channel_id.string() == sales_channel_id.string() {
+		return errors.unprocessable_entity('Refusing to delete default sales_channel',
+			'Cannot delete default sales_channel')
+	}
+
+	record.sales_channel_delete(mut tx, sales_channel_id) or {
+		return errors.internal('Could not delete sales_channel', err.msg())
+	}
 }
 
 pub fn sales_channel_stock_location_add(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {

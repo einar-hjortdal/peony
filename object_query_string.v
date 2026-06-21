@@ -1,6 +1,7 @@
 module peony
 
 import internal.conduit
+import internal.errors
 
 pub const with_deleted_default = false
 
@@ -205,7 +206,7 @@ fn hygienise_country_list_query(m map[string]string) !conduit.CountryRetrievePar
 		for i := 0; i < codes.len; i++ {
 			code := codes[i]
 			if utf8_str_visible_length(code) > length_country_code {
-				return new_error_unprocessable_entity(error_field_too_long,
+				return errors.unprocessable_entity(error_field_too_long,
 					'country code must be exactly ${length_country_code} UTF8 characters long')
 			}
 		}
@@ -243,7 +244,7 @@ fn hygienise_currency_list_query(m map[string]string) !conduit.CurrencyRetrieveP
 		for i := 0; i < codes.len; i++ {
 			code := codes[i]
 			if utf8_str_visible_length(code) > length_currency_code {
-				return new_error_unprocessable_entity(error_field_too_long,
+				return errors.unprocessable_entity(error_field_too_long,
 					'currency code must be exactly ${length_currency_code} UTF8 characters long')
 			}
 		}
@@ -292,18 +293,20 @@ fn hygienise_retrieve_locale_params(m map[string]string) !conduit.LocaleRetrieve
 
 struct SalesChannelListQueryParams {
 pub:
-	ids    ?[]string
-	offset ?i32
-	fetch  ?i32
-	order  ?string
+	ids          ?[]string
+	with_deleted ?bool
+	offset       ?i32
+	fetch        ?i32
+	order        ?string
 }
 
 fn extract_sales_channels_list_query_params(m map[string]string) SalesChannelListQueryParams {
 	return SalesChannelListQueryParams{
-		ids:    get_none_array_string(m, 'ids')
-		offset: get_none_i32(m, 'offset')
-		fetch:  get_none_i32(m, 'fetch')
-		order:  get_none_string(m, 'order')
+		ids:          get_none_array_string(m, 'ids')
+		with_deleted: get_none_bool(m, 'with_deleted')
+		offset:       get_none_i32(m, 'offset')
+		fetch:        get_none_i32(m, 'fetch')
+		order:        get_none_string(m, 'order')
 	}
 }
 
@@ -316,10 +319,11 @@ fn hygienise_sales_channels_list_query_params(m map[string]string) !conduit.Sale
 	}
 
 	return conduit.SalesChannelRetrieveParams{
-		ids:    ids
-		offset: get_offset_or_default(p.offset)!
-		fetch:  get_fetch_or_default(p.fetch)!
-		order:  get_order_direction_or_default(p.order)!
+		ids:          ids
+		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		offset:       get_offset_or_default(p.offset)!
+		fetch:        get_fetch_or_default(p.fetch)!
+		order:        get_order_direction_or_default(p.order)!
 	}
 }
 
@@ -544,7 +548,7 @@ fn extract_variant_list_query_params(m map[string]string) VariantListQueryParams
 	}
 }
 
-struct StockLocationQueryParams {
+struct StockLocationListQueryParams {
 pub:
 	ids          ?[]string
 	with_deleted ?bool
@@ -553,8 +557,8 @@ pub:
 	order        ?string
 }
 
-fn extract_stock_location_query_params(m map[string]string) StockLocationQueryParams {
-	return StockLocationQueryParams{
+fn extract_stock_location_query_params(m map[string]string) StockLocationListQueryParams {
+	return StockLocationListQueryParams{
 		ids:          get_none_array_string(m, 'ids')
 		with_deleted: get_none_bool(m, 'with_deleted')
 		offset:       get_none_i32(m, 'offset')
@@ -563,7 +567,7 @@ fn extract_stock_location_query_params(m map[string]string) StockLocationQueryPa
 	}
 }
 
-fn hygienise_stock_location_query_params(m map[string]string) !conduit.StockLocationRetrieveParams {
+fn hygienise_stock_location_list_query_params(m map[string]string) !conduit.StockLocationRetrieveParams {
 	p := extract_stock_location_query_params(m)
 
 	mut ids := ?[]ID(none)

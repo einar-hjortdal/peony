@@ -11,10 +11,13 @@ pub const category_default_is_internal = false
 pub const region_default_automatic_taxes = true
 pub const region_default_includes_tax = false
 pub const region_default_gift_cards_taxable = true
+pub const sales_channel_default_is_disabled = false
 
 pub const max_length_region_name = 63
 pub const country_code_length = 2 // ISO 3166-1 alpha 2
 pub const currency_code_length = 3 // ISO 4217
+pub const max_length_sales_channel_name = 63
+pub const max_length_sales_channel_description = 191
 
 pub struct AuthRequest {
 pub:
@@ -146,11 +149,40 @@ fn hygienise_store_request(s string, store_id ID) !conduit.StoreUpdateParams {
 	}
 }
 
-pub struct SalesChannelRequest {
+pub struct SalesChannelCreateRequest {
 pub:
 	name        string
 	description ?string
 	is_disabled ?bool @[json: 'isDisabled']
+}
+
+fn hygienise_sales_channel_create_request(s string, sales_channel_id ID) !conduit.SalesChannelCreateParams {
+	p := json.decode(SalesChannelCreateRequest, s) or {
+		return errors.bad_request('Could not decode SalesChannelCreateRequest', err.msg())
+	}
+
+	if p.name == '' {
+		return errors.unprocessable_entity(error_field_empty, 'name')
+	}
+
+	if utf8_str_visible_length(p.name) > max_length_sales_channel_name {
+		return errors.unprocessable_entity(error_field_too_long,
+			'name can be at most ${max_length_sales_channel_name} UTF8 characters long')
+	}
+
+	if description := p.description {
+		if utf8_str_visible_length(description) > max_length_sales_channel_description {
+			return errors.unprocessable_entity(error_field_too_long,
+				'description can be at most ${max_length_sales_channel_description} UTF8 characters long')
+		}
+	}
+
+	return conduit.SalesChannelCreateParams{
+		id:          sales_channel_id
+		name:        p.name
+		description: p.description
+		is_disabled: bool_or(p.is_disabled, sales_channel_default_is_disabled)
+	}
 }
 
 pub struct SalesChannelUpdateRequest {
@@ -158,6 +190,37 @@ pub:
 	name        ?string
 	description ?string
 	is_disabled ?bool @[json: 'isDisabled']
+}
+
+fn hygienise_sales_channel_update_request(s string, sales_channel_id ID) !conduit.SalesChannelUpdateParams {
+	p := json.decode(SalesChannelUpdateRequest, s) or {
+		return errors.bad_request('Could not decode SalesChannelUpdateRequest', err.msg())
+	}
+
+	if name := p.name {
+		if name == '' {
+			return errors.unprocessable_entity(error_field_empty, 'name')
+		}
+
+		if utf8_str_visible_length(p.name) > max_length_sales_channel_name {
+			return errors.unprocessable_entity(error_field_too_long,
+				'name can be at most ${max_length_sales_channel_name} UTF8 characters long')
+		}
+	}
+
+	if description := p.description {
+		if utf8_str_visible_length(description) > max_length_sales_channel_description {
+			return errors.unprocessable_entity(error_field_too_long,
+				'description can be at most ${max_length_sales_channel_description} UTF8 characters long')
+		}
+	}
+
+	return conduit.SalesChannelUpdateParams{
+		id:          sales_channel_id
+		name:        p.name
+		description: p.description
+		is_disabled: p.is_disabled
+	}
 }
 
 pub struct ImageTranslationRequest {

@@ -38,6 +38,8 @@ pub type RegionRetriveParams = record.RegionRetriveParams
 
 pub type SalesChannel = record.SalesChannel
 pub type SalesChannelRetrieveParams = record.SalesChannelRetrieveParams
+pub type SalesChannelCreateParams = record.SalesChannelCreateParams
+pub type SalesChannelUpdateParams = record.SalesChannelUpdateParams
 pub type SEO = record.SEO
 pub type SEOTranslation = record.SEOTranslation
 pub type SEOTranslationCreateParams = record.SEOTranslationCreateParams

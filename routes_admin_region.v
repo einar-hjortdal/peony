@@ -48,7 +48,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 
 	region := app.with_commit(fn [p, region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
 		conduit.region_create(mut tx, region_id, p)!
-		return conduit.region_get_by_id(mut tx, region_id)
+		return conduit.region_get(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
@@ -65,7 +65,7 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 	}
 
 	region := app.with_rollback(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
-		return conduit.region_get_by_id(mut tx, region_id)
+		return conduit.region_get(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
@@ -86,7 +86,7 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 
 	region := app.with_commit(fn [p, parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
 		conduit.region_update(mut tx, region_id, p)!
-		return conduit.region_get_by_id(mut tx, region_id)
+		return conduit.region_get(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
@@ -101,27 +101,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
 	}
 
-	p := RegionRetriveParams{
-		ids:   [id]
-		fetch: max_fetch
-		order: order_default
-	}
-
-	app.with_commit(fn [p, parsed_region_id] (mut tx firebird.ClientTransaction) !NilReturn {
-		store := conduit.store_retrieve(mut tx)!
-
-		if store.default_region_id.string() == id.string() {
-			return errors.bad_request('Could not delete region', 'Cannot delete default region')
-		}
-
-		count := model_region_retrieve_count(mut tx, p) or {
-			return errors.internal('Could not retrieve region count', err.msg())
-		}
-
-		if count == 1 {
-			return errors.bad_request('Could not delete region', 'Refusing to delete last region')
-		}
-
+	app.with_commit(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !NilReturn {
 		conduit.region_delete(mut ctx, parsed_region_id)!
 		return NilReturn{}
 	}) or { return ctx.handle_error(err) }

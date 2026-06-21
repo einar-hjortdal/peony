@@ -20,7 +20,7 @@ pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) ![]
 	return regions
 }
 
-pub fn region_get_by_id(mut tx firebird.ClientTransaction, region_id ID) !record.Region {
+pub fn region_get(mut tx firebird.ClientTransaction, region_id ID) !record.Region {
 	regions := record.region_retrieve(mut tx, RegionRetriveParams{
 		ids:    [region_id]
 		offset: offset_default
@@ -136,7 +136,7 @@ fn (p RegionUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 		offset:       offset_default
 		fetch:        1
 		order:        order_default
-	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
+	}) or { return errors.internal('Failed to retrieve region count', err.msg()) }
 
 	if count == 0 {
 		return errors.not_found('region not found', 'No region exists with id `${p.id}`')
@@ -177,6 +177,24 @@ pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p RegionUp
 }
 
 pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
+	count := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
+		ids:          [region_id]
+		with_deleted: false
+		offset:       offset_default
+		fetch:        1
+		order:        order_default
+	}) or { return errors.internal('Failed to retrieve region count', err.msg()) }
+
+	if count == 0 {
+		return errors.not_found('Could not find region with id `${region_id.string()}`',
+			'region does not exist or is already deleted')
+	}
+
+	store := store_get(mut tx)!
+	if store.default_region_id.string() == region_id.string() {
+		return errors.bad_request('Could not delete region', 'Cannot delete default region')
+	}
+
 	record.region_delete(mut tx, region_id) or {
 		return errors.internal('Could not delete region', err.msg())
 	}
