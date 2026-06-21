@@ -52,7 +52,7 @@ pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
 		return conduit.api_key_get(mut tx, p.id)
 	}) or { return ctx.handle_error(err) }
 
-	return ctx.handle_ok(APIKeyResponseEnvelope{
+	return ctx.handle_created(APIKeyResponseEnvelope{
 		api_key: format_api_key_response(api_key)
 	})
 }

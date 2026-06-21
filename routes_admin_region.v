@@ -51,13 +51,12 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 		return conduit.region_get(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
 
-	return ctx.handle_ok(RegionResponseEnvelope{
+	return ctx.handle_created(RegionResponseEnvelope{
 		region: format_region_response(region)
 	})
 }
 
 // get a region
-// TODO add query params
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
 	parsed_region_id := id_from_string(region_id) or {

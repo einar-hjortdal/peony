@@ -51,7 +51,7 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 		return conduit.category_get(mut tx, category_id)
 	}) or { return ctx.handle_error(err) }
 
-	return ctx.handle_ok(CategoryResponseEnvelope{
+	return ctx.handle_created(CategoryResponseEnvelope{
 		category: format_category_response(category)
 	})
 }

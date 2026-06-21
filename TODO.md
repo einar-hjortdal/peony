@@ -106,8 +106,8 @@
 - [ ] Search layer
 - [ ] Separate sales from price_list
 - [ ] Limit returned list items to 250 in all requests
-- [ ] Return created resources on creation
-- [ ] Return updated resources on update
+- [x] Return created resources on creation
+- [x] Return updated resources on update
 - [x] Add variant endpoints
 - [ ] Add product option endpoints
 - [ ] Add product option value endpoints
