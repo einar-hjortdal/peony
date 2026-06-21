@@ -12,6 +12,10 @@ pub const region_default_automatic_taxes = true
 pub const region_default_includes_tax = false
 pub const region_default_gift_cards_taxable = true
 
+pub const max_length_region_name = 63
+pub const country_code_length = 2 // ISO 3166-1 alpha 2
+pub const currency_code_length = 3 // ISO 4217
+
 pub struct AuthRequest {
 pub:
 	email    string
@@ -1440,21 +1444,52 @@ fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
 // for a region to limit the requests being sent to a tax provider.
 pub struct RegionCreateRequest {
 pub:
-	automatic_taxes    ?bool    @[json: 'automaticTaxes']
-	country_codes      []string @[json: 'countryCodes']
+	name               string
 	currency_code      string   @[json: 'currencyCode']
 	includes_tax       ?bool    @[json: 'includesTax']
 	gift_cards_taxable ?bool    @[json: 'giftCardsTaxable']
-	name               string
+	automatic_taxes    ?bool    @[json: 'automaticTaxes']
+	country_codes      []string @[json: 'countryCodes']
 	//  taxes
 }
 
-fn (p RegionCreateRequest) hygienise() !conduit.RegionCreateParams {
+fn hygienise_region_create_request(s string, region_id ID) !conduit.RegionCreateParams {
+	p := json.decode(RegionCreateRequest, s) or {
+		return errors.bad_request('Could not decode RegionCreateRequest', err.msg())
+	}
+
+	if p.name == '' {
+		return errors.bad_request(error_field_empty, 'name')
+	}
+
+	if utf8_str_visible_length(p.name) > max_length_region_name {
+		return errors.bad_request(error_field_invalid,
+			'name cannot be longer than ${max_length_region_name} characters. Received `${p.name}`')
+	}
+
+	if p.currency_code == '' {
+		return errors.bad_request(error_field_empty, 'currency_code')
+	}
+
+	if utf8_str_visible_length(p.currency_code) != currency_code_length {
+		return errors.bad_request(error_field_invalid,
+			'currency_code must be ${currency_code_length} characters long. Received `${p.currency_code}`')
+	}
+
 	if p.country_codes.len == 0 {
 		return errors.bad_request(error_empty_object, 'country_codes')
 	}
 
+	for i := 0; i < p.country_codes.len; i++ {
+		code := p.country_codes[i]
+		if utf8_str_visible_length(code) != country_code_length {
+			return errors.bad_request(error_field_invalid,
+				'country_code must be ${country_code_length} characters long. Received `${code}`')
+		}
+	}
+
 	return conduit.RegionCreateParams{
+		id:                 region_id
 		name:               p.name
 		currency_code:      p.currency_code
 		includes_tax:       bool_or(p.includes_tax, region_default_includes_tax)
@@ -1466,23 +1501,58 @@ fn (p RegionCreateRequest) hygienise() !conduit.RegionCreateParams {
 
 pub struct RegionUpdateRequest {
 pub:
-	automatic_taxes    ?bool     @[json: 'automaticTaxes']
-	country_codes      ?[]string @[json: 'countryCodes']
+	name               ?string
 	currency_code      ?string   @[json: 'currencyCode']
 	includes_tax       ?bool     @[json: 'includesTax']
 	gift_cards_taxable ?bool     @[json: 'giftCardsTaxable']
-	name               ?string
+	automatic_taxes    ?bool     @[json: 'automaticTaxes']
+	country_codes      ?[]string @[json: 'countryCodes']
 	//  taxes
 }
 
-fn (p RegionUpdateRequest) hygienise() !conduit.RegionUpdateParams {
+fn hygienise_region_update_request(s string, region_id ID) !conduit.RegionUpdateParams {
+	p := json.decode(RegionUpdateRequest, s) or {
+		return errors.bad_request('Could not decode RegionUpdateRequest', err.msg())
+	}
+
+	if name := p.name {
+		if name == '' {
+			return errors.bad_request(error_field_empty, 'name')
+		}
+
+		if utf8_str_visible_length(name) > max_length_region_name {
+			return errors.bad_request(error_field_invalid,
+				'name cannot be longer than ${max_length_region_name} characters. Received `${name}`')
+		}
+	}
+
+	if currency_code := p.currency_code {
+		if currency_code == '' {
+			return errors.bad_request(error_field_empty, 'currency_code')
+		}
+
+		if utf8_str_visible_length(currency_code) != currency_code_length {
+			return errors.bad_request(error_field_invalid,
+				'currency_code must be ${currency_code_length} characters long. Received `${currency_code}`')
+		}
+	}
+
 	if country_codes := p.country_codes {
 		if country_codes.len == 0 {
 			return errors.bad_request(error_empty_object, 'country_codes')
 		}
+
+		for i := 0; i < country_codes.len; i++ {
+			code := country_codes[i]
+			if utf8_str_visible_length(code) != country_code_length {
+				return errors.bad_request(error_field_invalid,
+					'country_code must be ${country_code_length} characters long. Received `${code}`')
+			}
+		}
 	}
 
 	return conduit.RegionUpdateParams{
+		id:                 region_id
 		name:               p.name
 		currency_code:      p.currency_code
 		includes_tax:       p.includes_tax

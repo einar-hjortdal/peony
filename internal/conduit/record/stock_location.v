@@ -17,10 +17,13 @@ pub fn (sl StockLocation) id() ID {
 	return sl.id
 }
 
-// TODO fetch, order...
 pub struct StockLocationRetrieveParams {
 pub:
-	ids ?[]ID
+	ids          ?[]ID
+	with_deleted bool
+	offset       i32
+	fetch        i32
+	order        string
 }
 
 fn stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []firebird.Value) {
@@ -30,6 +33,10 @@ fn stock_location_retrieve_conditions(p StockLocationRetrieveParams) (string, []
 	if ids := p.ids {
 		conditions = arrays.concat(conditions, 'id IN (${get_placeholders(ids)})')
 		params = arrays.concat(params, ...ids_bytes(ids))
+	}
+
+	if !p.with_deleted {
+		conditions = arrays.concat(conditions, 'deleted_at IS NULL')
 	}
 
 	return get_where_conditions(conditions), params
@@ -47,9 +54,23 @@ pub fn stock_location_retrieve_count(mut tx firebird.ClientTransaction, p StockL
 pub fn stock_location_retrieve(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) ![]StockLocation {
 	conditions, mut params := stock_location_retrieve_conditions(p)
 
-	data := tx.execute('SELECT id, created_at, updated_at, deleted_at, name, address_id 
-		FROM stock_location ${conditions}',
-		...params)!
+	mut sorting := 'ORDER BY created_at ${p.order}
+		OFFSET ? ROWS
+		FETCH NEXT ? ROWS ONLY'
+	params = arrays.concat(params, p.offset, p.fetch)
+
+	query := 'SELECT
+		id,
+		created_at,
+		updated_at,
+		deleted_at,
+		name,
+		address_id
+		FROM stock_location
+		${conditions}
+		${sorting}'
+
+	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
 

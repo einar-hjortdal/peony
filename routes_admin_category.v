@@ -24,7 +24,7 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 	}) or { return ctx.handle_error(err) }
 
 	if data.count == 0 {
-		return ctx.handle_ok(CategoryListResponseEnvelope{
+		return ctx.handle_ok(CategoryResponseListEnvelope{
 			fetch:  p.fetch
 			offset: p.offset
 		})
@@ -35,9 +35,9 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 		external_categories[i] = format_category_response(data.items[i])
 	}
 
-	return ctx.handle_ok(CategoryListResponseEnvelope{
+	return ctx.handle_ok(CategoryResponseListEnvelope{
 		categories: external_categories
-		count:      count
+		count:      data.count
 		fetch:      p.fetch
 		offset:     p.offset
 	})

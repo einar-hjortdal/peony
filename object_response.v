@@ -1118,6 +1118,17 @@ pub struct StockLocationResponse {
 	name       string
 }
 
+pub struct StockLocationResponseListEnvelope {
+	stock_locations []StockLocationResponse @[json: 'stockLocations']
+	count           i64
+	offset          i32
+	fetch           i32
+}
+
+pub struct StockLocationResponseEnvelope {
+	stock_location StockLocationResponse @[json: 'stockLocation']
+}
+
 fn format_stock_location_response(p conduit.StockLocation) StockLocationResponse {
 	return StockLocationResponse{
 		id:         p.id.string()
@@ -1128,13 +1139,10 @@ fn format_stock_location_response(p conduit.StockLocation) StockLocationResponse
 	}
 }
 
-pub struct StockLocationResponseListEnvelope {
-	stock_locations []StockLocationResponse @[json: 'stockLocations']
-	count           i64
-	offset          i32
-	fetch           i32
-}
-
-pub struct StockLocationResponseEnvelope {
-	stock_location StockLocationResponse @[json: 'stockLocation']
+fn format_stock_location_response_list(p []conduit.StockLocation) []StockLocationResponse {
+	mut res := []StockLocationResponse{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] = format_stock_location_response(p[i])
+	}
+	return res
 }

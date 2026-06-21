@@ -30,9 +30,9 @@ pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 		external_api_keys[i] = format_api_key_response(api_key)
 	}
 
-	return ctx.handle_ok(APIKeyListResponseEnvelope{
+	return ctx.handle_ok(APIKeyResponseListEnvelope{
 		api_keys: external_api_keys
-		count:    count
+		count:    data.count
 		offset:   p.offset
 		fetch:    p.fetch
 	})

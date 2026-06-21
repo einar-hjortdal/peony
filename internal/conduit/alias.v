@@ -35,8 +35,6 @@ pub type ProductTranslation = record.ProductTranslation
 pub type ProductRetrieveParams = record.ProductRetrieveParams
 pub type Region = record.Region
 pub type RegionRetriveParams = record.RegionRetriveParams
-pub type RegionCreateParams = record.RegionCreateParams
-pub type RegionUpdateParams = record.RegionUpdateParams
 
 pub type SalesChannel = record.SalesChannel
 pub type SalesChannelRetrieveParams = record.SalesChannelRetrieveParams

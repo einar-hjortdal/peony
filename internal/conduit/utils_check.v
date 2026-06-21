@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import internal.common
 import internal.errors
+import record
 
 // input validation that requires database access
 

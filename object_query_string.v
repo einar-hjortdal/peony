@@ -2,6 +2,8 @@ module peony
 
 import internal.conduit
 
+pub const with_deleted_default = false
+
 // Whenever a translateable resource is requested, the request may contain a LocaleContextQueryParams.
 // If translations exist for the resource requested, the resource will use them.
 pub struct LocaleContextQueryParams {
@@ -94,7 +96,7 @@ fn hygienise_api_key_list_query_params(m map[string]string) !conduit.APIKeyRetri
 
 	return conduit.APIKeyRetrieveParams{
 		ids:          ids
-		with_deleted: bool_or(p.with_deleted, false)
+		with_deleted: bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -136,7 +138,7 @@ fn hygienise_user_list_request_query(m map[string]string) !conduit.UserListParam
 		ids:          ids
 		email:        p.email
 		handle:       p.handle
-		with_deleted: bool_or(p.with_deleted, false)
+		with_deleted: bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -172,7 +174,7 @@ fn hygienise_region_list_request_query(m map[string]string) !conduit.RegionRetri
 
 	return conduit.RegionRetriveParams{
 		ids:          ids
-		with_deleted: bool_or(p.with_deleted, false)
+		with_deleted: bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -375,7 +377,7 @@ fn hygienise_category_list_request_query(m map[string]string) !conduit.CategoryR
 		is_internal:        p.is_active
 		product_ids:        product_ids
 		parent_category_id: parent_category_id
-		with_deleted:       bool_or(p.with_deleted, false)
+		with_deleted:       bool_or(p.with_deleted, with_deleted_default)
 		offset:             get_offset_or_default(p.offset)!
 		fetch:              get_fetch_or_default(p.fetch)!
 		order:              get_order_direction_or_default(p.order)!
@@ -440,7 +442,7 @@ fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetr
 		status:           p.status
 		category_ids:     category_ids
 		sales_channel_id: sales_channel_id
-		with_deleted:     bool_or(p.with_deleted, false)
+		with_deleted:     bool_or(p.with_deleted, with_deleted_default)
 		offset:           get_offset_or_default(p.offset)!
 		fetch:            get_fetch_or_default(p.fetch)!
 		order:            get_order_direction_or_default(p.order)!
@@ -539,5 +541,41 @@ fn extract_variant_list_query_params(m map[string]string) VariantListQueryParams
 		offset:          get_none_i32(m, 'offset')
 		fetch:           get_none_i32(m, 'fetch')
 		order:           get_none_string(m, 'order')
+	}
+}
+
+struct StockLocationQueryParams {
+pub:
+	ids          ?[]string
+	with_deleted ?bool
+	offset       ?i32
+	fetch        ?i32
+	order        ?string
+}
+
+fn extract_stock_location_query_params(m map[string]string) StockLocationQueryParams {
+	return StockLocationQueryParams{
+		ids:          get_none_array_string(m, 'ids')
+		with_deleted: get_none_bool(m, 'with_deleted')
+		offset:       get_none_i32(m, 'offset')
+		fetch:        get_none_i32(m, 'fetch')
+		order:        get_none_string(m, 'order')
+	}
+}
+
+fn hygienise_stock_location_query_params(m map[string]string) !conduit.StockLocationRetrieveParams {
+	p := extract_stock_location_query_params(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
+	}
+
+	return conduit.StockLocationRetrieveParams{
+		ids:          ids
+		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		offset:       get_offset_or_default(p.offset)!
+		fetch:        get_fetch_or_default(p.fetch)!
+		order:        get_order_direction_or_default(p.order)!
 	}
 }

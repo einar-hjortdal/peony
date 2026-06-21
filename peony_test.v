@@ -1,5 +1,5 @@
 import peony
-import peony.providers
+import providers
 
 // deps
 import json

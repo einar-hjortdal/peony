@@ -32,6 +32,7 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 
 	if data.count == 0 {
 		return ctx.handle_ok(LocaleResponseListEnvelope{
+			count:  data.count
 			offset: p.offset
 			fetch:  p.fetch
 		})

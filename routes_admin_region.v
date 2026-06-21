@@ -1,7 +1,6 @@
 module peony
 
 import veb
-import json
 import einar_hjortdal.firebird
 import internal.conduit
 import internal.errors
@@ -42,19 +41,12 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 // creates a region
 @['/admin/regions/'; post]
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
-	data := json.decode(RegionCreateRequest, ctx.req.data) or {
-		return ctx.handle_error(errors.bad_request('Could not decode RegionCreateRequest',
-			err.msg()))
-	}
-	p := data.hygienise() or { return ctx.handle_error(err) }
 	region_id := app.gen_id()
+	p := hygienise_region_create_request(ctx.req.data, region_id) or {
+		return ctx.handle_error(err)
+	}
 
 	region := app.with_commit(fn [p, region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
-		// TODO validation
-		// error if currency_code not in currency table
-		// for each country_code error if code not in country table
-		// for each country_code error if country already in another region
-		// this can be abstracted to a utility function because it would be reused in region update endpoint
 		conduit.region_create(mut tx, region_id, p)!
 		return conduit.region_get_by_id(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
@@ -88,30 +80,18 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
 	}
 
-	data := json.decode(RegionUpdateRequest, ctx.req.data) or {
-		return ctx.handle_error(errors.bad_request('Could not decode RegionUpdateRequest',
-			err.msg()))
+	p := hygienise_region_update_request(ctx.req.data, parsed_region_id) or {
+		return ctx.handle_error(err)
 	}
-	p := data.hygienise() or { return ctx.handle_error(err) }
 
 	region := app.with_commit(fn [p, parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
-		// TODO validation
-		// error if currency_code not in currency table
-		// for each country_code error if code not in country table
-		// for each country_code error if country already in another region
-		// this can be abstracted to a utility function because it would be reused in region update endpoint
 		conduit.region_update(mut tx, region_id, p)!
 		return conduit.region_get_by_id(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
 
-	if country_codes := data.country_codes {
-		if country_codes.len == 0 {
-			perr := errors.bad_request(error_empty_object, 'country_codes')
-			return ctx.handle_error(perr)
-		}
-	}
-
-	return conduit_region_update(mut app, mut ctx, region_id_bin, data)
+	return ctx.handle_ok(RegionResponseEnvelope{
+		region: format_region_response(region)
+	})
 }
 
 // deletes a region

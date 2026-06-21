@@ -252,7 +252,7 @@ pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) 
 		return errors.internal('Failed to retrieve product', err.msg())
 	}
 
-	mut products_map, product_ids := make_identifiable_map(products)
+	mut products_map, product_ids := common.make_identifiable_map(products)
 	get_products_translations(mut tx, mut products_map, product_ids)!
 	get_products_seo(mut tx, mut products_map, product_ids)!
 	get_products_images(mut tx, mut products_map, product_ids)!

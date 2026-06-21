@@ -3,7 +3,9 @@ module peony
 import net.http
 import json
 import log
+import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 
 pub const header_store_api_key = 'Peony-Store-API-Key'
 
@@ -23,7 +25,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 		}
 
 		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(new_error_unauthorized('Invalid session', err.msg()))
+		ctx.json(errors.unauthorized('Invalid session', err.msg()))
 		return false
 	}
 
@@ -35,7 +37,7 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 
 	app.session_store.save(mut ctx.res.header, ctx.user_session) or {
 		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(new_error_internal('Failed to save session', err.msg()))
+		ctx.json(errors.internal('Failed to save session', err.msg()))
 		return false
 	}
 
@@ -45,21 +47,20 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 	api_key_string := ctx.get_custom_header(header_store_api_key) or {
 		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(new_error_unauthorized(error_api_key_invalid,
+		ctx.json(errors.unauthorized(error_api_key_invalid,
 			'Missing ${header_store_api_key} header'))
 		return false
 	}
 
 	if api_key_string == '' {
 		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(new_error_unauthorized(error_api_key_invalid,
-			'Empty ${header_store_api_key} header'))
+		ctx.json(errors.unauthorized(error_api_key_invalid, 'Empty ${header_store_api_key} header'))
 		return false
 	}
 
 	api_key_id := id_from_string(api_key_string) or {
 		ctx.res.set_status(http.Status.unprocessable_entity)
-		ctx.json(new_error_unprocessable_entity(error_api_key_invalid, 'Could not parse API Key'))
+		ctx.json(errors.unprocessable_entity(error_api_key_invalid, 'Could not parse API Key'))
 		return false
 	}
 
@@ -68,12 +69,9 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return true
 	}
 
-	mut tx := app.start_transaction() or { return ctx.middleware_handle_error(err) }
-	api_key := conduit.api_key_get(mut tx, api_key_id) or {
-		tx.rollback() or {}
-		return ctx.middleware_handle_error(err)
-	}
-	tx.rollback() or {}
+	api_key := app.with_rollback(fn [api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
+		return conduit.api_key_get(mut tx, api_key_id)
+	}) or { return ctx.middleware_handle_error(err) }
 
 	app.cache_set_api_key(api_key) or {
 		log.warn('middleware_get_api_key failed to cache API key: ${err.msg()}')

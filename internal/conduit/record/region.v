@@ -114,6 +114,7 @@ pub fn region_retrieve(mut tx firebird.ClientTransaction, p RegionRetriveParams)
 
 pub struct RegionCreateParams {
 pub:
+	id                 ID
 	name               string
 	currency_code      string
 	includes_tax       bool
@@ -122,8 +123,7 @@ pub:
 	country_codes      []string
 }
 
-// TODO handle tax rate: f32 is provided, create tax rate and add relation.
-pub fn region_create(mut tx firebird.ClientTransaction, region_id ID, p RegionCreateParams) ! {
+pub fn region_create(mut tx firebird.ClientTransaction, p RegionCreateParams) ! {
 	mut columns := [
 		'id',
 		'name',
@@ -133,7 +133,7 @@ pub fn region_create(mut tx firebird.ClientTransaction, region_id ID, p RegionCr
 		'automatic_taxes',
 	]
 	mut params := [
-		firebird.Value(region_id.bytes()),
+		firebird.Value(p.id.bytes()),
 		p.name,
 		p.currency_code,
 		p.includes_tax,
@@ -150,6 +150,7 @@ pub fn region_create(mut tx firebird.ClientTransaction, region_id ID, p RegionCr
 
 pub struct RegionUpdateParams {
 pub:
+	id                 ID
 	name               ?string
 	currency_code      ?string
 	includes_tax       ?bool
@@ -158,7 +159,7 @@ pub:
 	country_codes      ?[]string
 }
 
-pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p RegionUpdateParams) ! {
+pub fn region_update(mut tx firebird.ClientTransaction, p RegionUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -182,7 +183,7 @@ pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p RegionUp
 		params = arrays.concat(params, includes_tax)
 	}
 
-	params = arrays.concat(params, region_id.bytes())
+	params = arrays.concat(params, p.id.bytes())
 
 	tx.execute('UPDATE region SET ${get_set_columns_with_updated_at(columns)} WHERE id = ?',
 		...params)!
