@@ -273,6 +273,13 @@ fn unwrap_option_or[T](option_type ?T, default_value T) T {
 	return default_value
 }
 
+fn unwrap_option_or_option[T](option_type ?T, default_option ?T) ?T {
+	if some_value := option_type {
+		return some_value
+	}
+	return default_option
+}
+
 fn keys[T](m map[string]T) []string {
 	r := []string{len: m.len}
 	mut i := 0

@@ -136,6 +136,7 @@
 - [x] Transaction management
 - [x] Routes should not call models, only conduit.
 - [x] Refactor record fields to use option types instead of firebird.NullT
+- [ ] Use maps internally for translations for potentially more efficient response formatting
 
 ## Upstream
 

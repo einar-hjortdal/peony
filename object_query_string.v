@@ -356,7 +356,7 @@ fn extract_category_list_request_query(m map[string]string) CategoryListQueryPar
 	}
 }
 
-fn hygienise_category_list_request_query(m map[string]string) !conduit.CategoryRetrieveParams {
+fn hygienise_category_list_query_params(m map[string]string) !conduit.CategoryRetrieveParams {
 	p := extract_category_list_request_query(m)
 
 	mut ids := ?[]ID(none)
@@ -382,6 +382,61 @@ fn hygienise_category_list_request_query(m map[string]string) !conduit.CategoryR
 		product_ids:        product_ids
 		parent_category_id: parent_category_id
 		with_deleted:       bool_or(p.with_deleted, with_deleted_default)
+		offset:             get_offset_or_default(p.offset)!
+		fetch:              get_fetch_or_default(p.fetch)!
+		order:              get_order_direction_or_default(p.order)!
+	}
+}
+
+pub struct CategoryListQueryParamsStore {
+pub:
+	ids                ?[]string
+	handle             ?string
+	product_ids        ?[]string
+	parent_category_id ?string
+	offset             ?i32
+	fetch              ?i32
+	order              ?string
+}
+
+fn extract_category_list_request_query_store(m map[string]string) CategoryListQueryParamsStore {
+	return CategoryListQueryParamsStore{
+		ids:                get_none_array_string(m, 'ids')
+		handle:             get_none_string(m, 'handle')
+		product_ids:        get_none_array_string(m, 'product_ids')
+		parent_category_id: get_none_string(m, 'parent_category_id')
+		offset:             get_none_i32(m, 'offset')
+		fetch:              get_none_i32(m, 'fetch')
+		order:              get_none_string(m, 'order')
+	}
+}
+
+fn hygienise_category_list_query_params_store(m map[string]string) !conduit.CategoryRetrieveParams {
+	p := extract_category_list_request_query_store(m)
+
+	mut ids := ?[]ID(none)
+	if ids_string := p.ids {
+		ids = ids_from_array_string(ids_string)!
+	}
+
+	mut parent_category_id := ?ID(none)
+	if id_string := p.parent_category_id {
+		parent_category_id = id_from_string(id_string)!
+	}
+
+	mut product_ids := ?[]ID(none)
+	if ids_string := p.product_ids {
+		product_ids = ids_from_array_string(ids_string)!
+	}
+
+	return conduit.CategoryRetrieveParams{
+		ids:                ids
+		handle:             p.handle
+		is_active:          true
+		is_internal:        false
+		product_ids:        product_ids
+		parent_category_id: parent_category_id
+		with_deleted:       with_deleted_default
 		offset:             get_offset_or_default(p.offset)!
 		fetch:              get_fetch_or_default(p.fetch)!
 		order:              get_order_direction_or_default(p.order)!

@@ -797,6 +797,14 @@ pub:
 	fetch      i32
 }
 
+fn format_category_response_list(p []conduit.Category) []CategoryResponse {
+	mut res := []CategoryResponse{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] = format_category_response(p[i])
+	}
+	return res
+}
+
 pub struct CategoryResponseStore {
 pub:
 	id                 string
@@ -811,23 +819,30 @@ pub:
 }
 
 fn format_category_response_store(p conduit.Category, locale_context LocaleContext) CategoryResponseStore {
+	mut name := p.name
+	mut description := p.description
 	mut seo_title := p.seo.title
 	mut seo_description := p.seo.description
 
 	if locale_id := locale_context.locale_id {
+		for i := 0; i < p.translations.len; i++ {
+			translation := p.translations[i]
+			if translation.locale_id.string() != locale_id.string() {
+				continue
+			}
+
+			name = unwrap_option_or(translation.name, name)
+			description = unwrap_option_or_option(translation.description, description)
+		}
+
 		for i := 0; i < p.seo.translations.len; i++ {
 			translation := p.seo.translations[i]
 			if translation.locale_id.string() != locale_id.string() {
 				continue
 			}
 
-			if title := translation.title {
-				seo_title = title
-			}
-
-			if description := translation.description {
-				seo_description = description
-			}
+			seo_title = unwrap_option_or_option(translation.title, seo_title)
+			seo_description = unwrap_option_or_option(translation.description, seo_description)
 		}
 	}
 
@@ -843,8 +858,8 @@ fn format_category_response_store(p conduit.Category, locale_context LocaleConte
 		handle:             p.handle
 		parent_category_id: format_none_id(p.parent_category_id)
 		metadata:           p.metadata
-		name:               p.name
-		description:        p.description
+		name:               name
+		description:        description
 		seo:                seo
 	}
 }
@@ -860,6 +875,14 @@ pub:
 	count      i64
 	offset     i32
 	fetch      i32
+}
+
+fn format_category_response_list_store(p []conduit.Category, locale_context LocaleContext) []CategoryResponseStore {
+	mut res := []CategoryResponseStore{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] = format_category_response_store(p[i], locale_context)
+	}
+	return res
 }
 
 pub struct VariantResponseEnvelope {

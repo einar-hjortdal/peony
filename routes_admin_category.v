@@ -8,7 +8,7 @@ import internal.conduit
 // lists category
 @['/admin/categories'; get]
 pub fn (mut app App) category_list(mut ctx Context) veb.Result {
-	p := hygienise_category_list_request_query(ctx.query) or { return ctx.handle_error(err) }
+	p := hygienise_category_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
 	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
 		count := conduit.category_list_count(mut tx, p)!
@@ -30,13 +30,8 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 		})
 	}
 
-	mut external_categories := []CategoryResponse{len: data.items.len}
-	for i := 0; i < data.items.len; i++ {
-		external_categories[i] = format_category_response(data.items[i])
-	}
-
 	return ctx.handle_ok(CategoryResponseListEnvelope{
-		categories: external_categories
+		categories: format_category_response_list(data.items)
 		count:      data.count
 		fetch:      p.fetch
 		offset:     p.offset

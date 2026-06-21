@@ -196,7 +196,7 @@ pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateData) ! 
 	}
 }
 
-fn conduit_variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
+fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
 	record.variant_delete(mut tx, variant_id) or {
 		return errors.internal('Could not delete variant', err.msg())
 	}
