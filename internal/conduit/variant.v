@@ -25,6 +25,7 @@ fn get_variants_inventory_items(mut tx firebird.ClientTransaction, mut variants_
 	}
 
 	mut item_map, item_ids := common.make_identifiable_map(inventory_items)
+	get_item_availability(mut tx, mut item_map, item_ids)!
 	get_inventory_items_levels(mut tx, mut item_map, item_ids)!
 
 	for item_id, item in item_map {

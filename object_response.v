@@ -156,16 +156,16 @@ pub:
 	decimal_digits ?i32 @[json: 'decimalDigits'; omitempty]
 }
 
+pub struct CurrencyResponseEnvelope {
+pub:
+	currency CurrencyResponse
+}
+
 fn format_currency_response(c conduit.Currency) CurrencyResponse {
 	return CurrencyResponse{
 		code:           c.code
 		decimal_digits: c.decimal_digits
 	}
-}
-
-pub struct CurrencyResponseEnvelope {
-pub:
-	currency CurrencyResponse
 }
 
 pub struct CurrencyResponseListEnvelope {
@@ -174,6 +174,14 @@ pub:
 	count      i64
 	offset     i32
 	fetch      i32
+}
+
+fn format_currency_list_response(p []conduit.Currency) []CurrencyResponse {
+	mut res := []CurrencyResponse{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] = format_currency_response(p[i])
+	}
+	return res
 }
 
 pub struct CountryResponse {
@@ -640,26 +648,26 @@ fn format_variant_response(v conduit.Variant) VariantResponse {
 
 pub struct VariantResponseStore {
 pub:
-	id                 string
-	created_at         time.Time                    @[json: 'createdAt']
-	updated_at         time.Time                    @[json: 'updatedAt']
-	deleted_at         ?time.Time                   @[json: 'deletedAt'; omitempty]
-	product_id         string                       @[json: 'productId']
-	title              ?string                      @[omitempty]
-	barcode            ?string                      @[omitempty]
-	ean                ?string                      @[omitempty]
-	upc                ?string                      @[omitempty]
-	variant_rank       i32                          @[json: 'variantRank']
-	metadata           ?string                      @[omitempty]
-	image_id           ?string                      @[omitempty]
-	option_values      []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
-	inventory_quantity i32 @[json: 'inventoryQuantity']
-	purchasable        bool
-	price              VariantPriceResponse
+	id               string
+	created_at       time.Time                    @[json: 'createdAt']
+	updated_at       time.Time                    @[json: 'updatedAt']
+	deleted_at       ?time.Time                   @[json: 'deletedAt'; omitempty]
+	product_id       string                       @[json: 'productId']
+	title            ?string                      @[omitempty]
+	barcode          ?string                      @[omitempty]
+	ean              ?string                      @[omitempty]
+	upc              ?string                      @[omitempty]
+	variant_rank     i32                          @[json: 'variantRank']
+	metadata         ?string                      @[omitempty]
+	image_id         ?string                      @[omitempty]
+	option_values    []ProductOptionValueResponse @[json: 'optionValues'; omitempty]
+	amount_available i32 @[json: 'amountAvailable']
+	purchasable      bool
+	price            VariantPriceResponse
 }
 
-fn format_variant_response_store(v conduit.Variant, p VariantPrice, product_variants_availability map[string]ProductVariantAvailability) VariantResponseStore {
-	product_variant_availability := product_variants_availability[v.id.string()]
+fn format_variant_response_store(v conduit.Variant, p VariantPrice, sales_channel_id ID) VariantResponseStore {
+	availability := get_variant_availability(v, sales_channel_id)
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
 	for i := 0; i < v.option_values.len; i++ {
@@ -667,22 +675,22 @@ fn format_variant_response_store(v conduit.Variant, p VariantPrice, product_vari
 	}
 
 	return VariantResponseStore{
-		id:                 v.id.string()
-		created_at:         v.created_at.Time
-		updated_at:         v.updated_at.Time
-		deleted_at:         format_none_date_time(v.deleted_at)
-		product_id:         v.product_id.string()
-		title:              v.title
-		barcode:            v.barcode
-		ean:                v.ean
-		upc:                v.upc
-		variant_rank:       v.variant_rank
-		metadata:           v.metadata
-		image_id:           format_none_id(v.image_id)
-		inventory_quantity: product_variant_availability.inventory_quantity
-		option_values:      option_values
-		price:              format_variant_price_response(p)
-		purchasable:        product_variant_availability.purchasable
+		id:               v.id.string()
+		created_at:       v.created_at.Time
+		updated_at:       v.updated_at.Time
+		deleted_at:       format_none_date_time(v.deleted_at)
+		product_id:       v.product_id.string()
+		title:            v.title
+		barcode:          v.barcode
+		ean:              v.ean
+		upc:              v.upc
+		variant_rank:     v.variant_rank
+		metadata:         v.metadata
+		image_id:         format_none_id(v.image_id)
+		amount_available: availability.amount_available
+		option_values:    option_values
+		price:            format_variant_price_response(p)
+		purchasable:      availability.purchasable
 	}
 }
 
@@ -960,6 +968,11 @@ pub:
 	// tags         []Tag                       @[omitempty] // return ids only
 }
 
+pub struct ProductResponseEnvelope {
+pub:
+	product ProductResponse
+}
+
 fn format_product_response(p conduit.Product) ProductResponse {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
@@ -1010,17 +1023,20 @@ fn format_product_response(p conduit.Product) ProductResponse {
 	}
 }
 
-pub struct ProductResponseEnvelope {
-pub:
-	product ProductResponse
-}
-
 pub struct ProductResponseListEnvelope {
 pub:
 	products []ProductResponse
 	count    i64
 	offset   i32
 	fetch    i32
+}
+
+fn format_product_list_response(p []conduit.Product) []ProductResponse {
+	mut res := []ProductResponse{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] = format_product_response(p[i])
+	}
+	return res
 }
 
 pub struct ProductResponseStore {
@@ -1047,7 +1063,11 @@ pub:
 	// tags         []Tag                       @[omitempty]
 }
 
-fn format_product_response_store(p conduit.Product, pctx PriceContext, default_region_id ID, product_variants_availability map[string]ProductVariantAvailability, locale_context LocaleContext) ProductResponseStore {
+pub struct ProductResponseStoreEnvelope {
+	product ProductResponseStore
+}
+
+fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id ID, default_region_id ID, locale_context LocaleContext) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -1070,7 +1090,7 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, default_r
 	for i := 0; i < p.variants.len; i++ {
 		variant := p.variants[i]
 		prices := calculate_price(variant, default_region_id, pctx, 1)
-		variants[i] = format_variant_response_store(variant, prices, product_variants_availability)
+		variants[i] = format_variant_response_store(variant, prices, sales_channel_id)
 	}
 
 	mut seo_title := p.seo.title
@@ -1122,15 +1142,20 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, default_r
 	}
 }
 
-pub struct ProductResponseStoreEnvelope {
-	product ProductResponseStore
-}
-
 pub struct ProductResponseStoreListEnvelope {
 	products []ProductResponseStore
 	count    i64
 	offset   i32
 	fetch    i32
+}
+
+fn format_product_response_store_list(p []conduit.Product, pctx PriceContext, sales_channel_id ID, default_region_id ID, lctx LocaleContext) []ProductResponseStore {
+	mut res := []ProductResponseStore{len: p.len}
+	for i := 0; i < p.len; i++ {
+		res[i] =
+			format_product_response_store(p[i], pctx, default_region_id, sales_channel_id, lctx)
+	}
+	return res
 }
 
 pub struct UploadsUploadResponseEnvelope {

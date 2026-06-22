@@ -90,28 +90,68 @@ pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_ite
 
 pub struct InventoryLevelUpdateParams {
 pub:
-	inventory_item_id ID
-	stock_location_id ID
-	stocked_quantity  i32
+	inventory_item_id   ID
+	stock_location_id   ID
+	quantity_adjustment i32
 }
 
 pub fn inventory_level_update(mut tx firebird.ClientTransaction, p InventoryLevelUpdateParams) ! {
-	tx.execute('MERGE INTO inventory_level t
-		USING (
-			SELECT
-				CAST(? AS BINARY(16)) AS inventory_item_id,
-				CAST(? AS BINARY(16)) AS stock_location_id,
-				CAST(? AS INTEGER) AS stocked_quantity
-			FROM RDB\$DATABASE
-		) s
-		ON t.inventory_item_id = s.inventory_item_id
-		AND t.stock_location_id = s.stock_location_id
-		WHEN MATCHED THEN 
-			UPDATE SET t.stocked_quantity = s.stocked_quantity
+	data := tx.execute('UPDATE inventory_level
+			SET stocked_quantity = stocked_quantity + ?
+			WHERE inventory_item_id = ?
+				AND stock_location_id = ?',
+		p.quantity_adjustment, p.inventory_item_id.bytes(), p.stock_location_id.bytes())!
+
+	if data.affected_rows() == 0 {
+		tx.execute('INSERT INTO inventory_level (inventory_item_id, stock_location_id, stocked_quantity)
+			VALUES (?, ?, ?)',
+			p.inventory_item_id.bytes(), p.stock_location_id.bytes(), p.quantity_adjustment)!
+	}
+
+	tx.execute('MERGE INTO item_availability t
+		USING (SELECT sales_channel_id FROM sales_channel_stock_location WHERE stock_location_id = ?) s
+		ON t.item_id = ? AND t.sales_channel_id = s.sales_channel_id
+		WHEN MATCHED THEN
+			UPDATE SET t.amount = t.amount + ?
 		WHEN NOT MATCHED THEN
-			INSERT (inventory_item_id, stock_location_id, stocked_quantity)
-			VALUES (s.inventory_item_id, s.stock_location_id, s.stocked_quantity)',
-		p.inventory_item_id.bytes(), p.stock_location_id.bytes(), p.stocked_quantity)!
+			INSERT (item_id, sales_channel_id, amount)
+			VALUES (?, s.sales_channel_id, ?)',
+		p.stock_location_id.bytes(), p.inventory_item_id.bytes(), p.quantity_adjustment,
+		p.inventory_item_id.bytes(), p.quantity_adjustment)!
+}
+
+pub struct ItemAvailability {
+pub:
+	item_id          ID
+	sales_channel_id ID
+	amount           i32
+}
+
+pub fn item_availability_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]ItemAvailability {
+	data := tx.execute('SELECT item_id, sales_channel_id, amount 
+		FROM item_availability
+		WHERE item_id IN (${get_placeholders(inventory_item_ids)})',
+		...ids_bytes(inventory_item_ids))!
+
+	rows := data.rows()
+	mut item_availabilities := []ItemAvailability{len: rows.len}
+	for i := 0; i < rows.len; i++ {
+		v := rows[i].values()
+		item_id_bin, _ := v[0].get_array_u8()!
+		sales_channel_id_bin, _ := v[1].get_array_u8()!
+		amount, _ := v[2].get_i32()!
+
+		item_id := id_from_bytes(item_id_bin)!
+		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
+
+		item_availabilities[i] = ItemAvailability{
+			item_id:          item_id
+			sales_channel_id: sales_channel_id
+			amount:           amount
+		}
+	}
+
+	return item_availabilities
 }
 
 pub struct InventoryItem {
@@ -134,6 +174,7 @@ pub:
 	manage_inventory  bool
 	allow_backorder   bool
 pub mut:
+	availability     []ItemAvailability
 	inventory_levels []InventoryLevel
 }
 

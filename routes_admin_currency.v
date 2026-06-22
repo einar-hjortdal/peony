@@ -29,13 +29,8 @@ pub fn (mut app App) admin_currencies_get(mut ctx Context) veb.Result {
 		})
 	}
 
-	mut external_currencies := []CurrencyResponse{len: data.items.len}
-	for i := 0; i < data.items.len; i++ {
-		external_currencies[i] = format_currency_response(data.items[i])
-	}
-
 	return ctx.handle_ok(CurrencyResponseListEnvelope{
-		currencies: external_currencies
+		currencies: format_currency_list_response(data.items)
 		count:      data.count
 		offset:     p.offset
 		fetch:      p.fetch

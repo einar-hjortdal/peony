@@ -400,10 +400,13 @@ CREATE TABLE item_reservation (
   CONSTRAINT "069f0dfa-384e-1ecf-4800-320b140bbc55" PRIMARY KEY (id),
   CONSTRAINT "069f0dfa-384f-15bd-d400-a029efe0e028" FOREIGN KEY (item_id) REFERENCES inventory_item (id) ON DELETE CASCADE,
   CONSTRAINT "069f0dfa-384f-192d-2400-ee7a9b2b1d9c" FOREIGN KEY (sales_channel_id) REFERENCES sales_channel (id) ON DELETE CASCADE,
-  CONSTRAINT "069f0dfa-384f-15bd-d400-a029efe0e028" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id) ON DELETE CASCADE
+  CONSTRAINT "069f0dfa-3850-108d-6000-5db231aba639" FOREIGN KEY (stock_location_id) REFERENCES stock_location (id) ON DELETE CASCADE,
+  CONSTRAINT "069f0dfa-3850-165d-0000-3be93ac23c16" CHECK (amount > 0)
 );
 
+CREATE INDEX "069f0dfa-3850-16dc-6000-ec0a4f1249b2" ON item_reservation (expires_at);
 -- CREATE INDEX "069f0dfa-384f-1a60-b400-b751267a2d6c" ON item_reservation (checkout_id);
+CREATE INDEX "069f0dfa-384f-1d24-4800-ed9cdf5100e4" ON item_reservation (item_id, stock_location_id);
 
 CREATE TABLE api_key (
   id BINARY(16) NOT NULL,

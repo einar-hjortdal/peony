@@ -12,3 +12,8 @@ pub const role_member = 'member'
 pub const role_developer = 'developer'
 pub const role_author = 'author'
 pub const role_contributor = 'contributor'
+
+pub const product_status_draft = 'draft'
+pub const product_status_proposed = 'proposed'
+pub const product_status_published = 'published'
+pub const product_status_rejected = 'rejected'

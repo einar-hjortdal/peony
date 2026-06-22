@@ -15,9 +15,9 @@ pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id 
 
 pub struct InventoryLevelUpdateParams {
 pub:
-	inventory_item_id ID
-	stock_location_id ID
-	stocked_quantity  i32
+	inventory_item_id   ID
+	stock_location_id   ID
+	quantity_adjustment i32
 }
 
 fn (p InventoryLevelUpdateParams) check(mut tx firebird.ClientTransaction) ! {
@@ -34,9 +34,9 @@ fn (p InventoryLevelUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 
 fn (p InventoryLevelUpdateParams) parse() record.InventoryLevelUpdateParams {
 	return record.InventoryLevelUpdateParams{
-		inventory_item_id: p.inventory_item_id
-		stock_location_id: p.stock_location_id
-		stocked_quantity:  p.stocked_quantity
+		inventory_item_id:   p.inventory_item_id
+		stock_location_id:   p.stock_location_id
+		quantity_adjustment: p.quantity_adjustment
 	}
 }
 
@@ -58,5 +58,18 @@ fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map m
 		item_id := inventory_levels[i].inventory_item_id
 		old := items_map[item_id.string()].inventory_levels
 		items_map[item_id.string()].inventory_levels = arrays.concat(old, level)
+	}
+}
+
+fn get_item_availability(mut tx firebird.ClientTransaction, mut items_map map[string]record.InventoryItem, items_ids []ID) ! {
+	item_availabilities := record.item_availability_retrieve(mut tx, items_ids) or {
+		return errors.internal('Failed to retrieve item_availability', err.msg())
+	}
+
+	for i := 0; i < item_availabilities.len; i++ {
+		availability := item_availabilities[i]
+		item_id := availability.item_id
+		old := items_map[item_id.string()].availability
+		items_map[item_id.string()].availability = arrays.concat(old, availability)
 	}
 }

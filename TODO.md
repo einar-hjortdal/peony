@@ -105,7 +105,7 @@
 - [ ] Worker mode
 - [ ] Search layer
 - [ ] Separate sales from price_list
-- [ ] Limit returned list items to 250 in all requests
+- [x] Limit returned list items to 250 in all requests
 - [x] Return created resources on creation
 - [x] Return updated resources on update
 - [x] Add variant endpoints

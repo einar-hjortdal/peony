@@ -22,7 +22,9 @@ fn hygienise_locale_context_query_params(m map[string]string) !LocaleContext {
 	p := extract_locale_context_query_params(m)
 	mut locale_id := ?ID(none)
 	if id_string := p.locale_id {
-		locale_id = id_from_string(id_string)!
+		locale_id = id_from_string(id_string) or {
+			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+		}
 	}
 
 	return LocaleContext{

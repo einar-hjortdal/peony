@@ -1,44 +1,35 @@
 module peony
 
 import veb
+import einar_hjortdal.firebird
 import internal.conduit
 
 @['/store/currencies/'; get]
 pub fn (mut app App) store_currencies_get(mut ctx Context) veb.Result {
 	p := hygienise_currency_list_query(ctx.query) or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
+		count := conduit.currency_list_count(mut tx, p)
+		if count == 0 {
+			return ListReturn{}
+		}
 
-	count := conduit.currency_list_count(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
+		currencies := conduit.currency_list(mut tx, p)!
+		return ListReturn{
+			count: count
+			items: currencies
+		}
+	}) or { return ctx.handle_error(err) }
 
-	if count == 0 {
-		tx.rollback() or {}
+	if data.count == 0 {
 		return ctx.handle_ok(CurrencyResponseListEnvelope{
 			offset: p.offset
 			fetch:  p.fetch
 		})
 	}
 
-	currencies := conduit.currency_list(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	mut external_currencies := []CurrencyResponse{len: currencies.len}
-	for i := 0; i < currencies.len; i++ {
-		external_currencies[i] = format_currency_response(currencies[i])
-	}
-
 	return ctx.handle_ok(CurrencyResponseListEnvelope{
-		currencies: external_currencies
+		currencies: format_currency_list_response(data.items)
 		count:      count
 		offset:     p.offset
 		fetch:      p.fetch
@@ -50,24 +41,15 @@ pub fn (mut app App) store_currencies_get(mut ctx Context) veb.Result {
 @['/store/currencies/:code'; get]
 pub fn (mut app App) store_currencies_get_by_code(mut ctx Context, code string) veb.Result {
 	if utf8_str_visible_length(code) > length_currency_code {
-		perr := new_error_unprocessable_entity(error_field_too_long,
-			'currency code must be exactly ${length_currency_code} UTF8 characters long')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.unprocessable_entity(error_field_too_long,
+			'currency code must be exactly ${length_currency_code} UTF8 characters long'))
 	}
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	currency := conduit.currency_get(mut tx, code) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.rollback() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
+	currency := app.with_rollback(fn [code] (mut tx firebird.ClientTransaction) !conduit.Currency {
+		return conduit.currency_get(mut tx, code)
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(CurrencyResponseEnvelope{
-		currencies: format_currency_response(currency)
+		currency: format_currency_response(currency)
 	})
 }

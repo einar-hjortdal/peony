@@ -178,7 +178,7 @@ A `inventory_level` is the amount of `inventory_item` in one `stock_location`.
 
 #### Overselling, underselling, contention (WIP)
 
-Items in a cart must be purchaseable: the `item_availability` table keeps track of the purchaseable amounts for each sales channel.
+Items in a cart must be purchaseable: the `item_availability` table keeps track of the purchaseable amounts for each sales channel. This table must be kept up to date at the application level: every update to the inventory_level, sales_channel_stock_location and product_sales_channel tables must also update item_availability while ensuring race conditions resistance.
 
 When a customer starts the payment process, `item_availability` is decremented and a `item_reservation` are created. This happens within the same transaction, and if availability decrement fails, then no reservation is created. This effectively prevents overselling.
 
@@ -193,11 +193,11 @@ WHERE item_id = ?
 
 Once a payment is successful, `inventory_level.stocked_quantity` is adjusted, then related `item_reservation` rows are deleted.
 
-If a payment fails, `item_reservation` rows are scanned, `inventory_level.reserved_quantity`, `item_availability.amount` are reverted, and then the reservation rows are deleted.
+If a payment fails, `item_reservation` rows are scanned, `item_availability.amount` are reverted, and then the reservation rows are deleted.
 
 A periodic scan (worker) will ensure that expired `item_reservation` are processed just like payment failures.
 
-Interesting read: [shopify.engineering/scaling-inventory-reservations](https://shopify.engineering/scaling-inventory-reservations?utm_source=copilot.com)
+Interesting read: the [Shopify engineering team](https://shopify.engineering/scaling-inventory-reservations?utm_source=copilot.com) wrote about solving inventory reservations at scale with MySQL alone, dropping Redis.
 
 ### Inventory management
 

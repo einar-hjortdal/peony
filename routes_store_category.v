@@ -8,10 +8,7 @@ import internal.conduit
 // TODO cache
 @['/store/categories'; get]
 pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
-	locale_context := hygienise_locale_context_query_params(ctx.query) or {
-		return ctx.handle_error(err)
-	}
-
+	locale_context := ctx.get_locale_context() or { return ctx.handle_error(err) }
 	p := hygienise_category_list_query_params_store(ctx.query) or { return ctx.handle_error(err) }
 
 	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
@@ -46,13 +43,9 @@ pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 // TODO cache
 @['/store/categories/:category_id'; get]
 pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb.Result {
-	locale_context := hygienise_locale_context_query_params(ctx.query) or {
-		return ctx.handle_error(err)
-	}
-
+	locale_context := ctx.get_locale_context() or { return ctx.handle_error(err) }
 	parsed_category_id := id_from_string(category_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'category_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
 	}
 
 	category := app.with_rollback(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !conduit.Category {

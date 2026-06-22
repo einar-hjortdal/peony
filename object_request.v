@@ -780,6 +780,7 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 }
 
 // used during product and variant creation
+// TODO handle
 pub struct InventoryLevelCreateRequest {
 pub:
 	stock_location_id string @[json: 'stockLocationId']
@@ -804,7 +805,7 @@ fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygie
 
 pub struct InventoryLevelUpdateRequest {
 pub:
-	stocked_quantity i32 @[json: 'stockedQuantity']
+	quantity_adjustment i32 @[json: 'quantityAdjustment']
 }
 
 fn hygienise_inventory_level_update_request(s string, inventory_item_id ID, stock_location_id ID) !conduit.InventoryLevelUpdateParams {
@@ -813,9 +814,9 @@ fn hygienise_inventory_level_update_request(s string, inventory_item_id ID, stoc
 	}
 
 	return conduit.InventoryLevelUpdateParams{
-		inventory_item_id: inventory_item_id
-		stock_location_id: stock_location_id
-		stocked_quantity:  p.stocked_quantity
+		inventory_item_id:   inventory_item_id
+		stock_location_id:   stock_location_id
+		quantity_adjustment: p.quantity_adjustment
 	}
 }
 

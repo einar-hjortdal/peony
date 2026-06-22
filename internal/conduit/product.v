@@ -238,18 +238,21 @@ fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map
 	}
 }
 
-// TODO: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient, but separating the logic this way also makes sense.
-pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) ![]record.Product {
+pub fn product_list_count(mut tx firebird.ClientTransaction, p ProductRetrieveParams) !i64 {
 	count := record.product_retrieve_count(mut tx, p) or {
 		return errors.internal('Failed to retrieve product count', err.msg())
 	}
+	return count
+}
 
-	if count == 0 {
-		return []record.Product{}
-	}
-
+// TODO: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient, but separating the logic this way also makes sense.
+pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) ![]record.Product {
 	products := record.product_retrieve(mut tx, p) or {
 		return errors.internal('Failed to retrieve product', err.msg())
+	}
+
+	if products.len == 0 {
+		return []record.Product{}
 	}
 
 	mut products_map, product_ids := common.make_identifiable_map(products)
@@ -277,6 +280,35 @@ pub fn product_get(mut tx firebird.ClientTransaction, product_id ID) !record.Pro
 		offset:       offset_default
 		fetch:        1
 		order:        order_default
+	}) or { return errors.internal('Failed to retrieve products data', err.msg()) }
+
+	if products.len == 0 {
+		return errors.not_found('No product exists with the given id', 'products.len == 0')
+	}
+
+	mut products_map := {
+		product_id.string(): products[0]
+	}
+	product_ids := [product_id]
+	get_products_translations(mut tx, mut products_map, product_ids)!
+	get_products_seo(mut tx, mut products_map, product_ids)!
+	get_products_images(mut tx, mut products_map, product_ids)!
+	get_products_sales_channels(mut tx, mut products_map, product_ids)!
+	get_products_categories(mut tx, mut products_map, product_ids)!
+	get_products_options(mut tx, mut products_map, product_ids)!
+	get_products_variants(mut tx, mut products_map, product_ids)!
+	return products_map[product_id.string()]
+}
+
+pub fn product_get_store(mut tx firebird.ClientTransaction, product_id ID, sales_channel_id ID) !record.Product {
+	products := record.product_retrieve(mut tx, ProductRetrieveParams{
+		ids:              [product_id]
+		status:           common.product_status_published
+		sales_channel_id: sales_channel_id
+		with_deleted:     false
+		offset:           offset_default
+		fetch:            1
+		order:            order_default
 	}) or { return errors.internal('Failed to retrieve products data', err.msg()) }
 
 	if products.len == 0 {
