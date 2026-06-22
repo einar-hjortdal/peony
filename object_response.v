@@ -826,13 +826,13 @@ pub:
 	seo                SEOResponseStore @[omitempty]
 }
 
-fn format_category_response_store(p conduit.Category, locale_context LocaleContext) CategoryResponseStore {
+fn format_category_response_store(p conduit.Category, lctx LocaleContext) CategoryResponseStore {
 	mut name := p.name
 	mut description := p.description
 	mut seo_title := p.seo.title
 	mut seo_description := p.seo.description
 
-	if locale_id := locale_context.locale_id {
+	if locale_id := lctx.locale_id {
 		for i := 0; i < p.translations.len; i++ {
 			translation := p.translations[i]
 			if translation.locale_id.string() != locale_id.string() {
@@ -885,10 +885,10 @@ pub:
 	fetch      i32
 }
 
-fn format_category_response_list_store(p []conduit.Category, locale_context LocaleContext) []CategoryResponseStore {
+fn format_category_response_list_store(p []conduit.Category, lctx LocaleContext) []CategoryResponseStore {
 	mut res := []CategoryResponseStore{len: p.len}
 	for i := 0; i < p.len; i++ {
-		res[i] = format_category_response_store(p[i], locale_context)
+		res[i] = format_category_response_store(p[i], lctx)
 	}
 	return res
 }
@@ -1067,7 +1067,7 @@ pub struct ProductResponseStoreEnvelope {
 	product ProductResponseStore
 }
 
-fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id ID, default_region_id ID, locale_context LocaleContext) ProductResponseStore {
+fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id ID, default_region_id ID, lctx LocaleContext) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -1096,7 +1096,7 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_cha
 	mut seo_title := p.seo.title
 	mut seo_description := p.seo.description
 
-	if locale_id := locale_context.locale_id {
+	if locale_id := lctx.locale_id {
 		for i := 0; i < p.seo.translations.len; i++ {
 			translation := p.seo.translations[i]
 			if translation.locale_id.string() != locale_id.string() {

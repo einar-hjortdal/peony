@@ -5,4 +5,8 @@ mut:
 	id ?ID
 }
 
-struct CustomerSessionValues {}
+// WIP
+struct CustomerSessionValues {
+mut:
+	id ?ID
+}

@@ -26,16 +26,17 @@ struct PriceContext {
 	customer_id ?ID
 }
 
-// TODO verify ids exist in db
+// TODO verify cart_id exists in db
+// TODO verify region_id exists in cache, or db if not cached
 fn (ctx Context) get_price_context() !PriceContext {
 	q := hygienise_price_context_query_params(ctx.query) or {
 		return new_error_unprocessable_entity(error_id_invalid, err.msg())
 	}
 
 	return PriceContext{
-		cart_id:     q.cart_id
-		region_id:   q.region_id
-		customer_id: ctx.user_session_values.id
+		cart_id:   q.cart_id
+		region_id: q.region_id
+		// customer_id: ctx.customer_session_values.id
 	}
 }
 

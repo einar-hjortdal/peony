@@ -45,6 +45,7 @@ pub type SEOTranslation = record.SEOTranslation
 pub type SEOTranslationCreateParams = record.SEOTranslationCreateParams
 pub type SEOUpdateParams = record.SEOUpdateParams
 pub type StockLocation = record.StockLocation
+pub type StockLocationCreateParams = record.StockLocationCreateParams
 pub type Store = record.Store
 pub type TaxRate = record.TaxRate
 

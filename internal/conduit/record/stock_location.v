@@ -11,10 +11,36 @@ pub:
 	deleted_at ?firebird.DateTime
 	name       string
 	// address Address
+	// sales_channels []SalesChannel
 }
 
 pub fn (sl StockLocation) id() ID {
 	return sl.id
+}
+
+pub struct StockLocationCreateParams {
+pub:
+	id   ID
+	name string
+	// address
+}
+
+pub fn stock_location_create(mut tx firebird.ClientTransaction, p StockLocationCreateParams) ! {
+	tx.execute('INSERT INTO stock_location (id, name) VALUES (?, ?)', p.id.bytes(), p.name)!
+}
+
+pub struct StockLocationUpdateParams {
+pub:
+	id   ID
+	name string
+	// address
+}
+
+pub fn stock_location_update(mut tx firebird.ClientTransaction, p StockLocationUpdateParams) ! {
+	c := ['name']
+	params := [firebird.Value(p.name), p.id.bytes()]
+	tx.execute('UPDATE stock_location SET ${get_set_columns_with_updated_at(c)} WHERE id = ?',
+		...params)!
 }
 
 pub struct StockLocationRetrieveParams {

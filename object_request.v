@@ -18,6 +18,7 @@ pub const country_code_length = 2 // ISO 3166-1 alpha 2
 pub const currency_code_length = 3 // ISO 4217
 pub const max_length_sales_channel_name = 63
 pub const max_length_sales_channel_description = 191
+pub const max_length_stock_location_name = 63
 
 pub struct AuthRequest {
 pub:
@@ -779,6 +780,52 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 	return money_amounts
 }
 
+pub struct StockLocationCreateRequest {
+pub:
+	name string
+}
+
+fn hygienise_stock_location_create_request(s string, stock_location_id ID) !conduit.StockLocationCreateParams {
+	p := json.decode(StockLocationCreateRequest, s) or {
+		return errors.bad_request('Could not decode StockLocationCreateRequest', err.msg())
+	}
+
+	if utf8_str_visible_length(p.name) > max_length_stock_location_name {
+		return errors.unprocessable_entity(error_field_too_long,
+			'name can be at most ${max_length_stock_location_name} UTF8 characters long')
+	}
+
+	return conduit.StockLocationCreateParams{
+		id:   stock_location_id
+		name: p.name
+	}
+}
+
+pub struct StockLocationUpdateRequest {
+pub:
+	name string
+}
+
+fn hygienise_stock_location_update_request(s string, stock_location_id ID) !conduit.StockLocationUpdateParams {
+	p := json.decode(StockLocationUpdateRequest, s) or {
+		return errors.bad_request('Could not decode StockLocationUpdateRequest', err.msg())
+	}
+
+	if p.name == '' {
+		return errors.unprocessable_entity(error_field_empty, 'name')
+	}
+
+	if utf8_str_visible_length(p.name) > max_length_stock_location_name {
+		return errors.unprocessable_entity(error_field_too_long,
+			'name can be at most ${max_length_stock_location_name} UTF8 characters long')
+	}
+
+	return conduit.StockLocationUpdateParams{
+		id:   stock_location_id
+		name: p.name
+	}
+}
+
 // used during product and variant creation
 // TODO handle
 pub struct InventoryLevelCreateRequest {
@@ -851,6 +898,8 @@ struct InventoryItemCreateRequestHygienised {
 	requires_shipping ?bool
 	manage_inventory  ?bool
 	allow_backorder   ?bool
+mut:
+	inventory_levels ?[]InventoryLevelCreateRequestHygienised
 }
 
 fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygienised {
@@ -901,6 +950,14 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 		requires_shipping: p.requires_shipping
 		manage_inventory:  p.manage_inventory
 		allow_backorder:   p.allow_backorder
+	}
+
+	if inventory_levels := p.inventory_levels {
+		mut ls := []InventoryLevelCreateRequestHygienised{len: inventory_levels.len}
+		for i := 0; i < inventory_levels.len; i++ {
+			ls[i] = inventory_levels[i].hygienise()!
+		}
+		inventory_item.inventory_levels = ls
 	}
 
 	return inventory_item

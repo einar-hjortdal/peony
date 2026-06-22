@@ -25,6 +25,13 @@ struct VariantAvailability {
 	amount_available i32
 }
 
+fn new_variant_availability(purchasable bool, amount_available i32) VariantAvailability {
+	return VariantAvailability{
+		purchasable:      purchasable
+		amount_available: amount_available
+	}
+}
+
 // used by store endpoints
 fn get_variant_availability(v conduit.Variant, sales_channel_id ID) VariantAvailability {
 	if !v.inventory_item.manage_inventory {
@@ -38,38 +45,16 @@ fn get_variant_availability(v conduit.Variant, sales_channel_id ID) VariantAvail
 	ias := v.inventory_item.availability
 	for i := 0; i < ias.len; i++ {
 		ia := ias[i]
-		if ia.sales_channel_id.string() == sales_channel_id.string() {
-			if ia.amount < 1 {
-				if allow_backorder {
-					return VariantAvailability{
-						purchasable:      true
-						amount_available: ia.amount
-					}
-				}
-
-				return VariantAvailability{
-					purchasable:      false
-					amount_available: ia.amount
-				}
+		if ia.sales_channel_id.string() == sales_channel_id.string() { // there is stock
+			if ia.amount < 1 && !allow_backorder {
+				return new_variant_availability(false, ia.amount)
 			}
-
-			return VariantAvailability{
-				purchasable:      true
-				amount_available: ia.amount
-			}
+			return new_variant_availability(true, ia.amount)
 		}
 	}
-
 	// variant not in stock in any stock location related to this sales channel
 	if allow_backorder {
-		return VariantAvailability{
-			purchasable:      true
-			amount_available: 0
-		}
+		return new_variant_availability(true, 0)
 	}
-
-	return VariantAvailability{
-		purchasable:      false
-		amount_available: 0
-	}
+	return new_variant_availability(false, 0)
 }

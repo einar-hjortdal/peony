@@ -148,6 +148,7 @@ pub struct VariantCreateData {
 	money_amounts  []record.VariantMoneyAmountUpdateParams
 }
 
+// TODO rewrite params, handle inventory levels
 pub fn variant_create(mut tx firebird.ClientTransaction, p VariantCreateData) ! {
 	record.variant_create(mut tx, [p.variant]) or {
 		return errors.internal('Could not create product_variant', err.msg())

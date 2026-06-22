@@ -38,6 +38,7 @@
 - [x] Multi-currency
 - [x] Multi-language
 - [x] Multi-region
+- [x] Multi-warehouse
 - [x] Prices
 - [x] Product categories
 - [x] Product variants
@@ -47,7 +48,7 @@
 
 ### Currently being implemented
 
-- [ ] Multi-warehouse
+
 
 ### To be implemented
 

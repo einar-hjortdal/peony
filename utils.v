@@ -206,6 +206,7 @@ fn (mut app App) gen_id() ID {
 	return common.new_id(mut app.luuid_generator)
 }
 
+// TODO check id against cache
 fn (ctx Context) get_locale_context() !LocaleContext {
 	return hygienise_locale_context_query_params(ctx.query)
 }

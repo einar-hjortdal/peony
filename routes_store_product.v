@@ -38,8 +38,8 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	}
 
 	return ctx.handle_ok(ProductResponseStoreListEnvelope{
-		products: format_product_response_store_list(data.items, pctx, region_id,
-			variants_availability, lctx)
+		products: format_product_response_store_list(data.items, pctx, api_key.sales_channel_id,
+			region_id, variants_availability, lctx)
 		count:    data.count
 		offset:   p.offset
 		fetch:    p.fetch
@@ -66,6 +66,6 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 
 	return ctx.handle_ok(ProductResponseStoreEnvelope{
 		product: format_product_response_store(data.items, pctx, api_key.sales_channel_id,
-			region_id, variants_availability, lctx)
+			region_id, lctx)
 	})
 }

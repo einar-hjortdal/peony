@@ -88,6 +88,44 @@ pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_ite
 	return inventory_levels
 }
 
+pub struct InventoryLevelCreateParams {
+	inventory_item_id ID
+	stock_location_id ID
+	stocked_quantity  i32
+}
+
+pub fn inventory_level_create(mut tx firebird.ClientTransaction, p []InventoryLevelCreateParams) ! {
+	mut src := []string{len: p.len}
+	mut params := []firebird.Value{len: 3 * p.len, init: firebird.Null{}}
+	for i := 0; i < p.len; i++ {
+		il := p[i]
+		src[i] = 'SELECT 
+			CAST(? AS BINARY(16)),
+			CAST(? AS BINARY(16)),
+			CAST(? AS INTEGER)
+			FROM RDB\$DATABASE'
+
+		params[3 * i] = il.inventory_item_id
+		params[3 * i + 1] = il.stock_location_id
+		params[3 * i + 2] = il.stocked_quantity
+	}
+
+	mut query := 'INSERT INTO inventory_level (
+		inventory_item_id,
+		stock_location_id,
+		stocked_quantity
+		) ${get_merge_source(src)}'
+	tx.execute(query, ...params)!
+
+	query = 'INSERT INTO item_availability (item_id, sales_channel_id, amount)
+		SELECT s.inventory_item_id, scsl.sales_channel_id, SUM(s.stocked_quantity)
+		FROM (${get_merge_source(src)}) s
+		JOIN sales_channel_stock_location scsl
+			ON scsl.stock_location_id = src.stock_location_id
+		GROUP BY s.inventory_item_id, scsl.sales_channel_id'
+	tx.execute(query, ...params)!
+}
+
 pub struct InventoryLevelUpdateParams {
 pub:
 	inventory_item_id   ID
@@ -183,12 +221,10 @@ pub fn (ii InventoryItem) id() ID {
 }
 
 // Whenever a variant is created, a related inventory_item is also created.
-// A inventory_item may have 0 or more inventory_level.
-// When sending a variant response, calculate:
-// - inventory_quantity (sum of all sellable iventory_item)
-// - purchasable (!manage_inventory || iventory_quantity > 0 || allow_backorder)
-// The frontend can assume the variant can be backordered if (inventoryQuantity === 0 && purchasable)
-
+// A inventory_item may be stored in 0 or more stock_location.
+// The amount of items in each stock_location is an inventory_level.
+// Each stock location may serve 0 or more sales_channel.
+// item_availability tracks the amount of stocked items available to each sales_channel.
 pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []ID) ![]InventoryItem {
 	data := tx.execute('SELECT
 		id,
