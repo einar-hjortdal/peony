@@ -34,10 +34,12 @@ fn hygienise_locale_context_query_params(m map[string]string) !LocaleContext {
 
 // WIP
 // The information contained by PriceContextQueryParams is utilized to calculate prices and their presentation.
+// region_id if not provided, the default region will be used.
+// cart_id if provided, the cart's region and shipping address are used instead of region_id.
 pub struct PriceContextQueryParams {
 pub:
-	cart_id   ?string
 	region_id ?string
+	cart_id   ?string
 }
 
 struct PriceContextQueryParamsHygienised {

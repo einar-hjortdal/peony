@@ -91,3 +91,18 @@ pub fn (mut app App) stock_location_update(mut ctx Context, stock_location_id st
 		stock_location: format_stock_location_response(stock_location)
 	})
 }
+
+// deletes a stock location
+@['/admin/stock-locations/:stock_location_id'; delete]
+pub fn (mut app App) stock_location_delete(mut ctx Context, stock_location_id string) veb.Result {
+	parsed_stock_location_id := id_from_string(stock_location_id) or {
+		return ctx.handle_error(new_error_bad_request(error_id_invalid, 'stock_location_id'))
+	}
+
+	stock_location := app.with_commit(fn [parsed_stock_location_id] (mut tx firebird.ClientTransaction) !NilReturn {
+		conduit.stock_location_delete(mut tx, parsed_stock_location_id)!
+		return NilReturn{}
+	}) or { return ctx.handle_error(err) }
+
+	return ctx.handle_deleted()
+}

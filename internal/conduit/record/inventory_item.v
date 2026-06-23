@@ -119,9 +119,9 @@ pub fn inventory_level_create(mut tx firebird.ClientTransaction, p []InventoryLe
 
 	query = 'INSERT INTO item_availability (item_id, sales_channel_id, amount)
 		SELECT s.inventory_item_id, scsl.sales_channel_id, SUM(s.stocked_quantity)
-		FROM (${get_merge_source(src)}) s
+		FROM (${get_merge_source(src)}) s (inventory_item_id, stock_location_id, stocked_quantity)
 		JOIN sales_channel_stock_location scsl
-			ON scsl.stock_location_id = src.stock_location_id
+			ON scsl.stock_location_id = s.stock_location_id
 		GROUP BY s.inventory_item_id, scsl.sales_channel_id'
 	tx.execute(query, ...params)!
 }
@@ -147,7 +147,14 @@ pub fn inventory_level_update(mut tx firebird.ClientTransaction, p InventoryLeve
 	}
 
 	tx.execute('MERGE INTO item_availability t
-		USING (SELECT sales_channel_id FROM sales_channel_stock_location WHERE stock_location_id = ?) s
+		USING (
+			SELECT scsl.sales_channel_id
+			FROM sales_channel_stock_location scsl
+			JOIN sales_channel sc
+				ON sc.id = scsl.sales_channel_id
+			WHERE sc.stock_location_id = ?
+			AND sc.deleted_at IS NULL
+			) s
 		ON t.item_id = ? AND t.sales_channel_id = s.sales_channel_id
 		WHEN MATCHED THEN
 			UPDATE SET t.amount = t.amount + ?

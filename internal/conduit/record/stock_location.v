@@ -123,3 +123,24 @@ pub fn stock_location_retrieve(mut tx firebird.ClientTransaction, p StockLocatio
 
 	return stock_locations
 }
+
+// WARNING: do not use on already-deleted stock_location.
+// NOTE: when an item_reservation is removed, it should not restore item_availability if stock_location.deleted_at is not null
+pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_id ID) ! {
+	tx.execute('UPDATE stock_location SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+		stock_location_id)!
+
+	tx.execute('MERGE INTO item_availability t
+		USING (
+			SELECT il.inventory_item_id, scsl.sales_channel_id, il.stocked_quantity
+			FROM inventory_level il
+			JOIN sales_channel_stock_location scsl
+				ON scsl.stock_location_id = il.stock_location_id
+			WHERE il.stock_location_id = ?
+		) s (item_id, sales_channel_id, stocked_quantity)
+		ON t.item_id = s.item_id
+			AND t.sales_channel_id = s.sales_channel_id
+		WHEN MATCHED THEN UPDATE
+			SET t.amount = t.amount - s.stocked_quantity',
+		stock_location_id.bytes())!
+}

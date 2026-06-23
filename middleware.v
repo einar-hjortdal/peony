@@ -64,6 +64,7 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return conduit.api_key_get(mut tx, api_key_id)
 	}) or { return ctx.middleware_handle_error(err) }
 
+	app.cache_api_key_set(api_key) or { log.error('failed to set APIKey in cache') }
 	ctx.api_key = api_key
 	return true
 }

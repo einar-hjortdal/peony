@@ -6,7 +6,7 @@ import internal.conduit
 import internal.errors
 
 // lists products
-// TODO cache response
+// TODO cache response. I don't think this can be cached easily: need to normalize parameters.
 @['/store/products'; get]
 pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	api_key := ctx.get_api_key() or { return ctx.handle_error(err) }
@@ -51,7 +51,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 }
 
 // get product by id
-// TODO cache response
+// TODO cache response. I don't think this can be cached easily: need to normalize parameters.
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
