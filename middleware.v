@@ -24,9 +24,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 			return true
 		}
 
-		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(errors.unauthorized('Invalid session', err.msg()))
-		return false
+		return ctx.middleware_handle_error(errors.unauthorized('Invalid session', err.msg()))
 	}
 
 	return true
@@ -36,9 +34,7 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 	ctx.user_session.values = json.encode(ctx.user_session_values)
 
 	app.session_store.save(mut ctx.res.header, ctx.user_session) or {
-		ctx.res.set_status(http.Status.internal_server_error)
-		ctx.json(errors.internal('Failed to save session', err.msg()))
-		return false
+		return ctx.middleware_handle_error(errors.internal('Failed to save session', err.msg()))
 	}
 
 	return true
@@ -46,22 +42,17 @@ fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
 
 fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 	api_key_string := ctx.get_custom_header(header_store_api_key) or {
-		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(errors.unauthorized(error_api_key_invalid,
+		return ctx.middleware_handle_error(errors.unauthorized(error_api_key_invalid,
 			'Missing ${header_store_api_key} header'))
-		return false
 	}
 
 	if api_key_string == '' {
-		ctx.res.set_status(http.Status.unauthorized)
-		ctx.json(errors.unauthorized(error_api_key_invalid, 'Empty ${header_store_api_key} header'))
-		return false
+		return ctx.middleware_handle_error(errors.unauthorized(error_api_key_invalid,
+			'Empty ${header_store_api_key} header'))
 	}
 
 	api_key_id := id_from_string(api_key_string) or {
-		ctx.res.set_status(http.Status.unprocessable_entity)
-		ctx.json(errors.unprocessable_entity(error_api_key_invalid, 'Could not parse API Key'))
-		return false
+		return ctx.middleware_handle_error((errors.unprocessable_entity(error_id_invalid, 'api_key')))
 	}
 
 	if api_key := app.cache_api_key_get(api_key_id) {

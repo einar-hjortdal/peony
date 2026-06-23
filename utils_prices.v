@@ -1,7 +1,9 @@
 module peony
 
 import arrays
+import einar_hjortdal.firebird
 import internal.conduit
+import log
 
 // VariantPrice is for the store frontend
 // `original_price` is the price of the item before an adjustment or a sale.
@@ -21,22 +23,40 @@ struct VariantPrice {
 // customer_id is used for price_list prices, it is obtained from customer session.
 // cart_id and region_id are obtained from url parameters.
 struct PriceContext {
+	region_id   ID
 	cart_id     ?ID
-	region_id   ?ID
 	customer_id ?ID
 }
 
-// TODO verify cart_id exists in db
-// TODO verify region_id exists in cache, or db if not cached
-fn (ctx Context) get_price_context() !PriceContext {
-	q := hygienise_price_context_query_params(ctx.query) or {
-		return new_error_unprocessable_entity(error_id_invalid, err.msg())
+fn (mut app App) get_price_context_region(id ?ID) ID {
+	region_id := id or {
+		log.debug('region_id not provided, using default')
+		return app.get_default_region_id()!
 	}
 
+	if _ := app.cache_region_get(region_id) {
+		log.debug('region_id is valid, region loaded from cache')
+		return region_id
+	}
+
+	log.debug('region not in cache, getting it from db')
+	region := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Region {
+		return conduit.region_get(mut tx, region_id)
+	}) or { return errors.unprocessable_entity(error_id_invalid, 'region_id does not exist') }
+
+	log.debug('region_id is valid, region loaded from db')
+	app.cache_region_set(region)
+	return region_id
+}
+
+fn (mut app App) get_price_context(s string) !PriceContext {
+	p := hygienise_price_context_query_params(s)!
+
+	region_id := app.get_price_context_region(p.region_id)!
+
 	return PriceContext{
-		cart_id:   q.cart_id
-		region_id: q.region_id
-		// customer_id: ctx.customer_session_values.id
+		region_id: region_id
+		cart_id:   p.cart_id
 	}
 }
 
@@ -93,11 +113,10 @@ fn get_lowest_price(mas []VariantMoneyAmount) VariantMoneyAmount {
 // this function should find the lowest possible price that fits all the criteria.
 // it considers: quantity, region.
 // TODO Consider price_list when in context.
-fn calculate_price(variant conduit.Variant, default_region_id ID, price_context PriceContext, quantity i32) VariantPrice {
+fn calculate_price(variant conduit.Variant, pctx PriceContext, quantity i32) VariantPrice {
 	// for now just consider variant.money_amounts and pctx.region
-	region_id := price_context.region_id or { default_region_id }
-	original_price := get_original_price(variant.money_amounts, region_id)
-	regional_prices := get_regional_prices(variant.money_amounts, region_id, quantity)
+	original_price := get_original_price(variant.money_amounts, pctx.region_id)
+	regional_prices := get_regional_prices(variant.money_amounts, pctx.region_id, quantity)
 	base_price := get_lowest_price(regional_prices)
 
 	return VariantPrice{

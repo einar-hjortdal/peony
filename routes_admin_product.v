@@ -3,6 +3,7 @@ module peony
 import json
 import veb
 import einar_hjortdal.slugify
+import internal.errors
 
 // lists products
 @['/admin/products'; get]
@@ -16,7 +17,7 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 @['/admin/products'; post]
 pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	p := json.decode(ProductCreateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode ProductRequest', err.msg())
+		perr := errors.bad_request('Could not decode ProductRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -36,7 +37,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		order:  order_default
 	}) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not verify handle exists', err.msg())
+		perr := errors.internal('Could not verify handle exists', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -44,7 +45,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		handle = '${handle}-${product_id.string()}'
 		if utf8_str_visible_length(handle) > max_length_handle {
 			tx.rollback() or {}
-			perr := new_error_unprocessable_entity(error_field_too_long,
+			perr := errors.unprocessable_entity(error_field_too_long,
 				error_handle_fallback_too_long)
 			return ctx.handle_error(perr)
 		}
@@ -52,7 +53,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 
 	store_locales := model_store_locales_retrieve(mut tx) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve store locales', err.msg())
+		perr := errors.internal('Failed to retrieve store locales', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -72,7 +73,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 				continue
 			}
 			tx.rollback() or {}
-			perr := new_error_bad_request(error_id_invalid, 'translation locale_id')
+			perr := errors.bad_request(error_id_invalid, 'translation locale_id')
 			return ctx.handle_error(perr)
 		}
 	}
@@ -86,7 +87,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 					continue
 				}
 				tx.rollback() or {}
-				perr := new_error_bad_request(error_id_invalid, 'seo_translation locale_id')
+				perr := errors.bad_request(error_id_invalid, 'seo_translation locale_id')
 				return ctx.handle_error(perr)
 			}
 		}
@@ -103,7 +104,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 						continue
 					}
 					tx.rollback() or {}
-					perr := new_error_bad_request(error_id_invalid, 'image_translation locale_id')
+					perr := errors.bad_request(error_id_invalid, 'image_translation locale_id')
 					return ctx.handle_error(perr)
 				}
 			}
@@ -124,7 +125,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 						continue
 					}
 					tx.rollback() or {}
-					perr := new_error_bad_request(error_id_invalid, 'option_translation locale_id')
+					perr := errors.bad_request(error_id_invalid, 'option_translation locale_id')
 					return ctx.handle_error(perr)
 				}
 			}
@@ -139,7 +140,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 							continue
 						}
 						tx.rollback() or {}
-						perr := new_error_bad_request(error_id_invalid,
+						perr := errors.bad_request(error_id_invalid,
 							'option_value_translation locale_id')
 						return ctx.handle_error(perr)
 					}
@@ -155,7 +156,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 	}
 
 	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
+		perr := errors.internal(error_transaction_commit, err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -175,7 +176,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 @['/admin/products/:product_id'; get]
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		perr := errors.bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
@@ -195,12 +196,12 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 @['/admin/products/:product_id'; post]
 pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		perr := new_error_unprocessable_entity(error_id_invalid, 'product_id')
+		perr := errors.unprocessable_entity(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
 	p := json.decode(ProductUpdateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode ProductUpdateRequest', err.msg())
+		perr := errors.bad_request('Could not decode ProductUpdateRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -218,20 +219,20 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	count := model_product_retrieve_count(mut tx, pr) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve product count by id', err.msg())
+		perr := errors.internal('Could not retrieve product count by id', err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
-		perr := new_error_internal('The product with id ${product_id} does not exist', 'count == 0')
+		perr := errors.internal('The product with id ${product_id} does not exist', 'count == 0')
 		return ctx.handle_error(perr)
 	}
 
 	// get data to diff
 	products := model_product_retrieve(mut tx, pr) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve product by id', err.msg())
+		perr := errors.internal('Could not retrieve product by id', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -239,7 +240,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	seo := model_product_seo_retrieve(mut tx, [parsed_product_id.bytes()]) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve seo', err.msg())
+		perr := errors.internal('Could not retrieve seo', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -252,7 +253,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 			order:  order_default
 		}) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Could not retrieve products by handle', err.msg())
+			perr := errors.internal('Could not retrieve products by handle', err.msg())
 			return ctx.handle_error(perr)
 		}
 
@@ -260,7 +261,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 			handle = '${new_handle}-${product_id}'
 			if utf8_str_visible_length(new_handle) > max_length_handle {
 				tx.rollback() or {}
-				perr := new_error_unprocessable_entity(error_field_too_long,
+				perr := errors.unprocessable_entity(error_field_too_long,
 					error_handle_fallback_too_long)
 				return ctx.handle_error(perr)
 			}
@@ -292,7 +293,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 				parsed_product_id.bytes(),
 			]) or {
 				tx.rollback() or {}
-				perr := new_error_internal('Failed to retrieve product_images', err.msg())
+				perr := errors.internal('Failed to retrieve product_images', err.msg())
 				return ctx.handle_error(perr)
 			}
 
@@ -311,8 +312,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 					id, id_bin := app.new_id()
 					url := image.url or {
 						tx.rollback() or {}
-						perr := new_error_bad_request(error_field_empty,
-							'A new image must have a url')
+						perr := errors.bad_request(error_field_empty, 'A new image must have a url')
 						return ctx.handle_error(perr)
 					}
 
@@ -331,7 +331,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 				// if id in images does not exist return bad request
 				if id !in existing_images_map {
 					tx.rollback() or {}
-					perr := new_error_bad_request(error_id_invalid,
+					perr := errors.bad_request(error_id_invalid,
 						'image with id ${id} does not exist')
 					return ctx.handle_error(perr)
 				}
@@ -366,7 +366,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	// }
 
 	if seo.len == 0 {
-		perr := new_error_internal(error_database_data_malformed,
+		perr := errors.internal(error_database_data_malformed,
 			'Missing product seo for product with id ${product_id}')
 		tx.rollback() or {}
 		return ctx.handle_error(perr)
@@ -381,7 +381,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	}
 
 	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
+		perr := errors.internal(error_transaction_commit, err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -401,7 +401,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 @['/admin/products/:product_id'; delete]
 pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		perr := errors.bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 	conduit_product_delete(mut app, mut ctx, product_id_bin) or { return ctx.handle_error(err) }
@@ -412,12 +412,12 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		perr := new_error_bad_request(error_id_invalid, err.msg())
+		perr := errors.bad_request(error_id_invalid, err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	p := json.decode(VariantCreateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode VariantRequest ', err.msg())
+		perr := errors.bad_request('Could not decode VariantRequest ', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -425,17 +425,17 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 
 	if title := ph.title {
 		if title == '' {
-			perr := new_error_bad_request('title is required', 'title not provided')
+			perr := errors.bad_request('title is required', 'title not provided')
 			return ctx.handle_error(perr)
 		}
 	} else {
-		perr := new_error_bad_request('title is required', 'title not provided')
+		perr := errors.bad_request('title is required', 'title not provided')
 		return ctx.handle_error(perr)
 	}
 
 	if inventory_item := ph.inventory_item {
 		if inventory_item.is_empty() {
-			perr := new_error_bad_request(error_empty_object, 'InventoryItemCreateRequest')
+			perr := errors.bad_request(error_empty_object, 'InventoryItemCreateRequest')
 			return ctx.handle_error(perr)
 		}
 	}
@@ -447,7 +447,7 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 		order: order_default
 	}) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Failed to retrieve region', err.msg())
+		perr := errors.internal('Failed to retrieve region', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -465,7 +465,7 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 			if regions_map[region_id] {
 				continue
 			}
-			perr := new_error_unprocessable_entity(error_id_invalid,
+			perr := errors.unprocessable_entity(error_id_invalid,
 				'regional_prices contains a region id that does not exist')
 			return ctx.handle_error(perr)
 		}
@@ -500,18 +500,18 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 
 	variants := model_variant_retrieve(mut tx, rvph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants after creation', err.msg())
+		perr := errors.internal('Could not retrieve variants after creation', err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	if variants.len != 1 {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve created variant', 'varaints.len != 1')
+		perr := errors.internal('Could not retrieve created variant', 'varaints.len != 1')
 		return ctx.handle_error(perr)
 	}
 
 	tx.commit() or {
-		perr := new_error_internal(error_transaction_commit, err.msg())
+		perr := errors.internal(error_transaction_commit, err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -526,12 +526,12 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 @['/admin/products/:product_id/variants/:variant_id'; get]
 pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		perr := errors.bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
 	_ := id_string_to_bin(variant_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'variant_id')
+		perr := errors.bad_request(error_id_invalid, 'variant_id')
 		return ctx.handle_error(perr)
 	}
 
@@ -546,19 +546,19 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 
 	count := model_variant_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants', err.msg())
+		perr := errors.internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
-		perr := new_error_internal('variants for the product do not exist', 'count == 0')
+		perr := errors.internal('variants for the product do not exist', 'count == 0')
 		return ctx.handle_error(perr)
 	}
 
 	variants := model_variant_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants', err.msg())
+		perr := errors.internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -576,7 +576,7 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 		})
 	}
 
-	perr := new_error_not_found('variant does not exist with the given id',
+	perr := errors.not_found('variant does not exist with the given id',
 		'not found in existing variants for the product')
 	return ctx.handle_error(perr)
 }
@@ -585,17 +585,17 @@ pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id 
 @['/admin/products/:product_id/variants/:variant_id'; post]
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		perr := errors.bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'variant_id')
+		perr := errors.bad_request(error_id_invalid, 'variant_id')
 		return ctx.handle_error(perr)
 	}
 
 	p := json.decode(VariantUpdateRequest, ctx.req.data) or {
-		perr := new_error_bad_request('Could not decode VariantRequest', err.msg())
+		perr := errors.bad_request('Could not decode VariantRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -603,7 +603,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 	if inventory_item := ph.inventory_item {
 		if inventory_item.is_empty() {
-			perr := new_error_bad_request(error_empty_object, 'InventoryItemUpdateRequest')
+			perr := errors.bad_request(error_empty_object, 'InventoryItemUpdateRequest')
 			return ctx.handle_error(perr)
 		}
 	}
@@ -619,19 +619,19 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 
 	count := model_variant_retrieve_count(mut tx, rpvph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants', err.msg())
+		perr := errors.internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
-		perr := new_error_internal('variants for the product do not exist', 'count == 0')
+		perr := errors.internal('variants for the product do not exist', 'count == 0')
 		return ctx.handle_error(perr)
 	}
 
 	variants := model_variant_retrieve(mut tx, rpvph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants', err.msg())
+		perr := errors.internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -648,7 +648,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	if !found {
-		perr := new_error_not_found('variant does not exist with the given id',
+		perr := errors.not_found('variant does not exist with the given id',
 			'not found in existing variants for the product')
 		return ctx.handle_error(perr)
 	}
@@ -656,7 +656,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	if regional_prices := p.regional_prices {
 		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
 			tx.rollback() or {}
-			perr := new_error_internal('Failed to retrieve region', err.msg())
+			perr := errors.internal('Failed to retrieve region', err.msg())
 			return ctx.handle_error(perr)
 		}
 
@@ -674,7 +674,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 				continue
 			}
 			tx.rollback() or {}
-			perr := new_error_unprocessable_entity(error_id_invalid,
+			perr := errors.unprocessable_entity(error_id_invalid,
 				'regional_prices contains a region id that does not exist')
 			return ctx.handle_error(perr)
 		}
@@ -704,7 +704,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 	}
 
 	tx.commit() or {
-		perr := new_error_internal(error_transaction_rollback, err.msg())
+		perr := errors.internal(error_transaction_rollback, err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -717,12 +717,12 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 @['/admin/products/:product_id/variants/:variant_id'; delete]
 pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
 	product_id_bin := id_string_to_bin(product_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'product_id')
+		perr := errors.bad_request(error_id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
 	variant_id_bin := id_string_to_bin(variant_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'variant_id')
+		perr := errors.bad_request(error_id_invalid, 'variant_id')
 		return ctx.handle_error(perr)
 	}
 
@@ -737,25 +737,25 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 
 	count := model_variant_retrieve_count(mut tx, ph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants', err.msg())
+		perr := errors.internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
 	}
 
 	if count == 0 {
 		tx.rollback() or {}
-		perr := new_error_internal('variants for the product do not exist', 'count == 0')
+		perr := errors.internal('variants for the product do not exist', 'count == 0')
 		return ctx.handle_error(perr)
 	}
 
 	if count == 1 {
 		tx.rollback() or {}
-		perr := new_error_bad_request('cannot delete last variant', 'count == 1')
+		perr := errors.bad_request('cannot delete last variant', 'count == 1')
 		return ctx.handle_error(perr)
 	}
 
 	variants := model_variant_retrieve(mut tx, ph) or {
 		tx.rollback() or {}
-		perr := new_error_internal('Could not retrieve variants', err.msg())
+		perr := errors.internal('Could not retrieve variants', err.msg())
 		return ctx.handle_error(perr)
 	}
 
@@ -770,7 +770,7 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 	}
 
 	if !found {
-		perr := new_error_not_found('variant does not exist with the given id',
+		perr := errors.not_found('variant does not exist with the given id',
 			'not found in existing variants for the product')
 		return ctx.handle_error(perr)
 	}
@@ -782,7 +782,7 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 
 	tx.commit() or {
 		tx.rollback() or {}
-		perr := new_error_internal(error_transaction_commit, err.msg())
+		perr := errors.internal(error_transaction_commit, err.msg())
 		return ctx.handle_error(perr)
 	}
 

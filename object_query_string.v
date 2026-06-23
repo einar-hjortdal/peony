@@ -56,12 +56,16 @@ fn hygienise_price_context_query_params(m map[string]string) !PriceContextQueryP
 	p := extract_price_context_query_params(m)
 	mut cart_id := ?ID(none)
 	if id_string := p.cart_id {
-		cart_id = id_from_string(id_string)!
+		cart_id = id_from_string(id_string) or {
+			return errors.unprocessable_entity(error_id_invalid, 'cart_id')
+		}
 	}
 
 	mut region_id := ?ID(none)
 	if id_string := p.region_id {
-		region_id = id_from_string(id_string)!
+		region_id = id_from_string(id_string) or {
+			return errors.unprocessable_entity(error_id_invalid, 'region_id')
+		}
 	}
 
 	return PriceContextQueryParamsHygienised{

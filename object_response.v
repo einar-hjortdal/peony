@@ -1067,7 +1067,7 @@ pub struct ProductResponseStoreEnvelope {
 	product ProductResponseStore
 }
 
-fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id ID, default_region_id ID, lctx LocaleContext) ProductResponseStore {
+fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id ID, lctx LocaleContext) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -1089,7 +1089,7 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_cha
 	mut variants := []VariantResponseStore{len: p.variants.len}
 	for i := 0; i < p.variants.len; i++ {
 		variant := p.variants[i]
-		prices := calculate_price(variant, default_region_id, pctx, 1)
+		prices := calculate_price(variant, pctx, 1)
 		variants[i] = format_variant_response_store(variant, prices, sales_channel_id)
 	}
 
@@ -1149,11 +1149,10 @@ pub struct ProductResponseStoreListEnvelope {
 	fetch    i32
 }
 
-fn format_product_response_store_list(p []conduit.Product, pctx PriceContext, sales_channel_id ID, default_region_id ID, lctx LocaleContext) []ProductResponseStore {
+fn format_product_response_store_list(p []conduit.Product, pctx PriceContext, sales_channel_id ID, lctx LocaleContext) []ProductResponseStore {
 	mut res := []ProductResponseStore{len: p.len}
 	for i := 0; i < p.len; i++ {
-		res[i] =
-			format_product_response_store(p[i], pctx, default_region_id, sales_channel_id, lctx)
+		res[i] = format_product_response_store(p[i], pctx, sales_channel_id, lctx)
 	}
 	return res
 }

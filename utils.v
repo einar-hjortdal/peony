@@ -9,6 +9,7 @@ import internal.conduit
 import internal.errors
 import internal.common
 import time
+import log
 
 pub const lib = 'peony'
 
@@ -206,8 +207,45 @@ fn (mut app App) gen_id() ID {
 	return common.new_id(mut app.luuid_generator)
 }
 
-fn (ctx Context) get_locale_context() !LocaleContext {
-	return hygienise_locale_context_query_params(ctx.query)
+// removes locale_id if default, otherwise makes sure it is a valid locale
+fn (mut app App) get_locale_context(s string) !LocaleContext {
+	p := hygienise_locale_context_query_params(s)!
+
+	locale_id := p.locale_id or { return LocaleContext{} }
+
+	default_locale_id := app.get_default_locale_id()!
+	if locale_id.string() == default_locale_id.string() {
+		log.debug('locale_id matches default, ignoring')
+		return LocaleContext{}
+	}
+
+	if _ := app.cache_store_locale_get(locale_id) {
+		log.debug('locale_id is valid, locale loaded from cache')
+		return LocaleContext{
+			locale_id: locale_id
+		}
+	}
+
+	log.debug('locale not in cache, getting enabled locales from db')
+	store := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Store {
+		return conduit.store_get(mut tx)!
+	})!
+
+	for i := 0; i < store.locales; i++ {
+		locale := store.locales[i]
+		if locale_id.string() != locale.id.string() {
+			continue
+		}
+
+		log.debug('locale_id is valid and enabled, cache must have expired')
+		app.cache_set_store(store)
+		return LocaleContext{
+			locale_id: locale_id
+		}
+	}
+
+	log.debug('locale_id is not valid or not enabled')
+	return errors.unprocessable_entity(error_id_invalid, 'locale_id is not valid or not enabled')
 }
 
 fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {

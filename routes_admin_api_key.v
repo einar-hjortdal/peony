@@ -110,8 +110,8 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 		return NilReturn{}
 	}) or { return ctx.handle_error(err) }
 
-	app.cache_api_key_delete(parsed_api_key_id) or {
-		log.error('app.cache_api_key_delete failed to remove API key from cache: ${err.msg()}')
+	app.cache_api_key_del(parsed_api_key_id) or {
+		log.error('app.cache_api_key_del failed to remove API key from cache: ${err.msg()}')
 	}
 
 	return ctx.handle_deleted()
