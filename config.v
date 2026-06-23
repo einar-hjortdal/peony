@@ -2,8 +2,10 @@ module peony
 
 import time
 
+pub const one_day = 24 * time.hour
+pub const one_month = 30 * one_day
 pub const default_port = 8080
-pub const default_cache_duration = time.minute * 30
+pub const default_cache_duration = one_month
 pub const default_session_max_age = time.hour * 24
 pub const default_session_name = 'Session'
 pub const default_session_admin_prefix = 'Admin'

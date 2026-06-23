@@ -61,6 +61,8 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 	}
 
 	product := app.with_rollback(fn [api_key, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
+		// TODO check locale_id is valid
+		// TODO check cart_id     ?ID region_id   ?ID customer_id ?ID
 		return conduit.product_get_store(mut tx, parsed_product_id, api_key.sales_channel_id)
 	}) or { return ctx.handle_error(err) }
 

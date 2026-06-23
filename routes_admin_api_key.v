@@ -89,8 +89,8 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 		return conduit.api_key_get(mut tx, p.id)
 	}) or { return ctx.handle_error(err) }
 
-	app.cache_set_api_key(api_key) or {
-		log.warn('api_keys_update failed to cache API key: ${err.msg()}')
+	app.cache_api_key_set(api_key) or {
+		log.error('app.cache_api_key_set failed to cache API key with error: ${err.msg()}')
 	}
 
 	return ctx.handle_ok(APIKeyResponseEnvelope{
@@ -110,8 +110,8 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 		return NilReturn{}
 	}) or { return ctx.handle_error(err) }
 
-	app.cache_delete_api_key(parsed_api_key_id) or {
-		log.warn('api_keys_delete failed to remove API key from cache: ${err.msg()}')
+	app.cache_api_key_delete(parsed_api_key_id) or {
+		log.error('app.cache_api_key_delete failed to remove API key from cache: ${err.msg()}')
 	}
 
 	return ctx.handle_deleted()

@@ -99,6 +99,5 @@ pub fn new_peony_app(config Config, p &Providers) !&App {
 // An error is returned if the initialization fails.
 pub fn (mut app App) run() ! {
 	app.prepare_db()!
-	// app.initiate_cache()!
 	veb.run[App, Context](mut app, app.config.port)
 }

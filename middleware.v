@@ -64,7 +64,7 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return false
 	}
 
-	if api_key := app.cache_get_api_key(api_key_id) {
+	if api_key := app.cache_api_key_get(api_key_id) {
 		ctx.api_key = api_key
 		return true
 	}
@@ -72,10 +72,6 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 	api_key := app.with_rollback(fn [api_key_id] (mut tx firebird.ClientTransaction) !conduit.APIKey {
 		return conduit.api_key_get(mut tx, api_key_id)
 	}) or { return ctx.middleware_handle_error(err) }
-
-	app.cache_set_api_key(api_key) or {
-		log.warn('middleware_get_api_key failed to cache API key: ${err.msg()}')
-	}
 
 	ctx.api_key = api_key
 	return true

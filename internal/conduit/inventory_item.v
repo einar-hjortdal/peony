@@ -5,7 +5,6 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 
-// TODO return specific inventory_level, requires refactor of record fn
 pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id ID, stock_location_id ID) !InventoryLevel {
 	inventory_level := record.inventory_level_get(mut tx, inventory_item_id, stock_location_id) or {
 		return errors.internal('Failed to retrieve stock inventory_level', err.msg())
