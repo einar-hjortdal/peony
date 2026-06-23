@@ -126,7 +126,10 @@ pub fn stock_location_retrieve(mut tx firebird.ClientTransaction, p StockLocatio
 
 // NOTE: when an item_reservation is removed, it should not restore item_availability if stock_location.deleted_at is not null
 pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_id ID) ! {
-	result := tx.execute('UPDATE stock_location SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
+	result := tx.execute('UPDATE stock_location
+		SET deleted_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+		AND deleted_at IS NULL',
 		stock_location_id)!
 
 	if result.affected_rows() == 0 { // stock_location was already deleted
