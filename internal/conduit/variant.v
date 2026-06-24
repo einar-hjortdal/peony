@@ -142,26 +142,27 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 	return variant
 }
 
+// TO decide: do I create ids in routes or in conduit?
 pub struct VariantMoneyAmountUpdateParams {
 pub:
-	variant_id      ID
+	variant_id      ID // missing
 	region_id       ID
-	money_amount_id ID
+	money_amount_id ID // missing
 	amount          i32
 	is_original     ?bool
 }
 
 pub struct InventoryLevelCreateParams {
 pub:
-	inventory_item_id ID
+	inventory_item_id ID // missing
 	stock_location_id ID
 	stocked_quantity  i32
 }
 
 pub struct InventoryItemCreateParams {
 pub:
-	id                ID
-	variant_id        ID
+	id                ID // missing
+	variant_id        ID // missing
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string
@@ -171,9 +172,9 @@ pub:
 	length            ?i32
 	height            ?i32
 	width             ?i32
-	requires_shipping ?bool
-	manage_inventory  ?bool
-	allow_backorder   ?bool
+	requires_shipping bool
+	manage_inventory  bool
+	allow_backorder   bool
 	inventory_levels  ?[]InventoryLevelCreateParams
 }
 
@@ -181,14 +182,14 @@ pub struct VariantCreateParams {
 pub:
 	id             ID
 	product_id     ID
+	image_id       ?ID
 	title          ?string
 	ean            ?string
 	upc            ?string
 	barcode        ?string
-	image          ?i32
 	metadata       ?string
-	variant_rank   ?i32
-	option_values  ?[]ID
+	variant_rank   i32
+	option_values  []ID
 	inventory_item ?InventoryItemCreateParams
 	money_amounts  ?[]VariantMoneyAmountUpdateParams
 }

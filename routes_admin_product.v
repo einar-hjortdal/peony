@@ -411,34 +411,16 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 // creates a variant
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
-		perr := errors.bad_request(error_id_invalid, err.msg())
-		return ctx.handle_error(perr)
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'product_id'))
+	}
+	
+		decoded := json.decode(VariantCreateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode VariantCreateRequest ', err.msg()))
 	}
 
-	p := json.decode(VariantCreateRequest, ctx.req.data) or {
-		perr := errors.bad_request('Could not decode VariantRequest ', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	ph := p.hygienise() or { return ctx.handle_error(err) }
-
-	if title := ph.title {
-		if title == '' {
-			perr := errors.bad_request('title is required', 'title not provided')
-			return ctx.handle_error(perr)
-		}
-	} else {
-		perr := errors.bad_request('title is required', 'title not provided')
-		return ctx.handle_error(perr)
-	}
-
-	if inventory_item := ph.inventory_item {
-		if inventory_item.is_empty() {
-			perr := errors.bad_request(error_empty_object, 'InventoryItemCreateRequest')
-			return ctx.handle_error(perr)
-		}
-	}
+	variant_id:=app.gen_id()
+	p := decoded.hygienise(parsed_product_id, variant_id) or { return ctx.handle_error(err) }
 
 	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 

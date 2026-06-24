@@ -1,9 +1,10 @@
 module peony
 
-import arrays
 import json
+import einar_hjortdal.luuid
 import internal.conduit
 import internal.errors
+import internal.common
 
 pub const category_default_is_active = true
 pub const category_default_is_internal = false
@@ -203,7 +204,7 @@ fn hygienise_sales_channel_update_request(s string, sales_channel_id ID) !condui
 			return errors.unprocessable_entity(error_field_empty, 'name')
 		}
 
-		if utf8_str_visible_length(p.name) > max_length_sales_channel_name {
+		if utf8_str_visible_length(name) > max_length_sales_channel_name {
 			return errors.unprocessable_entity(error_field_too_long,
 				'name can be at most ${max_length_sales_channel_name} UTF8 characters long')
 		}
@@ -735,14 +736,8 @@ pub:
 	base_price     i32  @[json: 'basePrice']
 }
 
-struct VariantMoneyAmountRequestHygienised {
-	amount      i32
-	region_id   ID
-	is_original bool
-}
-
-fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]VariantMoneyAmountRequestHygienised {
-	mut money_amounts := []VariantMoneyAmountRequestHygienised{}
+fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]conduit.VariantMoneyAmountUpdateParams {
+	mut money_amounts := []conduit.VariantMoneyAmountUpdateParams{len: 0, cap: 2 * p.len}
 	region_ids := p.keys()
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
@@ -751,17 +746,16 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 		}
 
 		price := p[region_id]
-
 		base_price := price.base_price
 		if base_price < 0 {
 			return errors.unprocessable_entity('invalid money amount', 'A price cannot be negative')
 		}
 
-		money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
-			amount:      base_price
+		money_amounts << conduit.VariantMoneyAmountUpdateParams{
 			region_id:   parsed_region_id
+			amount:      base_price
 			is_original: false
-		})
+		}
 
 		if original_price := price.original_price {
 			if original_price < 0 {
@@ -769,11 +763,11 @@ fn get_money_amounts_from_regional_prices(p map[string]VariantPriceRequest) ![]V
 					'A price cannot be negative')
 			}
 
-			money_amounts = arrays.concat(money_amounts, VariantMoneyAmountRequestHygienised{
-				amount:      original_price
+			money_amounts << conduit.VariantMoneyAmountUpdateParams{
 				region_id:   parsed_region_id
+				amount:      original_price
 				is_original: true
-			})
+			}
 		}
 	}
 
@@ -827,24 +821,18 @@ fn hygienise_stock_location_update_request(s string, stock_location_id ID) !cond
 }
 
 // used during product and variant creation
-// TODO handle
 pub struct InventoryLevelCreateRequest {
 pub:
 	stock_location_id string @[json: 'stockLocationId']
 	stocked_quantity  i32    @[json: 'stockedQuantity']
 }
 
-struct InventoryLevelCreateRequestHygienised {
-	stock_location_id ID
-	stocked_quantity  i32 @[json: 'stockedQuantity']
-}
-
-fn (p InventoryLevelCreateRequest) hygienise() !InventoryLevelCreateRequestHygienised {
+fn (p InventoryLevelCreateRequest) hygienise() !conduit.InventoryLevelCreateParams {
 	parsed_stock_location_id := id_from_string(p.stock_location_id) or {
 		return errors.unprocessable_entity(error_id_invalid, 'stock_location_id')
 	}
 
-	return InventoryLevelCreateRequestHygienised{
+	return conduit.InventoryLevelCreateParams{
 		stock_location_id: parsed_stock_location_id
 		stocked_quantity:  p.stocked_quantity
 	}
@@ -885,24 +873,22 @@ pub:
 	inventory_levels  ?[]InventoryLevelCreateRequest @[json: 'inventoryLevels']
 }
 
-struct InventoryItemCreateRequestHygienised {
-	sku               ?string
-	origin_country    ?string
-	hs_code           ?string
-	mid_code          ?string
-	material          ?string
-	weight            ?i32
-	length            ?i32
-	height            ?i32
-	width             ?i32
-	requires_shipping ?bool
-	manage_inventory  ?bool
-	allow_backorder   ?bool
-mut:
-	inventory_levels ?[]InventoryLevelCreateRequestHygienised
+fn (p InventoryItemCreateRequest) get_inventory_levels(inventory_levels []InventoryLevelCreateRequest) ![]conduit.InventoryLevelCreateParams {
+	mut res := []conduit.InventoryLevelCreateParams{len: 0, cap: inventory_levels.len}
+	for i := 0; i < inventory_levels.len; i++ {
+		res << inventory_levels[i].hygienise()!
+	}
+	return res
 }
 
-fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygienised {
+fn (p InventoryItemCreateRequest) hygienise() !conduit.InventoryItemCreateParams {
+	if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
+		&& p.material == none && p.weight == none && p.length == none && p.height == none
+		&& p.width == none && p.requires_shipping == none && p.manage_inventory == none
+		&& p.allow_backorder == none && p.inventory_levels == none {
+		return errors.unprocessable_entity(error_empty_object, 'InventoryItemCreateRequest')
+	}
+
 	if sku := p.sku {
 		if utf8_str_visible_length(sku) > max_length_sku {
 			return errors.unprocessable_entity(error_field_too_long, 'sku')
@@ -937,7 +923,12 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 		}
 	}
 
-	mut inventory_item := InventoryItemCreateRequestHygienised{
+	mut inventory_levels := ?[]conduit.InventoryLevelCreateParams(none)
+	if il := p.inventory_levels {
+		inventory_levels = p.get_inventory_levels(il)!
+	}
+
+	return conduit.InventoryItemCreateParams{
 		sku:               p.sku
 		origin_country:    p.origin_country
 		hs_code:           p.hs_code
@@ -947,26 +938,13 @@ fn (p InventoryItemCreateRequest) hygienise() !InventoryItemCreateRequestHygieni
 		length:            p.length
 		height:            p.height
 		width:             p.width
-		requires_shipping: p.requires_shipping
-		manage_inventory:  p.manage_inventory
-		allow_backorder:   p.allow_backorder
+		requires_shipping: bool_or(p.requires_shipping,
+			common.inventory_item_requires_shipping_default)
+		manage_inventory:  bool_or(p.manage_inventory,
+			common.inventory_item_manage_inventory_default)
+		allow_backorder:   bool_or(p.allow_backorder, common.inventory_item_allow_backorder_default)
+		inventory_levels:  inventory_levels
 	}
-
-	if inventory_levels := p.inventory_levels {
-		mut ls := []InventoryLevelCreateRequestHygienised{len: inventory_levels.len}
-		for i := 0; i < inventory_levels.len; i++ {
-			ls[i] = inventory_levels[i].hygienise()!
-		}
-		inventory_item.inventory_levels = ls
-	}
-
-	return inventory_item
-}
-
-fn (p InventoryItemCreateRequestHygienised) is_empty() bool {
-	return p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
-		&& p.material == none && p.weight == none && p.length == none && p.height == none
-		&& p.width == none && p.manage_inventory == none && p.requires_shipping == none
 }
 
 pub struct InventoryItemUpdateRequest {
@@ -1374,31 +1352,23 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 // When omitted, all regional base_price will be initialized to a default value of 0.
 pub struct VariantCreateRequest {
 pub:
+	image_id         ?string @[json: 'imageId']
 	title            ?string
 	ean              ?string
 	upc              ?string
 	barcode          ?string
-	image_id         ?string                         @[json: 'imageId']
-	inventory_item   ?InventoryItemCreateRequest     @[json: 'inventoryItem']
-	option_value_ids []string                        @[json: 'optionValueIds']
 	metadata         ?string                         @[raw]
+	option_value_ids []string                        @[json: 'optionValueIds']
+	inventory_item   ?InventoryItemCreateRequest     @[json: 'inventoryItem']
 	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-struct VariantCreateRequestHygienised {
-	title            ?string
-	ean              ?string
-	upc              ?string
-	barcode          ?string
-	image_id         ?ID
-	option_value_ids []ID
-	metadata         ?string
-mut:
-	money_amounts  ?[]VariantMoneyAmountRequestHygienised
-	inventory_item ?InventoryItemCreateRequestHygienised
-}
+fn (p VariantCreateRequest) hygienise(product_id ID, variant_id ID) !conduit.VariantCreateParams {
+	title := p.title or { return errors.bad_request(error_field_empty, 'title not provided') }
+	if title == '' {
+		return errors.bad_request(error_field_empty, 'title cannot be an empty string')
+	}
 
-fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 	if p.option_value_ids.len == 0 {
 		return errors.unprocessable_entity(error_field_empty,
 			'option_value_ids cannot be an empty array')
@@ -1419,29 +1389,33 @@ fn (p VariantCreateRequest) hygienise() !VariantCreateRequestHygienised {
 		}
 	}
 
-	mut ph := VariantCreateRequestHygienised{
-		title:            p.title
-		ean:              p.ean
-		upc:              p.upc
-		barcode:          p.barcode
-		image_id:         parsed_image_id
-		option_value_ids: parsed_option_value_ids
-		metadata:         p.metadata
-	}
-
-	if prices := p.regional_prices {
-		if prices.len == 0 {
-			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
+	mut money_amounts := ?[]conduit.VariantMoneyAmountUpdateParams(none)
+	if regional_prices := p.regional_prices {
+		if regional_prices.len == 0 {
+			return errors.bad_request(error_field_empty, 'regional_prices cannot be an empty map')
 		}
-
-		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
+		money_amounts = get_money_amounts_from_regional_prices(regional_prices)!
 	}
 
-	if inventory_item := p.inventory_item {
-		ph.inventory_item = inventory_item.hygienise()!
+	mut inventory_item := ?conduit.InventoryItemCreateParams(none)
+	if ii := p.inventory_item {
+		inventory_item = ii.hygienise()!
 	}
 
-	return ph
+	return conduit.VariantCreateParams{
+		id:             variant_id
+		product_id:     product_id
+		image_id:       parsed_image_id
+		title:          p.title
+		ean:            p.ean
+		upc:            p.upc
+		barcode:        p.barcode
+		metadata:       p.metadata
+		variant_rank:   common.variant_rank_default
+		option_values:  parsed_option_value_ids
+		money_amounts:  money_amounts
+		inventory_item: inventory_item
+	}
 }
 
 // VariantUpdateRequest describes the body of the request to update an existing product variant.
@@ -1809,11 +1783,7 @@ pub:
 	seo                ?SEORequest
 }
 
-fn hygienise_category_create_request(s string, category_id ID) !conduit.CategoryCreateParams {
-	p := json.decode(CategoryCreateRequest, s) or {
-		return errors.bad_request('Could not decode CategoryCreateRequest', err.msg())
-	}
-
+fn (p CategoryCreateRequest) hygienise(category_id ID) !conduit.CategoryCreateParams {
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {

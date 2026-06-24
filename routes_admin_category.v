@@ -1,5 +1,6 @@
 module peony
 
+import json
 import veb
 import einar_hjortdal.firebird
 import internal.errors
@@ -41,10 +42,13 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 // creates category
 @['/admin/categories'; post]
 pub fn (mut app App) category_create(mut ctx Context) veb.Result {
-	category_id := app.gen_id()
-	p := hygienise_category_create_request(ctx.req.data, category_id) or {
-		return ctx.handle_error(err)
+	decoded := json.decode(CategoryCreateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode CategoryCreateRequest ',
+			err.msg()))
 	}
+
+	category_id := app.gen_id()
+	p := decoded.hygienise(category_id) or { return ctx.handle_error(err) }
 
 	category := app.with_commit(fn [mut app, p, category_id] (mut tx firebird.ClientTransaction) !conduit.Category {
 		conduit.category_create(mut tx, mut app.luuid_generator, p)!

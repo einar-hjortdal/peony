@@ -314,7 +314,6 @@ pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) 
 	tx.execute(query, ...params)!
 }
 
-// used in product endpoints
 pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, p []VariantUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 9
