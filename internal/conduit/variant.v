@@ -263,7 +263,7 @@ fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction
 	}
 
 	for _, count in counts {
-		if count != p.option_values.len {
+		if count == p.option_values.len {
 			return errors.unprocessable_entity('duplicate variant',
 				'A variant with the same option values already exists')
 		}
