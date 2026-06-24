@@ -58,6 +58,7 @@ pub:
 	ids         ?[]ID
 	option_ids  ?[]ID
 	variant_ids ?[]ID
+	product_ids ?[]ID
 }
 
 fn product_option_values_retrieve_conditions(p ProductOptionValueRetrieveParams) (string, []firebird.Value) {
@@ -80,6 +81,15 @@ fn product_option_values_retrieve_conditions(p ProductOptionValueRetrieveParams)
 				AND povv.variant_id IN (${get_placeholders(variant_ids)})
 			)')
 		params = arrays.concat(params, ...ids_values(variant_ids))
+	}
+
+	if product_ids := p.product_ids {
+		conditions = arrays.concat(conditions, 'EXISTS (
+			SELECT 1 FROM product_option po
+			WHERE po.id = pov.option_id
+				AND po.option_id IN (${get_placeholders(product_ids)})
+			)')
+		params = arrays.concat(params, ...ids_values(product_ids))
 	}
 
 	return get_conditions(conditions), params

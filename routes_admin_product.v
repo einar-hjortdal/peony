@@ -2,6 +2,7 @@ module peony
 
 import json
 import veb
+import einar_hjortdal.firebird
 import einar_hjortdal.slugify
 import internal.errors
 
@@ -414,93 +415,22 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 	parsed_product_id := id_from_string(product_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'product_id'))
 	}
-	
-		decoded := json.decode(VariantCreateRequest, ctx.req.data) or {
-		return ctx.handle_error(errors.bad_request('Could not decode VariantCreateRequest ', err.msg()))
+
+	decoded := json.decode(VariantCreateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode VariantCreateRequest ',
+			err.msg()))
 	}
 
-	variant_id:=app.gen_id()
+	variant_id := app.gen_id()
 	p := decoded.hygienise(parsed_product_id, variant_id) or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
+	variant := app.with_commit(fn [mut app, p, variant_id] (mut tx firebird.ClientTransaction) !conduit.Variant {
+		conduit.variant_create(mut tx, mut app.luuid_generator, p)!
+		return conduit.variant_get(mut tx, variant_id)
+	}) or { return ctx.handle_error(err) }
 
-	regions := model_region_retrieve(mut tx, RegionRetriveParams{
-		fetch: max_fetch
-		order: order_default
-	}) or {
-		tx.rollback() or {}
-		perr := errors.internal('Failed to retrieve region', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if regional_prices := p.regional_prices {
-		// verify region ids exist
-		mut regions_map := map[string]bool{}
-		for i := 0; i < regions.len; i++ {
-			region := regions[i]
-			regions_map[region.id.string()] = true
-		}
-
-		region_ids := regional_prices.keys()
-		for i := 0; i < region_ids.len; i++ {
-			region_id := region_ids[i]
-			if regions_map[region_id] {
-				continue
-			}
-			perr := errors.unprocessable_entity(error_id_invalid,
-				'regional_prices contains a region id that does not exist')
-			return ctx.handle_error(perr)
-		}
-	}
-
-	mut product_option_data := suite_product_option_data_get(mut tx, [
-		product_id_bin,
-	]) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	product_option_data.verify_product_option_value_ids(ph.option_value_ids,
-		ph.option_value_ids_bin) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	variant_id, variant_id_bin := app.new_id()
-	conduit_variant_create(mut app, mut ctx, mut tx, product_id, product_id_bin, variant_id,
-		variant_id_bin, ph) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	rvph := RetrieveProductVariantParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
-		}
-		ids_bin: [variant_id_bin]
-	}
-
-	variants := model_variant_retrieve(mut tx, rvph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants after creation', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if variants.len != 1 {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve created variant', 'varaints.len != 1')
-		return ctx.handle_error(perr)
-	}
-
-	tx.commit() or {
-		perr := errors.internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	variant := variants[0]
-	external_variant := format_variant_response(variant)
 	return ctx.handle_created(VariantResponseEnvelope{
-		variant: external_variant
+		variant: format_variant_response(variant)
 	})
 }
 
