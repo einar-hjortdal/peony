@@ -24,4 +24,5 @@ pub const inventory_item_requires_shipping_default = true
 pub const inventory_item_manage_inventory_default = true
 pub const inventory_item_allow_backorder_default = false
 
+pub const money_amount_default_amount = i32(0)
 pub const money_amount_default_is_original = false

@@ -149,20 +149,20 @@ pub:
 	region_id ID
 	// money_amount_id ID // missing
 	amount      i32
-	is_original ?bool
+	is_original bool
 }
 
 pub struct InventoryLevelCreateParams {
 pub:
-	inventory_item_id ID // missing
+	inventory_item_id ID
 	stock_location_id ID
 	stocked_quantity  i32
 }
 
 pub struct InventoryItemCreateParams {
 pub:
-	// id                ID // missing
-	// variant_id        ID // missing
+	id                ID
+	variant_id        ID
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string
@@ -190,8 +190,23 @@ pub:
 	metadata       ?string
 	variant_rank   i32
 	option_values  []ID
-	inventory_item ?InventoryItemCreateParams
+	inventory_item InventoryItemCreateParams
 	money_amounts  ?[]VariantMoneyAmountUpdateParams
+}
+
+fn (p VariantCreateParams) check_image_id(mut tx firebird.ClientTransaction) ! {
+	image_id := p.image_id or { return }
+	images := record.product_image_retrieve(mut tx, [p.product_id]) or {
+		return errors.internal('Failed to retrieve product_image', err.msg())
+	}
+
+	for i := 0; i < images.len; i++ {
+		image := images[i]
+		if image.id.string() == image_id.string() { return }
+	}
+
+	return errors.unprocessable_entity(error_id_invalid,
+		'image_id does not exist or does not belong to product')
 }
 
 fn (p VariantCreateParams) check_money_amount_region(mut tx firebird.ClientTransaction) ! {
@@ -203,7 +218,7 @@ fn (p VariantCreateParams) check_money_amount_region(mut tx firebird.ClientTrans
 	}
 	mut ids := given_ids.values()
 
-	count := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
+	count_existing := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		ids:          ids
 		with_deleted: false
 		offset:       offset_default // ignored by count fn
@@ -211,10 +226,23 @@ fn (p VariantCreateParams) check_money_amount_region(mut tx firebird.ClientTrans
 		order:        order_default  // ignored by count fn
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
-	if count != ids.len {
+	if count_existing != ids.len {
 		// TODO return which are missing for nice error?
 		return errors.unprocessable_entity(error_id_invalid,
 			'money_amount region_id does not exist')
+	}
+
+	// check there is one given_id for each existing region
+	count_region := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
+
+	if count_region != ids.len {
+		return errors.unprocessable_entity('Regional price missing',
+			'Every region must have one price')
 	}
 }
 
@@ -271,41 +299,132 @@ fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction
 }
 
 fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
+	p.check_image_id(mut tx)!
 	p.check_money_amount_region(mut tx)!
 	p.check_option_values(mut tx)!
+	// TODO check inventory levels (stock location ids)
 }
 
-fn (p VariantCreateParams) parse(mut g luuid.Generator) VariantCreateData {
-	product_option_data.verify_product_option_value_ids(ph.option_value_ids,
-		ph.option_value_ids_bin) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	variant_id, variant_id_bin := app.new_id()
-	conduit_variant_create(mut app, mut ctx, mut tx, product_id, product_id_bin, variant_id,
-		variant_id_bin, ph) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	rvph := RetrieveProductVariantParamsHygienised{
-		ids:     ZeroArrayString{
-			is_set: true
+fn (p VariantCreateParams) parse_option_values() []record.ProductOptionValueVariant {
+	mut res := []record.ProductOptionValueVariant{len: p.option_values.len}
+	for i := 0; i < p.option_values.len; i++ {
+		res[i] = record.ProductOptionValueVariant{
+			option_value_id: p.option_values[i]
+			variant_id:      p.id
 		}
-		ids_bin: [variant_id_bin]
+	}
+	return res
+}
+
+fn (p VariantCreateParams) parse_inventory_item() record.InventoryItemCreateParams {
+	ii := p.inventory_item
+	return record.InventoryItemCreateParams{
+		id:                ii.id
+		variant_id:        ii.variant_id
+		sku:               ii.sku
+		origin_country:    ii.origin_country
+		hs_code:           ii.hs_code
+		mid_code:          ii.mid_code
+		material:          ii.material
+		weight:            ii.weight
+		length:            ii.length
+		height:            ii.height
+		width:             ii.width
+		requires_shipping: ii.requires_shipping
+		manage_inventory:  ii.manage_inventory
+		allow_backorder:   ii.allow_backorder
+	}
+}
+
+fn (p VariantCreateParams) parse_inventory_levels() ?[]record.InventoryLevelCreateParams {
+	if !p.inventory_item.manage_inventory { return none }
+	ils := p.inventory_item.inventory_levels or { return none }
+	mut res := []record.InventoryLevelCreateParams{len: 0, cap: ils.len}
+	for _, il in ils {
+		res << record.InventoryLevelCreateParams{
+			inventory_item_id: il.inventory_item_id
+			stock_location_id: il.stock_location_id
+			stocked_quantity:  il.stocked_quantity
+		}
+	}
+	return res
+}
+
+fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator) ![]record.VariantMoneyAmountUpdateParams {
+	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
+		with_deleted: false
+		offset:       offset_default
+		fetch:        max_fetch // limit 250 regions or refactor? or make const internal_max_fetch = max_i32?
+		order:        order_default
+	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
+
+	// at max one base and one original per region
+	mut res := []record.VariantMoneyAmountUpdateParams{len: 0, cap: 2 * regions.len}
+
+	money_amounts := p.money_amounts or {
+		for _, region in regions {
+			res << record.VariantMoneyAmountUpdateParams{
+				variant_id:      p.id
+				region_id:       region.id
+				money_amount_id: common.new_id(mut g)
+				amount:          common.money_amount_default_amount
+				is_original:     common.money_amount_default_is_original
+			}
+		}
+		return res
 	}
 
-	variants := model_variant_retrieve(mut tx, rvph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants after creation', err.msg())
-		return ctx.handle_error(perr)
+	mut covered := map[string]common.Empty{}
+	for ma in money_amounts {
+		region_id := ma.region_id
+		res << record.VariantMoneyAmountUpdateParams{
+			variant_id:      p.id
+			region_id:       region_id
+			money_amount_id: common.new_id(mut g)
+			amount:          ma.amount
+			is_original:     ma.is_original
+		}
+
+		if ma.is_original {
+			covered[region_id.string()] = common.Empty{}
+		}
 	}
 
-	if variants.len != 1 {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve created variant', 'varaints.len != 1')
-		return ctx.handle_error(perr)
+	for _, region in regions {
+		if region.id.string() in covered {
+			continue
+		}
+
+		res << record.VariantMoneyAmountUpdateParams{
+			variant_id:      p.id
+			region_id:       region.id
+			money_amount_id: common.new_id(mut g)
+			amount:          common.money_amount_default_amount
+			is_original:     common.money_amount_default_is_original
+		}
+	}
+	return res
+}
+
+fn (p VariantCreateParams) parse(mut tx firebird.ClientTransaction, mut g luuid.Generator) !VariantCreateData {
+	variant := record.VariantCreateParams{
+		id:           p.id
+		product_id:   p.product_id
+		image_id:     p.image_id
+		title:        p.title
+		barcode:      p.barcode
+		ean:          p.ean
+		upc:          p.upc
+		metadata:     p.metadata
+		variant_rank: p.variant_rank
+	}
+
+	return VariantCreateData{
+		variant:          variant
+		option_values:    p.parse_option_values()
+		inventory_item:   p.parse_inventory_item()
+		inventory_levels: p.parse_inventory_levels()
+		money_amounts:    p.parse_money_amounts(mut tx, mut g)!
 	}
 }
 
@@ -317,10 +436,12 @@ struct VariantCreateData {
 	money_amounts    []record.VariantMoneyAmountUpdateParams
 }
 
-// TODO rewrite params, handle inventory levels
+// TODO consider moving all id generation here. pass variant id as fn parameter or return it.
+// I think id generation should be in one location alone, and it probably belongs here.
+// TODO should defaults be set here? Sometimes I am forced to set them here, I'm not forced to set them in the routes yet.
 pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) ! {
 	p.check(mut tx)!
-	data := p.parse(mut g)
+	data := p.parse(mut tx, mut g)!
 
 	record.variant_create(mut tx, [data.variant]) or {
 		return errors.internal('Could not create product_variant', err.msg())

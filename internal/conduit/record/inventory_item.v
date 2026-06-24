@@ -90,6 +90,7 @@ pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_ite
 }
 
 pub struct InventoryLevelCreateParams {
+pub:
 	inventory_item_id ID
 	stock_location_id ID
 	stocked_quantity  i32
