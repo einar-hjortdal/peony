@@ -2,6 +2,7 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import common
 
 pub const variant_default_title = 'default variant'
 pub const option_default_title = 'default option'
@@ -153,12 +154,12 @@ pub:
 	id           ID
 	product_id   ID
 	image_id     ?ID
-	title        string
-	barcode      string
-	ean          string
-	upc          string
-	metadata     string
-	variant_rank i32
+	title        ?string
+	barcode      ?string
+	ean          ?string
+	upc          ?string
+	metadata     ?string
+	variant_rank ?i32
 }
 
 // TODO validate struct fields
@@ -188,26 +189,40 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 			params[i * n_params + 2] = image_id.bytes()
 		}
 
-		if v.title != '' {
-			params[i * n_params + 3] = v.title
+		if title := v.title {
+			if title != '' {
+				params[i * n_params + 3] = title
+			}
 		}
 
-		if v.barcode != '' {
-			params[i * n_params + 4] = v.barcode
+		if barcode := v.barcode {
+			if barcode != '' {
+				params[i * n_params + 4] = barcode
+			}
 		}
 
-		if v.ean != '' {
-			params[i * n_params + 5] = v.ean
+		if ean := v.ean {
+			if ean != '' {
+				params[i * n_params + 5] = ean
+			}
 		}
 
-		if v.upc != '' {
-			params[i * n_params + 6] = v.upc
+		if upc := v.upc {
+			if upc != '' {
+				params[i * n_params + 6] = upc
+			}
 		}
 
-		params[i * n_params + 7] = v.variant_rank
+		if variant_rank := v.variant_rank {
+			params[i * n_params + 7] = variant_rank
+		} else {
+			params[i * n_params + 7] = common.variant_rank_default
+		}
 
-		if v.metadata != '' {
-			params[i * n_params + 8] = v.metadata
+		if metadata := v.metadata {
+			if metadata != '' {
+				params[i * n_params + 8] = metadata
+			}
 		}
 	}
 
@@ -230,13 +245,14 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 pub struct VariantUpdateParams {
 pub:
 	id           ID
+	product_id   ID
 	image_id     ?ID
-	title        string
-	barcode      string
-	ean          string
-	upc          string
-	variant_rank i32
-	metadata     string
+	title        ?string
+	barcode      ?string
+	ean          ?string
+	upc          ?string
+	variant_rank ?i32
+	metadata     ?string
 }
 
 pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) ! {
@@ -257,26 +273,38 @@ pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) 
 		params[0] = image_id.bytes()
 	}
 
-	if p.title != '' {
-		params[1] = p.title
+	if title := p.title {
+		if title != '' {
+			params[1] = title
+		}
 	}
 
-	if p.barcode != '' {
-		params[2] = p.barcode
+	if barcode := p.barcode {
+		if barcode != '' {
+			params[2] = barcode
+		}
 	}
 
-	if p.ean != '' {
-		params[3] = p.ean
+	if ean := p.ean {
+		if ean != '' {
+			params[3] = ean
+		}
 	}
 
-	if p.upc != '' {
-		params[4] = p.upc
+	if upc := p.upc {
+		if upc != '' {
+			params[4] = upc
+		}
 	}
 
-	params[5] = p.variant_rank
+	if variant_rank := p.variant_rank {
+		params[5] = variant_rank
+	}
 
-	if p.metadata != '' {
-		params[6] = p.metadata
+	if metadata := p.metadata {
+		if metadata != '' {
+			params[6] = metadata
+		}
 	}
 
 	params[7] = p.id.bytes()
@@ -293,7 +321,7 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
 
 	for i := 0; i < p.len; i++ {
-		variant := p[i]
+		v := p[i]
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS id,
 			CAST(? AS BINARY(16)) AS product_id,
@@ -306,31 +334,46 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 			CAST(? AS BLOB SUB_TYPE TEXT) AS metadata
 			FROM RDB\$DATABASE'
 
-		params[i * n_params + 0] = variant.id.bytes()
-		params[i * n_params + 1] = product_id.bytes()
+		params[i * n_params + 0] = v.id.bytes()
+		params[i * n_params + 1] = v.product_id.bytes()
 
-		if image_id := variant.image_id {
+		if image_id := v.image_id {
 			params[i * n_params + 2] = image_id.bytes()
 		}
 
-		if variant.title != '' {
-			params[i * n_params + 3] = variant.title
+		if title := v.title {
+			if title != '' {
+				params[i * n_params + 3] = title
+			}
 		}
 
-		if variant.barcode != '' {
-			params[i * n_params + 4] = variant.barcode
+		if barcode := v.barcode {
+			if barcode != '' {
+				params[i * n_params + 4] = barcode
+			}
 		}
 
-		if variant.ean != '' {
-			params[i * n_params + 5] = variant.ean
+		if ean := v.ean {
+			if ean != '' {
+				params[i * n_params + 5] = ean
+			}
 		}
 
-		if variant.upc != '' {
-			params[i * n_params + 6] = variant.upc
+		if upc := v.upc {
+			if upc != '' {
+				params[i * n_params + 6] = upc
+			}
 		}
 
-		params[i * n_params + 7] = variant.variant_rank
-		params[i * n_params + 8] = variant.metadata
+		if variant_rank := v.variant_rank {
+			params[i * n_params + 7] = variant_rank
+		} else {
+			params[i * n_params + 7] = common.variant_rank_default
+		}
+
+		if metadata := v.metadata {
+			params[i * n_params + 8] = metadata
+		}
 	}
 
 	query := 'MERGE INTO variant t

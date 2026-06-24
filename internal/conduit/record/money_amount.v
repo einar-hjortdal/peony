@@ -1,8 +1,7 @@
 module record
 
 import einar_hjortdal.firebird
-
-const default_money_amount = i32(0)
+import common
 
 pub struct MoneyAmount {
 pub:
@@ -79,7 +78,7 @@ pub:
 	region_id       ID
 	money_amount_id ID
 	amount          i32
-	is_original     bool
+	is_original     ?bool
 }
 
 pub fn variant_money_amount_update(mut tx firebird.ClientTransaction, p []VariantMoneyAmountUpdateParams) ! {
@@ -116,7 +115,13 @@ pub fn variant_money_amount_update(mut tx firebird.ClientTransaction, p []Varian
 
 		params[i * n_params] = p[i].money_amount_id.bytes()
 		params[i * n_params + 1] = p[i].region_id.bytes()
-		params[i * n_params + 2] = p[i].is_original
+
+		if is_original := p[i].is_original {
+			params[i * n_params + 2] = is_original
+		} else {
+			params[i * n_params + 2] = common.money_amount_default_is_original
+		}
+
 		params[i * n_params + 3] = p[i].amount
 	}
 

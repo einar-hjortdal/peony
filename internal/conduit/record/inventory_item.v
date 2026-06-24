@@ -2,6 +2,7 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import common
 
 pub struct InventoryLevel {
 pub:
@@ -304,23 +305,22 @@ pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []
 	return inventory_items
 }
 
-// TODO fix option types
 pub struct InventoryItemCreateParams {
 pub:
 	id                ID
 	variant_id        ID
-	sku               string
-	origin_country    string
-	hs_code           string
-	mid_code          string
-	material          string
-	weight            i32
-	length            i32
-	height            i32
-	width             i32
-	requires_shipping bool
-	manage_inventory  bool
-	allow_backorder   bool
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool
+	manage_inventory  ?bool
+	allow_backorder   ?bool
 }
 
 // TODO validate params
@@ -351,45 +351,77 @@ pub fn inventory_item_create(mut tx firebird.ClientTransaction, p []InventoryIte
 		params[i * n_params] = item.id.bytes()
 		params[i * n_params + 1] = item.variant_id.bytes()
 
-		if item.sku != '' {
-			params[i * n_params + 2] = item.sku
+		if sku := item.sku {
+			if sku != '' {
+				params[i * n_params + 2] = sku
+			}
 		}
 
-		if item.origin_country != '' {
-			params[i * n_params + 3] = item.origin_country
+		if origin_country := item.origin_country {
+			if origin_country != '' {
+				params[i * n_params + 3] = origin_country
+			}
 		}
 
-		if item.hs_code != '' {
-			params[i * n_params + 4] = item.hs_code
+		if hs_code := item.hs_code {
+			if hs_code != '' {
+				params[i * n_params + 4] = hs_code
+			}
 		}
 
-		if item.mid_code != '' {
-			params[i * n_params + 5] = item.mid_code
+		if mid_code := item.mid_code {
+			if mid_code != '' {
+				params[i * n_params + 5] = mid_code
+			}
 		}
 
-		if item.material != '' {
-			params[i * n_params + 6] = item.material
+		if material := item.material {
+			if material != '' {
+				params[i * n_params + 6] = material
+			}
 		}
 
-		if item.weight != 0 {
-			params[i * n_params + 7] = item.weight
+		if weight := item.weight {
+			if weight != 0 {
+				params[i * n_params + 7] = weight
+			}
 		}
 
-		if item.length != 0 {
-			params[i * n_params + 8] = item.length
+		if length := item.length {
+			if length != 0 {
+				params[i * n_params + 8] = length
+			}
 		}
 
-		if item.height != 0 {
-			params[i * n_params + 9] = item.height
+		if height := item.height {
+			if height != 0 {
+				params[i * n_params + 9] = height
+			}
 		}
 
-		if item.width != 0 {
-			params[i * n_params + 10] = item.width
+		if width := item.width {
+			if width != 0 {
+				params[i * n_params + 10] = width
+			}
 		}
 
-		params[i * n_params + 11] = item.requires_shipping
-		params[i * n_params + 12] = item.manage_inventory
-		params[i * n_params + 13] = item.allow_backorder
+		if requires_shipping := item.requires_shipping {
+			params[i * n_params + 11] = requires_shipping
+		} else {
+			params[i * n_params + 11] = common.inventory_item_requires_shipping_default
+		}
+
+		if manage_inventory := item.manage_inventory {
+			params[i * n_params + 12] = manage_inventory
+		} else {
+			params[i * n_params + 12] = common.inventory_item_manage_inventory_default
+		}
+
+		if allow_backorder := item.allow_backorder {
+			params[i * n_params + 13] = allow_backorder
+		} else {
+			params[i * n_params + 13] = common.inventory_item_allow_backorder_default
+		}
 	}
 
 	tx.execute('INSERT INTO inventory_item
@@ -413,6 +445,7 @@ pub fn inventory_item_create(mut tx firebird.ClientTransaction, p []InventoryIte
 		...params)!
 }
 
+// TODO fix option types
 pub struct InventoryItemUpdateParams {
 pub:
 	id                ID

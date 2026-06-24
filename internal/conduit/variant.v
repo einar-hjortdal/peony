@@ -1,6 +1,7 @@
 module conduit
 
 import arrays
+import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import record
 import internal.errors
@@ -141,11 +142,69 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 	return variant
 }
 
-pub struct VariantCreateData {
-	variant        record.VariantCreateParams
-	option_values  []record.ProductOptionValueVariant
-	inventory_item record.InventoryItemCreateParams
-	money_amounts  []record.VariantMoneyAmountUpdateParams
+pub struct VariantMoneyAmountUpdateParams {
+pub:
+	variant_id      ID
+	region_id       ID
+	money_amount_id ID
+	amount          i32
+	is_original     ?bool
+}
+
+pub struct InventoryLevelCreateParams {
+pub:
+	inventory_item_id ID
+	stock_location_id ID
+	stocked_quantity  i32
+}
+
+pub struct InventoryItemCreateParams {
+pub:
+	id                ID
+	variant_id        ID
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool
+	manage_inventory  ?bool
+	allow_backorder   ?bool
+	inventory_levels  ?[]InventoryLevelCreateParams
+}
+
+pub struct VariantCreateParams {
+pub:
+	id             ID
+	product_id     ID
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	image          ?i32
+	metadata       ?string
+	variant_rank   ?i32
+	option_values  ?[]ID
+	inventory_item ?InventoryItemCreateParams
+	money_amounts  ?[]VariantMoneyAmountUpdateParams
+}
+
+fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
+}
+
+fn (p VariantCreateParams) parse(mut tx firebird.ClientTransaction, mut g luuid.Generator) !VariantCreateData {
+}
+
+struct VariantCreateData {
+	variant          record.VariantCreateParams
+	option_values    []record.ProductOptionValueVariant
+	inventory_item   record.InventoryItemCreateParams
+	inventory_levels []record.InventoryLevelCreateParams
+	money_amounts    []record.VariantMoneyAmountUpdateParams
 }
 
 // TODO rewrite params, handle inventory levels

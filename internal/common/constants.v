@@ -17,3 +17,11 @@ pub const product_status_draft = 'draft'
 pub const product_status_proposed = 'proposed'
 pub const product_status_published = 'published'
 pub const product_status_rejected = 'rejected'
+
+pub const variant_rank_default = i32(0)
+
+pub const inventory_item_requires_shipping_default = true
+pub const inventory_item_manage_inventory_default = true
+pub const inventory_item_allow_backorder_default = false
+
+pub const money_amount_default_is_original = false
