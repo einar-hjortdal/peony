@@ -183,115 +183,18 @@ pub:
 	money_amounts    ?[]VariantMoneyAmountUpdateParams
 }
 
-fn (p VariantCreateParams) check_image_id(mut tx firebird.ClientTransaction) ! {
-	image_id := p.image_id or { return }
-	images := record.product_image_retrieve(mut tx, [p.product_id]) or {
-		return errors.internal('Failed to retrieve product_image', err.msg())
-	}
-
-	for i := 0; i < images.len; i++ {
-		image := images[i]
-		if image.id.string() == image_id.string() { return }
-	}
-
-	return errors.unprocessable_entity(errors.id_invalid,
-		'image_id does not exist or does not belong to product')
-}
-
-fn (p VariantCreateParams) check_money_amount_region(mut tx firebird.ClientTransaction) ! {
-	money_amounts := p.money_amounts or { return }
-	mut given_ids := map[string]ID{}
-	for i := 0; i < money_amounts.len; i++ {
-		id := money_amounts[i].region_id
-		given_ids[id.string()] = id
-	}
-	mut ids := given_ids.values()
-
-	count_existing := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
-		ids:          ids
-		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
-	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
-
-	if count_existing != ids.len {
-		// TODO return which are missing for nice error?
-		return errors.unprocessable_entity(errors.id_invalid,
-			'money_amount region_id does not exist')
-	}
-
-	// check there is one given_id for each existing region
-	count_region := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
-		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
-	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
-
-	if count_region != ids.len {
-		return errors.unprocessable_entity('Regional price missing',
-			'Every region must have one price')
-	}
-}
-
-fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction) ! {
-	// check given option_value ids exist
-	option_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
-		ids:         p.option_value_ids
-		product_ids: [p.product_id]
-	}) or { return errors.internal('Failed to retrieve product_option_value', err.msg()) }
-
-	if option_values.len != p.option_value_ids.len {
-		return errors.unprocessable_entity(errors.id_invalid,
-			'product_option_value id does not exist or does not belong to the product')
-	}
-
-	// check each value belongs to different option
-	mut option_ids := map[string]common.Empty{}
-	for i := 0; i < option_values.len; i++ {
-		option_id := option_values[i].option_id.string()
-		if option_id in option_ids {
-			return errors.unprocessable_entity(errors.id_invalid,
-				'one or more option_value share the same option parent')
-		}
-		option_ids[option_id] = common.Empty{}
-	}
-
-	// check number of value matches the number of options on the product
-	options := record.product_option_retrieve(mut tx, [p.product_id]) or {
-		return errors.internal('Failed to retrieve product_option', err.msg())
-	}
-
-	if options.len != p.option_value_ids.len {
-		return errors.unprocessable_entity('option_values amount not correct',
-			'Expected one option_value for each option that exists for the product')
-	}
-
-	// check combination is unique
-	value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
-		option_value_ids: p.option_value_ids
-	}) or { return errors.internal('Failed to retrieve product_option_value_variant', err.msg()) }
-
-	mut counts := map[string]int{}
-	for i := 0; i < value_variants.len; i++ {
-		vv := value_variants[i]
-		counts[vv.variant_id.string()]++
-	}
-
-	for _, count in counts {
-		if count == p.option_value_ids.len {
-			return errors.unprocessable_entity('duplicate variant',
-				'A variant with the same option values already exists')
-		}
-	}
-}
-
 fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	check_product_id_exists(mut tx, p.product_id)!
-	p.check_image_id(mut tx)!
-	p.check_money_amount_region(mut tx)!
-	p.check_option_values(mut tx)!
+
+	if image_id := p.image_id {
+		check_image_id_belongs_to_product(mut tx, p.product_id, image_id)!
+	}
+
+	check_option_values(mut tx, p.product_id, p.option_value_ids)!
+
+	if money_amounts := p.money_amounts {
+		check_money_amount_regions(mut tx, money_amounts)!
+	}
 }
 
 fn (p VariantCreateParams) parse_variant() !record.VariantCreateParams {
@@ -445,11 +348,21 @@ pub:
 	money_amounts    ?[]VariantMoneyAmountUpdateParams
 }
 
-struct VariantUpdateData {
-	variant        record.VariantUpdateParams
-	option_values  ?[]record.ProductOptionValueVariant
-	inventory_item ?record.InventoryItemUpdateParams
-	money_amounts  ?[]record.VariantMoneyAmountUpdateParams
+fn (p VariantUpdateParams) check(mut tx firebird.ClientTransaction) ! {
+	check_variant_id_exists(mut tx, p.id)!
+	check_product_id_exists(mut tx, p.product_id)!
+
+	if image_id := p.image_id {
+		check_image_id_belongs_to_product(mut tx, p.product_id, image_id)!
+	}
+
+	if option_value_ids := p.option_value_ids {
+		check_option_values(mut tx, p.product_id, option_value_ids)!
+	}
+
+	if money_amounts := p.money_amounts {
+		check_money_amount_regions(mut tx, money_amounts)!
+	}
 }
 
 fn (p VariantUpdateParams) parse_variant(mut tx firebird.ClientTransaction) !record.VariantUpdateParams {
@@ -527,11 +440,7 @@ fn (p VariantUpdateParams) parse_money_amounts(mut g luuid.Generator, money_amou
 }
 
 pub fn variant_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantUpdateParams) ! {
-	check_variant_id_exists(mut tx, p.id)!
-	check_product_id_exists(mut tx, p.product_id)!
-	// TODO check validity of money_amounts (region_id exist, 1 base price per region)
-	// check option values exist, one value per option, no duplicates
-	// check image id exists
+	p.check(mut tx)!
 
 	variant := p.parse_variant(mut tx)!
 	record.variant_update(mut tx, variant) or {

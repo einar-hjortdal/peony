@@ -77,6 +77,108 @@ fn check_variant_id_exists(mut tx firebird.ClientTransaction, variant_id ID) ! {
 	}
 }
 
+fn check_money_amount_regions(mut tx firebird.ClientTransaction, p []VariantMoneyAmountUpdateParams) ! {
+	mut given_ids := map[string]ID{}
+	for i := 0; i < p.len; i++ {
+		id := p[i].region_id
+		given_ids[id.string()] = id
+	}
+	mut ids := given_ids.values()
+
+	count_existing := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
+		ids:          ids
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
+
+	if count_existing != ids.len {
+		// TODO return which are missing for nice error?
+		return errors.unprocessable_entity(errors.id_invalid,
+			'money_amount region_id does not exist')
+	}
+
+	// check there is one given_id for each existing region
+	count_region := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
+
+	if count_region != ids.len {
+		return errors.unprocessable_entity('Regional price missing',
+			'Every region must have one price')
+	}
+}
+
+fn check_option_values(mut tx firebird.ClientTransaction, product_id ID, option_value_ids []ID) ! {
+	// check given option_value ids exist
+	option_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
+		ids:         option_value_ids
+		product_ids: [product_id]
+	}) or { return errors.internal('Failed to retrieve product_option_value', err.msg()) }
+
+	if option_values.len != option_value_ids.len {
+		return errors.unprocessable_entity(errors.id_invalid,
+			'product_option_value id does not exist or does not belong to the product')
+	}
+
+	// check each value belongs to different option
+	mut option_ids := map[string]common.Empty{}
+	for i := 0; i < option_values.len; i++ {
+		option_id := option_values[i].option_id.string()
+		if option_id in option_ids {
+			return errors.unprocessable_entity(errors.id_invalid,
+				'one or more option_value share the same option parent')
+		}
+		option_ids[option_id] = common.Empty{}
+	}
+
+	// check number of value matches the number of options on the product
+	options := record.product_option_retrieve(mut tx, [product_id]) or {
+		return errors.internal('Failed to retrieve product_option', err.msg())
+	}
+
+	if options.len != option_value_ids.len {
+		return errors.unprocessable_entity('option_values amount not correct',
+			'Expected one option_value for each option that exists for the product')
+	}
+
+	// check combination is unique
+	value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
+		option_value_ids: option_value_ids
+	}) or { return errors.internal('Failed to retrieve product_option_value_variant', err.msg()) }
+
+	mut counts := map[string]int{}
+	for i := 0; i < value_variants.len; i++ {
+		vv := value_variants[i]
+		counts[vv.variant_id.string()]++
+	}
+
+	for _, count in counts {
+		if count == option_value_ids.len {
+			return errors.unprocessable_entity('duplicate variant',
+				'A variant with the same option values already exists')
+		}
+	}
+}
+
+fn check_image_id_belongs_to_product(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
+	images := record.product_image_retrieve(mut tx, [product_id]) or {
+		return errors.internal('Failed to retrieve product_image', err.msg())
+	}
+
+	for i := 0; i < images.len; i++ {
+		image := images[i]
+		if image.id.string() == image_id.string() { return }
+	}
+
+	return errors.unprocessable_entity(errors.id_invalid,
+		'image_id does not exist or does not belong to product')
+}
+
 fn parse_option_values(option_value_ids []ID, variant_id ID) []record.ProductOptionValueVariant {
 	mut res := []record.ProductOptionValueVariant{len: option_value_ids.len}
 	for i := 0; i < option_value_ids.len; i++ {
