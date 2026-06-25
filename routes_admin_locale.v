@@ -10,42 +10,13 @@ import internal.errors
 pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 	p := hygienise_retrieve_locale_params(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.locale_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		locales := conduit.locale_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: locales
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Locale] {
+		return conduit.locale_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	count := conduit.locale_list_count(mut tx, p) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	if data.count == 0 {
-		return ctx.handle_ok(LocaleResponseListEnvelope{
-			count:  data.count
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
-
-	mut external_locales := []LocaleResponse{len: data.items.len}
-	for i := 0; i < data.items.len; i++ {
-		external_locales[i] = format_locale_response(data.items[i])
-	}
-
 	return ctx.handle_ok(LocaleResponseListEnvelope{
-		locales: external_locales
-		count:   count
+		locales: format_locale_response_list(data.items)
+		count:   data.count
 		offset:  p.offset
 		fetch:   p.fetch
 	})

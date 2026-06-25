@@ -854,18 +854,7 @@ pub:
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
-// default inventory item
-fn new_inventory_item(id ID, variant_id ID) conduit.InventoryItemCreateParams {
-	return conduit.InventoryItemCreateParams{
-		id:                id
-		variant_id:        variant_id
-		requires_shipping: common.inventory_item_requires_shipping_default
-		manage_inventory:  common.inventory_item_manage_inventory_default
-		allow_backorder:   common.inventory_item_allow_backorder_default
-	}
-}
-
-fn (p InventoryItemCreateRequest) hygienise(inventory_item_id ID, variant_id ID) !conduit.InventoryItemCreateParams {
+fn (p InventoryItemCreateRequest) hygienise() !conduit.InventoryItemCreateParams {
 	if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
 		&& p.material == none && p.weight == none && p.length == none && p.height == none
 		&& p.width == none && p.requires_shipping == none && p.manage_inventory == none
@@ -908,8 +897,6 @@ fn (p InventoryItemCreateRequest) hygienise(inventory_item_id ID, variant_id ID)
 	}
 
 	return conduit.InventoryItemCreateParams{
-		id:                inventory_item_id
-		variant_id:        variant_id
 		sku:               p.sku
 		origin_country:    p.origin_country
 		hs_code:           p.hs_code
@@ -1330,7 +1317,7 @@ pub:
 	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-fn (p VariantCreateRequest) hygienise(mut g luuid.Generator, product_id ID, variant_id ID) !conduit.VariantCreateParams {
+fn (p VariantCreateRequest) hygienise(product_id ID) !conduit.VariantCreateParams {
 	title := p.title or { return errors.bad_request(error_field_empty, 'title not provided') }
 	if title == '' {
 		return errors.bad_request(error_field_empty, 'title cannot be an empty string')
@@ -1364,25 +1351,23 @@ fn (p VariantCreateRequest) hygienise(mut g luuid.Generator, product_id ID, vari
 		money_amounts = parse_money_amounts(regional_prices)!
 	}
 
-	inventory_item_id := common.new_id(mut g)
-	mut inventory_item := new_inventory_item(inventory_item_id, variant_id)
+	mut inventory_item := ?conduit.InventoryItemCreateParams(none)
 	if ii := p.inventory_item {
-		inventory_item = ii.hygienise(inventory_item_id, variant_id)!
+		inventory_item = ii.hygienise()!
 	}
 
 	return conduit.VariantCreateParams{
-		id:             variant_id
-		product_id:     product_id
-		image_id:       parsed_image_id
-		title:          p.title
-		ean:            p.ean
-		upc:            p.upc
-		barcode:        p.barcode
-		metadata:       p.metadata
-		variant_rank:   common.variant_rank_default
-		option_values:  parsed_option_value_ids
-		money_amounts:  money_amounts
-		inventory_item: inventory_item
+		product_id:       product_id
+		image_id:         parsed_image_id
+		title:            p.title
+		ean:              p.ean
+		upc:              p.upc
+		barcode:          p.barcode
+		metadata:         p.metadata
+		variant_rank:     common.variant_rank_default
+		option_value_ids: parsed_option_value_ids
+		money_amounts:    money_amounts
+		inventory_item:   inventory_item
 	}
 }
 

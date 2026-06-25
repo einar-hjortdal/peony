@@ -46,18 +46,29 @@ pub fn api_key_get(mut tx firebird.ClientTransaction, api_key_id ID) !APIKey {
 	return api_keys[0]
 }
 
-pub fn api_key_list_count(mut tx firebird.ClientTransaction, p APIKeyRetrieveParams) !i64 {
+pub fn api_key_list(mut tx firebird.ClientTransaction, p APIKeyRetrieveParams) !List[APIKey] {
 	count := record.api_key_retrieve_count(mut tx, p) or {
 		return errors.internal('Could not retrieve api_key', err.msg())
 	}
-	return count
-}
 
-pub fn api_key_list(mut tx firebird.ClientTransaction, p APIKeyRetrieveParams) ![]APIKey {
+	if count == 0 {
+		return List[APIKey]{}
+	}
+
 	api_keys := record.api_key_retrieve(mut tx, p) or {
 		return errors.internal('Could not retrieve api_key', err.msg())
 	}
-	return api_keys
+
+	if api_keys.len == 0 {
+		return List[APIKey]{
+			count: count
+		}
+	}
+
+	return List[APIKey]{
+		count: count
+		items: api_keys
+	}
 }
 
 pub struct APIKeyUpdateParams {

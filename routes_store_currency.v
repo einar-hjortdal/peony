@@ -3,34 +3,19 @@ module peony
 import veb
 import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 
 @['/store/currencies/'; get]
 pub fn (mut app App) store_currencies_get(mut ctx Context) veb.Result {
 	p := hygienise_currency_list_query(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.currency_list_count(mut tx, p)
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		currencies := conduit.currency_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: currencies
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Currency] {
+		return conduit.currency_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
-
-	if data.count == 0 {
-		return ctx.handle_ok(CurrencyResponseListEnvelope{
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
 
 	return ctx.handle_ok(CurrencyResponseListEnvelope{
 		currencies: format_currency_list_response(data.items)
-		count:      count
+		count:      data.count
 		offset:     p.offset
 		fetch:      p.fetch
 	})

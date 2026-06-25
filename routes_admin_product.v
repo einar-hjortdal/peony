@@ -4,6 +4,7 @@ import json
 import veb
 import einar_hjortdal.firebird
 import einar_hjortdal.slugify
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -12,17 +13,8 @@ import internal.errors
 pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 	p := hygienise_product_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.product_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		products := conduit.product_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: products
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Product] {
+		return conduit.product_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
 	if data.count == 0 {
@@ -427,9 +419,9 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	app.with_commit(fn [parsed_product_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	app.with_commit(fn [parsed_product_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.product_delete(mut tx, parsed_product_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()
@@ -447,13 +439,10 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 			err.msg()))
 	}
 
-	variant_id := app.gen_id()
-	p := decoded.hygienise(mut app.luuid_generator, parsed_product_id, variant_id) or {
-		return ctx.handle_error(err)
-	}
+	p := decoded.hygienise(parsed_product_id) or { return ctx.handle_error(err) }
 
-	variant := app.with_commit(fn [mut app, p, variant_id] (mut tx firebird.ClientTransaction) !conduit.Variant {
-		conduit.variant_create(mut tx, mut app.luuid_generator, p)!
+	variant := app.with_commit(fn [mut app, p] (mut tx firebird.ClientTransaction) !conduit.Variant {
+		variant_id := conduit.variant_create(mut tx, mut app.luuid_generator, p)!
 		return conduit.variant_get(mut tx, variant_id)
 	}) or { return ctx.handle_error(err) }
 
@@ -500,9 +489,9 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'variant_id'))
 	}
 
-	app.with_commit(fn [parsed_product_id, parsed_variant_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	app.with_commit(fn [parsed_product_id, parsed_variant_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.variant_delete(mut tx, parsed_product_id, parsed_variant_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()

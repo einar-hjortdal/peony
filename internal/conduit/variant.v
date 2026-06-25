@@ -151,8 +151,6 @@ pub:
 
 pub struct InventoryItemCreateParams {
 pub:
-	id                ID
-	variant_id        ID
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string
@@ -169,7 +167,6 @@ pub:
 
 pub struct VariantCreateParams {
 pub:
-	id               ID
 	product_id       ID
 	image_id         ?ID
 	title            ?string
@@ -179,7 +176,7 @@ pub:
 	metadata         ?string
 	variant_rank     i32
 	option_value_ids []ID
-	inventory_item   InventoryItemCreateParams
+	inventory_item   ?InventoryItemCreateParams
 	money_amounts    ?[]VariantMoneyAmountUpdateParams
 }
 
@@ -197,9 +194,9 @@ fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	}
 }
 
-fn (p VariantCreateParams) parse_variant() !record.VariantCreateParams {
+fn (p VariantCreateParams) parse_variant(variant_id ID) !record.VariantCreateParams {
 	return record.VariantCreateParams{
-		id:           p.id
+		id:           variant_id
 		product_id:   p.product_id
 		image_id:     p.image_id
 		title:        p.title
@@ -211,11 +208,21 @@ fn (p VariantCreateParams) parse_variant() !record.VariantCreateParams {
 	}
 }
 
-fn (p VariantCreateParams) parse_inventory_item() record.InventoryItemCreateParams {
-	ii := p.inventory_item
+fn (p VariantCreateParams) parse_inventory_item(mut g luuid.Generator, variant_id ID) record.InventoryItemCreateParams {
+	id := common.new_id(mut g)
+	ii := p.inventory_item or {
+		return record.InventoryItemCreateParams{
+			id:                id
+			variant_id:        variant_id
+			requires_shipping: common.inventory_item_requires_shipping_default
+			manage_inventory:  common.inventory_item_manage_inventory_default
+			allow_backorder:   common.inventory_item_allow_backorder_default
+		}
+	}
+
 	return record.InventoryItemCreateParams{
-		id:                ii.id
-		variant_id:        ii.variant_id
+		id:                id
+		variant_id:        variant_id
 		sku:               ii.sku
 		origin_country:    ii.origin_country
 		hs_code:           ii.hs_code
@@ -231,7 +238,7 @@ fn (p VariantCreateParams) parse_inventory_item() record.InventoryItemCreatePara
 	}
 }
 
-fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator) ![]record.VariantMoneyAmountUpdateParams {
+fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator, variant_id ID) ![]record.VariantMoneyAmountUpdateParams {
 	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
 		with_deleted: false
 		offset:       offset_default
@@ -245,7 +252,7 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 	money_amounts := p.money_amounts or {
 		for _, region in regions {
 			res << record.VariantMoneyAmountUpdateParams{
-				variant_id:      p.id
+				variant_id:      variant_id
 				region_id:       region.id
 				money_amount_id: common.new_id(mut g)
 				amount:          common.money_amount_default_amount
@@ -259,7 +266,7 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 	for ma in money_amounts {
 		region_id := ma.region_id
 		res << record.VariantMoneyAmountUpdateParams{
-			variant_id:      p.id
+			variant_id:      variant_id
 			region_id:       region_id
 			money_amount_id: common.new_id(mut g)
 			amount:          ma.amount
@@ -277,7 +284,7 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 		}
 
 		res << record.VariantMoneyAmountUpdateParams{
-			variant_id:      p.id
+			variant_id:      variant_id
 			region_id:       region.id
 			money_amount_id: common.new_id(mut g)
 			amount:          common.money_amount_default_amount
@@ -287,16 +294,14 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 	return res
 }
 
-// TODO consider moving all id generation here. pass variant id as fn parameter or return it.
-// id generation should be in one location alone, and it probably belongs here.
-// TODO should defaults be set here? Sometimes we are forced to set them here, we're not forced to set them in the routes.
-pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) ! {
+pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) !ID {
+	variant_id := common.new_id(mut g)
 	p.check(mut tx)!
 
-	variant := p.parse_variant()!
-	option_values := parse_option_values(p.option_value_ids, p.id)
-	inventory_item := p.parse_inventory_item()
-	money_amounts := p.parse_money_amounts(mut tx, mut g)!
+	variant := p.parse_variant(variant_id)!
+	option_values := parse_option_values(p.option_value_ids, variant_id)
+	inventory_item := p.parse_inventory_item(mut g, variant_id)
+	money_amounts := p.parse_money_amounts(mut tx, mut g, variant_id)!
 
 	record.variant_create(mut tx, [variant]) or {
 		return errors.internal('Could not create product_variant', err.msg())
@@ -313,11 +318,12 @@ pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	record.variant_money_amount_update(mut tx, money_amounts) or {
 		return errors.internal('Could not update money_amounts', err.msg())
 	}
+
+	return variant_id
 }
 
 pub struct InventoryItemUpdateParams {
 pub:
-	// id                ID TODO fetch and add
 	variant_id        ID
 	sku               ?string
 	origin_country    ?string

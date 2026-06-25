@@ -2,6 +2,7 @@ module peony
 
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -9,17 +10,8 @@ import internal.errors
 @['/admin/sales-channels'; get]
 pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 	p := hygienise_sales_channels_list_query_params(ctx.query) or { return ctx.handle_error(err) }
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.sales_channel_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		sales_channels := conduit.sales_channel_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: sales_channels
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.SalesChannel] {
+		return conduit.sales_channel_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(SalesChannelResponseListEnvelope{
@@ -65,8 +57,7 @@ pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 @['/admin/sales-channels/:sales_channel_id'; post]
 pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel_id string) veb.Result {
 	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(errors.id_invalid,
-			'sales_channel_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id'))
 	}
 
 	p := hygienise_sales_channel_update_request(ctx.req.data, parsed_sales_channel_id) or {
@@ -87,13 +78,12 @@ pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel
 @['/admin/sales-channels/:sales_channel_id'; delete]
 pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_channel_id string) veb.Result {
 	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(errors.id_invalid,
-			'sales_channel_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id'))
 	}
 
-	app.with_commit(fn [parsed_sales_channel_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	app.with_commit(fn [parsed_sales_channel_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.sales_channel_delete(mut tx, parsed_sales_channel_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()
@@ -145,13 +135,11 @@ pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_c
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; delete]
 pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
 	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(errors.id_invalid,
-			'sales_channel_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id'))
 	}
 
 	parsed_stock_location_id := id_from_string(stock_location_id) or {
-		return ctx.handle_error(new_error_unprocessable_entity(errors.id_invalid,
-			'stock_location_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'stock_location_id'))
 	}
 
 	sales_channel := app.with_commit(fn [parsed_sales_channel_id, parsed_stock_location_id] (mut tx firebird.ClientTransaction) !conduit.SalesChannel {

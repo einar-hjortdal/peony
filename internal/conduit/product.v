@@ -238,21 +238,24 @@ fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map
 	}
 }
 
-pub fn product_list_count(mut tx firebird.ClientTransaction, p ProductRetrieveParams) !i64 {
+// TODO: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient, but separating the logic this way also makes sense.
+pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) !List[Product] {
 	count := record.product_retrieve_count(mut tx, p) or {
 		return errors.internal('Failed to retrieve product count', err.msg())
 	}
-	return count
-}
 
-// TODO: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient, but separating the logic this way also makes sense.
-pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) ![]record.Product {
+	if count == 0 {
+		return List[Product]{}
+	}
+
 	products := record.product_retrieve(mut tx, p) or {
 		return errors.internal('Failed to retrieve product', err.msg())
 	}
 
 	if products.len == 0 {
-		return []record.Product{}
+		return List[Product]{
+			count: count
+		}
 	}
 
 	mut products_map, product_ids := common.make_identifiable_map(products)
@@ -270,7 +273,11 @@ pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) 
 		id := products[i].id
 		complete_products[i] = products_map[id.string()]
 	}
-	return complete_products
+
+	return List[Product]{
+		count: count
+		items: complete_products
+	}
 }
 
 pub fn product_get(mut tx firebird.ClientTransaction, product_id ID) !record.Product {

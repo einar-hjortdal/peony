@@ -40,17 +40,23 @@ pub type SalesChannel = record.SalesChannel
 pub type SalesChannelRetrieveParams = record.SalesChannelRetrieveParams
 pub type SalesChannelCreateParams = record.SalesChannelCreateParams
 pub type SalesChannelUpdateParams = record.SalesChannelUpdateParams
+
 pub type SEO = record.SEO
 pub type SEOTranslation = record.SEOTranslation
 pub type SEOTranslationCreateParams = record.SEOTranslationCreateParams
 pub type SEOUpdateParams = record.SEOUpdateParams
+
 pub type StockLocation = record.StockLocation
+pub type StockLocationRetrieveParams = record.StockLocationRetrieveParams
 pub type StockLocationCreateParams = record.StockLocationCreateParams
+
 pub type Store = record.Store
+
 pub type TaxRate = record.TaxRate
 
 pub type User = record.User
 pub type UserCreateParams = record.UserCreateParams
 pub type UserUpdateParams = record.UserUpdateParams
 pub type UserListParams = record.UserListParams
+
 pub type Variant = record.Variant

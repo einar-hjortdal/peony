@@ -4,18 +4,23 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 
-pub fn sales_channel_list_count(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) !i64 {
+pub fn sales_channel_list(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) !List[SalesChannel] {
 	count := record.sales_channel_retrieve_count(mut tx, p) or {
 		return errors.internal('Could not retrieve sales_channel count', err.msg())
 	}
-	return count
-}
 
-pub fn sales_channel_list(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) ![]SalesChannel {
+	if count == 0 {
+		return List[SalesChannel]{}
+	}
+
 	sales_channels := record.sales_channel_retrieve(mut tx, p) or {
 		return errors.internal('Could not retrieve sales_channel', err.msg())
 	}
-	return sales_channels
+
+	return List[SalesChannel]{
+		count: count
+		items: sales_channels
+	}
 }
 
 pub fn sales_channel_create(mut tx firebird.ClientTransaction, p SalesChannelCreateParams) ! {

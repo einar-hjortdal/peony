@@ -3,6 +3,7 @@ module peony
 import log
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -11,17 +12,8 @@ import internal.errors
 pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 	p := hygienise_api_key_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.api_key_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		api_keys := conduit.api_key_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: api_keys
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.APIKey] {
+		return conduit.api_key_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
 	mut external_api_keys := []APIKeyResponse{len: data.items.len}
@@ -105,9 +97,9 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'api_key_id'))
 	}
 
-	app.with_commit(fn [parsed_api_key_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	app.with_commit(fn [parsed_api_key_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.api_key_delete(mut tx, parsed_api_key_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
 	app.cache_api_key_del(parsed_api_key_id) or {

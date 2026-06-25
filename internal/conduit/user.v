@@ -22,18 +22,23 @@ pub fn user_delete(mut tx firebird.ClientTransaction, user_id ID) ! {
 	}
 }
 
-pub fn user_list_count(mut tx firebird.ClientTransaction, p UserListParams) !i64 {
+pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) !List[User] {
 	count := record.user_list_count(mut tx, p) or {
 		return errors.internal('Failed to retrieve user count', err.msg())
 	}
-	return count
-}
 
-pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
+	if count == 0 {
+		return List[User]{}
+	}
+
 	users := record.user_list(mut tx, p) or {
 		return errors.internal('Failed to retrieve users', err.msg())
 	}
-	return users
+
+	return List[User]{
+		count: count
+		items: users
+	}
 }
 
 pub fn user_get_by_id(mut tx firebird.ClientTransaction, user_id ID) !User {

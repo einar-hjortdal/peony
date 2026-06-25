@@ -110,13 +110,6 @@ fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 	return tx
 }
 
-struct NilReturn {}
-
-struct ListReturn[T] {
-	count i64
-	items []T
-}
-
 fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
 	finalise fn (mut tx firebird.ClientTransaction) !) !T {
 	for i = 0; i < transaction_attempts; i++ {
@@ -204,8 +197,8 @@ fn (mut app App) gen_id() ID {
 }
 
 // removes locale_id if default, otherwise makes sure it is a valid locale
-fn (mut app App) get_locale_context(s string) !LocaleContext {
-	p := hygienise_locale_context_query_params(s)!
+fn (mut app App) get_locale_context(m map[string]string) !LocaleContext {
+	p := hygienise_locale_context_query_params(m)!
 
 	locale_id := p.locale_id or { return LocaleContext{} }
 

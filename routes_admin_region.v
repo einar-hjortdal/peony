@@ -2,6 +2,7 @@ module peony
 
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -10,25 +11,9 @@ import internal.errors
 pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 	p := hygienise_region_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.region_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		regions := conduit.region_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: regions
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Region] {
+		return conduit.region_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
-
-	if data.count == 0 {
-		return ctx.json(RegionResponseListEnvelope{
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
 
 	return ctx.handle_ok(RegionResponseListEnvelope{
 		regions: format_region_response_list(data.items)
@@ -100,9 +85,9 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 
-	app.with_commit(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	app.with_commit(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.region_delete(mut tx, parsed_region_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()

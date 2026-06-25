@@ -17,29 +17,12 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 		return ctx.handle_error(err)
 	}
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Product] {
 		if _ := pctx.cart_id {
 			// TODO check is valid
 		}
-
-		count := conduit.product_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		products := conduit.product_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: products
-		}
+		return conduit.product_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
-
-	if data.count == 0 {
-		return ctx.handle_ok(ProductResponseStoreListEnvelope{
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
 
 	return ctx.handle_ok(ProductResponseStoreListEnvelope{
 		products: format_product_response_store_list(data.items, pctx, api_key.sales_channel_id,

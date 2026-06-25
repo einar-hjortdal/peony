@@ -3,36 +3,21 @@ module peony
 import veb
 import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 
 // lists category
 // TODO cache
 @['/store/categories'; get]
 pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
-	locale_context := ctx.get_locale_context() or { return ctx.handle_error(err) }
+	lctx := app.get_locale_context(ctx.query) or { return ctx.handle_error(err) }
 	p := hygienise_category_list_query_params_store(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.category_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		categories := conduit.category_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: categories
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Category] {
+		return conduit.category_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
-	if data.count == 0 {
-		return ctx.handle_ok(CategoryResponseStoreListEnvelope{
-			fetch:  p.fetch
-			offset: p.offset
-		})
-	}
-
 	return ctx.handle_ok(CategoryResponseStoreListEnvelope{
-		categories: format_category_response_list_store(data.items, locale_context)
+		categories: format_category_response_list_store(data.items, lctx)
 		count:      data.count
 		fetch:      p.fetch
 		offset:     p.offset
@@ -43,7 +28,7 @@ pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 // TODO cache
 @['/store/categories/:category_id'; get]
 pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb.Result {
-	locale_context := ctx.get_locale_context() or { return ctx.handle_error(err) }
+	lctx := app.get_locale_context(ctx.query) or { return ctx.handle_error(err) }
 	parsed_category_id := id_from_string(category_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
@@ -53,6 +38,6 @@ pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(CategoryResponseStoreEnvelope{
-		category: format_category_response_store(category, locale_context)
+		category: format_category_response_store(category, lctx)
 	})
 }

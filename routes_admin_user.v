@@ -3,6 +3,7 @@ module peony
 import json
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -11,34 +12,13 @@ import internal.errors
 pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 	p := hygienise_user_list_request_query(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.user_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		users := conduit.user_list(mut tx, p)
-		return ListReturn{
-			count: count
-			items: users
-		}
-	}) or { return ctx.handle_error() }
-
-	if data.count == 0 {
-		return ctx.json(UserResponseListEnvelope{
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
-
-	mut external_users := []UserResponse{len: data.items.len}
-	for i := 0; i < data.items.len; i++ {
-		external_users[i] = format_user_response(data.items[i])
-	}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.User] {
+		return conduit.user_list(mut tx, p)
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(UserResponseListEnvelope{
-		users:  external_users
-		count:  count
+		users:  format_user_response_list(data.items)
+		count:  data.count
 		offset: p.offset
 		fetch:  p.fetch
 	})
@@ -169,9 +149,9 @@ pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
-	user := app.with_commit(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	user := app.with_commit(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.user_delete(mut tx, parsed_user_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error() }
 
 	return ctx.handle_deleted()

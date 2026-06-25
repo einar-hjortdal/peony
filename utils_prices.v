@@ -49,8 +49,8 @@ fn (mut app App) get_price_context_region(id ?ID) ID {
 	return region_id
 }
 
-fn (mut app App) get_price_context(s string) !PriceContext {
-	p := hygienise_price_context_query_params(s)!
+fn (mut app App) get_price_context(m map[string]string) !PriceContext {
+	p := hygienise_price_context_query_params(m)!
 
 	region_id := app.get_price_context_region(p.region_id)!
 

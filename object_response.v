@@ -104,6 +104,14 @@ pub:
 	user UserResponse
 }
 
+fn format_user_response_list(p []conduit.User) []UserResponse {
+	mut res := []UserResponse{len: 0, cap: p.len}
+	for _, user in p {
+		res << format_user_response(user)
+	}
+	return res
+}
+
 // users: the list of users
 // count: the total count of items.
 // offset: the number of items skipped before retrieving the returned items.
@@ -200,6 +208,14 @@ fn format_country_response(c conduit.Country) CountryResponse {
 		code:      c.code
 		region_id: region_id
 	}
+}
+
+fn format_country_response_list(p []conduit.Country) []CountryResponse {
+	mut res := []CountryResponse{len: 0, cap: p.len}
+	for _, country in p {
+		res << format_country_response(country)
+	}
+	return res
 }
 
 pub struct CountryResponseListEnvelope {

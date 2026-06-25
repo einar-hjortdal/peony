@@ -29,6 +29,12 @@ pub fn id_from_string(s string) !ID {
 	return common.id_from_string(s)
 }
 
+pub struct List[T] {
+pub:
+	count i64
+	items []T
+}
+
 // TODO further abstract? now requests store_locales each time a translation is created/updated (many times per payload).
 // Low priority: this is just needed on admin create/update requests, performance and efficiency are not critical.
 // instead: gather all locale_id and select from locale. count must match or some don't exist -> error

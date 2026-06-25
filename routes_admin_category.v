@@ -5,31 +5,16 @@ import veb
 import einar_hjortdal.firebird
 import internal.errors
 import internal.conduit
+import internal.common
 
 // lists category
 @['/admin/categories'; get]
 pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 	p := hygienise_category_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
-		count := conduit.category_list_count(mut tx, p)!
-		if count == 0 {
-			return ListReturn{}
-		}
-
-		categories := conduit.category_list(mut tx, p)!
-		return ListReturn{
-			count: count
-			items: categories
-		}
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Category] {
+		return conduit.category_list(mut tx, p)!
 	}) or { return ctx.handle_error(err) }
-
-	if data.count == 0 {
-		return ctx.handle_ok(CategoryResponseListEnvelope{
-			fetch:  p.fetch
-			offset: p.offset
-		})
-	}
 
 	return ctx.handle_ok(CategoryResponseListEnvelope{
 		categories: format_category_response_list(data.items)
@@ -105,9 +90,9 @@ pub fn (mut app App) category_delete(mut ctx Context, category_id string) veb.Re
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
-	app.with_commit(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !NilReturn {
+	app.with_commit(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.category_delete(mut tx, parsed_category_id)!
-		return NilReturn{}
+		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()

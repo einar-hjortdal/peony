@@ -4,35 +4,33 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 
-pub struct StockLocationRetrieveParams {
-pub:
-	ids          ?[]ID
-	with_deleted bool
-	offset       i32
-	fetch        i32
-	order        string
-}
-
-// TODO
-fn (p StockLocationRetrieveParams) check(mut _ firebird.ClientTransaction) ! {
-}
-
-fn (p StockLocationRetrieveParams) parse() record.StockLocationRetrieveParams {
-	return record.StockLocationRetrieveParams{
+pub fn stock_location_list(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) !List[StockLocation] {
+	count := record.stock_location_retrieve_count(mut tx, record.StockLocationRetrieveParams{
 		ids:          p.ids
 		with_deleted: p.with_deleted
 		offset:       p.offset
 		fetch:        p.fetch
 		order:        p.order
-	}
-}
+	}) or { return errors.internal('Could not get stock_location count', err.msg()) }
 
-pub fn stock_location_list(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) ![]StockLocation {
-	data := p.parse()
+	if count == 0 {
+		return List[StockLocation]{}
+	}
+
 	stock_locations := record.stock_location_retrieve(mut tx, data) or {
 		return errors.internal('Could not get stock_location', err.msg())
 	}
-	return stock_locations
+
+	if stock_locations.len == 0 {
+		return List[StockLocation]{
+			count: count
+		}
+	}
+
+	return List[StockLocation]{
+		count: count
+		items: stock_locations
+	}
 }
 
 pub fn stock_location_get(mut tx firebird.ClientTransaction, stock_location_id ID) !StockLocation {

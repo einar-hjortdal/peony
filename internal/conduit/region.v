@@ -4,20 +4,31 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 
-pub fn region_list_count(mut tx firebird.ClientTransaction, p RegionRetriveParams) !i64 {
+pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) !List[Region] {
 	count := record.region_retrieve_count(mut tx, p) or {
 		return errors.internal('Failed to retrieve region count', err.msg())
 	}
-	return count
-}
 
-pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) ![]record.Region {
+	if count == 0 {
+		return List[Region]{}
+	}
+
 	regions := record.region_retrieve(mut tx, p) or {
 		return errors.internal('Failed to retrieve regions', err.msg())
 	}
 
+	if regions.len == 0 {
+		return List[Region]{
+			count: count
+		}
+	}
+
 	// TODO fetch taxes
-	return regions
+
+	return List[Region]{
+		count: count
+		items: regions
+	}
 }
 
 pub fn region_get(mut tx firebird.ClientTransaction, region_id ID) !record.Region {

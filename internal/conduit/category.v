@@ -8,17 +8,24 @@ import record
 import internal.errors
 import internal.common
 
-pub fn category_list_count(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) !i64 {
+// TODO split store/admin conduit to fetch only data required by the endpoint
+pub fn category_list(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) !List[Category] {
 	count := record.category_retrieve_count(mut tx, p) or {
 		return errors.internal('Could not retrieve category count', err.msg())
 	}
-	return count
-}
 
-// TODO split store/admin conduit to fetch only data required by the endpoint
-pub fn category_list(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) ![]Category {
+	if count == 0 {
+		return List[Category]{}
+	}
+
 	categories := record.category_retrieve(mut tx, p) or {
 		return errors.internal('Could not retrieve category', err.msg())
+	}
+
+	if categories.len == 0 {
+		return List[Category]{
+			count: count
+		}
 	}
 
 	mut categories_map, categories_ids := common.make_identifiable_map(categories)
@@ -62,7 +69,11 @@ pub fn category_list(mut tx firebird.ClientTransaction, p CategoryRetrieveParams
 		id := categories_ids[i]
 		complete_categories[i] = categories_map[id.string()]
 	}
-	return complete_categories
+
+	return List[Category]{
+		count: count
+		items: complete_categories
+	}
 }
 
 pub fn category_get(mut tx firebird.ClientTransaction, category_id ID) !Category {

@@ -4,16 +4,21 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 
-pub fn country_list_count(mut tx firebird.ClientTransaction, p CountryRetrieveParams) !i64 {
+pub fn country_list(mut tx firebird.ClientTransaction, p CountryRetrieveParams) !List[Country] {
 	count := record.country_retrieve_count(mut tx, p) or {
 		return errors.internal('Could not retrieve country count', err.msg())
 	}
-	return count
-}
 
-pub fn country_list(mut tx firebird.ClientTransaction, p CountryRetrieveParams) ![]Country {
+	if count == 0 {
+		return List[Country]{}
+	}
+
 	countries := record.country_retrieve(mut tx, p) or {
 		return errors.internal('Could not retrieve country', err.msg())
 	}
-	return countries
+
+	return List[Country]{
+		count: count
+		items: countries
+	}
 }
