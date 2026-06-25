@@ -41,14 +41,14 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 		return ctx.handle_error(errors.internal('Failed to encode password_parameters', err.msg()))
 	}
 
-	user := app.with_commit(fn [p, user_id, password_hash, password_parameters_encoded, password_parameters_hash] (mut tx firebird.ClientTransaction) !conduit.User {
-		password_details := conduit.password_details_get(mut tx, PasswordDetailsGetParams, {
+	user := app.with_commit(fn [mut app, p, user_id, password_hash, password_parameters_encoded, password_parameters_hash] (mut tx firebird.ClientTransaction) !conduit.User {
+		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			hash: password_parameters_hash
 		}) or {
 			password_parameters_id := app.gen_id()
 			conduit.password_details_create(mut tx, password_parameters_id, argon2id_name,
 				password_parameters_encoded, password_parameters_hash)!
-			conduit.password_details_get(mut tx, PasswordDetailsGetParams{
+			conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 				hash: password_parameters_hash
 			})!
 		}
@@ -57,7 +57,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 			// TODO
 		}
 
-		conduit.user_create(mut tx, mut ctx, conduit.UserCreateParams{
+		conduit.user_create(mut tx, conduit.UserCreateParams{
 			user_id:                user_id
 			handle:                 user_id.string() // TODO validate and format
 			email:                  p.email
@@ -72,7 +72,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 		})!
 
 		return conduit.user_get_by_id(mut tx, user_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_created(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -100,7 +100,7 @@ pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result 
 
 	user := app.with_rollback(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !conduit.User {
 		return conduit.user_get_by_id(mut tx, parsed_user_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -122,7 +122,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 	p.hygienise() or { return ctx.handle_error(err) }
 
 	user := app.with_commit(fn [parsed_user_id, p] (mut tx firebird.ClientTransaction) !conduit.User {
-		conduit.user_update(mut tx, parsed_user_id, conduit.UserUpdateParams, {
+		conduit.user_update(mut tx, parsed_user_id, conduit.UserUpdateParams{
 			email:      p.email
 			first_name: p.first_name
 			last_name:  p.last_name
@@ -135,7 +135,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 		}
 
 		return conduit.user_get_by_id(mut tx, parsed_user_id)
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(UserResponseEnvelope{
 		user: format_user_response(user)
@@ -149,10 +149,10 @@ pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
-	user := app.with_commit(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !common.Empty {
+	app.with_commit(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !common.Empty {
 		conduit.user_delete(mut tx, parsed_user_id)!
 		return common.Empty{}
-	}) or { return ctx.handle_error() }
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()
 }
