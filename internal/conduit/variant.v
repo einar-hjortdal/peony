@@ -317,6 +317,7 @@ fn (p VariantCreateParams) check_inventory_levels(mut tx firebird.ClientTransact
 }
 
 fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
+	check_product_id_exists(mut tx, p.product_id)!
 	p.check_image_id(mut tx)!
 	p.check_money_amount_region(mut tx)!
 	p.check_option_values(mut tx)!
@@ -492,6 +493,8 @@ pub struct VariantUpdateData {
 }
 
 pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateData) ! {
+	check_variant_id_exists(mut tx, p.id)!
+
 	record.variant_update(mut tx, p.variant) or {
 		return errors.internal('Could not update product_variant', err.msg())
 	}
@@ -515,7 +518,37 @@ pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateData) ! 
 	}
 }
 
-fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
+pub fn variant_delete(mut tx firebird.ClientTransaction, product_id ID, variant_id ID) ! {
+	check_product_id_exists(mut tx, product_id)!
+	check_variant_id_exists(mut tx, variant_id)!
+
+	mut count := record.variant_retrieve_count(mut tx, record.VariantRetrieveParams{
+		ids:          [variant_id]
+		product_ids:  [product_id]
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn	
+	}) or { return errors.internal('Failed to retrieve variant count', err.msg()) }
+
+	if count == 0 {
+		return errors.not_found('variant `${variant_id.string()}` does not belong to product `${product_id.string()}`',
+			'product and variant exist, but are not related')
+	}
+
+	count = record.variant_retrieve_count(mut tx, record.VariantRetrieveParams{
+		product_ids:  [product_id]
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn	
+	}) or { return errors.internal('Failed to retrieve variant count', err.msg()) }
+
+	if count == 1 {
+		return errors.unprocessable_entity('Cannot delete last variant of product `${product_id.string()}`',
+			'A product must have at least one variant')
+	}
+
 	record.variant_delete(mut tx, variant_id) or {
 		return errors.internal('Could not delete variant', err.msg())
 	}

@@ -390,6 +390,8 @@ fn product_images_update(mut tx firebird.ClientTransaction, product_id ID, image
 }
 
 pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateData) ! {
+	check_product_id_exists(mut tx, product_id)!
+
 	// always update the product row for `updated_at`
 	record.product_update(mut tx, p.product) or {
 		return errors.internal('Failed to update product', err.msg())
@@ -485,6 +487,7 @@ pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateData) ! 
 }
 
 pub fn product_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
+	check_product_id_exists(mut tx, product_id)!
 	record.product_delete(mut tx, product_id) or {
 		return errors.internal('Failed to delete product', err.msg())
 	}

@@ -4,6 +4,7 @@ import json
 import veb
 import einar_hjortdal.firebird
 import einar_hjortdal.slugify
+import internal.conduit
 import internal.errors
 
 // lists products
@@ -11,7 +12,32 @@ import internal.errors
 pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 	p := hygienise_product_list_query_params(ctx.query) or { return ctx.handle_error(err) }
 
-	return conduit_product_list(mut app, mut ctx, p)
+	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !ListReturn {
+		count := conduit.product_list_count(mut tx, p)!
+		if count == 0 {
+			return ListReturn{}
+		}
+
+		products := conduit.product_list(mut tx, p)!
+		return ListReturn{
+			count: count
+			items: products
+		}
+	}) or { return ctx.handle_error(err) }
+
+	if data.count == 0 {
+		return ctx.handle_ok(ProductResponseListEnvelope{
+			offset: p.offset
+			fetch:  p.fetch
+		})
+	}
+
+	return ctx.handle_ok(ProductResponseListEnvelope{
+		products: format_product_list_response(data.items)
+		count:    data.count
+		offset:   p.offset
+		fetch:    p.fetch
+	})
 }
 
 // create a product
@@ -177,19 +203,15 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 @['/admin/products/:product_id'; get]
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		perr := errors.bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_error(perr)
+		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'product_id'))
 	}
 
-	product := conduit_product_get_by_id(mut app, mut ctx, ProductRetrieveParams{
-		ids:    [parsed_product_id]
-		fetch:  1
-		offset: 0
-		order:  order_default
+	product := app.with_rollback(fn [mut app, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
+		return conduit.product_get(mut tx, parsed_product_id)
 	}) or { return ctx.handle_error(err) }
 
-	return ctx.handle_ok(ProductResponseEnvelope{
-		product: product
+	return ctx.handle_created(ProductResponseEnvelope{
+		product: format_product_response(product)
 	})
 }
 
@@ -401,11 +423,15 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 // deletes a product
 @['/admin/products/:product_id'; delete]
 pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
-		perr := errors.bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_error(perr)
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'product_id'))
 	}
-	conduit_product_delete(mut app, mut ctx, product_id_bin) or { return ctx.handle_error(err) }
+
+	app.with_commit(fn [parsed_product_id] (mut tx firebird.ClientTransaction) !NilReturn {
+		conduit.product_delete(mut tx, parsed_product_id)!
+		return NilReturn{}
+	}) or { return ctx.handle_error(err) }
+
 	return ctx.handle_deleted()
 }
 
@@ -422,7 +448,9 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 	}
 
 	variant_id := app.gen_id()
-	p := decoded.hygienise(parsed_product_id, variant_id) or { return ctx.handle_error(err) }
+	p := decoded.hygienise(mut app.luuid_generator, parsed_product_id, variant_id) or {
+		return ctx.handle_error(err)
+	}
 
 	variant := app.with_commit(fn [mut app, p, variant_id] (mut tx firebird.ClientTransaction) !conduit.Variant {
 		conduit.variant_create(mut tx, mut app.luuid_generator, p)!
@@ -432,65 +460,6 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 	return ctx.handle_created(VariantResponseEnvelope{
 		variant: format_variant_response(variant)
 	})
-}
-
-// retrieves a variant by its id
-@['/admin/products/:product_id/variants/:variant_id'; get]
-pub fn (mut app App) variant_get(mut ctx Context, product_id string, variant_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
-		perr := errors.bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_error(perr)
-	}
-
-	_ := id_string_to_bin(variant_id) or {
-		perr := errors.bad_request(error_id_invalid, 'variant_id')
-		return ctx.handle_error(perr)
-	}
-
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	ph := RetrieveProductVariantParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: [product_id_bin]
-	}
-
-	count := model_variant_retrieve_count(mut tx, ph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if count == 0 {
-		tx.rollback() or {}
-		perr := errors.internal('variants for the product do not exist', 'count == 0')
-		return ctx.handle_error(perr)
-	}
-
-	variants := model_variant_retrieve(mut tx, ph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	tx.rollback() or {}
-
-	for i := 0; i < variants.len; i++ {
-		variant := variants[i]
-		if variant.id != variant_id {
-			continue
-		}
-
-		external_variant := format_variant_response(variant)
-		return ctx.handle_ok(VariantResponseEnvelope{
-			variant: external_variant
-		})
-	}
-
-	perr := errors.not_found('variant does not exist with the given id',
-		'not found in existing variants for the product')
-	return ctx.handle_error(perr)
 }
 
 // updates a variant
@@ -628,75 +597,17 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 // deletes a variant
 @['/admin/products/:product_id/variants/:variant_id'; delete]
 pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
-		perr := errors.bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_error(perr)
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'product_id'))
+	}
+	parsed_variant_id := id_from_string(variant_id) or {
+		return ctx.handle_error(errors.bad_request(error_id_invalid, 'variant_id'))
 	}
 
-	variant_id_bin := id_string_to_bin(variant_id) or {
-		perr := errors.bad_request(error_id_invalid, 'variant_id')
-		return ctx.handle_error(perr)
-	}
-
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	ph := RetrieveProductVariantParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: [product_id_bin]
-	}
-
-	count := model_variant_retrieve_count(mut tx, ph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if count == 0 {
-		tx.rollback() or {}
-		perr := errors.internal('variants for the product do not exist', 'count == 0')
-		return ctx.handle_error(perr)
-	}
-
-	if count == 1 {
-		tx.rollback() or {}
-		perr := errors.bad_request('cannot delete last variant', 'count == 1')
-		return ctx.handle_error(perr)
-	}
-
-	variants := model_variant_retrieve(mut tx, ph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	mut found := false
-	for i := 0; i < variants.len; i++ {
-		variant := variants[i]
-		if variant.id != variant_id {
-			continue
-		}
-		found = true
-		break
-	}
-
-	if !found {
-		perr := errors.not_found('variant does not exist with the given id',
-			'not found in existing variants for the product')
-		return ctx.handle_error(perr)
-	}
-
-	conduit_variant_delete(mut app, mut ctx, mut tx, variant_id_bin) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.commit() or {
-		tx.rollback() or {}
-		perr := errors.internal(error_transaction_commit, err.msg())
-		return ctx.handle_error(perr)
-	}
+	app.with_commit(fn [parsed_product_id, parsed_variant_id] (mut tx firebird.ClientTransaction) !NilReturn {
+		conduit.variant_delete(mut tx, parsed_product_id, parsed_variant_id)!
+		return NilReturn{}
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()
 }

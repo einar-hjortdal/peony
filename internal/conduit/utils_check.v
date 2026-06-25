@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import internal.common
 import internal.errors
+import record
 
 // input validation that requires database access
 
@@ -23,5 +24,33 @@ fn check_translation_locale_ids(mut tx firebird.ClientTransaction, translations 
 			return errors.unprocessable_entity(errors.msg_id_invalid,
 				'locale_id does not exist or is not enabled: `$locale_id`')
 		}
+	}
+}
+
+fn check_product_id_exists(mut tx firebird.ClientTransaction, product_id ID) ! {
+	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
+		ids:          [product_id]
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn	
+	}) or { return errors.internal('Failed to retrieve product', err.msg()) }
+
+	if count == 0 {
+		return errors.not_found('No product exists with id `${product_id.string()}`', 'count == 0')
+	}
+}
+
+fn check_variant_id_exists(mut tx firebird.ClientTransaction, variant_id ID) ! {
+	count := record.variant_retrieve_count(mut tx, record.VariantRetrieveParams{
+		ids:          [variant_id]
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn	
+	}) or { return errors.internal('Failed to retrieve product', err.msg()) }
+
+	if count == 0 {
+		return errors.not_found('No variant exists with id `${variant_id.string()}`', 'count == 0')
 	}
 }
