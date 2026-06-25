@@ -9,11 +9,11 @@ import internal.errors
 @['/admin/inventory-items/:inventory_item_id/stock-locations/:stock_location_id'; post]
 pub fn (mut app App) admin_inventory_level_update(mut ctx Context, inventory_item_id string, stock_location_id string) veb.Result {
 	parsed_inventory_item_id := id_from_string(inventory_item_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'inventory_item_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'inventory_item_id'))
 	}
 
 	parsed_stock_location_id := id_from_string(stock_location_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'stock_location_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
 	p := hygienise_inventory_level_update_request(ctx.req.data, parsed_inventory_item_id,

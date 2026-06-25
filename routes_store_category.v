@@ -45,7 +45,7 @@ pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb.Result {
 	locale_context := ctx.get_locale_context() or { return ctx.handle_error(err) }
 	parsed_category_id := id_from_string(category_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
 	category := app.with_rollback(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !conduit.Category {

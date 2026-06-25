@@ -89,45 +89,6 @@ pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_ite
 	return inventory_levels
 }
 
-pub struct InventoryLevelCreateParams {
-pub:
-	inventory_item_id ID
-	stock_location_id ID
-	stocked_quantity  i32
-}
-
-pub fn inventory_level_create(mut tx firebird.ClientTransaction, p []InventoryLevelCreateParams) ! {
-	mut src := []string{len: p.len}
-	mut params := []firebird.Value{len: 3 * p.len, init: firebird.Null{}}
-	for i := 0; i < p.len; i++ {
-		il := p[i]
-		src[i] = 'SELECT 
-			CAST(? AS BINARY(16)),
-			CAST(? AS BINARY(16)),
-			CAST(? AS INTEGER)
-			FROM RDB\$DATABASE'
-
-		params[3 * i] = il.inventory_item_id
-		params[3 * i + 1] = il.stock_location_id
-		params[3 * i + 2] = il.stocked_quantity
-	}
-
-	mut query := 'INSERT INTO inventory_level (
-		inventory_item_id,
-		stock_location_id,
-		stocked_quantity
-		) ${get_merge_source(src)}'
-	tx.execute(query, ...params)!
-
-	query = 'INSERT INTO item_availability (item_id, sales_channel_id, amount)
-		SELECT s.inventory_item_id, scsl.sales_channel_id, SUM(s.stocked_quantity)
-		FROM (${get_merge_source(src)}) s (inventory_item_id, stock_location_id, stocked_quantity)
-		JOIN sales_channel_stock_location scsl
-			ON scsl.stock_location_id = s.stock_location_id
-		GROUP BY s.inventory_item_id, scsl.sales_channel_id'
-	tx.execute(query, ...params)!
-}
-
 pub struct InventoryLevelUpdateParams {
 pub:
 	inventory_item_id   ID
@@ -446,20 +407,19 @@ pub fn inventory_item_create(mut tx firebird.ClientTransaction, p []InventoryIte
 		...params)!
 }
 
-// TODO fix option types
 pub struct InventoryItemUpdateParams {
 pub:
 	id                ID
 	variant_id        ID
-	sku               string
-	origin_country    string
-	hs_code           string
-	mid_code          string
-	material          string
-	weight            i32
-	length            i32
-	height            i32
-	width             i32
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
 	requires_shipping bool
 	manage_inventory  bool
 	allow_backorder   bool
@@ -491,40 +451,58 @@ pub fn inventory_item_update(mut tx firebird.ClientTransaction, p []InventoryIte
 		params[i * n_params + 0] = item.id.bytes()
 		params[i * n_params + 1] = item.variant_id.bytes()
 
-		if item.sku != '' {
-			params[i * n_params + 2] = item.sku
+		if sku := item.sku {
+			if sku != '' {
+				params[i * n_params + 2] = sku
+			}
 		}
 
-		if item.origin_country != '' {
-			params[i * n_params + 3] = item.origin_country
+		if origin_country := item.origin_country {
+			if origin_country != '' {
+				params[i * n_params + 3] = origin_country
+			}
 		}
 
-		if item.hs_code != '' {
-			params[i * n_params + 4] = item.hs_code
+		if hs_code := item.hs_code {
+			if hs_code != '' {
+				params[i * n_params + 4] = hs_code
+			}
 		}
 
-		if item.mid_code != '' {
-			params[i * n_params + 5] = item.mid_code
+		if mid_code := item.mid_code {
+			if mid_code != '' {
+				params[i * n_params + 5] = mid_code
+			}
 		}
 
-		if item.material != '' {
-			params[i * n_params + 6] = item.material
+		if material := item.material {
+			if material != '' {
+				params[i * n_params + 6] = material
+			}
 		}
 
-		if item.weight != 0 {
-			params[i * n_params + 7] = item.weight
+		if weight := item.weight {
+			if weight != 0 {
+				params[i * n_params + 7] = weight
+			}
 		}
 
-		if item.length != 0 {
-			params[i * n_params + 8] = item.length
+		if length := item.length {
+			if length != 0 {
+				params[i * n_params + 8] = length
+			}
 		}
 
-		if item.height != 0 {
-			params[i * n_params + 9] = item.height
+		if height := item.height {
+			if height != 0 {
+				params[i * n_params + 9] = height
+			}
 		}
 
-		if item.width != 0 {
-			params[i * n_params + 10] = item.width
+		if width := item.width {
+			if width != 0 {
+				params[i * n_params + 10] = width
+			}
 		}
 
 		params[i * n_params + 11] = item.requires_shipping

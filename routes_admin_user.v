@@ -115,7 +115,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 @['/admin/users/:user_id'; get]
 pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
-		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'user_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'user_id'))
 	}
 
 	user := app.with_rollback(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !conduit.User {
@@ -131,7 +131,7 @@ pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result 
 @['/admin/users/:user_id'; post]
 pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'user_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
 	p := json.decode(UserUpdateRequest, ctx.req.data) or {
@@ -166,7 +166,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 @['/admin/users/:user_id'; delete]
 pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.Result {
 	parsed_user_id := id_from_string(user_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'user_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
 	user := app.with_commit(fn [parsed_user_id] (mut tx firebird.ClientTransaction) !NilReturn {

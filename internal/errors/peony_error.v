@@ -2,7 +2,8 @@ module errors
 
 import net.http
 
-pub const msg_id_invalid = 'Invalid ID'
+pub const database_malformed = 'Data retrieved from database is malformed'
+pub const id_invalid = 'Invalid ID'
 
 // PeonyError contains the appropriate http status code for the error.
 pub struct PeonyError {
@@ -36,8 +37,16 @@ pub fn unauthorized(message string, details string) PeonyError {
 	return new_peony_error(message, details, http.Status.unauthorized)
 }
 
+pub fn forbidden(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.forbidden)
+}
+
 pub fn not_found(message string, details string) PeonyError {
 	return new_peony_error(message, details, http.Status.not_found)
+}
+
+pub fn conflict(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.conflict)
 }
 
 pub fn unprocessable_entity(message string, details string) PeonyError {
@@ -46,6 +55,10 @@ pub fn unprocessable_entity(message string, details string) PeonyError {
 
 pub fn internal(message string, details string) PeonyError {
 	return new_peony_error(message, details, http.Status.internal_server_error)
+}
+
+pub fn not_implemented(message string, details string) PeonyError {
+	return new_peony_error(message, details, http.Status.not_implemented)
 }
 
 pub fn login() PeonyError {

@@ -64,7 +64,7 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 @['/admin/categories/:category_id'; get]
 pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := id_from_string(category_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
 	category := app.with_rollback(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !conduit.Category {
@@ -81,7 +81,7 @@ pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Resul
 @['/admin/categories/:category_id'; post]
 pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := id_from_string(category_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
 	p := hygienise_category_update_request(ctx.req.data, parsed_category_id) or {
@@ -102,7 +102,7 @@ pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Re
 @['/admin/categories/:category_id'; delete]
 pub fn (mut app App) category_delete(mut ctx Context, category_id string) veb.Result {
 	parsed_category_id := id_from_string(category_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'category_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
 	app.with_commit(fn [parsed_category_id] (mut tx firebird.ClientTransaction) !NilReturn {

@@ -41,7 +41,7 @@ pub fn (mut app App) stock_location_list(mut ctx Context) veb.Result {
 @['/admin/stock-locations/:stock_location_id'; get]
 pub fn (mut app App) stock_location_get(mut ctx Context, stock_location_id string) veb.Result {
 	parsed_stock_location_id := id_from_string(stock_location_id) or {
-		return ctx.handle_error(new_error_bad_request(error_id_invalid, 'stock_location_id'))
+		return ctx.handle_error(new_error_bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
 	stock_location := app.with_rollback(fn [parsed_stock_location_id] (mut tx firebird.ClientTransaction) !conduit.StockLocation {
@@ -75,7 +75,7 @@ pub fn (mut app App) stock_location_create(mut ctx Context) veb.Result {
 @['/admin/stock-locations/:stock_location_id'; post]
 pub fn (mut app App) stock_location_update(mut ctx Context, stock_location_id string) veb.Result {
 	parsed_stock_location_id := id_from_string(stock_location_id) or {
-		return ctx.handle_error(new_error_bad_request(error_id_invalid, 'stock_location_id'))
+		return ctx.handle_error(new_error_bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
 	p := hygienise_stock_location_update_request(ctx.req.data, stock_location_id) or {
@@ -96,7 +96,7 @@ pub fn (mut app App) stock_location_update(mut ctx Context, stock_location_id st
 @['/admin/stock-locations/:stock_location_id'; delete]
 pub fn (mut app App) stock_location_delete(mut ctx Context, stock_location_id string) veb.Result {
 	parsed_stock_location_id := id_from_string(stock_location_id) or {
-		return ctx.handle_error(new_error_bad_request(error_id_invalid, 'stock_location_id'))
+		return ctx.handle_error(new_error_bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
 	stock_location := app.with_commit(fn [parsed_stock_location_id] (mut tx firebird.ClientTransaction) !NilReturn {

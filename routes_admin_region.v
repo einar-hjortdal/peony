@@ -60,7 +60,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
 	parsed_region_id := id_from_string(region_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 
 	region := app.with_rollback(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
@@ -76,7 +76,7 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 @['/admin/regions/:region_id'; post]
 pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.Result {
 	parsed_region_id := id_from_string(region_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 
 	p := hygienise_region_update_request(ctx.req.data, parsed_region_id) or {
@@ -97,7 +97,7 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 @['/admin/regions/:region_id'; delete]
 pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
 	parsed_region_id := id_from_string(region_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, err.msg()))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 
 	app.with_commit(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !NilReturn {

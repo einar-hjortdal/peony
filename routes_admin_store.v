@@ -21,7 +21,7 @@ pub fn (mut app App) admin_store_get(mut ctx Context) veb.Result {
 @['/admin/store/:store_id'; post]
 pub fn (mut app App) admin_store_post(mut ctx Context, store_id string) veb.Result {
 	parsed_store_id := id_from_string(store_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'store_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'store_id'))
 	}
 
 	p := hygienise_store_request(ctx.req.data, parsed_store_id) or { return ctx.handle_error(err) }

@@ -42,7 +42,7 @@ fn (mut app App) get_price_context_region(id ?ID) ID {
 	log.debug('region not in cache, getting it from db')
 	region := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Region {
 		return conduit.region_get(mut tx, region_id)
-	}) or { return errors.unprocessable_entity(error_id_invalid, 'region_id does not exist') }
+	}) or { return errors.unprocessable_entity(errors.id_invalid, 'region_id does not exist') }
 
 	log.debug('region_id is valid, region loaded from db')
 	app.cache_region_set(region)

@@ -90,7 +90,7 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 	}
 
 	if inventory_items.len == 0 {
-		return errors.internal(error_database_data_malformed, 'inventory_items.len == 0')
+		return errors.internal(errors.database_malformed, 'inventory_items.len == 0')
 	}
 
 	mut inventory_item := inventory_items[0]
@@ -149,13 +149,6 @@ pub:
 	is_original bool
 }
 
-pub struct InventoryLevelCreateParams {
-pub:
-	inventory_item_id ID
-	stock_location_id ID
-	stocked_quantity  i32
-}
-
 pub struct InventoryItemCreateParams {
 pub:
 	id                ID
@@ -172,23 +165,22 @@ pub:
 	requires_shipping bool
 	manage_inventory  bool
 	allow_backorder   bool
-	inventory_levels  ?[]InventoryLevelCreateParams
 }
 
 pub struct VariantCreateParams {
 pub:
-	id             ID
-	product_id     ID
-	image_id       ?ID
-	title          ?string
-	ean            ?string
-	upc            ?string
-	barcode        ?string
-	metadata       ?string
-	variant_rank   i32
-	option_values  []ID
-	inventory_item InventoryItemCreateParams
-	money_amounts  ?[]VariantMoneyAmountUpdateParams
+	id               ID
+	product_id       ID
+	image_id         ?ID
+	title            ?string
+	ean              ?string
+	upc              ?string
+	barcode          ?string
+	metadata         ?string
+	variant_rank     i32
+	option_value_ids []ID
+	inventory_item   InventoryItemCreateParams
+	money_amounts    ?[]VariantMoneyAmountUpdateParams
 }
 
 fn (p VariantCreateParams) check_image_id(mut tx firebird.ClientTransaction) ! {
@@ -202,7 +194,7 @@ fn (p VariantCreateParams) check_image_id(mut tx firebird.ClientTransaction) ! {
 		if image.id.string() == image_id.string() { return }
 	}
 
-	return errors.unprocessable_entity(error_id_invalid,
+	return errors.unprocessable_entity(errors.id_invalid,
 		'image_id does not exist or does not belong to product')
 }
 
@@ -225,7 +217,7 @@ fn (p VariantCreateParams) check_money_amount_region(mut tx firebird.ClientTrans
 
 	if count_existing != ids.len {
 		// TODO return which are missing for nice error?
-		return errors.unprocessable_entity(error_id_invalid,
+		return errors.unprocessable_entity(errors.id_invalid,
 			'money_amount region_id does not exist')
 	}
 
@@ -246,12 +238,12 @@ fn (p VariantCreateParams) check_money_amount_region(mut tx firebird.ClientTrans
 fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction) ! {
 	// check given option_value ids exist
 	option_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
-		ids:         p.option_values
+		ids:         p.option_value_ids
 		product_ids: [p.product_id]
 	}) or { return errors.internal('Failed to retrieve product_option_value', err.msg()) }
 
-	if option_values.len != p.option_values.len {
-		return errors.unprocessable_entity(error_id_invalid,
+	if option_values.len != p.option_value_ids.len {
+		return errors.unprocessable_entity(errors.id_invalid,
 			'product_option_value id does not exist or does not belong to the product')
 	}
 
@@ -260,7 +252,7 @@ fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction
 	for i := 0; i < option_values.len; i++ {
 		option_id := option_values[i].option_id.string()
 		if option_id in option_ids {
-			return errors.unprocessable_entity(error_id_invalid,
+			return errors.unprocessable_entity(errors.id_invalid,
 				'one or more option_value share the same option parent')
 		}
 		option_ids[option_id] = common.Empty{}
@@ -271,14 +263,14 @@ fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction
 		return errors.internal('Failed to retrieve product_option', err.msg())
 	}
 
-	if options.len != p.option_values.len {
+	if options.len != p.option_value_ids.len {
 		return errors.unprocessable_entity('option_values amount not correct',
 			'Expected one option_value for each option that exists for the product')
 	}
 
 	// check combination is unique
 	value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
-		option_value_ids: p.option_values
+		option_value_ids: p.option_value_ids
 	}) or { return errors.internal('Failed to retrieve product_option_value_variant', err.msg()) }
 
 	mut counts := map[string]int{}
@@ -288,31 +280,10 @@ fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction
 	}
 
 	for _, count in counts {
-		if count == p.option_values.len {
+		if count == p.option_value_ids.len {
 			return errors.unprocessable_entity('duplicate variant',
 				'A variant with the same option values already exists')
 		}
-	}
-}
-
-fn (p VariantCreateParams) check_inventory_levels(mut tx firebird.ClientTransaction) ! {
-	if !p.inventory_item.manage_inventory { return }
-	ils := p.inventory_item.inventory_levels or { return }
-	mut stock_location_ids := []ID{len: 0, cap: ils.len}
-	for _, il in ils {
-		stock_location_ids << il.stock_location_id
-	}
-	stock_location_count := record.stock_location_retrieve_count(mut tx, record.StockLocationRetrieveParams{
-		ids:          stock_location_ids
-		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
-	}) or { return errors.internal('Failed to fetch stock_location count', err.msg()) }
-
-	if stock_location_count != stock_location_ids.len {
-		return errors.unprocessable_entity(error_id_invalid,
-			'one or more stock_location id in inventory_level is invalid')
 	}
 }
 
@@ -321,18 +292,20 @@ fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	p.check_image_id(mut tx)!
 	p.check_money_amount_region(mut tx)!
 	p.check_option_values(mut tx)!
-	p.check_inventory_levels(mut tx)!
 }
 
-fn (p VariantCreateParams) parse_option_values() []record.ProductOptionValueVariant {
-	mut res := []record.ProductOptionValueVariant{len: p.option_values.len}
-	for i := 0; i < p.option_values.len; i++ {
-		res[i] = record.ProductOptionValueVariant{
-			option_value_id: p.option_values[i]
-			variant_id:      p.id
-		}
+fn (p VariantCreateParams) parse_variant() !record.VariantCreateParams {
+	return record.VariantCreateParams{
+		id:           p.id
+		product_id:   p.product_id
+		image_id:     p.image_id
+		title:        p.title
+		barcode:      p.barcode
+		ean:          p.ean
+		upc:          p.upc
+		metadata:     p.metadata
+		variant_rank: p.variant_rank
 	}
-	return res
 }
 
 fn (p VariantCreateParams) parse_inventory_item() record.InventoryItemCreateParams {
@@ -353,20 +326,6 @@ fn (p VariantCreateParams) parse_inventory_item() record.InventoryItemCreatePara
 		manage_inventory:  ii.manage_inventory
 		allow_backorder:   ii.allow_backorder
 	}
-}
-
-fn (p VariantCreateParams) parse_inventory_levels() ?[]record.InventoryLevelCreateParams {
-	if !p.inventory_item.manage_inventory { return none }
-	ils := p.inventory_item.inventory_levels or { return none }
-	mut res := []record.InventoryLevelCreateParams{len: 0, cap: ils.len}
-	for _, il in ils {
-		res << record.InventoryLevelCreateParams{
-			inventory_item_id: il.inventory_item_id
-			stock_location_id: il.stock_location_id
-			stocked_quantity:  il.stocked_quantity
-		}
-	}
-	return res
 }
 
 fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator) ![]record.VariantMoneyAmountUpdateParams {
@@ -425,94 +384,177 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 	return res
 }
 
-fn (p VariantCreateParams) parse(mut tx firebird.ClientTransaction, mut g luuid.Generator) !VariantCreateData {
-	variant := record.VariantCreateParams{
-		id:           p.id
-		product_id:   p.product_id
-		image_id:     p.image_id
-		title:        p.title
-		barcode:      p.barcode
-		ean:          p.ean
-		upc:          p.upc
-		metadata:     p.metadata
-		variant_rank: p.variant_rank
-	}
-
-	return VariantCreateData{
-		variant:          variant
-		option_values:    p.parse_option_values()
-		inventory_item:   p.parse_inventory_item()
-		inventory_levels: p.parse_inventory_levels()
-		money_amounts:    p.parse_money_amounts(mut tx, mut g)!
-	}
-}
-
-struct VariantCreateData {
-	variant          record.VariantCreateParams
-	option_values    []record.ProductOptionValueVariant
-	inventory_item   record.InventoryItemCreateParams
-	inventory_levels ?[]record.InventoryLevelCreateParams
-	money_amounts    []record.VariantMoneyAmountUpdateParams
-}
-
 // TODO consider moving all id generation here. pass variant id as fn parameter or return it.
 // id generation should be in one location alone, and it probably belongs here.
 // TODO should defaults be set here? Sometimes we are forced to set them here, we're not forced to set them in the routes.
 pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) ! {
 	p.check(mut tx)!
-	data := p.parse(mut tx, mut g)!
 
-	record.variant_create(mut tx, [data.variant]) or {
+	variant := p.parse_variant()!
+	option_values := parse_option_values(p.option_value_ids, p.id)
+	inventory_item := p.parse_inventory_item()
+	money_amounts := p.parse_money_amounts(mut tx, mut g)!
+
+	record.variant_create(mut tx, [variant]) or {
 		return errors.internal('Could not create product_variant', err.msg())
 	}
 
-	record.product_option_value_variant_update(mut tx, data.option_values) or {
+	record.product_option_value_variant_update(mut tx, option_values) or {
 		return errors.internal('Could not update product_option_value_variant', err.msg())
 	}
 
-	record.inventory_item_create(mut tx, [data.inventory_item]) or {
+	record.inventory_item_create(mut tx, [inventory_item]) or {
 		return errors.internal('Could not create inventory_item for product_variant', err.msg())
 	}
 
-	if inventory_levels := data.inventory_levels {
-		record.inventory_level_create(mut tx, inventory_levels) or {
-			return errors.internal('Could not create inventory_level', err.msg())
-		}
-	}
-
-	record.variant_money_amount_update(mut tx, data.money_amounts) or {
+	record.variant_money_amount_update(mut tx, money_amounts) or {
 		return errors.internal('Could not update money_amounts', err.msg())
 	}
 }
 
-pub struct VariantUpdateData {
+pub struct InventoryItemUpdateParams {
+pub:
+	// id                ID TODO fetch and add
+	variant_id        ID
+	sku               ?string
+	origin_country    ?string
+	hs_code           ?string
+	mid_code          ?string
+	material          ?string
+	weight            ?i32
+	length            ?i32
+	height            ?i32
+	width             ?i32
+	requires_shipping ?bool
+	manage_inventory  ?bool
+	allow_backorder   ?bool
+}
+
+pub struct VariantUpdateParams {
+pub:
+	id               ID
+	product_id       ID
+	image_id         ?ID
+	title            ?string
+	barcode          ?string
+	ean              ?string
+	upc              ?string
+	metadata         ?string
+	option_value_ids ?[]ID
+	inventory_item   ?InventoryItemUpdateParams
+	money_amounts    ?[]VariantMoneyAmountUpdateParams
+}
+
+struct VariantUpdateData {
 	variant        record.VariantUpdateParams
 	option_values  ?[]record.ProductOptionValueVariant
 	inventory_item ?record.InventoryItemUpdateParams
 	money_amounts  ?[]record.VariantMoneyAmountUpdateParams
 }
 
-pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateData) ! {
-	check_variant_id_exists(mut tx, p.id)!
+fn (p VariantUpdateParams) parse_variant(mut tx firebird.ClientTransaction) !record.VariantUpdateParams {
+	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
+		ids:          [p.id]
+		with_deleted: false
+		offset:       offset_default
+		fetch:        min_fetch
+		order:        order_default
+	}) or { return errors.internal('Failed to retrieve variant', err.msg()) }
 
-	record.variant_update(mut tx, p.variant) or {
+	if variants.len == 0 {
+		return errors.not_found('Variant not found', 'variants.len == 0')
+	}
+
+	current := variants[0]
+
+	return record.VariantUpdateParams{
+		id:           p.id
+		product_id:   current.product_id
+		image_id:     common.unwrap_option_or_option(p.image_id, current.image_id)
+		title:        common.unwrap_option_or_option(p.title, current.title)
+		barcode:      common.unwrap_option_or_option(p.barcode, current.barcode)
+		ean:          common.unwrap_option_or_option(p.ean, current.ean)
+		upc:          common.unwrap_option_or_option(p.upc, current.upc)
+		metadata:     common.unwrap_option_or_option(p.metadata, current.metadata)
+		variant_rank: current.variant_rank
+	}
+}
+
+fn (p VariantUpdateParams) parse_inventory_item(mut tx firebird.ClientTransaction, item InventoryItemUpdateParams) !record.InventoryItemUpdateParams {
+	inventory_items := record.inventory_item_retrieve(mut tx, [p.id]) or {
+		return errors.internal('Failed to retrieve inventory_item', err.msg())
+	}
+
+	if inventory_items.len == 0 {
+		return errors.internal(errors.database_malformed,
+			'No inventory item for variant with id `${p.id.string()}`')
+	}
+
+	current := inventory_items[0]
+
+	return record.InventoryItemUpdateParams{
+		id:                current.id
+		variant_id:        current.variant_id
+		sku:               common.unwrap_option_or_option(item.sku, current.sku)
+		origin_country:    common.unwrap_option_or_option(item.origin_country,
+			current.origin_country)
+		hs_code:           common.unwrap_option_or_option(item.hs_code, current.hs_code)
+		mid_code:          common.unwrap_option_or_option(item.mid_code, current.mid_code)
+		material:          common.unwrap_option_or_option(item.material, current.material)
+		weight:            common.unwrap_option_or_option(item.weight, current.weight)
+		length:            common.unwrap_option_or_option(item.length, current.length)
+		height:            common.unwrap_option_or_option(item.height, current.height)
+		width:             common.unwrap_option_or_option(item.width, current.width)
+		requires_shipping: common.unwrap_option_or(item.requires_shipping,
+			current.requires_shipping)
+		manage_inventory:  common.unwrap_option_or(item.manage_inventory, current.manage_inventory)
+		allow_backorder:   common.unwrap_option_or(item.allow_backorder, current.allow_backorder)
+	}
+}
+
+fn (p VariantUpdateParams) parse_money_amounts(mut g luuid.Generator, money_amounts []VariantMoneyAmountUpdateParams) []record.VariantMoneyAmountUpdateParams {
+	mut res := []record.VariantMoneyAmountUpdateParams{len: 0, cap: money_amounts.len}
+	for _, ma in money_amounts {
+		res << record.VariantMoneyAmountUpdateParams{
+			variant_id:      p.id
+			region_id:       ma.region_id
+			money_amount_id: common.new_id(mut g)
+			amount:          ma.amount
+			is_original:     ma.is_original
+		}
+	}
+	return res
+}
+
+pub fn variant_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantUpdateParams) ! {
+	check_variant_id_exists(mut tx, p.id)!
+	check_product_id_exists(mut tx, p.product_id)!
+	// TODO check validity of money_amounts (region_id exist, 1 base price per region)
+	// check option values exist, one value per option, no duplicates
+	// check image id exists
+
+	variant := p.parse_variant(mut tx)!
+	record.variant_update(mut tx, variant) or {
 		return errors.internal('Could not update product_variant', err.msg())
 	}
 
-	if option_values := p.option_values {
-		record.product_option_value_variant_update(mut tx, option_values) or {
+	if option_value_ids := p.option_value_ids {
+		parsed_option_values := parse_option_values(option_value_ids, p.id)
+		record.product_option_value_variant_update(mut tx, parsed_option_values) or {
 			return errors.internal('Could not update product_option_value_variant', err.msg())
 		}
 	}
 
 	if inventory_item := p.inventory_item {
-		record.inventory_item_update(mut tx, [inventory_item]) or {
+		parsed_inventory_item := p.parse_inventory_item(mut tx, inventory_item)!
+		record.inventory_item_update(mut tx, [parsed_inventory_item]) or {
 			return errors.internal('Could not update inventory_item', err.msg())
 		}
 	}
 
 	if money_amounts := p.money_amounts {
-		record.variant_money_amount_update(mut tx, money_amounts) or {
+		parsed_money_amounts := p.parse_money_amounts(mut g, money_amounts)
+		record.variant_money_amount_update(mut tx, parsed_money_amounts) or {
 			return errors.internal('Could not update money_amounts', err.msg())
 		}
 	}

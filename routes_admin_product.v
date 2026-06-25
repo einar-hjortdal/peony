@@ -100,7 +100,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 				continue
 			}
 			tx.rollback() or {}
-			perr := errors.bad_request(error_id_invalid, 'translation locale_id')
+			perr := errors.bad_request(errors.id_invalid, 'translation locale_id')
 			return ctx.handle_error(perr)
 		}
 	}
@@ -114,7 +114,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 					continue
 				}
 				tx.rollback() or {}
-				perr := errors.bad_request(error_id_invalid, 'seo_translation locale_id')
+				perr := errors.bad_request(errors.id_invalid, 'seo_translation locale_id')
 				return ctx.handle_error(perr)
 			}
 		}
@@ -131,7 +131,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 						continue
 					}
 					tx.rollback() or {}
-					perr := errors.bad_request(error_id_invalid, 'image_translation locale_id')
+					perr := errors.bad_request(errors.id_invalid, 'image_translation locale_id')
 					return ctx.handle_error(perr)
 				}
 			}
@@ -152,7 +152,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 						continue
 					}
 					tx.rollback() or {}
-					perr := errors.bad_request(error_id_invalid, 'option_translation locale_id')
+					perr := errors.bad_request(errors.id_invalid, 'option_translation locale_id')
 					return ctx.handle_error(perr)
 				}
 			}
@@ -167,7 +167,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 							continue
 						}
 						tx.rollback() or {}
-						perr := errors.bad_request(error_id_invalid,
+						perr := errors.bad_request(errors.id_invalid,
 							'option_value_translation locale_id')
 						return ctx.handle_error(perr)
 					}
@@ -203,7 +203,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 @['/admin/products/:product_id'; get]
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'product_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
 	product := app.with_rollback(fn [mut app, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
@@ -219,7 +219,7 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 @['/admin/products/:product_id'; post]
 pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		perr := errors.unprocessable_entity(error_id_invalid, 'product_id')
+		perr := errors.unprocessable_entity(errors.id_invalid, 'product_id')
 		return ctx.handle_error(perr)
 	}
 
@@ -354,7 +354,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 				// if id in images does not exist return bad request
 				if id !in existing_images_map {
 					tx.rollback() or {}
-					perr := errors.bad_request(error_id_invalid,
+					perr := errors.bad_request(errors.id_invalid,
 						'image with id ${id} does not exist')
 					return ctx.handle_error(perr)
 				}
@@ -424,7 +424,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 @['/admin/products/:product_id'; delete]
 pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'product_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
 	app.with_commit(fn [parsed_product_id] (mut tx firebird.ClientTransaction) !NilReturn {
@@ -439,7 +439,7 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		return ctx.handle_error(errors.unprocessable_entity(error_id_invalid, 'product_id'))
+		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
 	decoded := json.decode(VariantCreateRequest, ctx.req.data) or {
@@ -465,132 +465,27 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 // updates a variant
 @['/admin/products/:product_id/variants/:variant_id'; post]
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {
-	product_id_bin := id_string_to_bin(product_id) or {
-		perr := errors.bad_request(error_id_invalid, 'product_id')
-		return ctx.handle_error(perr)
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	variant_id_bin := id_string_to_bin(variant_id) or {
-		perr := errors.bad_request(error_id_invalid, 'variant_id')
-		return ctx.handle_error(perr)
+	parsed_variant_id := id_from_string(variant_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'variant_id'))
 	}
 
-	p := json.decode(VariantUpdateRequest, ctx.req.data) or {
-		perr := errors.bad_request('Could not decode VariantRequest', err.msg())
-		return ctx.handle_error(perr)
+	decoded := json.decode(VariantUpdateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode VariantRequest', err.msg()))
 	}
 
-	ph := p.hygienise() or { return ctx.handle_error(err) }
+	p := decoded.hygienise(parsed_product_id, parsed_variant_id) or { return ctx.handle_error(err) }
 
-	if inventory_item := ph.inventory_item {
-		if inventory_item.is_empty() {
-			perr := errors.bad_request(error_empty_object, 'InventoryItemUpdateRequest')
-			return ctx.handle_error(perr)
-		}
-	}
-
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
-
-	rpvph := RetrieveProductVariantParamsHygienised{
-		product_ids:     ZeroArrayString{
-			is_set: true
-		}
-		product_ids_bin: [product_id_bin]
-	}
-
-	count := model_variant_retrieve_count(mut tx, rpvph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	if count == 0 {
-		tx.rollback() or {}
-		perr := errors.internal('variants for the product do not exist', 'count == 0')
-		return ctx.handle_error(perr)
-	}
-
-	variants := model_variant_retrieve(mut tx, rpvph) or {
-		tx.rollback() or {}
-		perr := errors.internal('Could not retrieve variants', err.msg())
-		return ctx.handle_error(perr)
-	}
-
-	mut found := false
-	mut variant := ProductVariant{}
-	for i := 0; i < variants.len; i++ {
-		v := variants[i]
-		if v.id != variant_id {
-			continue
-		}
-		found = true
-		variant = v
-		break
-	}
-
-	if !found {
-		perr := errors.not_found('variant does not exist with the given id',
-			'not found in existing variants for the product')
-		return ctx.handle_error(perr)
-	}
-
-	if regional_prices := p.regional_prices {
-		regions := model_region_retrieve(mut tx, RegionRetriveParams{}) or {
-			tx.rollback() or {}
-			perr := errors.internal('Failed to retrieve region', err.msg())
-			return ctx.handle_error(perr)
-		}
-
-		// verify region ids exist
-		mut regions_map := map[string]bool{}
-		for i := 0; i < regions.len; i++ {
-			region := regions[i]
-			regions_map[region.id.string()] = true
-		}
-
-		region_ids := regional_prices.keys()
-		for i := 0; i < region_ids.len; i++ {
-			region_id := region_ids[i]
-			if regions_map[region_id] {
-				continue
-			}
-			tx.rollback() or {}
-			perr := errors.unprocessable_entity(error_id_invalid,
-				'regional_prices contains a region id that does not exist')
-			return ctx.handle_error(perr)
-		}
-	}
-
-	if option_value_ids := ph.option_value_ids {
-		mut product_option_data := suite_product_option_data_get(mut tx, [
-			product_id_bin,
-		]) or {
-			tx.rollback() or {}
-			return ctx.handle_error(err)
-		}
-
-		product_option_data.verify_product_option_value_ids(option_value_ids,
-			ph.option_value_ids_bin) or { return ctx.handle_error(err) }
-	}
-
-	conduit_variant_update(mut app, mut ctx, mut tx, product_id_bin, variant_id, variant_id_bin,
-		variant, ph) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	updated_variant := conduit_variant_get(mut app, mut ctx, mut tx, variant_id) or {
-		tx.rollback() or {}
-		return ctx.handle_error(err)
-	}
-
-	tx.commit() or {
-		perr := errors.internal(error_transaction_rollback, err.msg())
-		return ctx.handle_error(perr)
-	}
+	variant := app.with_commit(fn [mut app, p, parsed_variant_id] (mut tx firebird.ClientTransaction) !conduit.Variant {
+		conduit.variant_update(mut tx, mut app.luuid_generator, p)!
+		return conduit.variant_get(mut tx, parsed_variant_id)
+	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(VariantResponseEnvelope{
-		variant: format_variant_response(updated_variant)
+		variant: format_variant_response(variant)
 	})
 }
 
@@ -598,10 +493,11 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 @['/admin/products/:product_id/variants/:variant_id'; delete]
 pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'product_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
+
 	parsed_variant_id := id_from_string(variant_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'variant_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'variant_id'))
 	}
 
 	app.with_commit(fn [parsed_product_id, parsed_variant_id] (mut tx firebird.ClientTransaction) !NilReturn {

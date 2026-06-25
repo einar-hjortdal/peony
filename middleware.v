@@ -52,7 +52,8 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 	}
 
 	api_key_id := id_from_string(api_key_string) or {
-		return ctx.middleware_handle_error((errors.unprocessable_entity(error_id_invalid, 'api_key')))
+		return ctx.middleware_handle_error((errors.unprocessable_entity(errors.id_invalid,
+			'api_key')))
 	}
 
 	if api_key := app.cache_api_key_get(api_key_id) {

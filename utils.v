@@ -45,8 +45,8 @@ pub const max_length_api_key_name = 63
 
 pub const default_thumbnail = 0
 
-const error_database_data_malformed = conduit.error_database_data_malformed
 const error_api_key_invalid = 'Invalid API Key'
+
 const error_empty_object = 'Received all empty fields'
 const error_field_invalid = 'Invalid field'
 const error_field_empty = 'Field cannot be empty'
@@ -55,12 +55,8 @@ const error_field_too_long = 'Field too long'
 const error_header_invalid = 'Invalid header'
 const error_header_missing = 'Missing header'
 const error_id_generation = 'Failed to generate ID'
-const error_id_invalid = errors.msg_id_invalid
 const error_order_direction_invalid = 'Invalid order direction'
 const error_reference_invalid = 'Field references invalid object'
-const error_transaction_commit = 'Failed to start transaction'
-const error_transaction_rollback = 'Failed to rollback transaction'
-const error_transaction_start = 'Failed to start transaction'
 
 const error_handle_fallback_too_long = 'The provided handle already exists. The default fallback is to add the product id to the provided duplicate handle, but this results in the handle being too long. Please provide a unique handle for this product.'
 
@@ -109,7 +105,7 @@ fn id_from_string(s string) !ID {
 
 fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 	tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
-		return errors.internal(error_transaction_start, err.msg())
+		return errors.internal('Failed to start transaction', err.msg())
 	}
 	return tx
 }
@@ -150,13 +146,13 @@ fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransactio
 
 fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
 	return attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
-		tx.rollback() or { return errors.internal(error_transaction_rollback, error.msg()) }
+		tx.rollback() or { return errors.internal('Failed to rollback transaction', error.msg()) }
 	})
 }
 
 fn (mut app App) with_commit[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
 	return attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
-		tx.commit() or { return errors.internal(error_transaction_commit, error.msg()) }
+		tx.commit() or { return errors.internal('Failed to commit transaction', error.msg()) }
 	})
 }
 
@@ -245,7 +241,7 @@ fn (mut app App) get_locale_context(s string) !LocaleContext {
 	}
 
 	log.debug('locale_id is not valid or not enabled')
-	return errors.unprocessable_entity(error_id_invalid, 'locale_id is not valid or not enabled')
+	return errors.unprocessable_entity(errors.id_invalid, 'locale_id is not valid or not enabled')
 }
 
 fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {

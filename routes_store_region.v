@@ -44,7 +44,7 @@ pub fn (mut app App) store_region_list(mut ctx Context) veb.Result {
 @['/store/regions/:region_id'; get]
 pub fn (mut app App) store_region_get(mut ctx Context, region_id string) veb.Result {
 	parsed_region_id := id_from_string(region_id) or {
-		perr := new_error_bad_request(error_id_invalid, 'region_id')
+		perr := new_error_bad_request(errors.id_invalid, 'region_id')
 		return ctx.handle_error(perr)
 	}
 

@@ -44,7 +44,7 @@ fn hygienise_api_key_create_request(s string, api_key_id ID) !conduit.APIKeyCrea
 	}
 
 	sales_channel_id := id_from_string(p.sales_channel_id) or {
-		return errors.unprocessable_entity(error_id_invalid, 'sales_channel_id')
+		return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id')
 	}
 
 	return conduit.APIKeyCreateParams{
@@ -79,7 +79,7 @@ fn hygienise_api_key_update_request(s string, api_key_id ID) !conduit.APIKeyUpda
 	mut sales_channel_id := ?ID(none)
 	if id_string := p.sales_channel_id {
 		sales_channel_id = id_from_string(id_string) or {
-			return errors.unprocessable_entity(error_id_invalid, 'sales_channel_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id')
 		}
 	}
 
@@ -108,35 +108,35 @@ fn hygienise_store_request(s string, store_id ID) !conduit.StoreUpdateParams {
 	mut parsed_default_locale_id := ?ID(none)
 	if id := p.default_locale_id {
 		parsed_default_locale_id = id_from_string(id) or {
-			return errors.bad_request(error_id_invalid, 'default_locale_id')
+			return errors.bad_request(errors.id_invalid, 'default_locale_id')
 		}
 	}
 
 	mut parsed_default_region_id := ?ID(none)
 	if id := p.default_region_id {
 		parsed_default_region_id = id_from_string(id) or {
-			return errors.bad_request(error_id_invalid, 'default_region_id')
+			return errors.bad_request(errors.id_invalid, 'default_region_id')
 		}
 	}
 
 	mut parsed_default_stock_location_id := ?ID(none)
 	if id := p.default_stock_location_id {
 		parsed_default_stock_location_id = id_from_string(id) or {
-			return errors.bad_request(error_id_invalid, 'default_stock_location_id')
+			return errors.bad_request(errors.id_invalid, 'default_stock_location_id')
 		}
 	}
 
 	mut parsed_default_sales_channel_id := ?ID(none)
 	if id := p.default_sales_channel_id {
 		parsed_default_sales_channel_id = id_from_string(id) or {
-			return errors.bad_request(error_id_invalid, 'default_sales_channel_id')
+			return errors.bad_request(errors.id_invalid, 'default_sales_channel_id')
 		}
 	}
 
 	mut parsed_locale_ids := ?[]ID(none)
 	if ids := p.locale_ids {
 		parsed_locale_ids = ids_from_array_string(ids) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_ids')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_ids')
 		}
 	}
 
@@ -240,7 +240,7 @@ fn hygienise_image_translations(p map[string]ImageTranslationRequest) ![]ImageTr
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
 		res[i] = ImageTranslationRequestHygienised{
@@ -350,7 +350,7 @@ fn (p ImageUpdateRequest) hygienise() !ImageUpdateRequestHygienised {
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(errors.id_invalid, 'id')
 		}
 	}
 
@@ -474,7 +474,7 @@ fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]Pro
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductTranslationRequestHygienised{
@@ -503,7 +503,7 @@ fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTr
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductOptionValueTranslationRequestHygienised{
@@ -584,7 +584,7 @@ fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequ
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(errors.id_invalid, 'id')
 		}
 	}
 
@@ -615,7 +615,7 @@ fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRe
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
 		res[i] = ProductOptionTranslationRequestHygienised{
@@ -712,7 +712,7 @@ fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygieni
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(errors.id_invalid, 'id')
 		}
 	}
 
@@ -742,7 +742,7 @@ fn parse_money_amounts(p map[string]VariantPriceRequest) ![]conduit.VariantMoney
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
 		parsed_region_id := id_from_string(region_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'region_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'region_id')
 		}
 
 		price := p[region_id]
@@ -820,25 +820,6 @@ fn hygienise_stock_location_update_request(s string, stock_location_id ID) !cond
 	}
 }
 
-// used during product and variant creation
-pub struct InventoryLevelCreateRequest {
-pub:
-	stock_location_id string @[json: 'stockLocationId']
-	stocked_quantity  i32    @[json: 'stockedQuantity']
-}
-
-fn (p InventoryLevelCreateRequest) hygienise(inventory_item_id ID) !conduit.InventoryLevelCreateParams {
-	parsed_stock_location_id := id_from_string(p.stock_location_id) or {
-		return errors.unprocessable_entity(error_id_invalid, 'stock_location_id')
-	}
-
-	return conduit.InventoryLevelCreateParams{
-		inventory_item_id: inventory_item_id
-		stock_location_id: parsed_stock_location_id
-		stocked_quantity:  p.stocked_quantity
-	}
-}
-
 pub struct InventoryLevelUpdateRequest {
 pub:
 	quantity_adjustment i32 @[json: 'quantityAdjustment']
@@ -871,7 +852,6 @@ pub:
 	requires_shipping ?bool @[json: 'requiresShipping']
 	manage_inventory  ?bool @[json: 'manageInventory']
 	allow_backorder   ?bool @[json: 'allowBackorder']
-	inventory_levels  ?[]InventoryLevelCreateRequest @[json: 'inventoryLevels']
 }
 
 // default inventory item
@@ -885,19 +865,11 @@ fn new_inventory_item(id ID, variant_id ID) conduit.InventoryItemCreateParams {
 	}
 }
 
-fn (p InventoryItemCreateRequest) get_inventory_levels(inventory_levels []InventoryLevelCreateRequest, inventory_item_id ID) ![]conduit.InventoryLevelCreateParams {
-	mut res := []conduit.InventoryLevelCreateParams{len: 0, cap: inventory_levels.len}
-	for i := 0; i < inventory_levels.len; i++ {
-		res << inventory_levels[i].hygienise(inventory_item_id)!
-	}
-	return res
-}
-
 fn (p InventoryItemCreateRequest) hygienise(inventory_item_id ID, variant_id ID) !conduit.InventoryItemCreateParams {
 	if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
 		&& p.material == none && p.weight == none && p.length == none && p.height == none
 		&& p.width == none && p.requires_shipping == none && p.manage_inventory == none
-		&& p.allow_backorder == none && p.inventory_levels == none {
+		&& p.allow_backorder == none {
 		return errors.unprocessable_entity(error_empty_object, 'InventoryItemCreateRequest')
 	}
 
@@ -935,11 +907,6 @@ fn (p InventoryItemCreateRequest) hygienise(inventory_item_id ID, variant_id ID)
 		}
 	}
 
-	mut inventory_levels := ?[]conduit.InventoryLevelCreateParams(none)
-	if il := p.inventory_levels {
-		inventory_levels = p.get_inventory_levels(il, inventory_item_id)!
-	}
-
 	return conduit.InventoryItemCreateParams{
 		id:                inventory_item_id
 		variant_id:        variant_id
@@ -957,7 +924,6 @@ fn (p InventoryItemCreateRequest) hygienise(inventory_item_id ID, variant_id ID)
 		manage_inventory:  bool_or(p.manage_inventory,
 			common.inventory_item_manage_inventory_default)
 		allow_backorder:   bool_or(p.allow_backorder, common.inventory_item_allow_backorder_default)
-		inventory_levels:  inventory_levels
 	}
 }
 
@@ -977,22 +943,14 @@ pub:
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
-struct InventoryItemUpdateRequestHygienised {
-	sku               ?string
-	origin_country    ?string
-	hs_code           ?string
-	mid_code          ?string
-	material          ?string
-	weight            ?i32
-	length            ?i32
-	height            ?i32
-	width             ?i32
-	requires_shipping ?bool
-	manage_inventory  ?bool
-	allow_backorder   ?bool
-}
+fn (p InventoryItemUpdateRequest) hygienise(variant_id ID) !conduit.InventoryItemUpdateParams {
+	if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
+		&& p.material == none && p.weight == none && p.length == none && p.height == none
+		&& p.width == none && p.requires_shipping == none && p.manage_inventory == none
+		&& p.allow_backorder == none {
+		return errors.unprocessable_entity(error_empty_object, 'inventory_item')
+	}
 
-fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygienised {
 	if sku := p.sku {
 		if utf8_str_visible_length(sku) > max_length_sku {
 			return errors.unprocessable_entity(error_field_too_long, 'sku')
@@ -1027,7 +985,8 @@ fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygieni
 		}
 	}
 
-	mut inventory_item := InventoryItemUpdateRequestHygienised{
+	mut inventory_item := conduit.InventoryItemUpdateParams{
+		variant_id:        variant_id
 		sku:               p.sku
 		origin_country:    p.origin_country
 		hs_code:           p.hs_code
@@ -1043,12 +1002,6 @@ fn (p InventoryItemUpdateRequest) hygienise() !InventoryItemUpdateRequestHygieni
 	}
 
 	return inventory_item
-}
-
-fn (p InventoryItemUpdateRequestHygienised) is_empty() bool {
-	return p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
-		&& p.material == none && p.weight == none && p.length == none && p.height == none
-		&& p.width == none && p.manage_inventory == none && p.requires_shipping == none
 }
 
 // ProductVariantCreateRequest describes the variant to create during product creation.
@@ -1268,7 +1221,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'id')
+			return errors.unprocessable_entity(errors.id_invalid, 'id')
 		}
 	}
 
@@ -1392,14 +1345,14 @@ fn (p VariantCreateRequest) hygienise(mut g luuid.Generator, product_id ID, vari
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
 		parsed_option_value_ids[i] = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'option_value_ids')
+			return errors.unprocessable_entity(errors.id_invalid, 'option_value_ids')
 		}
 	}
 
 	mut parsed_image_id := ?ID(none)
 	if id := p.image_id {
 		parsed_image_id = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'image_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'image_id')
 		}
 	}
 
@@ -1486,68 +1439,58 @@ fn (p VariantCreateRequest) hygienise(mut g luuid.Generator, product_id ID, vari
 // When omitted, regional prices are not changed.
 pub struct VariantUpdateRequest {
 pub:
+	image_id         ?string @[json: 'imageId']
 	title            ?string
+	barcode          ?string
 	ean              ?string
 	upc              ?string
-	barcode          ?string
-	image_id         ?string                         @[json: 'imageId']
-	inventory_item   ?InventoryItemUpdateRequest     @[json: 'inventoryItem']
-	option_value_ids ?[]string                       @[json: 'optionValueIds']
 	metadata         ?string                         @[raw]
+	option_value_ids ?[]string                       @[json: 'optionValueIds']
+	inventory_item   ?InventoryItemUpdateRequest     @[json: 'inventoryItem']
 	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-struct VariantUpdateRequestHygienised {
-	title            ?string
-	ean              ?string
-	upc              ?string
-	barcode          ?string
-	image_id         ?ID
-	option_value_ids ?[]ID
-	metadata         ?string
-mut:
-	inventory_item ?InventoryItemUpdateRequestHygienised
-	money_amounts  ?[]VariantMoneyAmountRequestHygienised
-}
-
-fn (p VariantUpdateRequest) hygienise() !VariantUpdateRequestHygienised {
-	mut parsed_option_value_ids := ?[]ID(none)
-	if ids := p.option_value_ids {
-		parsed_option_value_ids = ids_from_array_string(ids) or {
-			return errors.unprocessable_entity(error_id_invalid, 'option_value_ids')
-		}
-	}
-
+fn (p VariantUpdateRequest) hygienise(product_id ID, variant_id ID) !conduit.VariantUpdateParams {
 	mut parsed_image_id := ?ID(none)
 	if id := p.image_id {
 		parsed_image_id = id_from_string(id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'image_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'image_id')
 		}
 	}
 
-	mut ph := VariantUpdateRequestHygienised{
+	mut parsed_option_value_ids := ?[]ID(none)
+	if ids := p.option_value_ids {
+		parsed_option_value_ids = ids_from_array_string(ids) or {
+			return errors.unprocessable_entity(errors.id_invalid, 'option_value_ids')
+		}
+	}
+
+	mut money_amounts := ?[]conduit.VariantMoneyAmountUpdateParams(none)
+	if regional_prices := p.regional_prices {
+		if regional_prices.len == 0 {
+			return errors.bad_request(error_field_empty, 'regional_prices cannot be an empty map')
+		}
+		money_amounts = parse_money_amounts(regional_prices)!
+	}
+
+	mut inventory_item := ?conduit.InventoryItemUpdateParams(none)
+	if ii := p.inventory_item {
+		inventory_item = ii.hygienise(variant_id)!
+	}
+
+	return conduit.VariantUpdateParams{
+		id:               variant_id
+		product_id:       product_id
+		image_id:         parsed_image_id
 		title:            p.title
+		barcode:          p.barcode
 		ean:              p.ean
 		upc:              p.upc
-		barcode:          p.barcode
-		image_id:         parsed_image_id
 		option_value_ids: parsed_option_value_ids
 		metadata:         p.metadata
+		inventory_item:   inventory_item
+		money_amounts:    money_amounts
 	}
-
-	if prices := p.regional_prices {
-		if prices.len == 0 {
-			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
-		}
-
-		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
-	}
-
-	if inventory_item := p.inventory_item {
-		ph.inventory_item = inventory_item.hygienise()!
-	}
-
-	return ph
 }
 
 // By default, taxes are automatically calculated by peony during checkout. This behavior can be disabled
@@ -1683,7 +1626,7 @@ fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]c
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
 		res[i] = conduit.CategoryTranslationParams{
@@ -1713,7 +1656,7 @@ fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]conduit.SEO
 	mut i := 0
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
-			return errors.unprocessable_entity(error_id_invalid, 'locale_id')
+			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
 		res[i] = conduit.SEOTranslationParams{
@@ -1802,7 +1745,7 @@ fn (p CategoryCreateRequest) hygienise(category_id ID) !conduit.CategoryCreatePa
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {
-			return errors.bad_request(error_id_invalid, 'parent_category_id')
+			return errors.bad_request(errors.id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -1892,7 +1835,7 @@ fn hygienise_category_update_request(s string, category_id ID) !conduit.Category
 	mut parsed_parent_category_id := ?ID(none)
 	if id := p.parent_category_id {
 		parsed_parent_category_id = id_from_string(id) or {
-			return errors.bad_request(error_id_invalid, 'parent_category_id')
+			return errors.bad_request(errors.id_invalid, 'parent_category_id')
 		}
 	}
 
@@ -2271,14 +2214,14 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	mut parsed_sales_channel_ids := ?[]ID(none)
 	if ids := p.sales_channel_ids {
 		parsed_sales_channel_ids = ids_from_array_string(ids) or {
-			return errors.unprocessable_entity(error_id_invalid, 'sales_channel_ids')
+			return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_ids')
 		}
 	}
 
 	mut parsed_category_ids := ?[]ID(none)
 	if ids := p.category_ids {
 		parsed_category_ids = ids_from_array_string(ids) or {
-			return errors.unprocessable_entity(error_id_invalid, 'category_ids')
+			return errors.unprocessable_entity(errors.id_invalid, 'category_ids')
 		}
 	}
 
@@ -2565,14 +2508,14 @@ fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
 	mut parsed_sales_channel_ids := ?[]ID(none)
 	if ids := p.sales_channel_ids {
 		parsed_sales_channel_ids = ids_from_array_string(ids) or {
-			return errors.unprocessable_entity(error_id_invalid, 'sales_channel_ids')
+			return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_ids')
 		}
 	}
 
 	mut parsed_category_ids := ?[]ID(none)
 	if ids := p.category_ids {
 		parsed_category_ids = ids_from_array_string(ids) or {
-			return errors.unprocessable_entity(error_id_invalid, 'category_ids')
+			return errors.unprocessable_entity(errors.id_invalid, 'category_ids')
 		}
 	}
 

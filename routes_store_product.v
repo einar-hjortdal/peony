@@ -55,7 +55,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
-		return ctx.handle_error(errors.bad_request(error_id_invalid, 'product_id'))
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
 	api_key := ctx.get_api_key() or { return ctx.handle_error(err) }
