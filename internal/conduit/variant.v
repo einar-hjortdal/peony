@@ -142,12 +142,9 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 	return variant
 }
 
-// TO decide: do I create ids in routes or in conduit?
 pub struct VariantMoneyAmountUpdateParams {
 pub:
-	// variant_id      ID // missing
-	region_id ID
-	// money_amount_id ID // missing
+	region_id   ID
 	amount      i32
 	is_original bool
 }
@@ -298,11 +295,32 @@ fn (p VariantCreateParams) check_option_values(mut tx firebird.ClientTransaction
 	}
 }
 
+fn (p VariantCreateParams) check_inventory_levels(mut tx firebird.ClientTransaction) ! {
+	if !p.inventory_item.manage_inventory { return }
+	ils := p.inventory_item.inventory_levels or { return }
+	mut stock_location_ids := []ID{len: 0, cap: ils.len}
+	for _, il in ils {
+		stock_location_ids << il.stock_location_id
+	}
+	stock_location_count := record.stock_location_retrieve_count(mut tx, record.StockLocationRetrieveParams{
+		ids:          stock_location_ids
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        max_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to fetch stock_location count', err.msg()) }
+
+	if stock_location_count != stock_location_ids.len {
+		return errors.unprocessable_entity(error_id_invalid,
+			'one or more stock_location id in inventory_level is invalid')
+	}
+}
+
 fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	p.check_image_id(mut tx)!
 	p.check_money_amount_region(mut tx)!
 	p.check_option_values(mut tx)!
-	// TODO check inventory levels (stock location ids)
+	p.check_inventory_levels(mut tx)!
 }
 
 fn (p VariantCreateParams) parse_option_values() []record.ProductOptionValueVariant {
@@ -437,8 +455,8 @@ struct VariantCreateData {
 }
 
 // TODO consider moving all id generation here. pass variant id as fn parameter or return it.
-// I think id generation should be in one location alone, and it probably belongs here.
-// TODO should defaults be set here? Sometimes I am forced to set them here, I'm not forced to set them in the routes yet.
+// id generation should be in one location alone, and it probably belongs here.
+// TODO should defaults be set here? Sometimes we are forced to set them here, we're not forced to set them in the routes.
 pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) ! {
 	p.check(mut tx)!
 	data := p.parse(mut tx, mut g)!
