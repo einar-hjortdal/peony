@@ -17,13 +17,6 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 		return conduit.product_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
-	if data.count == 0 {
-		return ctx.handle_ok(ProductResponseListEnvelope{
-			offset: p.offset
-			fetch:  p.fetch
-		})
-	}
-
 	return ctx.handle_ok(ProductResponseListEnvelope{
 		products: format_product_list_response(data.items)
 		count:    data.count

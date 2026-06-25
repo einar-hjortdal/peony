@@ -34,7 +34,6 @@ pub const max_length_seo_title = 63
 pub const max_length_seo_description = 191
 pub const max_length_category_name = 63
 pub const max_length_category_description = 191
-pub const max_length_region_name = 63
 pub const max_length_handle = 63
 pub const max_length_sku = 63
 pub const max_length_country = 2
@@ -112,7 +111,7 @@ fn (mut app App) start_transaction() !&firebird.ClientTransaction {
 
 fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
 	finalise fn (mut tx firebird.ClientTransaction) !) !T {
-	for i = 0; i < transaction_attempts; i++ {
+	for i := 0; i < transaction_attempts; i++ {
 		mut tx := app.start_transaction() or {
 			if i == transaction_attempts - 1 {
 				return err
@@ -135,17 +134,20 @@ fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransactio
 		finalise(mut tx)!
 		return res
 	}
+
+	return errors.internal('Could not complete operation',
+		'Transaction failed ${transaction_attempts} times.')
 }
 
 fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
-	return attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
-		tx.rollback() or { return errors.internal('Failed to rollback transaction', error.msg()) }
+	return app.attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
+		tx.rollback() or { return errors.internal('Failed to rollback transaction', err.msg()) }
 	})
 }
 
 fn (mut app App) with_commit[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
-	return attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
-		tx.commit() or { return errors.internal('Failed to commit transaction', error.msg()) }
+	return app.attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
+		tx.commit() or { return errors.internal('Failed to commit transaction', err.msg()) }
 	})
 }
 
@@ -220,7 +222,7 @@ fn (mut app App) get_locale_context(m map[string]string) !LocaleContext {
 		return conduit.store_get(mut tx)!
 	})!
 
-	for i := 0; i < store.locales; i++ {
+	for i := 0; i < store.locales.len; i++ {
 		locale := store.locales[i]
 		if locale_id.string() != locale.id.string() {
 			continue
@@ -247,7 +249,7 @@ fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {
 
 fn (mut ctx Context) handle_error(error IError) veb.Result {
 	match error {
-		PeonyError {
+		errors.PeonyError {
 			return ctx.handle_peony_error(error)
 		}
 		else {
@@ -289,7 +291,7 @@ fn (mut ctx Context) handle_deleted() veb.Result {
 	return ctx.json(DeletedResponse{})
 }
 
-fn (ctx Context) get_api_key() !APIKey {
+fn (ctx Context) get_api_key() !conduit.APIKey {
 	api_key := ctx.api_key or {
 		return errors.internal('API Key missing from request context', 'ctx.api_key == none')
 	}
@@ -339,8 +341,8 @@ fn email_is_valid(e string) ! {
 }
 
 fn product_status_is_valid(s string) bool {
-	return s == product_status_draft || s == product_status_proposed
-		|| s == product_status_published || s == product_status_rejected
+	return s == common.product_status_draft || s == common.product_status_proposed
+		|| s == common.product_status_published || s == common.product_status_rejected
 }
 
 fn string_value(s ?string) string {
@@ -378,7 +380,7 @@ fn parse_order_direction(s string) !string {
 		details_order_direction_invalid)
 }
 
-fn get_header_content_type(mut ctx Context) !string {
+fn get_header_content_type(mut ctx Context) ?string {
 	return ctx.get_header(http.CommonHeader.content_type)
 }
 

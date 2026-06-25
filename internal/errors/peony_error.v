@@ -7,6 +7,7 @@ pub const id_invalid = 'Invalid ID'
 
 // PeonyError contains the appropriate http status code for the error.
 pub struct PeonyError {
+pub:
 	message     string
 	details     string
 	status_code http.Status

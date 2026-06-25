@@ -1,7 +1,6 @@
 module peony
 
 import json
-import einar_hjortdal.luuid
 import internal.conduit
 import internal.errors
 import internal.common
