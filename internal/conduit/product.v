@@ -390,7 +390,7 @@ fn product_images_update(mut tx firebird.ClientTransaction, product_id ID, image
 }
 
 pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateData) ! {
-	check_product_id_exists(mut tx, product_id)!
+	check_product_id_exists(mut tx, p.product.id)!
 
 	// always update the product row for `updated_at`
 	record.product_update(mut tx, p.product) or {

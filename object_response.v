@@ -520,6 +520,14 @@ pub:
 	region RegionResponse
 }
 
+fn format_region_response_list(regions []conduit.Region) []RegionResponse {
+	mut res := []RegionResponse{len: 0, cap: regions.len}
+	for _, region in regions {
+		res << format_region_response(region)
+	}
+	return res
+}
+
 pub struct RegionResponseListEnvelope {
 pub:
 	regions []RegionResponse

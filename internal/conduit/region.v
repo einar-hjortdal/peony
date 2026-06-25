@@ -168,7 +168,7 @@ fn (p RegionUpdateParams) parse() RegionUpdateData {
 	}
 }
 
-pub fn region_update(mut tx firebird.ClientTransaction, region_id ID, p RegionUpdateParams) ! {
+pub fn region_update(mut tx firebird.ClientTransaction, p RegionUpdateParams) ! {
 	p.check(mut tx)!
 	data := p.parse()
 	record.region_update(mut tx, data.region) or {

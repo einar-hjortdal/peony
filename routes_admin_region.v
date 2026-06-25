@@ -31,8 +31,8 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 	}
 
 	return ctx.handle_ok(RegionResponseListEnvelope{
-		regions: format_locale_response_list(data.items)
-		count:   count
+		regions: format_region_response_list(data.items)
+		count:   data.count
 		offset:  p.offset
 		fetch:   p.fetch
 	})
@@ -47,7 +47,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 	}
 
 	region := app.with_commit(fn [p, region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
-		conduit.region_create(mut tx, region_id, p)!
+		conduit.region_create(mut tx, p)!
 		return conduit.region_get(mut tx, region_id)
 	}) or { return ctx.handle_error(err) }
 
@@ -64,7 +64,7 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 	}
 
 	region := app.with_rollback(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
-		return conduit.region_get(mut tx, region_id)
+		return conduit.region_get(mut tx, parsed_region_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
@@ -83,9 +83,9 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 		return ctx.handle_error(err)
 	}
 
-	region := app.with_commit(fn [p, parsed_region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
-		conduit.region_update(mut tx, region_id, p)!
-		return conduit.region_get(mut tx, region_id)
+	region := app.with_commit(fn [p] (mut tx firebird.ClientTransaction) !conduit.Region {
+		conduit.region_update(mut tx, p)!
+		return conduit.region_get(mut tx, p.id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
@@ -101,7 +101,7 @@ pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.
 	}
 
 	app.with_commit(fn [parsed_region_id] (mut tx firebird.ClientTransaction) !NilReturn {
-		conduit.region_delete(mut ctx, parsed_region_id)!
+		conduit.region_delete(mut tx, parsed_region_id)!
 		return NilReturn{}
 	}) or { return ctx.handle_error(err) }
 
