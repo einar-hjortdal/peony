@@ -18,15 +18,12 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 	}
 
 	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !conduit.List[conduit.Product] {
-		if _ := pctx.cart_id {
-			// TODO check is valid
-		}
 		return conduit.product_list(mut tx, p)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseStoreListEnvelope{
 		products: format_product_response_store_list(data.items, pctx, api_key.sales_channel_id,
-			variants_availability, lctx)
+			lctx)
 		count:    data.count
 		offset:   p.offset
 		fetch:    p.fetch
@@ -45,15 +42,11 @@ pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string
 	lctx := app.get_locale_context(ctx.query) or { return ctx.handle_error(err) }
 	pctx := app.get_price_context(ctx.query) or { return ctx.handle_error(err) }
 
-	product := app.with_rollback(fn [mut app, api_key, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
-		if _ := pctx.cart_id {
-			// TODO check is valid
-		}
-
+	product := app.with_rollback(fn [api_key, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
 		return conduit.product_get_store(mut tx, parsed_product_id, api_key.sales_channel_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseStoreEnvelope{
-		product: format_product_response_store(data.product, pctx, api_key.sales_channel_id, lctx)
+		product: format_product_response_store(product, pctx, api_key.sales_channel_id, lctx)
 	})
 }

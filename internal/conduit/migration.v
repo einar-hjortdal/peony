@@ -10,7 +10,7 @@ pub fn migration_create(mut tx firebird.ClientTransaction, migration_id ID, name
 	}
 }
 
-pub fn migration_list(mut tx firebird.ClientTransaction) ![]record.Migration {
+pub fn migration_list(mut tx firebird.ClientTransaction) ![]Migration {
 	migrations := record.migration_retrieve(mut tx) or {
 		return errors.internal('Failed to retrieve migration', err.msg())
 	}

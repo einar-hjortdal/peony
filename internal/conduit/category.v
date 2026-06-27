@@ -154,7 +154,7 @@ fn (p CategoryCreateParams) check(mut tx firebird.ClientTransaction) ! {
 			order:        order_default
 		}) or { return errors.internal('Could not retrieve category count', err.msg()) }
 		if count == 0 {
-			return errors.unprocessable_entity(errors.msg_id_invalid,
+			return errors.unprocessable_entity(errors.id_invalid,
 				'No category exists with id `${parent_category_id}`')
 		}
 	}
@@ -285,7 +285,7 @@ fn (p CategoryUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 		order:        order_default
 	}) or { return errors.internal('Could not retrieve category count', err.msg()) }
 	if count == 0 {
-		return errors.unprocessable_entity(errors.msg_id_invalid,
+		return errors.unprocessable_entity(errors.id_invalid,
 			'Category does not exist. No category exists with id `${p.id}`')
 	}
 
@@ -298,7 +298,7 @@ fn (p CategoryUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 			order:        order_default
 		}) or { return errors.internal('Could not retrieve category count', err.msg()) }
 		if parent_count == 0 {
-			return errors.unprocessable_entity(errors.msg_id_invalid,
+			return errors.unprocessable_entity(errors.id_invalid,
 				'Parent category does not exist. No category exists with id `${parent_category_id}`')
 		}
 	}

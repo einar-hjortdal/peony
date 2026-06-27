@@ -236,9 +236,8 @@ fn (mut app App) is_ready(mut tx firebird.ClientTransaction) !bool {
 		}
 	}
 
-	for i := 0; i < migrations.len; i++ {
-		migration := migrations[i]
-		if migration.name == name {
+	for _, migration in migrations {
+		if migration.name == seed_migration_name {
 			log.info('Store created at ${migration.created_at.Time}')
 			return true
 		}

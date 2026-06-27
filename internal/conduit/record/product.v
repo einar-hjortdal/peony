@@ -317,14 +317,14 @@ pub fn product_retrieve(mut tx firebird.ClientTransaction, p ProductRetrievePara
 pub struct ProductCreateParams {
 pub:
 	id           ID
-	title        string
-	subtitle     string
-	description  string
 	handle       string
+	title        string
+	subtitle     ?string
+	description  ?string
 	is_giftcard  ?bool
 	status       ?string
 	discountable ?bool
-	metadata     string
+	metadata     ?string
 }
 
 pub fn product_create(mut tx firebird.ClientTransaction, p ProductCreateParams) ! {
@@ -343,14 +343,18 @@ pub fn product_create(mut tx firebird.ClientTransaction, p ProductCreateParams) 
 	mut c := ['id', 'title', 'handle']
 	mut params := [firebird.Value(p.id.bytes()), p.title, p.handle]
 
-	if p.subtitle != '' {
-		c = arrays.concat(c, 'subtitle')
-		params = arrays.concat(params, p.subtitle)
+	if subtitle := p.subtitle {
+		if subtitle != '' {
+			c = arrays.concat(c, 'subtitle')
+			params = arrays.concat(params, subtitle)
+		}
 	}
 
-	if p.description != '' {
-		c = arrays.concat(c, 'description')
-		params = arrays.concat(params, p.description)
+	if description := p.description {
+		if description != '' {
+			c = arrays.concat(c, 'description')
+			params = arrays.concat(params, description)
+		}
 	}
 
 	if p.is_giftcard != none {
@@ -373,9 +377,11 @@ pub fn product_create(mut tx firebird.ClientTransaction, p ProductCreateParams) 
 		params = arrays.concat(params, p.discountable)
 	}
 
-	if p.metadata != '' {
-		c = arrays.concat(c, 'metadata')
-		params = arrays.concat(params, p.metadata)
+	if metadata := p.metadata {
+		if metadata != '' {
+			c = arrays.concat(c, 'metadata')
+			params = arrays.concat(params, metadata)
+		}
 	}
 
 	query := 'INSERT INTO product (${get_columns(c)}) VALUES (${get_placeholders(c)})'

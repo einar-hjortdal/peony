@@ -17,7 +17,7 @@ pub fn stock_location_list(mut tx firebird.ClientTransaction, p StockLocationRet
 		return List[StockLocation]{}
 	}
 
-	stock_locations := record.stock_location_retrieve(mut tx, data) or {
+	stock_locations := record.stock_location_retrieve(mut tx, p) or {
 		return errors.internal('Could not get stock_location', err.msg())
 	}
 

@@ -13,3 +13,10 @@ pub fn unwrap_option_or_option[T](option_type ?T, default_option ?T) ?T {
 	}
 	return default_option
 }
+
+pub fn bool_or(b ?bool, default bool) bool {
+	if v := b {
+		return v
+	}
+	return default
+}

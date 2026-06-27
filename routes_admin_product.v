@@ -3,7 +3,6 @@ module peony
 import json
 import veb
 import einar_hjortdal.firebird
-import einar_hjortdal.slugify
 import internal.common
 import internal.conduit
 import internal.errors
@@ -28,19 +27,17 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 // create a product
 @['/admin/products'; post]
 pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
-	p := json.decode(ProductCreateRequest, ctx.req.data) or {
-		perr := errors.bad_request('Could not decode ProductRequest', err.msg())
-		return ctx.handle_error(perr)
+	decoded := json.decode(ProductCreateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode ProductRequest', err.msg()))
 	}
 
-	ph := p.hygienise() or { return ctx.handle_error(err) }
+	p := decoded.hygienise() or { return ctx.handle_error(err) }
 
-	product_id := app.gen_id()
+	product := app.with_commit(fn [mut app, p] (mut tx firebird.ClientTransaction) !conduit.Product {
+		product_id := conduit.product_create(mut tx, mut app.luuid_generator, p)!
+		return conduit.product_get(mut tx, product_id)
+	}) or { return ctx.handle_error(err) }
 
-	// generate handle from title if handle is not provided
-	mut handle := p.handle or { slugify.default().make(p.title) }
-
-	mut tx := app.start_transaction() or { return ctx.handle_error(err) }
 
 	product_by_handle_count := model_product_retrieve_count(mut tx, ProductRetrieveParams{
 		handle: handle
@@ -53,7 +50,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 		return ctx.handle_error(perr)
 	}
 
-	if product_by_handle_count > 0 {
+	if product_by_handle_count.len > 0 {
 		handle = '${handle}-${product_id.string()}'
 		if utf8_str_visible_length(handle) > max_length_handle {
 			tx.rollback() or {}
@@ -191,7 +188,7 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
-	product := app.with_rollback(fn [mut app, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
+	product := app.with_rollback(fn [parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
 		return conduit.product_get(mut tx, parsed_product_id)
 	}) or { return ctx.handle_error(err) }
 

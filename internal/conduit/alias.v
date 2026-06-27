@@ -60,3 +60,5 @@ pub type UserUpdateParams = record.UserUpdateParams
 pub type UserListParams = record.UserListParams
 
 pub type Variant = record.Variant
+
+pub type Migration = record.Migration

@@ -17,6 +17,8 @@ pub const product_status_draft = 'draft'
 pub const product_status_proposed = 'proposed'
 pub const product_status_published = 'published'
 pub const product_status_rejected = 'rejected'
+pub const product_is_giftcard_default = false
+pub const product_discountable_default = false
 
 pub const variant_rank_default = i32(0)
 

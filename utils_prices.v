@@ -3,6 +3,7 @@ module peony
 import arrays
 import einar_hjortdal.firebird
 import internal.conduit
+import internal.errors
 import log
 
 // VariantPrice is for the store frontend
@@ -28,7 +29,7 @@ struct PriceContext {
 	customer_id ?ID
 }
 
-fn (mut app App) get_price_context_region(id ?ID) ID {
+fn (mut app App) get_price_context_region(id ?ID) !ID {
 	region_id := id or {
 		log.debug('region_id not provided, using default')
 		return app.get_default_region_id()!
@@ -40,12 +41,14 @@ fn (mut app App) get_price_context_region(id ?ID) ID {
 	}
 
 	log.debug('region not in cache, getting it from db')
-	region := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Region {
+	region := app.with_rollback(fn [region_id] (mut tx firebird.ClientTransaction) !conduit.Region {
 		return conduit.region_get(mut tx, region_id)
 	}) or { return errors.unprocessable_entity(errors.id_invalid, 'region_id does not exist') }
 
 	log.debug('region_id is valid, region loaded from db')
-	app.cache_region_set(region)
+	app.cache_region_set(region) or {
+		log.error('could not cache region_id with error: ${err.msg()}')
+	}
 	return region_id
 }
 
@@ -64,8 +67,8 @@ fn (mut app App) get_price_context(m map[string]string) !PriceContext {
 fn calculate_taxes() {}
 
 // TODO should also consider money_amount related to price-list.
-fn is_fitting_price(ma VariantMoneyAmount, region_id ID, quantity i32) bool {
-	return !ma.is_original && ma.region_id_bin == region_id.bytes()
+fn is_fitting_price(ma conduit.VariantMoneyAmount, region_id ID, _ i32) bool {
+	return !ma.is_original && ma.region_id.string() == region_id.string()
 	// && (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
 	// && (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
 }
@@ -94,11 +97,10 @@ fn get_regional_prices(mas []VariantMoneyAmount, region_id ID, quantity i32) []V
 	return fitting_prices
 }
 
-fn get_lowest_price(mas []VariantMoneyAmount) VariantMoneyAmount {
-	mut lowest := VariantMoneyAmount{}
-	for i := 0; i < mas.len; i++ {
-		ma := mas[i]
-		if lowest.id_bin.len == 0 {
+fn get_lowest_price(mas []conduit.VariantMoneyAmount) conduit.VariantMoneyAmount {
+	mut lowest := conduit.VariantMoneyAmount{}
+	for _, ma in mas {
+		if lowest.id.is_zero() {
 			lowest = ma
 			continue
 		}
@@ -113,8 +115,8 @@ fn get_lowest_price(mas []VariantMoneyAmount) VariantMoneyAmount {
 // this function should find the lowest possible price that fits all the criteria.
 // it considers: quantity, region.
 // TODO Consider price_list when in context.
+// for now just consider variant.money_amounts and pctx.region
 fn calculate_price(variant conduit.Variant, pctx PriceContext, quantity i32) VariantPrice {
-	// for now just consider variant.money_amounts and pctx.region
 	original_price := get_original_price(variant.money_amounts, pctx.region_id)
 	regional_prices := get_regional_prices(variant.money_amounts, pctx.region_id, quantity)
 	base_price := get_lowest_price(regional_prices)

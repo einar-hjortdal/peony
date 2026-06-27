@@ -359,13 +359,6 @@ fn i32_value(i ?i32) i32 {
 	return 0
 }
 
-fn bool_or(b ?bool, default bool) bool {
-	if v := b {
-		return v
-	}
-	return default
-}
-
 fn parse_order_direction(s string) !string {
 	normalized := s.to_upper()
 	if normalized == order_asc {

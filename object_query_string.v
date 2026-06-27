@@ -2,6 +2,7 @@ module peony
 
 import internal.conduit
 import internal.errors
+import internal.common
 
 pub const with_deleted_default = false
 
@@ -105,7 +106,7 @@ fn hygienise_api_key_list_query_params(m map[string]string) !conduit.APIKeyRetri
 
 	return conduit.APIKeyRetrieveParams{
 		ids:          ids
-		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		with_deleted: common.bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -147,7 +148,7 @@ fn hygienise_user_list_request_query(m map[string]string) !conduit.UserListParam
 		ids:          ids
 		email:        p.email
 		handle:       p.handle
-		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		with_deleted: common.bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -183,7 +184,7 @@ fn hygienise_region_list_request_query(m map[string]string) !conduit.RegionRetri
 
 	return conduit.RegionRetriveParams{
 		ids:          ids
-		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		with_deleted: common.bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -328,7 +329,7 @@ fn hygienise_sales_channels_list_query_params(m map[string]string) !conduit.Sale
 
 	return conduit.SalesChannelRetrieveParams{
 		ids:          ids
-		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		with_deleted: common.bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!
@@ -389,7 +390,7 @@ fn hygienise_category_list_query_params(m map[string]string) !conduit.CategoryRe
 		is_internal:        p.is_active
 		product_ids:        product_ids
 		parent_category_id: parent_category_id
-		with_deleted:       bool_or(p.with_deleted, with_deleted_default)
+		with_deleted:       common.bool_or(p.with_deleted, with_deleted_default)
 		offset:             get_offset_or_default(p.offset)!
 		fetch:              get_fetch_or_default(p.fetch)!
 		order:              get_order_direction_or_default(p.order)!
@@ -509,7 +510,7 @@ fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetr
 		status:           p.status
 		category_ids:     category_ids
 		sales_channel_id: sales_channel_id
-		with_deleted:     bool_or(p.with_deleted, with_deleted_default)
+		with_deleted:     common.bool_or(p.with_deleted, with_deleted_default)
 		offset:           get_offset_or_default(p.offset)!
 		fetch:            get_fetch_or_default(p.fetch)!
 		order:            get_order_direction_or_default(p.order)!
@@ -640,7 +641,7 @@ fn hygienise_stock_location_list_query_params(m map[string]string) !conduit.Stoc
 
 	return conduit.StockLocationRetrieveParams{
 		ids:          ids
-		with_deleted: bool_or(p.with_deleted, with_deleted_default)
+		with_deleted: common.bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!
 		fetch:        get_fetch_or_default(p.fetch)!
 		order:        get_order_direction_or_default(p.order)!

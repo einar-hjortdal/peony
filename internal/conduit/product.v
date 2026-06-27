@@ -2,51 +2,209 @@ module conduit
 
 import arrays
 import einar_hjortdal.firebird
+import einar_hjortdal.luuid
+import einar_hjortdal.slugify
 import record
 import internal.common
 import internal.errors
 
-pub struct ProductCreateData {
+pub struct ProductTranslationCreateParams {
 pub:
-	product                   record.ProductCreateParams
-	translations              ?[]record.ProductTranslationCreateParams
-	seo                       record.ProductSEOCreateParams
-	seo_translations          ?[]record.SEOTranslationCreateParams
-	options                   []record.ProductOptionCreateParams
-	option_translations       ?[]record.ProductOptionTranslationCreateParams
-	option_values             []record.ProductOptionValueCreateParams
-	option_value_translations ?[]record.ProductOptionValueTranslationCreateParams
-	variants                  []record.VariantCreateParams
-	inventory_items           []record.InventoryItemCreateParams
-	variant_money_amounts     []record.VariantMoneyAmountUpdateParams
-	option_value_variant      []record.ProductOptionValueVariant
-	category_ids              ?[]ID
-	images                    ?[]record.ProductImageCreateParams
-	thumbnail_id              ?ID
-	sales_channel_ids         []ID
+	locale_id   ID
+	title       ?string
+	subtitle    ?string
+	description ?string
 }
 
-fn product_create(mut tx firebird.ClientTransaction, product_id ID, handle string, p ProductCreateData) ! {
-	record.product_create(mut tx, p.product) or {
+pub struct ProductOptionValueTranslationCreateParams {
+pub:
+	locale_id ID
+	name      string
+}
+
+pub struct ProductOptionValueCreateParams {
+pub:
+	name         string
+	translations ?[]ProductOptionValueTranslationCreateParams
+}
+
+pub struct ProductOptionTranslationCreateParams {
+pub:
+	locale_id ID
+	title     string
+}
+
+pub struct ProductOptionCreateParams {
+pub:
+	option_rank  i32
+	title        string
+	values       []ProductOptionValueCreateParams
+	translations ?[]ProductOptionTranslationCreateParams
+}
+
+pub struct ProductVariantCreateParams {
+	image_id       ?ID
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	metadata       ?string
+	option_values  ?[]i32
+	inventory_item ?InventoryItemCreateParams
+	money_amounts  ?[]VariantMoneyAmountUpdateParams
+	// variant_rank     i32 // derive from index
+}
+
+pub struct ImageTranslationCreateParams {
+pub:
+	locale_id ID
+	alt       string
+}
+
+pub struct ImageCreateParams {
+pub:
+	url          string
+	alt          ?string
+	translations ?[]ImageTranslationCreateParams
+}
+
+pub struct ProductCreateParams {
+pub:
+	handle            ?string
+	title             string
+	subtitle          ?string
+	description       ?string
+	is_giftcard       ?bool
+	status            ?string
+	discountable      ?bool
+	metadata          ?string
+	sales_channel_ids ?[]string
+	category_ids      ?[]string
+	translations      ?[]ProductTranslationCreateParams
+	seo               ?SEOParams
+	options           ?[]ProductOptionCreateParams
+	variants          ?[]ProductVariantCreateParams
+	thumbnail         ?i32
+	images            ?[]ImageCreateParams
+}
+
+fn (p ProductCreateParams) check_handle(mut tx firebird.ClientTransaction) ! {
+	handle := p.handle or { return }
+	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
+		handle:       handle
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        min_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to retrieve product count', err.msg()) }
+
+	if count != 0 {
+		return errors.unprocessable_entity('handle not unique',
+			'A product already exists with the given handle')
+	}
+}
+
+fn (p ProductCreateParams) check_sales_channel_ids(mut tx firebird.ClientTransaction) ! {
+	sales_channel_ids := p.sales_channel_ids or { return }
+	// do they exist
+}
+
+fn (p ProductCreateParams) parse_product(product_id ID) record.ProductCreateParams {
+	handle := p.handle or { slugify.default().make(p.title) }
+
+	return record.ProductCreateParams{
+		id:           product_id
+		handle:       handle
+		title:        p.title
+		subtitle:     p.subtitle
+		description:  p.description
+		is_giftcard:  common.bool_or(p.is_giftcard, common.product_is_giftcard_default)
+		status:       common.unwrap_option_or(p.status, common.product_status_draft)
+		discountable: common.bool_or(p.discountable, common.product_discountable_default)
+		metadata:     p.metadata
+	}
+}
+
+fn (p ProductCreateParams) parse_seo(mut g luuid.Generator, product_id ID) record.ProductSEOCreateParams {
+	seo_id := common.new_id(mut g)
+	s := p.seo or {
+		return record.ProductSEOCreateParams{
+			id:         seo_id
+			product_id: product_id
+		}
+	}
+
+	return s.parse_product_create(seo_id, product_id)
+}
+
+fn (p ProductCreateParams) parse_translations(product_id ID, translations []ProductTranslationCreateParams) []record.ProductTranslationCreateParams {
+	mut res := []record.ProductTranslationCreateParams{len: translations.len}
+	for _, translation in translations {
+		res << record.ProductTranslationCreateParams{
+			product_id:  product_id
+			locale_id:   translation.locale_id
+			title:       translation.title
+			subtitle:    translation.subtitle
+			description: translation.description
+		}
+	}
+	return res
+}
+
+fn (p ProductCreateParams) parse_variants() ![]record.VariantCreateParams {
+	variants := p.variants or {
+		// return default variant
+	}
+
+	mut res := []record.VariantCreateParams{len: variants.len}
+	for variant_rank, variant in variants {
+		res << record.VariantCreateParams{
+			id:       common.new_id(mut g)
+			image_id: variant.image_id
+			title:    variant.title
+			ean:      variant.ean
+			upc:      variant.upc
+			barcode:  variant.barcode
+			metadata: variant.metadata
+			// option_values: variant.option_values
+			variant_rank: i32(variant_rank)
+		}
+	}
+	return res
+}
+
+// pub struct ProductCreateData {
+// pub:
+// 	product                   record.ProductCreateParams
+// 	translations              ?[]record.ProductTranslationCreateParams
+// 	seo                       record.ProductSEOCreateParams
+// 	seo_translations          ?[]record.SEOTranslationCreateParams
+// 	options                   []record.ProductOptionCreateParams
+// 	option_translations       ?[]record.ProductOptionTranslationCreateParams
+// 	option_values             []record.ProductOptionValueCreateParams
+// 	option_value_translations ?[]record.ProductOptionValueTranslationCreateParams
+// 	variants                  []record.VariantCreateParams
+// 	inventory_items           []record.InventoryItemCreateParams
+// 	variant_money_amounts     []record.VariantMoneyAmountUpdateParams
+// 	option_value_variant      []record.ProductOptionValueVariant
+// 	category_ids              ?[]ID
+// 	images                    ?[]record.ProductImageCreateParams
+// 	thumbnail_id              ?ID
+// 	sales_channel_ids         []ID
+// }
+
+fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
+	p.check_handle(mut tx)!
+
+	product_id := common.new_id(mut g)
+	product := p.parse_product(product_id)
+	record.product_create(mut tx, product) or {
 		return errors.internal('Failed to create product', err.msg())
 	}
 
-	if translations := p.translations {
-		record.product_translation_create(mut tx, translations) or {
-			return errors.internal('Failed to update product translations', err.msg())
-		}
-	}
-
-	record.product_seo_create(mut tx, p.seo) or {
+	seo := p.parse_seo(mut g, product_id)
+	record.product_seo_create(mut tx, seo) or {
 		return errors.internal('Failed to create seo', err.msg())
-	}
-
-	if translations := p.seo_translations {
-		if translations.len > 0 {
-			record.seo_translations_create(mut tx, translations) or {
-				return errors.internal('Failed to insert seo_translations', err.msg())
-			}
-		}
 	}
 
 	record.product_option_create(mut tx, p.options) or {
@@ -55,6 +213,21 @@ fn product_create(mut tx firebird.ClientTransaction, product_id ID, handle strin
 
 	record.product_option_value_create(mut tx, p.option_values) or {
 		return errors.internal('Failed to create product_option_value', err.msg())
+	}
+
+	if translations := p.translations {
+		t := p.parse_translations(product_id, translations)
+		record.product_translation_create(mut tx, t) or {
+			return errors.internal('Failed to update product translations', err.msg())
+		}
+	}
+
+	if translations := p.seo_translations {
+		if translations.len > 0 {
+			record.seo_translations_create(mut tx, translations) or {
+				return errors.internal('Failed to insert seo_translations', err.msg())
+			}
+		}
 	}
 
 	if translations := p.option_translations {
@@ -238,7 +411,7 @@ fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map
 	}
 }
 
-// TODO: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient, but separating the logic this way also makes sense.
+// Note: we are fetching option values and their translations twice. once for products, once for variants. This is not efficient.
 pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) !List[Product] {
 	count := record.product_retrieve_count(mut tx, p) or {
 		return errors.internal('Failed to retrieve product count', err.msg())

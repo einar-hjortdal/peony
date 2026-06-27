@@ -310,41 +310,12 @@ pub fn product_option_create(mut tx firebird.ClientTransaction, p []ProductOptio
 }
 
 // TODO validate before running operation
+// TODO can remove and use update function only?
 pub struct ProductOptionTranslationCreateParams {
 pub:
 	product_option_id ID
 	locale_id         ID
 	title             string
-}
-
-pub fn product_option_translations_create(mut tx firebird.ClientTransaction, p []ProductOptionTranslationCreateParams) ! {
-	mut src := []string{len: p.len}
-	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
-	for i := 0; i < p.len; i++ {
-		translation := p[i]
-		if translation.product_option_id.is_zero() {
-			return error('Invalid product_option_id: ID.is_zero()')
-		}
-
-		if translation.locale_id.is_zero() {
-			return error('Invalid locale_id: ID.is_zero()')
-		}
-
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS product_option_id,
-			CAST(? AS BINARY(16)) AS locale_id,
-			CAST(? AS VARCHAR(63)) AS title
-			FROM RDB\$DATABASE'
-
-		params[i * 3] = translation.product_option_id.bytes()
-		params[i * 3 + 1] = translation.locale_id.bytes()
-		params[i * 3 + 2] = translation.title
-	}
-
-	query := 'INSERT INTO product_option_translations
-		(product_option_id, locale_id, title)
-		${get_merge_source(src)}'
-	tx.execute(query, ...params)!
 }
 
 // TODO validate before running operation
@@ -378,34 +349,11 @@ pub fn product_option_value_create(mut tx firebird.ClientTransaction, p []Produc
 	tx.execute(query, ...params)!
 }
 
-// TODO validate before running operation
 pub struct ProductOptionValueTranslationCreateParams {
 pub:
 	product_option_value_id ID
 	locale_id               ID
 	name                    string
-}
-
-pub fn product_option_value_translations_create(mut tx firebird.ClientTransaction, p []ProductOptionValueTranslationCreateParams) ! {
-	mut src := []string{len: p.len}
-	mut params := []firebird.Value{len: p.len * 3, init: firebird.Null{}}
-	for i := 0; i < p.len; i++ {
-		translation := p[i]
-		src[i] = 'SELECT
-			CAST(? AS BINARY(16)) AS product_option_id,
-			CAST(? AS BINARY(16)) AS locale_id,
-			CAST(? AS VARCHAR(63)) AS title
-			FROM RDB\$DATABASE'
-
-		params[i * 3] = translation.product_option_value_id.bytes()
-		params[i * 3 + 1] = translation.locale_id.bytes()
-		params[i * 3 + 2] = translation.name
-	}
-
-	query := 'INSERT INTO product_option_value_translations
-		(product_option_value_id, locale_id, title)
-		${get_merge_source(src)}'
-	tx.execute(query, ...params)!
 }
 
 // ProductOptionValueTranslationUpdateParams
@@ -564,7 +512,8 @@ pub fn product_option_translations_update(mut tx firebird.ClientTransaction, p P
 	query := 'MERGE INTO product_option_translations t
 		USING (${get_merge_source(src)}) s
 		ON t.product_option_id = s.product_option_id AND t.locale_id = s.locale_id
-		WHEN MATCHED THEN UPDATE SET t.title = s.title
+		WHEN MATCHED THEN 
+			UPDATE SET t.title = s.title
 		WHEN NOT MATCHED THEN
 			INSERT (product_option_id, locale_id, title)
 			VALUES (s.product_option_id, s.locale_id, s.title)

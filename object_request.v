@@ -182,7 +182,7 @@ fn hygienise_sales_channel_create_request(s string, sales_channel_id ID) !condui
 		id:          sales_channel_id
 		name:        p.name
 		description: p.description
-		is_disabled: bool_or(p.is_disabled, sales_channel_default_is_disabled)
+		is_disabled: common.bool_or(p.is_disabled, sales_channel_default_is_disabled)
 	}
 }
 
@@ -905,11 +905,12 @@ fn (p InventoryItemCreateRequest) hygienise() !conduit.InventoryItemCreateParams
 		length:            p.length
 		height:            p.height
 		width:             p.width
-		requires_shipping: bool_or(p.requires_shipping,
+		requires_shipping: common.bool_or(p.requires_shipping,
 			common.inventory_item_requires_shipping_default)
-		manage_inventory:  bool_or(p.manage_inventory,
+		manage_inventory:  common.bool_or(p.manage_inventory,
 			common.inventory_item_manage_inventory_default)
-		allow_backorder:   bool_or(p.allow_backorder, common.inventory_item_allow_backorder_default)
+		allow_backorder:   common.bool_or(p.allow_backorder,
+			common.inventory_item_allow_backorder_default)
 	}
 }
 
@@ -1042,19 +1043,6 @@ pub:
 	regional_prices ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-struct ProductVariantCreateRequestHygienised {
-	title         ?string
-	ean           ?string
-	upc           ?string
-	barcode       ?string
-	image         ?i32
-	option_values ?[]i32
-	metadata      ?string
-mut:
-	inventory_item ?InventoryItemCreateRequestHygienised
-	money_amounts  ?[]VariantMoneyAmountRequestHygienised
-}
-
 fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygienised {
 	if title := p.title {
 		if utf8_str_visible_length(title) > max_length_variant_title {
@@ -1111,7 +1099,7 @@ fn (p ProductVariantCreateRequest) hygienise() !ProductVariantCreateRequestHygie
 			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
-		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
+		ph.money_amounts = parse_money_amounts(prices)!
 	}
 
 	return ph
@@ -1261,7 +1249,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
-		ph.money_amounts = get_money_amounts_from_regional_prices(prices)!
+		ph.money_amounts = parse_money_amounts(prices)!
 	}
 
 	return ph
@@ -1529,9 +1517,9 @@ fn hygienise_region_create_request(s string, region_id ID) !conduit.RegionCreate
 		id:                 region_id
 		name:               p.name
 		currency_code:      p.currency_code
-		includes_tax:       bool_or(p.includes_tax, region_default_includes_tax)
-		gift_cards_taxable: bool_or(p.gift_cards_taxable, region_default_gift_cards_taxable)
-		automatic_taxes:    bool_or(p.automatic_taxes, region_default_automatic_taxes)
+		includes_tax:       common.bool_or(p.includes_tax, region_default_includes_tax)
+		gift_cards_taxable: common.bool_or(p.gift_cards_taxable, region_default_gift_cards_taxable)
+		automatic_taxes:    common.bool_or(p.automatic_taxes, region_default_automatic_taxes)
 		country_codes:      p.country_codes
 	}
 }
@@ -1764,8 +1752,8 @@ fn (p CategoryCreateRequest) hygienise(category_id ID) !conduit.CategoryCreatePa
 		name:               p.name
 		handle:             p.handle
 		description:        p.description
-		is_active:          bool_or(p.is_active, category_default_is_active)
-		is_internal:        bool_or(p.is_internal, category_default_is_internal)
+		is_active:          common.bool_or(p.is_active, category_default_is_active)
+		is_internal:        common.bool_or(p.is_internal, category_default_is_internal)
 		parent_category_id: parsed_parent_category_id
 		metadata:           p.metadata
 		translations:       translations
