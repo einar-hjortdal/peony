@@ -136,7 +136,7 @@ pub:
 }
 
 pub fn item_availability_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]ItemAvailability {
-	data := tx.execute('SELECT item_id, sales_channel_id, amount 
+	data := tx.execute('SELECT item_id, sales_channel_id, amount
 		FROM item_availability
 		WHERE item_id IN (${get_placeholders(inventory_item_ids)})',
 		...ids_bytes(inventory_item_ids))!
@@ -182,8 +182,8 @@ pub:
 	manage_inventory  bool
 	allow_backorder   bool
 pub mut:
-	availability     []ItemAvailability
-	inventory_levels []InventoryLevel
+	availability     []ItemAvailability // TODO could be none
+	inventory_levels []InventoryLevel   // TODO could be none
 }
 
 pub fn (ii InventoryItem) id() ID {

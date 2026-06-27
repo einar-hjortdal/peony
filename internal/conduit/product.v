@@ -52,7 +52,6 @@ pub struct ProductVariantCreateParams {
 	option_values  ?[]i32
 	inventory_item ?InventoryItemCreateParams
 	money_amounts  ?[]VariantMoneyAmountUpdateParams
-	// variant_rank     i32 // derive from index
 }
 
 pub struct ImageTranslationCreateParams {
@@ -78,8 +77,8 @@ pub:
 	status            ?string
 	discountable      ?bool
 	metadata          ?string
-	sales_channel_ids ?[]string
-	category_ids      ?[]string
+	sales_channel_ids ?[]ID
+	category_ids      ?[]ID
 	translations      ?[]ProductTranslationCreateParams
 	seo               ?SEOParams
 	options           ?[]ProductOptionCreateParams
@@ -290,25 +289,129 @@ fn (p ProductCreateParams) parse_option_value_variants(parsed_variants []record.
 	return res
 }
 
-// pub struct ProductCreateData {
-// pub:
-// 	product                   record.ProductCreateParams
-// 	translations              ?[]record.ProductTranslationCreateParams
-// 	seo                       record.ProductSEOCreateParams
-// 	seo_translations          ?[]record.SEOTranslationCreateParams
-// 	options                   []record.ProductOptionCreateParams
-// 	option_translations       ?[]record.ProductOptionTranslationCreateParams
-// 	option_values             []record.ProductOptionValueCreateParams
-// 	option_value_translations ?[]record.ProductOptionValueTranslationCreateParams
-// 	variants                  []record.VariantCreateParams
-// 	inventory_items           []record.InventoryItemCreateParams
-// 	variant_money_amounts     []record.VariantMoneyAmountUpdateParams
-// 	option_value_variant      []record.ProductOptionValueVariant
-// 	category_ids              ?[]ID
-// 	images                    ?[]record.ProductImageCreateParams
-// 	thumbnail_id              ?ID
-// 	sales_channel_ids         []ID
-// }
+fn (p ProductCreateParams) parse_inventory_items(mut g luuid.Generator, parsed_variants []record.VariantCreateParams) ![]record.InventoryItemCreateParams {
+	if parsed_variants.len == 0 {
+		return errors.internal('Expected at least one option',
+			'ProductCreateParams.parse_option_value_variants received empty parsed_variants array')
+	}
+
+	variants := p.variants or {
+		return [
+			record.InventoryItemCreateParams{
+				id:                common.new_id(mut g)
+				variant_id:        parsed_variants[0].id
+				requires_shipping: common.inventory_item_requires_shipping_default
+				manage_inventory:  common.inventory_item_manage_inventory_default
+				allow_backorder:   common.inventory_item_allow_backorder_default
+			},
+		]
+	}
+
+	mut res := []record.InventoryItemCreateParams{len: 0, cap: variants.len}
+	for variant_index, variant in variants {
+		variant_id := parsed_variants[variant_index].id
+		item := variant.inventory_item or {
+			res << record.InventoryItemCreateParams{
+				id:                common.new_id(mut g)
+				variant_id:        variant_id
+				requires_shipping: common.inventory_item_requires_shipping_default
+				manage_inventory:  common.inventory_item_manage_inventory_default
+				allow_backorder:   common.inventory_item_allow_backorder_default
+			}
+			continue
+		}
+
+		res << record.InventoryItemCreateParams{
+			id:                common.new_id(mut g)
+			variant_id:        variant_id
+			sku:               item.sku
+			origin_country:    item.origin_country
+			hs_code:           item.hs_code
+			mid_code:          item.mid_code
+			material:          item.material
+			weight:            item.weight
+			length:            item.length
+			height:            item.height
+			width:             item.width
+			requires_shipping: common.unwrap_option_or(item.requires_shipping,
+				common.inventory_item_requires_shipping_default)
+			manage_inventory:  common.unwrap_option_or(item.manage_inventory,
+				common.inventory_item_manage_inventory_default)
+			allow_backorder:   common.unwrap_option_or(item.allow_backorder,
+				common.inventory_item_allow_backorder_default)
+		}
+	}
+	return res
+}
+
+fn (p ProductCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator, parsed_variants []record.VariantCreateParams) ![]record.VariantMoneyAmountUpdateParams {
+	if parsed_variants.len == 0 {
+		return errors.internal('Expected at least one variant',
+			'ProductCreateParams.parse_money_amounts received parsed_variants array')
+	}
+
+	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
+		with_deleted: false
+		offset:       offset_default
+		fetch:        max_fetch // limit 250 regions or refactor? or make const internal_max_fetch = max_i32?
+		order:        order_default
+	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
+
+	variants := p.variants or {
+		mut res := []record.VariantMoneyAmountUpdateParams{len: 0, cap: regions.len}
+		for _, region in regions {
+			res << record.VariantMoneyAmountUpdateParams{
+				variant_id:      parsed_variants[0].id
+				region_id:       region.id
+				money_amount_id: common.new_id(mut g)
+				amount:          common.money_amount_default_amount
+				is_original:     common.money_amount_default_is_original
+			}
+		}
+		return res
+	}
+
+	// one original price (optional), one base price per variant per region
+	mut res := []record.VariantMoneyAmountUpdateParams{len: 0, cap: 2 * variants.len * regions.len}
+	for variant_index, variant in p.variants {
+		money_amounts := variant.money_amounts or {
+			for _, region in regions {
+				res << record.VariantMoneyAmountUpdateParams{
+					variant_id:      parsed_variants[variant_index].id
+					region_id:       region.id
+					money_amount_id: common.new_id(mut g)
+					amount:          common.money_amount_default_amount
+					is_original:     common.money_amount_default_is_original
+				}
+			}
+			continue
+		}
+
+		for _, ma in money_amounts {
+			res << record.VariantMoneyAmountUpdateParams{
+				variant_id:      parsed_variants[variant_index].id
+				region_id:       ma.region_id
+				money_amount_id: common.new_id(mut g)
+				amount:          ma.amount
+				is_original:     ma.is_original
+			}
+		}
+	}
+
+	return res
+}
+
+fn (p ProductCreateParams) parse_sales_channel_ids(mut tx firebird.ClientTransaction) ![]ID {
+	sales_channels := p.sales_channel_ids or {
+		store := record.store_retrieve(mut tx) or {
+			return errors.internal('Failed to retrieve store', err.msg())
+		}
+
+		return [store.default_sales_channel_id]
+	}
+
+	return sales_channels
+}
 
 fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
 	p.check_handle(mut tx)!
@@ -345,17 +448,17 @@ fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p Pr
 			err.msg())
 	}
 
-	inventory_items := p.parse_inventory_items(mut g, variants)
+	inventory_items := p.parse_inventory_items(mut g, variants)!
 	record.inventory_item_create(mut tx, inventory_items) or {
 		return errors.internal('Failed to create inventory_item', err.msg())
 	}
 
-	money_amounts := p.parse_money_amounts(mut g, variants)
+	money_amounts := p.parse_money_amounts(mut tx, mut g, variants)!
 	record.variant_money_amount_update(mut tx, money_amounts) or {
 		return errors.internal('Failed to create variant money_amount', err.msg())
 	}
 
-	sales_channel_ids := p.parse_sales_channels(mut tx)!
+	sales_channel_ids := p.parse_sales_channel_ids(mut tx)!
 	record.product_sales_channel_update(mut tx, product_id, sales_channel_ids) or {
 		return errors.internal('Failed to update product_sales_channel', err.msg())
 	}
