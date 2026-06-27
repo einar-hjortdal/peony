@@ -1907,7 +1907,7 @@ fn hygienise_category_update_request(s string, category_id ID) !conduit.Category
 // All variants must reference all options.
 // All variants must have a unique combination of option values.
 // If omitted and options is omitted, one default variant will be created using the default option.
-// If one variant is provided and options is omitted, the default variant will be created according to the data of the provided element.
+// If one variant is provided and options is omitted, the default variant will be created using a default option.
 //
 // ## thumbnail
 // Index of the thumbnail image within the `images` array.
@@ -1939,29 +1939,7 @@ pub:
 	// tag_ids           ?[]string @[json: 'tagIds']
 }
 
-struct ProductCreateRequestHygienised {
-	title             string
-	subtitle          ?string
-	description       ?string
-	handle            ?string
-	is_giftcard       ?bool
-	status            ?string
-	discountable      ?bool
-	metadata          ?string
-	sales_channel_ids ?[]ID
-	category_ids      ?[]ID
-	thumbnail         ?i32
-	// type_id               ?ID
-	// tag_ids               ?[]ID
-mut:
-	seo          ?SEORequestHygienised
-	options      ?[]ProductOptionCreateRequestHygienised
-	variants     ?[]ProductVariantCreateRequestHygienised
-	translations ?[]ProductTranslationRequestHygienised
-	images       ?[]ImageCreateRequestHygienised
-}
-
-fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() ! {
+fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() !conduit.ProductCreateParams {
 	options := p.options or { return }
 	variants := p.variants or { return }
 

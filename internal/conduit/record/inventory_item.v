@@ -115,7 +115,7 @@ pub fn inventory_level_update(mut tx firebird.ClientTransaction, p InventoryLeve
 			FROM sales_channel_stock_location scsl
 			JOIN sales_channel sc
 				ON sc.id = scsl.sales_channel_id
-			WHERE sc.stock_location_id = ?
+			WHERE scsl.stock_location_id = ?
 			AND sc.deleted_at IS NULL
 			) s
 		ON t.item_id = ? AND t.sales_channel_id = s.sales_channel_id

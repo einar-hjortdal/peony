@@ -20,6 +20,11 @@ pub const product_status_rejected = 'rejected'
 pub const product_is_giftcard_default = false
 pub const product_discountable_default = false
 
+pub const product_option_title_default = 'default option'
+pub const product_option_rank_default = i32(0)
+pub const product_option_value_name_default = 'default value'
+pub const product_option_value_rank_default = i32(0)
+
 pub const variant_rank_default = i32(0)
 
 pub const inventory_item_requires_shipping_default = true

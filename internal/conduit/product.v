@@ -137,8 +137,68 @@ fn (p ProductCreateParams) parse_seo(mut g luuid.Generator, product_id ID) recor
 	return s.parse_product_create(seo_id, product_id)
 }
 
+fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id ID) []record.ProductOptionCreateParams {
+	options := p.options or {
+		default_option := record.ProductOptionCreateParams{
+			id:          common.new_id(mut g)
+			product_id:  product_id
+			option_rank: common.product_option_rank_default
+			title:       common.product_option_title_default
+		}
+		return [default_option]
+	}
+
+	mut res := []record.ProductOptionCreateParams{len: 0, cap: options.len}
+	for option_rank, option in options {
+		res << record.ProductOptionCreateParams{
+			id:          common.new_id(mut g)
+			product_id:  product_id
+			option_rank: i32(option_rank)
+			title:       option.title
+		}
+	}
+	return res
+}
+
+fn (p ProductCreateParams) parse_option_values(mut g luuid.Generator, parsed_options []record.ProductOptionCreateParams) ![]record.ProductOptionValueCreateParams {
+	if parsed_options.len == 0 {
+		return errors.internal('Expected at least one option',
+			'ProductCreateParams.parse_option_values received empty parsed_options array')
+	}
+
+	options := p.options or {
+		option := parsed_options[0]
+		default_option_value := record.ProductOptionValueCreateParams{
+			id:         common.new_id(mut g)
+			option_id:  option.id
+			value_rank: common.product_option_value_rank_default
+			name:       common.product_option_value_name_default
+		}
+		return [default_option_value]
+	}
+
+	mut n_values := 0
+	for _, option in options {
+		n_values += option.values.len
+	}
+
+	mut res := []record.ProductOptionValueCreateParams{len: 0, cap: n_values}
+	for i, option in options {
+		parsed_option := parsed_options[i]
+		for value_rank, value in option.values {
+			res << record.ProductOptionValueCreateParams{
+				id:         common.new_id(mut g)
+				option_id:  parsed_option.id
+				value_rank: i32(value_rank)
+				name:       value.name
+			}
+		}
+	}
+	return res
+}
+
 fn (p ProductCreateParams) parse_translations(product_id ID, translations []ProductTranslationCreateParams) []record.ProductTranslationCreateParams {
-	mut res := []record.ProductTranslationCreateParams{len: translations.len}
+	mut res := []record.ProductTranslationCreateParams{len: 0, cap: translations.len}
 	for _, translation in translations {
 		res << record.ProductTranslationCreateParams{
 			product_id:  product_id
@@ -151,23 +211,80 @@ fn (p ProductCreateParams) parse_translations(product_id ID, translations []Prod
 	return res
 }
 
-fn (p ProductCreateParams) parse_variants() ![]record.VariantCreateParams {
+fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id ID) []record.VariantCreateParams {
 	variants := p.variants or {
-		// return default variant
+		default_variant := record.VariantCreateParams{
+			id:           new_id(mut g)
+			product_id:   product_id
+			variant_rank: common.variant_rank_default
+		}
+		return [default_variant]
 	}
 
-	mut res := []record.VariantCreateParams{len: variants.len}
+	mut res := []record.VariantCreateParams{len: 0, cap: variants.len}
 	for variant_rank, variant in variants {
 		res << record.VariantCreateParams{
-			id:       common.new_id(mut g)
-			image_id: variant.image_id
-			title:    variant.title
-			ean:      variant.ean
-			upc:      variant.upc
-			barcode:  variant.barcode
-			metadata: variant.metadata
-			// option_values: variant.option_values
+			id:           common.new_id(mut g)
+			image_id:     variant.image_id
+			title:        variant.title
+			ean:          variant.ean
+			upc:          variant.upc
+			barcode:      variant.barcode
+			metadata:     variant.metadata
 			variant_rank: i32(variant_rank)
+		}
+	}
+	return res
+}
+
+// assumes options and variants are ordered (as returned by ProductCreateParams.parse_options and ProductCreateParams.parse_option_values)
+fn (p ProductCreateParams) parse_option_value_variants(parsed_variants []record.VariantCreateParams, parsed_options []record.ProductOptionCreateParams, parsed_option_values []record.ProductOptionValueCreateParams) ![]record.ProductOptionValueVariant {
+	if parsed_variants.len == 0 {
+		return errors.internal('Expected at least one option',
+			'ProductCreateParams.parse_option_value_variants received empty parsed_variants array')
+	}
+
+	if parsed_option_values.len == 0 {
+		return errors.internal('Expected at least one option',
+			'ProductCreateParams.parse_option_value_variants received empty parsed_option_values array')
+	}
+
+	variants := p.variants or {
+		return [
+			record.ProductOptionValueVariant{
+				option_value_id: parsed_option_values[0].id
+				variant_id:      parsed_variants[0].id
+			},
+		]
+	}
+
+	if variants.len == 0 {
+		return errors.internal('Expected at least one variant',
+			'ProductCreateParams.parse_option_value_variants received ProductCreateParams.variants array, which should have been rejected')
+	}
+
+	mut option_id_to_index := map[string]i32{}
+	for _, option in parsed_options {
+		option_id_to_index[option.id.string()] = option.option_rank
+	}
+
+	mut option_index_value_ids := map[i32][]ID{}
+	for _, value in parsed_option_values {
+		option_index := option_id_to_index[value.option_id.string()]
+		if option_index !in option_index_value_ids {
+			option_index_value_ids[option_index] = []ID{len: 0, cap: 4} // TODO sane default, use const
+		}
+		option_index_value_ids[option_index] << value.id
+	}
+
+	mut res := []record.ProductOptionValueVariant{len: 0, cap: variants.len * parsed_options.len}
+	for variant_rank, variant in variants {
+		variant_id := parsed_variants[variant_rank].id
+		for option_index, value_index in variant.option_values {
+			res << record.ProductOptionValueVariant{
+				option_value_id: option_index_value_ids[option_index][value_index]
+				variant_id:      variant_id
+			}
 		}
 	}
 	return res
@@ -207,12 +324,40 @@ fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p Pr
 		return errors.internal('Failed to create seo', err.msg())
 	}
 
-	record.product_option_create(mut tx, p.options) or {
+	options := p.parse_options(mut g, product_id)
+	record.product_option_create(mut tx, options) or {
 		return errors.internal('Failed to create product_option', err.msg())
 	}
 
-	record.product_option_value_create(mut tx, p.option_values) or {
+	option_values := p.parse_option_values(mut g, options)!
+	record.product_option_value_create(mut tx, option_values) or {
 		return errors.internal('Failed to create product_option_value', err.msg())
+	}
+
+	variants := p.parse_variants(mut g, product_id)
+	record.variant_create(mut tx, variants) or {
+		return errors.internal('Could not create variants', err.msg())
+	}
+
+	option_value_variants := p.parse_option_value_variants(variants, options, option_values)!
+	record.product_option_value_variant_update(mut tx, option_value_variants) or {
+		return errors.internal('Failed to create relations in product_option_value_variant',
+			err.msg())
+	}
+
+	inventory_items := p.parse_inventory_items(mut g, variants)
+	record.inventory_item_create(mut tx, inventory_items) or {
+		return errors.internal('Failed to create inventory_item', err.msg())
+	}
+
+	money_amounts := p.parse_money_amounts(mut g, variants)
+	record.variant_money_amount_update(mut tx, money_amounts) or {
+		return errors.internal('Failed to create variant money_amount', err.msg())
+	}
+
+	sales_channel_ids := p.parse_sales_channels(mut tx)!
+	record.product_sales_channel_update(mut tx, product_id, sales_channel_ids) or {
+		return errors.internal('Failed to update product_sales_channel', err.msg())
 	}
 
 	if translations := p.translations {
@@ -254,32 +399,13 @@ fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p Pr
 		}
 	}
 
-	record.product_sales_channel_update(mut tx, product_id, p.sales_channel_ids) or {
-		return errors.internal('Failed to update product_sales_channel', err.msg())
-	}
-
 	if category_ids := p.category_ids {
 		record.category_product_update(mut tx, product_id, category_ids) or {
 			return errors.internal('Failed to update product category relation', err.msg())
 		}
 	}
 
-	record.variant_create(mut tx, p.variants) or {
-		return errors.internal('Could not create variants', err.msg())
-	}
-
-	record.product_option_value_variant_update(mut tx, p.option_value_variant) or {
-		return errors.internal('Failed to create relations in product_option_value_variant',
-			err.msg())
-	}
-
-	record.variant_money_amount_update(mut tx, p.variant_money_amounts) or {
-		return errors.internal('Failed to create variant money_amount', err.msg())
-	}
-
-	record.inventory_item_create(mut tx, p.inventory_items) or {
-		return errors.internal('Failed to create inventory_item', err.msg())
-	}
+	return product_id
 }
 
 fn get_products_translations(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
