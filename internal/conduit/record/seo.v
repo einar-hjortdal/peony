@@ -65,10 +65,6 @@ pub:
 	product_id ID
 }
 
-pub fn product_seo_create_default(mut tx firebird.ClientTransaction, seo_id ID, product_id ID) ! {
-	tx.execute('INSERT INTO seo (id, product_id) VALUES (?, ?)', seo_id.bytes(), product_id.bytes())!
-}
-
 pub struct SEOCreateParams {
 pub:
 	id          ID
@@ -183,6 +179,10 @@ pub fn (p SEOTranslationCreateParams) locale_id() ID {
 }
 
 pub fn seo_translations_create(mut tx firebird.ClientTransaction, p []SEOTranslationCreateParams) ! {
+	if p.len == 0 {
+		return
+	}
+
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {

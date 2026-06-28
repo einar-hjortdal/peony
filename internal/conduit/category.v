@@ -196,8 +196,17 @@ fn (p CategoryCreateParams) parse_seo(seo_id ID) record.CategorySEOCreateParams 
 }
 
 fn (p CategoryCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
-	s := p.seo or { return none }
-	return s.parse_translation_params(seo_id)
+	seo := p.seo or { return none }
+	translations := seo.translations or { return none }
+	if translations.len == 0 {
+		return none
+	}
+
+	mut res := []record.SEOTranslationCreateParams{len: 0, cap: translations.len}
+	for _, translation in translations {
+		res << translation.parse(seo_id)
+	}
+	return res
 }
 
 struct CategoryCreateData {
@@ -334,8 +343,14 @@ fn (p CategoryUpdateParams) parse_seo(seo_id ID) ?record.SEOUpdateParams {
 }
 
 fn (p CategoryUpdateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
-	s := p.seo or { return none }
-	return s.parse_translation_params(seo_id)
+	seo := p.seo or { return none }
+	translations := seo.translations or { return none }
+
+	mut res := []record.SEOTranslationCreateParams{len: 0, cap: translations.len}
+	for _, translation in translations {
+		res << translation.parse(seo_id)
+	}
+	return res
 }
 
 struct CategoryUpdateData {

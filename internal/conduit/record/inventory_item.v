@@ -182,7 +182,7 @@ pub:
 	manage_inventory  bool
 	allow_backorder   bool
 pub mut:
-	availability     []ItemAvailability // TODO could be none
+	availability     []ItemAvailability // TODO could be none?
 	inventory_levels []InventoryLevel   // TODO could be none
 }
 

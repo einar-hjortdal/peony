@@ -105,7 +105,18 @@ fn (p ProductCreateParams) check_handle(mut tx firebird.ClientTransaction) ! {
 
 fn (p ProductCreateParams) check_sales_channel_ids(mut tx firebird.ClientTransaction) ! {
 	sales_channel_ids := p.sales_channel_ids or { return }
-	// do they exist
+	sales_channels_count := record.sales_channel_retrieve_count(mut tx, record.SalesChannelRetrieveParams{
+		ids:          sales_channel_ids
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        min_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to retrieve sales_channel count', err.msg()) }
+
+	if sales_channels_count != sales_channel_ids.len {
+		return errors.unprocessable_entity(errors.id_invalid,
+			'One or more sales channel id does not exist')
+	}
 }
 
 fn (p ProductCreateParams) parse_product(product_id ID) record.ProductCreateParams {
@@ -136,6 +147,20 @@ fn (p ProductCreateParams) parse_seo(mut g luuid.Generator, product_id ID) recor
 	return s.parse_product_create(seo_id, product_id)
 }
 
+fn (p ProductCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
+	seo := p.seo or { return none }
+	translations := seo.translations or { return none }
+	if translations.len == 0 {
+		return none
+	}
+
+	mut res := []record.SEOTranslationCreateParams{len: 0, cap: translations.len}
+	for _, translation in translations {
+		res << translation.parse(seo_id)
+	}
+	return res
+}
+
 fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id ID) []record.ProductOptionCreateParams {
 	options := p.options or {
 		default_option := record.ProductOptionCreateParams{
@@ -154,6 +179,33 @@ fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id ID) [
 			product_id:  product_id
 			option_rank: i32(option_rank)
 			title:       option.title
+		}
+	}
+	return res
+}
+
+fn (p ProductCreateParams) parse_option_translations(parsed_options []record.ProductOptionCreateParams) ?[]record.ProductOptionTranslationCreateParams {
+	options := p.options or { return none }
+
+	mut n_translations := 0
+	for _, option in options {
+		translations := option.translations or { continue }
+		n_translations += translations.len
+	}
+
+	if n_translations == 0 {
+		return none
+	}
+
+	mut res := []record.ProductOptionTranslationCreateParams{len: 0, cap: n_translations}
+	for index, option in options {
+		translations := option.translations or { continue }
+		for _, translation in translations {
+			res << record.ProductOptionTranslationCreateParams{
+				product_option_id: parsed_options[index].id
+				locale_id:         translation.locale_id
+				title:             translation.title
+			}
 		}
 	}
 	return res
@@ -191,6 +243,44 @@ fn (p ProductCreateParams) parse_option_values(mut g luuid.Generator, parsed_opt
 				value_rank: i32(value_rank)
 				name:       value.name
 			}
+		}
+	}
+	return res
+}
+
+fn (p ProductCreateParams) parse_option_value_translations(parsed_values []record.ProductOptionValueCreateParams) ?[]record.ProductOptionValueTranslationCreateParams {
+	options := p.options or { return none }
+
+	mut n_translations := 0
+	for _, option in options {
+		values := option.values
+		for _, value in values {
+			translations := value.translations or { continue }
+			n_translations += translations.len
+		}
+	}
+
+	if n_translations == 0 {
+		return none
+	}
+
+	mut res := []record.ProductOptionValueTranslationCreateParams{len: 0, cap: n_translations}
+	mut value_index := 0
+	for _, option in options {
+		for _, value in option.values {
+			translations := value.translations or {
+				value_index++
+				continue
+			}
+
+			for translation in translations {
+				res << record.ProductOptionValueTranslationCreateParams{
+					product_option_value_id: parsed_values[value_index].id
+					locale_id:               translation.locale_id
+					name:                    translation.name
+				}
+			}
+			value_index++
 		}
 	}
 	return res
@@ -413,7 +503,7 @@ fn (p ProductCreateParams) parse_sales_channel_ids(mut tx firebird.ClientTransac
 	return sales_channels
 }
 
-fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
+pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
 	p.check_handle(mut tx)!
 
 	product_id := common.new_id(mut g)
@@ -427,14 +517,41 @@ fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p Pr
 		return errors.internal('Failed to create seo', err.msg())
 	}
 
+	if seo_translations := p.parse_seo_translations(seo.id) {
+		record.seo_translations_create(mut tx, seo_translations) or {
+			return errors.internal('Failed to create seo_translation', err.msg())
+		}
+	}
+
 	options := p.parse_options(mut g, product_id)
 	record.product_option_create(mut tx, options) or {
 		return errors.internal('Failed to create product_option', err.msg())
 	}
 
+	if option_translations := p.parse_option_translations(options) {
+		mut option_ids := []ID{len: 0, cap: options.len}
+		for _, option in options {
+			option_ids << option.id
+		}
+		record.product_option_translations_update(mut tx, option_ids, option_translations) or {
+			return errors.internal('Failed to create product_option_translations', err.msg())
+		}
+	}
+
 	option_values := p.parse_option_values(mut g, options)!
 	record.product_option_value_create(mut tx, option_values) or {
 		return errors.internal('Failed to create product_option_value', err.msg())
+	}
+
+	if option_value_translations := p.parse_option_value_translations(option_values) {
+		mut option_value_ids := []ID{len: 0, cap: option_values.len}
+		for _, value in option_values {
+			option_value_ids << value.id
+		}
+		record.product_option_value_translations_update(mut tx, option_value_ids,
+			option_value_translations) or {
+			return errors.internal('Failed to create product_option_value_translations', err.msg())
+		}
 	}
 
 	variants := p.parse_variants(mut g, product_id)
@@ -467,26 +584,6 @@ fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p Pr
 		t := p.parse_translations(product_id, translations)
 		record.product_translation_create(mut tx, t) or {
 			return errors.internal('Failed to update product translations', err.msg())
-		}
-	}
-
-	if translations := p.seo_translations {
-		if translations.len > 0 {
-			record.seo_translations_create(mut tx, translations) or {
-				return errors.internal('Failed to insert seo_translations', err.msg())
-			}
-		}
-	}
-
-	if translations := p.option_translations {
-		record.product_option_translations_create(mut tx, translations) or {
-			return errors.internal('Failed to create product_option_translations', err.msg())
-		}
-	}
-
-	if translations := p.option_value_translations {
-		record.product_option_value_translations_create(mut tx, translations) or {
-			return errors.internal('Failed to create product_option_value_translations', err.msg())
 		}
 	}
 

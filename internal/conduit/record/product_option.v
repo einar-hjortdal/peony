@@ -310,15 +310,6 @@ pub fn product_option_create(mut tx firebird.ClientTransaction, p []ProductOptio
 }
 
 // TODO validate before running operation
-// TODO can remove and use update function only?
-pub struct ProductOptionTranslationCreateParams {
-pub:
-	product_option_id ID
-	locale_id         ID
-	title             string
-}
-
-// TODO validate before running operation
 pub struct ProductOptionValueCreateParams {
 pub:
 	id         ID
@@ -356,27 +347,14 @@ pub:
 	name                    string
 }
 
-// ProductOptionValueTranslationUpdateParams
-// - product_option_value_id: ID of the option value being updated.
-// - product_option_value_id_bin: binary ID ([]u8, 16 bytes).
-// - translations: list of ProductOptionValueTranslationCreateParams to create or update.
-//
-// ## Behavior
-// - Replace the translations for the given product_option_value_id with the provided list.
-// - If an option value has no provided translations, delete all existing translations for that option value.
-pub struct ProductOptionValueTranslationUpdateParams {
-pub:
-	product_option_value_ids []ID
-	translations             []ProductOptionValueTranslationCreateParams
-}
-
-pub fn product_option_value_translations_update(mut tx firebird.ClientTransaction, p ProductOptionValueTranslationUpdateParams) ! {
-	mut src := []string{len: p.translations.len}
+// - product_option_value_ids: IDs of all the product_option_value being updated.
+pub fn product_option_value_translations_update(mut tx firebird.ClientTransaction, product_option_value_ids []ID, p []ProductOptionValueTranslationCreateParams) ! {
+	mut src := []string{len: p.len}
 	n_params := 3
-	mut params := []firebird.Value{len: p.translations.len * n_params, init: firebird.Null{}}
+	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
 	mut product_option_value_ids_map := map[string][]u8{}
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
 		product_option_value_id := translation.product_option_value_id
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS product_option_value_id,
@@ -392,7 +370,7 @@ pub fn product_option_value_translations_update(mut tx firebird.ClientTransactio
 			product_option_value_id.bytes()
 	}
 
-	params = arrays.concat(params, ...ids_bytes(p.product_option_value_ids))
+	params = arrays.concat(params, ...ids_bytes(product_option_value_ids))
 
 	query := 'MERGE INTO product_option_value_ids_map
 		USING (${get_merge_source(src)}) s
@@ -403,7 +381,7 @@ pub fn product_option_value_translations_update(mut tx firebird.ClientTransactio
 			(product_option_value_id, locale_id, name)
 			VALUES (s.product_option_value_id, s.locale_id, s.name)
 		WHEN NOT MATCHED BY SOURCE 
-			AND t.product_option_value_ids_bin IN (${get_placeholders(p.product_option_value_ids)})
+			AND t.product_option_value_ids_bin IN (${get_placeholders(product_option_value_ids)})
 			THEN DELETE'
 
 	tx.execute(query, ...params)!
@@ -471,34 +449,29 @@ pub fn product_option_update(mut tx firebird.ClientTransaction, p []ProductOptio
 	tx.execute(query, ...params)!
 }
 
-// ProductOptionTranslationUpdateParams
-// - product_option_ids: IDs of all options being updated (ordered).
-// - translations: flat list of ProductOptionTranslationCreateParams rows to create or update.
-//
-// ## Behavior
-// - For each id in product_option_ids: replace that option's translations with the provided translations.
-// - If an option has no provided translations, delete all existing translations for that option.
-pub struct ProductOptionTranslationUpdateParams {
+// TODO validate before running operation
+pub struct ProductOptionTranslationCreateParams {
 pub:
-	product_option_ids []ID
-	translations       []ProductOptionTranslationCreateParams
+	product_option_id ID
+	locale_id         ID
+	title             string
 }
 
-pub fn product_option_translations_update(mut tx firebird.ClientTransaction, p ProductOptionTranslationUpdateParams) ! {
-	mut src := []string{len: p.translations.len}
+// - product_option_ids: IDs of all options being updated
+pub fn product_option_translations_update(mut tx firebird.ClientTransaction, product_option_ids []ID, p []ProductOptionTranslationCreateParams) ! {
+	mut src := []string{len: p.len}
 	n_params := 3
-	mut params := []firebird.Value{len: p.translations.len * n_params + 1, init: firebird.Null{}}
+	mut params := []firebird.Value{len: p.len * n_params + 1, init: firebird.Null{}}
 
-	for i := 0; i < p.product_option_ids.len; i++ {
-		product_option_id := p.product_option_ids[i]
+	for i := 0; i < product_option_ids.len; i++ {
+		product_option_id := product_option_ids[i]
 		if product_option_id.is_zero() {
 			return error('product_option_id is invalid: ID.is_zero()')
 		}
 	}
-	// TODO validate translations...
 
-	for i := 0; i < p.translations.len; i++ {
-		translation := p.translations[i]
+	for i := 0; i < p.len; i++ {
+		translation := p[i]
 		src[i] = 'SELECT
 					CAST(? AS BINARY(16)) AS product_option_id,
 					CAST(? AS BINARY(16)) AS locale_id,
@@ -518,10 +491,10 @@ pub fn product_option_translations_update(mut tx firebird.ClientTransaction, p P
 			INSERT (product_option_id, locale_id, title)
 			VALUES (s.product_option_id, s.locale_id, s.title)
 		WHEN NOT MATCHED BY SOURCE
-			AND t.product_option_id IN (${get_placeholders(p.product_option_ids)})
+			AND t.product_option_id IN (${get_placeholders(product_option_ids)})
 			THEN DELETE'
 
-	params = arrays.concat(params, ...ids_bytes(p.product_option_ids))
+	params = arrays.concat(params, ...ids_bytes(product_option_ids))
 
 	tx.execute(query, ...params)!
 }

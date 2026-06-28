@@ -13,6 +13,15 @@ fn (p SEOTranslationParams) locale_id() ID {
 	return p.locale_id
 }
 
+fn (p SEOTranslationParams) parse(seo_id ID) record.SEOTranslationCreateParams {
+	return record.SEOTranslationCreateParams{
+		seo_id:      seo_id
+		locale_id:   p.locale_id
+		title:       p.title
+		description: p.description
+	}
+}
+
 pub struct SEOParams {
 pub:
 	title        ?string
@@ -26,22 +35,6 @@ fn (p SEOParams) parse_update(id ID) record.SEOUpdateParams {
 		title:       p.title
 		description: p.description
 	}
-}
-
-fn (p SEOParams) parse_translation_params(seo_id ID) ?[]record.SEOTranslationCreateParams {
-	t := p.translations or { return none }
-
-	mut res := []record.SEOTranslationCreateParams{len: t.len}
-	for i := 0; i < t.len; i++ {
-		translation := t[i]
-		res[i] = record.SEOTranslationCreateParams{
-			seo_id:      seo_id
-			locale_id:   translation.locale_id
-			title:       translation.title
-			description: translation.description
-		}
-	}
-	return res
 }
 
 fn (p SEOParams) parse_category_create(id ID, category_id ID) record.CategorySEOCreateParams {
