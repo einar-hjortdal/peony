@@ -303,7 +303,7 @@ fn (p ProductCreateParams) parse_translations(product_id ID, translations []Prod
 fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id ID) []record.VariantCreateParams {
 	variants := p.variants or {
 		default_variant := record.VariantCreateParams{
-			id:           new_id(mut g)
+			id:           common.new_id(mut g)
 			product_id:   product_id
 			variant_rank: common.variant_rank_default
 		}
@@ -503,6 +503,40 @@ fn (p ProductCreateParams) parse_sales_channel_ids(mut tx firebird.ClientTransac
 	return sales_channels
 }
 
+fn (p ProductCreateParams) parse_images(mut g luuid.Generator) ![]record.ProductImageCreateParams {
+	images := p.images or {
+		return errors.internal('failed to parse product images for creation',
+			'ProductCreateParams.arse_images was used when p.images was none')
+	}
+
+	mut res := []record.ProductImageCreateParams{len: 0, cap: images.len}
+	for image_rank, image in images {
+		image_id := common.new_id(mut g)
+		res << record.ProductImageCreateParams{
+			id:           image_id
+			url:          image.url
+			alt:          image.alt
+			image_rank:   i32(image_rank)
+			translations: p.parse_image_translations(image_id, image.translations)
+		}
+	}
+	return res
+}
+
+// TODO refactor to take parsed_images []record.ProductImageCreateParams parameter instead (new endpoints)
+fn (p ProductCreateParams) parse_image_translations(image_id ID, translations ?[]ImageTranslationCreateParams) ?[]record.ImageTranslationCreateParams {
+	ts := translations or { return none }
+	mut res := []record.ImageTranslationCreateParams{len: 0, cap: ts.len}
+	for _, translation in ts {
+		res << record.ImageTranslationCreateParams{
+			image_id:  image_id
+			locale_id: translation.locale_id
+			alt:       translation.alt
+		}
+	}
+	return res
+}
+
 pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
 	p.check_handle(mut tx)!
 
@@ -587,17 +621,25 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 		}
 	}
 
-	if images := p.images {
-		record.product_image_create(mut tx, product_id, images) or {
+	if _ := p.images {
+		parsed_images := p.parse_images(mut g)!
+		record.product_image_create(mut tx, product_id, parsed_images) or {
 			return errors.internal('Failed to create product_image', err.msg())
 		}
-	}
 
-	if thumbnail_id := p.thumbnail_id {
+		mut thumbnail_id := parsed_images[0].id
+		if thumbnail_index := p.thumbnail {
+			thumbnail_id = parsed_images[thumbnail_index].id
+		}
+
 		record.product_thumbnail_update(mut tx, product_id, thumbnail_id) or {
 			return errors.internal('Failed to update product thumbnail', err.msg())
 		}
 	}
+
+	// TODO independent image endpoint refactor, split concerns of translation updates
+	// if image_translations := p.parse_image_translations() {
+	// }
 
 	if category_ids := p.category_ids {
 		record.category_product_update(mut tx, product_id, category_ids) or {

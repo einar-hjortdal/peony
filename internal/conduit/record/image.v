@@ -137,6 +137,7 @@ pub:
 }
 
 // TODO split operations
+// TODO rework when implementing independent image endpoints
 pub fn product_image_create(mut tx firebird.ClientTransaction, product_id ID, images []ProductImageCreateParams) ! {
 	mut src := []string{len: images.len}
 	mut params := []firebird.Value{len: images.len * 3, init: firebird.Null{}}
