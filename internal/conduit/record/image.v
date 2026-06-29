@@ -42,6 +42,57 @@ pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids [
 	return image_translations
 }
 
+pub struct ImageTranslationUpdateParams {
+pub:
+	image_id  ID
+	locale_id ID
+	alt       string
+}
+
+// image_ids is all the ids of the images being updated
+pub fn image_translation_update(mut tx firebird.ClientTransaction,
+	image_ids []ID,
+	translations []ImageTranslationUpdateParams) ! {
+	if translations.len == 0 {
+		tx.execute('DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids)})',
+			...ids_bytes(image_ids))!
+		return
+	}
+
+	mut src := []string{len: 0, cap: translations.len}
+	n_params := 3
+	cap := n_params * translations.len + image_ids.len
+	mut params := []firebird.Value{len: 0, cap: cap, init: firebird.Null{}}
+	for _, translation in translations {
+		image_id := translation.image_id
+		src << 'SELECT
+			CAST(? AS BINARY(16)),
+			CAST(? AS BINARY(16)),
+			CAST(? AS VARCHAR(191))
+			FROM RDB\$DATABASE'
+
+		params << image_id.bytes()
+		params << translation.locale_id.bytes()
+		params << translation.alt.clone()
+	}
+
+	params << ids_bytes(image_ids)
+
+	query := 'MERGE INTO image_translations t
+			USING (${get_merge_source(src)}) s (image_id, locale_id, alt)
+			ON t.image_id = s.image_id AND  t.locale_id = s.locale_id
+			WHEN MATCHED THEN
+				UPDATE SET t.alt = s.alt
+			WHEN NOT MATCHED THEN
+				INSERT (image_id, locale_id, alt)
+				VALUES (s.image_id, s.locale_id, s.alt)
+			WHEN NOT MATCHED BY SOURCE
+				AND t.image_id IN (${get_placeholders(image_ids)})
+				THEN DELETE'
+
+	tx.execute(query, ...params)!
+}
+
 pub struct Image {
 pub:
 	id  ID
@@ -53,6 +104,29 @@ pub mut:
 
 pub fn (img Image) id() ID {
 	return img.id
+}
+
+pub fn image_retrieve(mut tx firebird.ClientTransaction, image_ids []ID) !Image {
+	data := tx.execute('SELECT id, url, alt FROM image WHERE id IN (${get_placeholders(image_ids)})',
+		ids_bytes(image_ids))!
+
+	rows := data.rows()
+	if rows.len == 0 {
+		return error('not found')
+	}
+
+	v := rows[0].values()
+	image_id_bin, _ := v[0].get_array_u8()!
+	url, _ := v[1].get_string()!
+	alt := v[2].get_null_string()!
+
+	image_id := id_from_bytes(image_id_bin)!
+
+	return Image{
+		id:  image_id
+		url: url
+		alt: alt.none_value()
+	}
 }
 
 pub struct UserImage {
@@ -68,8 +142,32 @@ pub:
 	image_rank i32
 }
 
-pub fn product_image_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductImage {
-	data := tx.execute('SELECT
+pub struct ProductImageRetrieveParams {
+pub:
+	image_ids   ?[]ID
+	product_ids ?[]ID
+}
+
+fn product_image_retrieve_condition(p ProductImageRetrieveParams) (string, []firebird.Value) {
+	mut conditions := []string{len: 0, cap: 2}
+	mut params := []firebird.Value{}
+	if image_ids := p.image_ids {
+		conditions << 'WHERE pi.image_id IN (${get_placeholders(image_ids)})'
+		params << ids_bytes(image_ids)
+	}
+
+	if product_ids := p.product_ids {
+		conditions << 'WHERE pi.product_id IN (${get_placeholders(product_ids)})'
+		params << ids_bytes(product_ids)
+	}
+
+	return get_conditions(conditions), params
+}
+
+// TODO validate params
+pub fn product_image_retrieve(mut tx firebird.ClientTransaction, p ProductImageRetrieveParams) ![]ProductImage {
+	conditions, params := product_image_retrieve_condition(p)
+	mut query := 'SELECT
 		i.id,
 		i.url,
 		i.alt,
@@ -78,9 +176,10 @@ pub fn product_image_retrieve(mut tx firebird.ClientTransaction, product_ids []I
 		FROM image i
 		LEFT JOIN product_image pi
 		ON i.id = pi.image_id
-		WHERE pi.product_id IN (${get_placeholders(product_ids)})
-		ORDER BY pi.image_rank',
-		...ids_bytes(product_ids))!
+		${conditions}
+		ORDER BY pi.image_rank'
+
+	data := tx.execute(query, ...params)!
 
 	rows := data.rows()
 
@@ -152,7 +251,7 @@ pub:
 	alt ?string
 }
 
-// For use during product updates.
+// For use during product updates. Intended for manual diffs.
 pub fn image_update(mut tx firebird.ClientTransaction, images []ImageUpdateParams) ! {
 	mut src := []string{len: 0, cap: images.len}
 	n_params := 3
@@ -195,52 +294,6 @@ pub fn image_delete(mut tx firebird.ClientTransaction, image_ids []ID) ! {
 		ids_bytes(image_ids))!
 }
 
-pub struct ImageTranslationUpdateParams {
-pub:
-	image_id  ID
-	locale_id ID
-	alt       string
-}
-
-pub fn image_translation_update(mut tx firebird.ClientTransaction, translations []ImageTranslationUpdateParams) ! {
-	mut image_ids := map[string]ID{} // deduplucate
-	mut src := []string{len: 0, cap: translations.len}
-	n_params := 3
-	cap := n_params * translations.len + translations.len // one translation per image (or less)
-	mut params := []firebird.Value{len: 0, cap: cap, init: firebird.Null{}}
-	for _, translation in translations {
-		image_id := translation.image_id
-		src << 'SELECT
-			CAST(? AS BINARY(16)),
-			CAST(? AS BINARY(16)),
-			CAST(? AS VARCHAR(191))
-			FROM RDB\$DATABASE'
-
-		params << image_id.bytes()
-		params << translation.locale_id.bytes()
-		params << translation.alt.clone()
-
-		image_ids[image_id.string()] = image_id
-	}
-
-	image_ids_bytes := ids_bytes(image_ids.values())
-	params << image_ids_bytes
-
-	query := 'MERGE INTO image_translations t
-			USING (${get_merge_source(src)}) s (image_id, locale_id, alt)
-			ON t.image_id = s.image_id AND  t.locale_id = s.locale_id
-			WHEN MATCHED THEN
-				UPDATE SET t.alt = s.alt
-			WHEN NOT MATCHED THEN
-				INSERT (image_id, locale_id, alt)
-				VALUES (s.image_id, s.locale_id, s.alt)
-			WHEN NOT MATCHED BY SOURCE
-				AND t.image_id IN (${get_placeholders(image_ids_bytes)})
-				THEN DELETE'
-
-	tx.execute(query, ...params)!
-}
-
 pub struct ProductImageCreateParams {
 pub:
 	product_id ID
@@ -278,12 +331,16 @@ pub fn product_image_create(mut tx firebird.ClientTransaction, p []ProductImageC
 
 pub fn product_image_create_one(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
 	query := 'INSERT INTO product_image (product_id, image_id, image_rank)
-			SELECT Cast(? AS BINARY(16)),
-				Cast(? AS BINARY(16)),
-				(SELECT COALESCE(Max(image_rank), 0) + 1
-				FROM   product_image
-				WHERE  product_id = ?)'
-	tx.execute(query, product_id.bytes(), image_id.bytes())!
+		SELECT
+			CAST(? AS BINARY(16)),
+			CAST(? AS BINARY(16)),
+			(
+				SELECT COALESCE(MAX(image_rank), 0) + 1
+				FROM product_image
+				WHERE product_id = ?
+			)
+			FROM RDB\$DATABASE'
+	tx.execute(query, product_id.bytes(), image_id.bytes(), product_id.bytes())!
 }
 
 pub fn product_image_delete(mut tx firebird.ClientTransaction, product_id ID) ! {

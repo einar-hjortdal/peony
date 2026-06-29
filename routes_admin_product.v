@@ -175,7 +175,7 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	decoded := json.decode(ImageCreateRequest, ctx.req.data) or {
+	decoded := json.decode(ProductImageCreateRequest, ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode ImageCreateRequest', err.msg()))
 	}
 
@@ -183,7 +183,7 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string) ve
 
 	image := app.with_commit(fn [mut app, p, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.ProductImage {
 		image_id := conduit.product_image_create(mut tx, mut app.luuid_generator, p)!
-		return conduit.product_image_get(mut tx, image_id)
+		return conduit.product_image_get(mut tx, parsed_product_id, image_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductImageResponseEnvelope{
@@ -193,7 +193,7 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string) ve
 
 // retrieves a product image
 @['/admin/products/:product_id/images/:image_id'; get]
-pub fn (mut app App) product_image_create(mut ctx Context, product_id string, image_id string) veb.Result {
+pub fn (mut app App) product_image_get(mut ctx Context, product_id string, image_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
@@ -201,11 +201,19 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string, im
 	parsed_image_id := id_from_string(image_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
 	}
+
+	image := app.with_commit(fn [parsed_product_id, parsed_image_id] (mut tx firebird.ClientTransaction) !conduit.ProductImage {
+		return conduit.product_image_get(mut tx, parsed_product_id, parsed_image_id)
+	}) or { return ctx.handle_error(err) }
+
+	return ctx.handle_ok(ProductImageResponseEnvelope{
+		image: format_product_image_response(image)
+	})
 }
 
 // updates a product image
 @['/admin/products/:product_id/images/:image_id'; post]
-pub fn (mut app App) product_image_create(mut ctx Context, product_id string, image_id string) veb.Result {
+pub fn (mut app App) product_image_update(mut ctx Context, product_id string, image_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
@@ -218,12 +226,21 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string, im
 		return ctx.handle_error(errors.bad_request('Could not decode ImageUpdateRequest', err.msg()))
 	}
 
-	p := decoded.hygienise() or { return ctx.handle_error(err) }
+	p := decoded.hygienise(parsed_image_id) or { return ctx.handle_error(err) }
+
+	image := app.with_commit(fn [parsed_product_id, parsed_image_id, p] (mut tx firebird.ClientTransaction) !conduit.ProductImage {
+		conduit.product_image_update(mut tx, p)!
+		return conduit.product_image_get(mut tx, parsed_product_id, parsed_image_id)
+	}) or { return ctx.handle_error(err) }
+
+	return ctx.handle_ok(ProductImageResponseEnvelope{
+		image: format_product_image_response(image)
+	})
 }
 
 // deletes a product image
 @['/admin/products/:product_id/images/:image_id'; delete]
-pub fn (mut app App) product_image_create(mut ctx Context, product_id string, image_id string) veb.Result {
+pub fn (mut app App) product_image_delete(mut ctx Context, product_id string, image_id string) veb.Result {
 	parsed_product_id := id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
@@ -231,4 +248,11 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string, im
 	parsed_image_id := id_from_string(image_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
 	}
+
+	app.with_commit(fn [parsed_product_id, parsed_image_id] (mut tx firebird.ClientTransaction) !common.Empty {
+		conduit.product_image_delete(mut tx, parsed_product_id, parsed_image_id)!
+		return common.Empty{}
+	}) or { return ctx.handle_error(err) }
+
+	return ctx.handle_deleted()
 }

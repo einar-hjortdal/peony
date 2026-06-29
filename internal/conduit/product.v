@@ -689,9 +689,9 @@ fn get_products_seo(mut tx firebird.ClientTransaction, mut products_map map[stri
 }
 
 fn get_products_images(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
-	images := record.product_image_retrieve(mut tx, product_ids) or {
-		return errors.internal('Failed to retrieve product_image', err.msg())
-	}
+	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
+		product_ids: product_ids
+	}) or { return errors.internal('Failed to retrieve product_image', err.msg()) }
 
 	if images.len == 0 {
 		return
