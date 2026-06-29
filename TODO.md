@@ -112,7 +112,7 @@
 - [x] Add variant endpoints
 - [ ] Add product option endpoints
 - [ ] Add product option value endpoints
-- [ ] Add product image endpoints
+- [x] Add product image endpoints
 - [x] Move cors handling to starter
 - [x] Return and accept translations as a map rather than an array
 - [x] Return and accept variant prices as a map rather than an array

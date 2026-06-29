@@ -303,6 +303,11 @@ fn format_product_image_response(p conduit.ProductImage) ProductImageResponse {
 	}
 }
 
+pub struct ProductImageResponseEnvelope {
+pub:
+	image ProductImageResponse
+}
+
 pub struct ProductTranslationResponse {
 pub:
 	product_id  string @[json: 'productId']

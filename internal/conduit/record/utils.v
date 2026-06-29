@@ -28,9 +28,9 @@ fn ids_bytes(ids []ID) [][]u8 {
 
 fn ids_values(ids []ID) []firebird.Value {
 	bs := ids_bytes(ids)
-	mut r := []firebird.Value{len: bs.len, init: []u8{}}
-	for i := 0; i < bs.len; i++ {
-		r[i] = bs[i]
+	mut r := []firebird.Value{len: 0, cap: bs.len, init: firebird.Null{}}
+	for _, id in ids {
+		r << id.bytes()
 	}
 	return r
 }

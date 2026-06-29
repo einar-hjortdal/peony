@@ -79,7 +79,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(ProductResponseEnvelope{
-		product: product
+		product: format_product_response(product)
 	})
 }
 
@@ -166,4 +166,69 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_deleted()
+}
+
+// creates a new product image
+@['/admin/products/:product_id/images'; post]
+pub fn (mut app App) product_image_create(mut ctx Context, product_id string) veb.Result {
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
+	}
+
+	decoded := json.decode(ImageCreateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode ImageCreateRequest', err.msg()))
+	}
+
+	p := decoded.hygienise() or { return ctx.handle_error(err) }
+
+	image := app.with_commit(fn [mut app, p, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.ProductImage {
+		image_id := conduit.product_image_create(mut tx, mut app.luuid_generator, p)!
+		return conduit.product_image_get(mut tx, image_id)
+	}) or { return ctx.handle_error(err) }
+
+	return ctx.handle_ok(ProductImageResponseEnvelope{
+		image: format_product_image_response(image)
+	})
+}
+
+// retrieves a product image
+@['/admin/products/:product_id/images/:image_id'; get]
+pub fn (mut app App) product_image_create(mut ctx Context, product_id string, image_id string) veb.Result {
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
+	}
+
+	parsed_image_id := id_from_string(image_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
+	}
+}
+
+// updates a product image
+@['/admin/products/:product_id/images/:image_id'; post]
+pub fn (mut app App) product_image_create(mut ctx Context, product_id string, image_id string) veb.Result {
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
+	}
+
+	parsed_image_id := id_from_string(image_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
+	}
+
+	decoded := json.decode(ImageUpdateRequest, ctx.req.data) or {
+		return ctx.handle_error(errors.bad_request('Could not decode ImageUpdateRequest', err.msg()))
+	}
+
+	p := decoded.hygienise() or { return ctx.handle_error(err) }
+}
+
+// deletes a product image
+@['/admin/products/:product_id/images/:image_id'; delete]
+pub fn (mut app App) product_image_create(mut ctx Context, product_id string, image_id string) veb.Result {
+	parsed_product_id := id_from_string(product_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
+	}
+
+	parsed_image_id := id_from_string(image_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
+	}
 }
