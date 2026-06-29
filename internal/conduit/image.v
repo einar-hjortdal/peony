@@ -12,10 +12,10 @@ pub:
 	alt       string
 }
 
-fn parse_image_translations(translations []ImageTranslationCreateParams) []record.ImageTranslationUpdateParams {
-	mut res := []record.ImageTranslationUpdateParams{len: 0, cap: translations.len}
+fn parse_image_translations(translations []ImageTranslationCreateParams) []record.ImageTranslationCreateParams {
+	mut res := []record.ImageTranslationCreateParams{len: 0, cap: translations.len}
 	for _, translation in translations {
-		res << record.ImageTranslationUpdateParams{
+		res << record.ImageTranslationCreateParams{
 			locale_id: translation.locale_id
 			alt:       translation.alt
 		}
@@ -64,7 +64,7 @@ pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Gener
 
 	if translations := p.translations {
 		t := parse_image_translations(translations)
-		record.image_translation_update(mut tx, [image_id], t) or {
+		record.image_translation_create(mut tx, t) or {
 			return errors.internal('Failed to create image_translations', err.msg())
 		}
 	}
@@ -101,8 +101,12 @@ pub fn product_image_update(mut tx firebird.ClientTransaction, p ImageUpdatePara
 	}
 
 	if translations := p.translations {
+		record.image_translation_delete(mut tx, [p.id]) or {
+			return errors.internal('Failed to clear image_translations', err.msg())
+		}
+
 		t := parse_image_translations(translations)
-		record.image_translation_update(mut tx, [p.id], t) or {
+		record.image_translation_create(mut tx, t) or {
 			return errors.internal('Failed to update image_translations', err.msg())
 		}
 	}

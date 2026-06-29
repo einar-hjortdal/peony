@@ -42,27 +42,21 @@ pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids [
 	return image_translations
 }
 
-pub struct ImageTranslationUpdateParams {
+pub struct ImageTranslationCreateParams {
 pub:
 	image_id  ID
 	locale_id ID
 	alt       string
 }
 
-// image_ids is all the ids of the images being updated
-pub fn image_translation_update(mut tx firebird.ClientTransaction,
-	image_ids []ID,
-	translations []ImageTranslationUpdateParams) ! {
+pub fn image_translation_create(mut tx firebird.ClientTransaction,
+	translations []ImageTranslationCreateParams) ! {
 	if translations.len == 0 {
-		tx.execute('DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids)})',
-			...ids_bytes(image_ids))!
 		return
 	}
 
 	mut src := []string{len: 0, cap: translations.len}
-	n_params := 3
-	cap := n_params * translations.len + image_ids.len
-	mut params := []firebird.Value{len: 0, cap: cap, init: firebird.Null{}}
+	mut params := []firebird.Value{len: 0, cap: 3 * translations.len, init: firebird.Null{}}
 	for _, translation in translations {
 		image_id := translation.image_id
 		src << 'SELECT
@@ -76,21 +70,17 @@ pub fn image_translation_update(mut tx firebird.ClientTransaction,
 		params << translation.alt.clone()
 	}
 
-	params << ids_bytes(image_ids)
+	tx.execute('INSERT INTO image_translations image_id, locale_id, alt ${get_merge_source(src)}',
+		...params)!
+}
 
-	query := 'MERGE INTO image_translations t
-			USING (${get_merge_source(src)}) s (image_id, locale_id, alt)
-			ON t.image_id = s.image_id AND  t.locale_id = s.locale_id
-			WHEN MATCHED THEN
-				UPDATE SET t.alt = s.alt
-			WHEN NOT MATCHED THEN
-				INSERT (image_id, locale_id, alt)
-				VALUES (s.image_id, s.locale_id, s.alt)
-			WHEN NOT MATCHED BY SOURCE
-				AND t.image_id IN (${get_placeholders(image_ids)})
-				THEN DELETE'
+pub fn image_translation_delete(mut tx firebird.ClientTransaction, image_ids []ID) ! {
+	if image_ids.len == 0 {
+		return
+	}
 
-	tx.execute(query, ...params)!
+	tx.execute('DELETE FROM image_translations WHERE image_id IN (${get_placeholders(image_ids)})',
+		...ids_bytes(image_ids))!
 }
 
 pub struct Image {

@@ -285,14 +285,7 @@ pub:
 	translations ?map[string]ImageTranslationRequest
 }
 
-struct ProductImageCreateRequestHygienised {
-	url string
-	alt ?string
-mut:
-	translations ?[]ImageTranslationRequestHygienised
-}
-
-fn (p ProductImageCreateRequest) hygienise() !ProductImageCreateRequestHygienised {
+fn (p ProductImageCreateRequest) hygienise() !conduit.ProductImageCreateParams {
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
 			return errors.bad_request(error_field_too_long,
@@ -300,15 +293,16 @@ fn (p ProductImageCreateRequest) hygienise() !ProductImageCreateRequestHygienise
 		}
 	}
 
-	mut image := ProductImageCreateRequestHygienised{
-		url: p.url
-		alt: p.alt
+	mut translations := ?[]conduit.ImageTranslationCreateParams(none)
+	if ts := p.translations {
+		translations = hygienise_image_translations(ts)!
 	}
 
-	if translations := p.translations {
-		image.translations = hygienise_image_translations(translations)!
+	return conduit.ProductImageCreateParams{
+		url:          p.url
+		alt:          p.alt
+		translations: translations
 	}
-	return image
 }
 
 // ProductImageUpdateRequest describes the body of the request to create or update an image in a product update.
@@ -341,7 +335,7 @@ struct ProductImageUpdateRequestHygienised {
 	url ?string
 	alt ?string
 mut:
-	translations ?[]ImageTranslationRequestHygienised
+	translations ?[]conduit.ImageTranslationCreateParams
 }
 
 fn (p ProductImageUpdateRequest) hygienise() !ProductImageUpdateRequestHygienised {

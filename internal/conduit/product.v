@@ -54,19 +54,6 @@ pub struct ProductVariantCreateParams {
 	money_amounts  ?[]VariantMoneyAmountUpdateParams
 }
 
-pub struct ImageTranslationCreateParams {
-pub:
-	locale_id ID
-	alt       string
-}
-
-pub struct ImageCreateParams {
-pub:
-	url          string
-	alt          ?string
-	translations ?[]ImageTranslationCreateParams
-}
-
 pub struct ProductCreateParams {
 pub:
 	handle            ?string
@@ -503,35 +490,83 @@ fn (p ProductCreateParams) parse_sales_channel_ids(mut tx firebird.ClientTransac
 	return sales_channels
 }
 
-fn (p ProductCreateParams) parse_images(mut g luuid.Generator) ![]record.ProductImageCreateParams {
+fn (p ProductCreateParams) parse_images(mut g luuid.Generator) ![]record.ImageCreateParams {
 	images := p.images or {
-		return errors.internal('failed to parse product images for creation',
-			'ProductCreateParams.arse_images was used when p.images was none')
+		return errors.internal('failed to parse images for creation',
+			'ProductCreateParams.parse_images was used when p.images was none')
 	}
 
-	mut res := []record.ProductImageCreateParams{len: 0, cap: images.len}
-	for image_rank, image in images {
+	mut res := []record.ImageCreateParams{len: 0, cap: images.len}
+	for _, image in images {
 		image_id := common.new_id(mut g)
-		res << record.ProductImageCreateParams{
-			id:           image_id
-			url:          image.url
-			alt:          image.alt
-			image_rank:   i32(image_rank)
-			translations: p.parse_image_translations(image_id, image.translations)
+		res << record.ImageCreateParams{
+			id:  image_id
+			url: image.url
+			alt: image.alt
 		}
 	}
 	return res
 }
 
-// TODO refactor to take parsed_images []record.ProductImageCreateParams parameter instead (new endpoints)
-fn (p ProductCreateParams) parse_image_translations(image_id ID, translations ?[]ImageTranslationCreateParams) ?[]record.ImageTranslationCreateParams {
-	ts := translations or { return none }
-	mut res := []record.ImageTranslationCreateParams{len: 0, cap: ts.len}
-	for _, translation in ts {
-		res << record.ImageTranslationCreateParams{
-			image_id:  image_id
-			locale_id: translation.locale_id
-			alt:       translation.alt
+fn (p ProductCreateParams) parse_product_images(product_id ID, parsed_images []record.ImageCreateParams) ![]record.ProductImageCreateParams {
+	images := p.images or {
+		return errors.internal('failed to parse product images for creation',
+			'ProductCreateParams.parse_product_images was used when p.images was none')
+	}
+
+	if images.len != parsed_images.len {
+		return errors.internal('failed to parse product images for creation',
+			'mismatch images.len and parsed_images.len')
+	}
+
+	mut res := []record.ProductImageCreateParams{len: 0, cap: parsed_images.len}
+	for image_rank, image in parsed_images {
+		res << record.ProductImageCreateParams{
+			product_id: product_id
+			image_id:   image.id
+			image_rank: i32(image_rank)
+		}
+	}
+	return res
+}
+
+fn (p ProductCreateParams) has_image_translations() bool {
+	images := p.images or { return false }
+	for _, image in images {
+		if image.translations != none { return true }
+	}
+	return false
+}
+
+fn (p ProductCreateParams) parse_image_translations(parsed_images []record.ImageCreateParams) ![]record.ImageTranslationCreateParams {
+	images := p.images or {
+		return errors.internal('failed to parse product images for creation',
+			'ProductCreateParams.parse_product_images was used when p.images was none')
+	}
+
+	if images.len != parsed_images.len {
+		return errors.internal('failed to parse product images for creation',
+			'mismatch images.len and parsed_images.len')
+	}
+
+	mut n_translations := 0
+	for _, image in images {
+		if translations := image.translations {
+			n_translations += translations.len
+		}
+	}
+
+	mut res := []record.ImageTranslationCreateParams{len: 0, cap: n_translations}
+	for index, image in images {
+		image_id := parsed_images[index].id
+		translations := image.translations or { continue }
+
+		for _, translation in translations {
+			res << record.ImageTranslationCreateParams{
+				image_id:  image_id
+				locale_id: translation.locale_id
+				alt:       translation.alt
+			}
 		}
 	}
 	return res
@@ -623,8 +658,20 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 
 	if _ := p.images {
 		parsed_images := p.parse_images(mut g)!
-		record.product_image_create(mut tx, product_id, parsed_images) or {
+		record.image_create(mut tx, parsed_images) or {
+			return errors.internal('Failed to create image', err.msg())
+		}
+
+		parsed_product_images := p.parse_product_images(product_id, parsed_images)!
+		record.product_image_create(mut tx, parsed_product_images) or {
 			return errors.internal('Failed to create product_image', err.msg())
+		}
+
+		if p.has_image_translations() {
+			parsed_image_translations := p.parse_image_translations(parsed_images)!
+			record.image_translation_create(mut tx, parsed_image_translations) or {
+				return errors.internal('Failed to create product_translations', err.msg())
+			}
 		}
 
 		mut thumbnail_id := parsed_images[0].id
@@ -636,10 +683,6 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 			return errors.internal('Failed to update product thumbnail', err.msg())
 		}
 	}
-
-	// TODO independent image endpoint refactor, split concerns of translation updates
-	// if image_translations := p.parse_image_translations() {
-	// }
 
 	if category_ids := p.category_ids {
 		record.category_product_update(mut tx, product_id, category_ids) or {
@@ -753,6 +796,8 @@ fn get_products_options(mut tx firebird.ClientTransaction, mut products_map map[
 	mut options_map, option_ids := common.make_identifiable_map(options)
 	get_product_option_translations(mut tx, mut options_map, option_ids)!
 	get_product_option_values(mut tx, mut options_map, option_ids)!
+
+	// TODO assign to products_map!
 }
 
 fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
