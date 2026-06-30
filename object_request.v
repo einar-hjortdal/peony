@@ -597,24 +597,17 @@ pub:
 	title string
 }
 
-struct ProductOptionTranslationRequestHygienised {
-	title     string
-	locale_id ID
-}
-
-fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRequest) ![]ProductOptionTranslationRequestHygienised {
-	mut res := []ProductOptionTranslationRequestHygienised{len: p.len}
-	mut i := 0
+fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRequest) ![]conduit.ProductOptionTranslationCreateParams {
+	mut res := []conduit.ProductOptionTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
-		res[i] = ProductOptionTranslationRequestHygienised{
+		res << conduit.ProductOptionTranslationCreateParams{
 			locale_id: parsed_locale_id
 			title:     translation.title
 		}
-		i++
 	}
 	return res
 }
@@ -666,7 +659,7 @@ mut:
 	values       ?[]ProductOptionValueUpdateRequestHygienised
 }
 
-fn (p ProductOptionUpdateRequest) hygienise() !ProductOptionUpdateRequestHygienised {
+fn (p ProductOptionUpdateRequest) hygienise() !conduit.ProductOptionUpdateRequestHygienised {
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
@@ -1039,7 +1032,7 @@ fn (p ProductVariantCreateRequest) hygienise() !conduit.ProductVariantCreatePara
 		}
 	}
 
-	inventory_item := ?conduit.InventoryItemCreateParams(none)
+	mut inventory_item := ?conduit.InventoryItemCreateParams(none)
 	if ii := p.inventory_item {
 		inventory_item = ii.hygienise()!
 	}
@@ -1059,7 +1052,7 @@ fn (p ProductVariantCreateRequest) hygienise() !conduit.ProductVariantCreatePara
 		upc:            p.upc
 		barcode:        p.barcode
 		metadata:       p.metadata
-		option_values:  option_values
+		option_values:  p.option_values
 		inventory_item: inventory_item
 		money_amounts:  money_amounts
 		image:          p.image
@@ -2026,16 +2019,13 @@ fn (p ProductCreateRequest) validate_variants_reference_valid_values() ! {
 	}
 }
 
-fn (p ProductCreateRequest) hygienise_product_option_values(options []ProductOptionCreateRequest) ![]conduit.ProductOptionCreateParams {
-}
-
 fn (p ProductCreateRequest) hygienise_product_options(options []ProductOptionCreateRequest) ![]conduit.ProductOptionCreateParams {
 	if options.len == 0 {
 		return errors.bad_request(error_field_empty,
 			'Cannot create a product with no options. options cannot be an empty array')
 	}
 
-	res := []conduit.ProductOptionCreateParams{len: 0, cap: options.len}
+	mut res := []conduit.ProductOptionCreateParams{len: 0, cap: options.len}
 	for option_rank, option in options {
 		if option.title == '' {
 			return errors.bad_request(error_field_empty, 'option title is required')
@@ -2046,20 +2036,21 @@ fn (p ProductCreateRequest) hygienise_product_options(options []ProductOptionCre
 				'The product_option lacks values, at least one value must be provided.')
 		}
 
-		mut values := []conduit.ProductOptionValueCreateParams{len: p.values.len}
-		for i := 0; i < p.values.len; i++ {
-			values[i] = p.values[i].hygienise()!
+		mut values := []conduit.ProductOptionValueCreateParams{len: 0, cap: option.values.len}
+		for _, value in option.values {
+			values << value.hygienise()!
 		}
 
-		if translations := p.translations {
-			ph.translations = hygienise_product_option_translations(translations)!
+		mut translations := ?[]conduit.ProductOptionTranslationCreateParams(none)
+		if ts := option.translations {
+			translations = hygienise_product_option_translations(ts)!
 		}
 
 		res << conduit.ProductOptionCreateParams{
-			option_rank: i32(option_rank)
-			title:       option.title
-			// values      :
-			// translations:
+			option_rank:  i32(option_rank)
+			title:        option.title
+			values:       values
+			translations: translations
 		}
 	}
 
