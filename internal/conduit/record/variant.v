@@ -153,7 +153,6 @@ pub struct VariantCreateParams {
 pub:
 	id           ID
 	product_id   ID
-	image_id     ?ID
 	title        ?string
 	barcode      ?string
 	ean          ?string
@@ -173,7 +172,6 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS id,
 			CAST(? AS BINARY(16)) AS product_id,
-			CAST(? AS BINARY(16)) AS image_id,
 			CAST(? AS VARCHAR(63)) AS title,
 			CAST(? AS VARCHAR(63)) AS barcode,
 			CAST(? AS VARCHAR(13)) AS ean,
@@ -185,43 +183,39 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 		params[i * n_params] = v.id.bytes()
 		params[i * n_params + 1] = v.product_id.bytes()
 
-		if image_id := v.image_id {
-			params[i * n_params + 2] = image_id.bytes()
-		}
-
 		if title := v.title {
 			if title != '' {
-				params[i * n_params + 3] = title
+				params[i * n_params + 2] = title
 			}
 		}
 
 		if barcode := v.barcode {
 			if barcode != '' {
-				params[i * n_params + 4] = barcode
+				params[i * n_params + 3] = barcode
 			}
 		}
 
 		if ean := v.ean {
 			if ean != '' {
-				params[i * n_params + 5] = ean
+				params[i * n_params + 4] = ean
 			}
 		}
 
 		if upc := v.upc {
 			if upc != '' {
-				params[i * n_params + 6] = upc
+				params[i * n_params + 5] = upc
 			}
 		}
 
 		if variant_rank := v.variant_rank {
-			params[i * n_params + 7] = variant_rank
+			params[i * n_params + 6] = variant_rank
 		} else {
-			params[i * n_params + 7] = common.variant_rank_default
+			params[i * n_params + 6] = common.variant_rank_default
 		}
 
 		if metadata := v.metadata {
 			if metadata != '' {
-				params[i * n_params + 8] = metadata
+				params[i * n_params + 7] = metadata
 			}
 		}
 	}
@@ -230,7 +224,6 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 		(
 			id,
 			product_id,
-			image_id,
 			title,
 			barcode,
 			ean,
@@ -246,7 +239,6 @@ pub struct VariantUpdateParams {
 pub:
 	id           ID
 	product_id   ID
-	image_id     ?ID
 	title        ?string
 	barcode      ?string
 	ean          ?string
@@ -257,7 +249,6 @@ pub:
 
 pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) ! {
 	columns := [
-		'image_id',
 		'title',
 		'barcode',
 		'ean',
@@ -269,45 +260,41 @@ pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) 
 	n_params := 8
 	mut params := []firebird.Value{len: n_params, init: firebird.Null{}}
 
-	if image_id := p.image_id {
-		params[0] = image_id.bytes()
-	}
-
 	if title := p.title {
 		if title != '' {
-			params[1] = title
+			params[0] = title
 		}
 	}
 
 	if barcode := p.barcode {
 		if barcode != '' {
-			params[2] = barcode
+			params[1] = barcode
 		}
 	}
 
 	if ean := p.ean {
 		if ean != '' {
-			params[3] = ean
+			params[2] = ean
 		}
 	}
 
 	if upc := p.upc {
 		if upc != '' {
-			params[4] = upc
+			params[3] = upc
 		}
 	}
 
 	if variant_rank := p.variant_rank {
-		params[5] = variant_rank
+		params[4] = variant_rank
 	}
 
 	if metadata := p.metadata {
 		if metadata != '' {
-			params[6] = metadata
+			params[5] = metadata
 		}
 	}
 
-	params[7] = p.id.bytes()
+	params[6] = p.id.bytes()
 
 	query := 'UPDATE variant SET ${get_set_columns(columns)} WHERE id = ?'
 
@@ -324,7 +311,6 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 		src[i] = 'SELECT
 			CAST(? AS BINARY(16)) AS id,
 			CAST(? AS BINARY(16)) AS product_id,
-			CAST(? AS BINARY(16)) AS image_id,
 			CAST(? AS VARCHAR(63)) AS title,
 			CAST(? AS VARCHAR(63)) AS barcode,
 			CAST(? AS VARCHAR(13)) AS ean,
@@ -336,42 +322,38 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 		params[i * n_params + 0] = v.id.bytes()
 		params[i * n_params + 1] = v.product_id.bytes()
 
-		if image_id := v.image_id {
-			params[i * n_params + 2] = image_id.bytes()
-		}
-
 		if title := v.title {
 			if title != '' {
-				params[i * n_params + 3] = title
+				params[i * n_params + 2] = title
 			}
 		}
 
 		if barcode := v.barcode {
 			if barcode != '' {
-				params[i * n_params + 4] = barcode
+				params[i * n_params + 3] = barcode
 			}
 		}
 
 		if ean := v.ean {
 			if ean != '' {
-				params[i * n_params + 5] = ean
+				params[i * n_params + 4] = ean
 			}
 		}
 
 		if upc := v.upc {
 			if upc != '' {
-				params[i * n_params + 6] = upc
+				params[i * n_params + 5] = upc
 			}
 		}
 
 		if variant_rank := v.variant_rank {
-			params[i * n_params + 7] = variant_rank
+			params[i * n_params + 6] = variant_rank
 		} else {
-			params[i * n_params + 7] = common.variant_rank_default
+			params[i * n_params + 6] = common.variant_rank_default
 		}
 
 		if metadata := v.metadata {
-			params[i * n_params + 8] = metadata
+			params[i * n_params + 7] = metadata
 		}
 	}
 
@@ -381,7 +363,6 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 		WHEN MATCHED THEN UPDATE
 			SET
 				updated_at = CURRENT_TIMESTAMP,
-				image_id = s.image_id,
 				title = s.title,
 				barcode = s.barcode,
 				ean = s.ean,
@@ -393,7 +374,6 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 				(
 					id,
 					product_id,
-					image_id,
 					title,
 					barcode,
 					ean,
@@ -405,7 +385,6 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 				(
 					s.id,
 					s.product_id,
-					s.image_id,
 					s.title,
 					s.barcode,
 					s.ean,
@@ -428,4 +407,32 @@ pub fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
 	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id.bytes())!
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
 		variant_id.bytes())!
+}
+
+pub struct VariantImage {
+pub:
+	variant_id ID
+	image_id   ID
+}
+
+pub fn variant_image_update(mut tx firebird.ClientTransaction, p []VariantImage) ! {
+	mut src := []string{len: 0, cap: p.len}
+	mut params := []firebird.Value{len: 0, cap: 2 * p.len, init: firebird.Null{}}
+	for _, relation in p {
+		src << 'SELECT
+			CAST(? AS BINARY(16)) AS id,
+			CAST(? AS BINARY(16)) AS image_id
+			FROM RDB\$DATABASE'
+
+		params << relation.variant_id.bytes()
+		params << relation.image_id.bytes()
+	}
+
+	query := 'MERGE INTO variant t
+		USING (${get_merge_source(src)}) s (id, image_id)
+		ON t.id = s.id
+		WHEN MATCHED THEN UPDATE
+			SET t.image_id = s.image_id'
+
+	tx.execute(query, ...params)!
 }

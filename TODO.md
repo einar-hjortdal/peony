@@ -110,8 +110,6 @@
 - [x] Return created resources on creation
 - [x] Return updated resources on update
 - [x] Add variant endpoints
-- [ ] Add product option endpoints
-- [ ] Add product option value endpoints
 - [x] Add product image endpoints
 - [x] Move cors handling to starter
 - [x] Return and accept translations as a map rather than an array

@@ -43,7 +43,7 @@ pub:
 }
 
 pub struct ProductVariantCreateParams {
-	image_id       ?ID
+pub:
 	title          ?string
 	ean            ?string
 	upc            ?string
@@ -52,6 +52,7 @@ pub struct ProductVariantCreateParams {
 	option_values  ?[]i32
 	inventory_item ?InventoryItemCreateParams
 	money_amounts  ?[]VariantMoneyAmountUpdateParams
+	image          ?i32
 }
 
 pub struct ProductCreateParams {
@@ -301,7 +302,6 @@ fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id ID) 
 	for variant_rank, variant in variants {
 		res << record.VariantCreateParams{
 			id:           common.new_id(mut g)
-			image_id:     variant.image_id
 			title:        variant.title
 			ean:          variant.ean
 			upc:          variant.upc
@@ -572,6 +572,56 @@ fn (p ProductCreateParams) parse_image_translations(parsed_images []record.Image
 	return res
 }
 
+fn (p ProductCreateParams) variant_has_image() bool {
+	variants := p.variants or { return false }
+
+	for _, variant in variants {
+		if variant.image == none {
+			continue
+		}
+		return true
+	}
+	return false
+}
+
+fn (p ProductCreateParams) parse_variant_images(
+	parsed_variants []record.VariantCreateParams,
+	parsed_images []record.ImageCreateParams) ![]record.VariantImage {
+	variants := p.variants or {
+		return errors.internal('failed to parse variant image',
+			'ProductCreateParams.parse_variant_images was used when p.variants was none')
+	}
+
+	images := p.images or {
+		return errors.internal('failed to parse variant image',
+			'ProductCreateParams.parse_variant_images was used when p.images was none')
+	}
+
+	if images.len != parsed_images.len {
+		return errors.internal('failed to parse variant image',
+			'mismatch images.len and parsed_images.len')
+	}
+
+	mut n_relations := 0
+	for _, variant in variants {
+		if variant.image == none {
+			continue
+		}
+		n_relations++
+	}
+
+	mut res := []record.VariantImage{len: 0, cap: n_relations}
+	for variant_rank, variant in variants {
+		image_rank := variant.image or { continue }
+
+		res << record.VariantImage{
+			variant_id: parsed_variants[variant_rank].id
+			image_id:   parsed_images[image_rank].id
+		}
+	}
+	return res
+}
+
 pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
 	p.check_handle(mut tx)!
 
@@ -657,30 +707,37 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	}
 
 	if _ := p.images {
-		parsed_images := p.parse_images(mut g)!
-		record.image_create(mut tx, parsed_images) or {
+		images := p.parse_images(mut g)!
+		record.image_create(mut tx, images) or {
 			return errors.internal('Failed to create image', err.msg())
 		}
 
-		parsed_product_images := p.parse_product_images(product_id, parsed_images)!
-		record.product_image_create(mut tx, parsed_product_images) or {
-			return errors.internal('Failed to create product_image', err.msg())
-		}
-
 		if p.has_image_translations() {
-			parsed_image_translations := p.parse_image_translations(parsed_images)!
+			parsed_image_translations := p.parse_image_translations(images)!
 			record.image_translation_create(mut tx, parsed_image_translations) or {
 				return errors.internal('Failed to create product_translations', err.msg())
 			}
 		}
 
-		mut thumbnail_id := parsed_images[0].id
+		parsed_product_images := p.parse_product_images(product_id, images)!
+		record.product_image_create(mut tx, parsed_product_images) or {
+			return errors.internal('Failed to create product_image', err.msg())
+		}
+
+		mut thumbnail_id := images[0].id
 		if thumbnail_index := p.thumbnail {
-			thumbnail_id = parsed_images[thumbnail_index].id
+			thumbnail_id = images[thumbnail_index].id
 		}
 
 		record.product_thumbnail_update(mut tx, product_id, thumbnail_id) or {
 			return errors.internal('Failed to update product thumbnail', err.msg())
+		}
+
+		if p.variant_has_image() {
+			variant_images := p.parse_variant_images(variants, images)!
+			record.variant_image_update(mut tx, variant_images) or {
+				return errors.internal('Failed to update variant image', err.msg())
+			}
 		}
 	}
 
@@ -797,7 +854,11 @@ fn get_products_options(mut tx firebird.ClientTransaction, mut products_map map[
 	get_product_option_translations(mut tx, mut options_map, option_ids)!
 	get_product_option_values(mut tx, mut options_map, option_ids)!
 
-	// TODO assign to products_map!
+	for _, option_id in option_ids {
+		option := options_map[option_id.string()]
+		product_id := option.product_id
+		products_map[product_id.string()].options << option
+	}
 }
 
 fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {

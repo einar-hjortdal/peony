@@ -20,6 +20,12 @@ pub const max_length_sales_channel_name = 63
 pub const max_length_sales_channel_description = 191
 pub const max_length_stock_location_name = 63
 
+fn hygienise_handle(handle string) ! {
+	if utf8_str_visible_length(handle) > max_length_handle {
+		return errors.unprocessable_entity(error_field_too_long, 'handle')
+	}
+}
+
 pub struct AuthRequest {
 pub:
 	email    string
@@ -470,28 +476,19 @@ pub:
 	description ?string
 }
 
-struct ProductTranslationRequestHygienised {
-	locale_id   ID
-	title       ?string
-	subtitle    ?string
-	description ?string
-}
-
-fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]ProductTranslationRequestHygienised {
-	mut res := []ProductTranslationRequestHygienised{len: p.len}
-	mut i := 0
+fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]conduit.ProductTranslationCreateParams {
+	mut res := []conduit.ProductTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
-		res[i] = ProductTranslationRequestHygienised{
+		res << conduit.ProductTranslationCreateParams{
 			locale_id:   parsed_locale_id
 			title:       translation.title
 			subtitle:    translation.subtitle
 			description: translation.description
 		}
-		i++
 	}
 	return res
 }
@@ -501,54 +498,41 @@ pub:
 	name string
 }
 
-struct ProductOptionValueTranslationRequestHygienised {
-	locale_id ID
-	name      string
-}
-
-fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTranslationRequest) ![]ProductOptionValueTranslationRequestHygienised {
-	mut res := []ProductOptionValueTranslationRequestHygienised{len: p.len}
-	mut i := 0
+fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTranslationRequest) ![]conduit.ProductOptionValueTranslationCreateParams {
+	mut res := []conduit.ProductOptionValueTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
 		parsed_locale_id := id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
-		res[i] = ProductOptionValueTranslationRequestHygienised{
+		res << conduit.ProductOptionValueTranslationCreateParams{
 			locale_id: parsed_locale_id
 			name:      translation.name
 		}
-		i++
 	}
 	return res
 }
 
-pub struct ProductOptionValueRequest {
+pub struct ProductOptionValueCreateRequest {
 pub:
 	name         string
 	translations ?map[string]ProductOptionValueTranslationRequest
 }
 
-struct ProductOptionValueRequestHygienised {
-	name string
-mut:
-	translations ?[]ProductOptionValueTranslationRequestHygienised
-}
-
-fn (p ProductOptionValueRequest) hygienise() !ProductOptionValueRequestHygienised {
+fn (p ProductOptionValueCreateRequest) hygienise() !conduit.ProductOptionValueCreateParams {
 	if p.name == '' {
 		return errors.bad_request(error_field_empty, 'product_option_value name is required')
 	}
 
-	mut ph := ProductOptionValueRequestHygienised{
-		name: p.name
+	mut translations := ?[]conduit.ProductOptionValueTranslationCreateParams(none)
+	if t := p.translations {
+		translations = hygienise_product_option_value_translations(t)!
 	}
 
-	if translations := p.translations {
-		ph.translations = hygienise_product_option_value_translations(translations)!
+	return conduit.ProductOptionValueCreateParams{
+		name:         p.name
+		translations: translations
 	}
-
-	return ph
 }
 
 // ProductOptionValueUpdateRequest describes an option value object used in option update requests.
@@ -639,41 +623,7 @@ pub struct ProductOptionCreateRequest {
 pub:
 	title        string
 	translations ?map[string]ProductOptionTranslationRequest
-	values       []ProductOptionValueRequest
-}
-
-struct ProductOptionCreateRequestHygienised {
-	title  string
-	values []ProductOptionValueRequestHygienised
-mut:
-	translations ?[]ProductOptionTranslationRequestHygienised
-}
-
-fn (p ProductOptionCreateRequest) hygienise() !ProductOptionCreateRequestHygienised {
-	if p.title == '' {
-		return errors.bad_request(error_field_empty, 'product_option title is required')
-	}
-
-	if p.values.len == 0 {
-		return errors.bad_request(error_field_empty,
-			'The product_option lacks values, at least one value must be provided.')
-	}
-
-	mut values := []ProductOptionValueRequestHygienised{len: p.values.len}
-	for i := 0; i < p.values.len; i++ {
-		values[i] = p.values[i].hygienise()!
-	}
-
-	mut ph := ProductOptionCreateRequestHygienised{
-		title:  p.title
-		values: values
-	}
-
-	if translations := p.translations {
-		ph.translations = hygienise_product_option_translations(translations)!
-	}
-
-	return ph
+	values       []ProductOptionValueCreateRequest
 }
 
 // ProductOptionUpdateRequest describes a product option object used in product update requests.
@@ -1052,7 +1002,7 @@ pub:
 	regional_prices ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-fn (p ProductVariantCreateRequest) hygienise() !record.ProductVariantCreateParams {
+fn (p ProductVariantCreateRequest) hygienise() !conduit.ProductVariantCreateParams {
 	if title := p.title {
 		if utf8_str_visible_length(title) > max_length_variant_title {
 			return errors.bad_request(error_field_too_long, format_field_too_long_details('title',
@@ -1089,29 +1039,31 @@ fn (p ProductVariantCreateRequest) hygienise() !record.ProductVariantCreateParam
 		}
 	}
 
-	mut ph := ProductVariantCreateRequestHygienised{
-		title:         p.title
-		ean:           p.ean
-		upc:           p.upc
-		barcode:       p.barcode
-		image:         p.image
-		option_values: p.option_values
-		metadata:      p.metadata
+	inventory_item := ?conduit.InventoryItemCreateParams(none)
+	if ii := p.inventory_item {
+		inventory_item = ii.hygienise()!
 	}
 
-	if inventory_item := p.inventory_item {
-		ph.inventory_item = inventory_item.hygienise()!
-	}
-
+	mut money_amounts := ?[]conduit.VariantMoneyAmountUpdateParams(none)
 	if prices := p.regional_prices {
 		if prices.len == 0 {
 			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
 		}
 
-		ph.money_amounts = parse_money_amounts(prices)!
+		money_amounts = parse_money_amounts(prices)!
 	}
 
-	return ph
+	return conduit.ProductVariantCreateParams{
+		title:          p.title
+		ean:            p.ean
+		upc:            p.upc
+		barcode:        p.barcode
+		metadata:       p.metadata
+		option_values:  option_values
+		inventory_item: inventory_item
+		money_amounts:  money_amounts
+		image:          p.image
+	}
 }
 
 // ProductVariantUpdateRequest describes a variant object used inside a product update payload.
@@ -1948,7 +1900,7 @@ pub:
 	// tag_ids           ?[]string @[json: 'tagIds']
 }
 
-fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() !conduit.ProductCreateParams {
+fn (p ProductCreateRequest) validate_variants_reference_all_options() ! {
 	options := p.options or { return }
 	variants := p.variants or { return }
 
@@ -1967,7 +1919,7 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_all_options() 
 	}
 }
 
-fn (p ProductCreateRequestHygienised) validate_no_orphan_option_values() ! {
+fn (p ProductCreateRequest) validate_no_orphan_option_values() ! {
 	variants := p.variants or { return }
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
@@ -1982,7 +1934,7 @@ fn (p ProductCreateRequestHygienised) validate_no_orphan_option_values() ! {
 	}
 }
 
-fn (p ProductCreateRequestHygienised) validate_no_too_many_variants() ! {
+fn (p ProductCreateRequest) validate_no_too_many_variants() ! {
 	variants := p.variants or { return }
 	if variants.len < 2 {
 		return
@@ -2005,7 +1957,7 @@ fn (p ProductCreateRequestHygienised) validate_no_too_many_variants() ! {
 	}
 }
 
-fn (p ProductCreateRequestHygienised) validate_no_duplicate_variants() ! {
+fn (p ProductCreateRequest) validate_no_duplicate_variants() ! {
 	variants := p.variants or { return }
 	if variants.len < 2 {
 		return
@@ -2039,7 +1991,7 @@ fn (p ProductCreateRequestHygienised) validate_no_duplicate_variants() ! {
 	}
 }
 
-fn (p ProductCreateRequestHygienised) validate_variants_reference_valid_values() ! {
+fn (p ProductCreateRequest) validate_variants_reference_valid_values() ! {
 	variants := p.variants or { return }
 	if variants.len < 2 {
 		return
@@ -2074,9 +2026,49 @@ fn (p ProductCreateRequestHygienised) validate_variants_reference_valid_values()
 	}
 }
 
+fn (p ProductCreateRequest) hygienise_product_option_values(options []ProductOptionCreateRequest) ![]conduit.ProductOptionCreateParams {
+}
+
+fn (p ProductCreateRequest) hygienise_product_options(options []ProductOptionCreateRequest) ![]conduit.ProductOptionCreateParams {
+	if options.len == 0 {
+		return errors.bad_request(error_field_empty,
+			'Cannot create a product with no options. options cannot be an empty array')
+	}
+
+	res := []conduit.ProductOptionCreateParams{len: 0, cap: options.len}
+	for option_rank, option in options {
+		if option.title == '' {
+			return errors.bad_request(error_field_empty, 'option title is required')
+		}
+
+		if option.values.len == 0 {
+			return errors.bad_request(error_field_empty,
+				'The product_option lacks values, at least one value must be provided.')
+		}
+
+		mut values := []conduit.ProductOptionValueCreateParams{len: p.values.len}
+		for i := 0; i < p.values.len; i++ {
+			values[i] = p.values[i].hygienise()!
+		}
+
+		if translations := p.translations {
+			ph.translations = hygienise_product_option_translations(translations)!
+		}
+
+		res << conduit.ProductOptionCreateParams{
+			option_rank: i32(option_rank)
+			title:       option.title
+			// values      :
+			// translations:
+		}
+	}
+
+	return res
+}
+
 // the request could contain one variant and no options, in which case a default option is created.
 // the request may contain one variant and one option. In this case, references must be verified.
-fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
+fn (p ProductCreateRequest) validate_one_variant_case() ! {
 	variants := p.variants or { return }
 	if variants.len != 1 {
 		return
@@ -2106,7 +2098,7 @@ fn (p ProductCreateRequestHygienised) validate_one_variant_case() ! {
 	}
 }
 
-fn (p ProductCreateRequestHygienised) validate_variant_image() ! {
+fn (p ProductCreateRequest) validate_variant_image() ! {
 	variants := p.variants or { return }
 	for i := 0; i < variants.len; i++ {
 		variant := variants[i]
@@ -2129,7 +2121,7 @@ fn (p ProductCreateRequestHygienised) validate_variant_image() ! {
 	}
 }
 
-fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
+fn (p ProductCreateRequest) hygienise() !conduit.ProductCreateParams {
 	if p.title == '' {
 		return errors.unprocessable_entity(error_field_empty, 'title')
 	}
@@ -2145,9 +2137,7 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 	}
 
 	if handle := p.handle {
-		if utf8_str_visible_length(handle) > max_length_handle {
-			return errors.unprocessable_entity(error_field_too_long, 'handle')
-		}
+		hygienise_handle(handle)!
 	}
 
 	if thumbnail := p.thumbnail {
@@ -2251,61 +2241,57 @@ fn (p ProductCreateRequest) hygienise() !ProductCreateRequestHygienised {
 		}
 	}
 
-	mut ph := ProductCreateRequestHygienised{
+	p.validate_no_orphan_option_values()!
+	p.validate_variants_reference_all_options()!
+	p.validate_one_variant_case()!
+	p.validate_variants_reference_valid_values()!
+	p.validate_no_too_many_variants()!
+	p.validate_no_duplicate_variants()!
+	p.validate_variant_image()!
+
+	mut translations := ?[]conduit.ProductTranslationCreateParams(none)
+	if t := p.translations {
+		translations = hygienise_product_translations(t)!
+	}
+
+	mut seo := ?conduit.SEOParams(none)
+	if s := p.seo {
+		seo = s.hygienise()!
+	}
+
+	mut options := ?[]conduit.ProductOptionCreateParams(none)
+	if o := p.options {
+		options = p.hygienise_product_options(o)!
+	}
+
+	mut variants := ?[]conduit.ProductVariantCreateParams(none)
+	if v := p.variants {
+		variants = hygienise_product_variants(v)!
+	}
+
+	mut images := ?[]ImageCreateParams(none)
+	if i := p.images {
+		images = hygienise_product_images(i)
+	}
+
+	return conduit.ProductCreateParams{
+		handle:            p.handle
 		title:             p.title
 		subtitle:          p.subtitle
 		description:       p.description
-		handle:            p.handle
 		is_giftcard:       p.is_giftcard
 		status:            p.status
-		thumbnail:         p.thumbnail
 		discountable:      p.discountable
 		metadata:          p.metadata
 		sales_channel_ids: parsed_sales_channel_ids
 		category_ids:      parsed_category_ids
+		translations:      translations
+		seo:               seo
+		options:           options
+		variants:          variants
+		thumbnail:         p.thumbnail
+		images:            images
 	}
-
-	if options := p.options {
-		mut h := []ProductOptionCreateRequestHygienised{len: options.len}
-		for i := 0; i < options.len; i++ {
-			h[i] = options[i].hygienise()!
-		}
-		ph.options = h
-	}
-
-	if variants := p.variants {
-		mut v := []ProductVariantCreateRequestHygienised{len: variants.len}
-		for i := 0; i < variants.len; i++ {
-			v[i] = variants[i].hygienise()!
-		}
-		ph.variants = v
-	}
-
-	if translations := p.translations {
-		ph.translations = hygienise_product_translations(translations)!
-	}
-
-	if seo := p.seo {
-		ph.seo = seo.hygienise()!
-	}
-
-	if images := p.images {
-		mut h := []ImageCreateRequestHygienised{len: images.len}
-		for i := 0; i < images.len; i++ {
-			h[i] = images[i].hygienise()!
-		}
-		ph.images = h
-	}
-
-	ph.validate_no_orphan_option_values()!
-	ph.validate_variants_reference_all_options()!
-	ph.validate_one_variant_case()!
-	ph.validate_variants_reference_valid_values()!
-	ph.validate_no_too_many_variants()!
-	ph.validate_no_duplicate_variants()!
-	ph.validate_variant_image()!
-
-	return ph
 }
 
 // ProductUpdateRequest describes the body of the request to update an existing product.
@@ -2401,27 +2387,7 @@ pub:
 	// tag_ids           ?[]string @[json: 'tagIds']
 }
 
-struct ProductUpdateRequestHygienised {
-	title             ?string
-	subtitle          ?string
-	description       ?string
-	handle            ?string
-	is_giftcard       ?bool
-	status            ?string
-	discountable      ?bool
-	metadata          ?string
-	sales_channel_ids ?[]ID
-	category_ids      ?[]ID
-	thumbnail         ?i32
-mut:
-	translations ?[]ProductTranslationRequestHygienised
-	images       ?[]ProductImageUpdateRequestHygienised
-	seo          ?SEORequestHygienised
-	options      ?[]ProductOptionUpdateRequestHygienised
-	variants     ?[]ProductVariantUpdateRequestHygienised
-}
-
-fn (p ProductUpdateRequest) hygienise() !ProductUpdateRequestHygienised {
+fn (p ProductUpdateRequest) hygienise(product_id ID) !ProductUpdateRequestHygienised {
 	if title := p.title {
 		if title == '' {
 			return errors.unprocessable_entity(error_field_empty, 'title')
