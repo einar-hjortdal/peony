@@ -26,13 +26,16 @@ pub type LocaleRetrieveParams = record.LocaleRetrieveParams
 pub type VariantMoneyAmount = record.VariantMoneyAmount
 pub type PasswordDetails = record.PasswordDetails
 pub type PasswordDetailsGetParams = record.PasswordDetailsGetParams
+
 pub type ProductOptionValueTranslation = record.ProductOptionValueTranslation
 pub type ProductOptionValue = record.ProductOptionValue
 pub type ProductOptionTranslation = record.ProductOptionTranslation
 pub type ProductOption = record.ProductOption
+
 pub type Product = record.Product
 pub type ProductTranslation = record.ProductTranslation
 pub type ProductRetrieveParams = record.ProductRetrieveParams
+
 pub type Region = record.Region
 pub type RegionRetriveParams = record.RegionRetriveParams
 

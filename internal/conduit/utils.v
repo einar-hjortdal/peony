@@ -172,26 +172,33 @@ fn check_option_values(mut tx firebird.ClientTransaction, product_id ID, option_
 }
 
 fn check_image_id_belongs_to_product(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
-	images := record.product_image_retrieve(mut tx, [product_id]) or {
-		return errors.internal('Failed to retrieve product_image', err.msg())
-	}
+	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
+		image_ids:   [image_id]
+		product_ids: [product_id]
+	}) or { return errors.internal('Failed to retrieve product_image', err.msg()) }
 
 	for i := 0; i < images.len; i++ {
 		image := images[i]
-		if image.id.string() == image_id.string() { return }
+		if image.id.string() == image_id.string() {
+			return
+		}
 	}
 
 	return errors.unprocessable_entity(errors.id_invalid,
 		'image_id does not exist or does not belong to product')
 }
 
-fn parse_option_values(option_value_ids []ID, variant_id ID) []record.ProductOptionValueVariant {
-	mut res := []record.ProductOptionValueVariant{len: option_value_ids.len}
-	for i := 0; i < option_value_ids.len; i++ {
-		res[i] = record.ProductOptionValueVariant{
-			option_value_id: option_value_ids[i]
-			variant_id:      variant_id
-		}
+fn check_product_handle(mut tx firebird.ClientTransaction, handle string) ! {
+	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
+		handle:       handle
+		with_deleted: false
+		offset:       offset_default // ignored by count fn
+		fetch:        min_fetch      // ignored by count fn
+		order:        order_default  // ignored by count fn
+	}) or { return errors.internal('Failed to retrieve product count', err.msg()) }
+
+	if count != 0 {
+		return errors.unprocessable_entity('handle not unique',
+			'A product already exists with the given handle')
 	}
-	return res
 }

@@ -8,6 +8,39 @@ import record
 import internal.common
 import internal.errors
 
+fn parse_option_values(option_value_ids []ID, variant_id ID) []record.ProductOptionValueVariant {
+	mut res := []record.ProductOptionValueVariant{len: option_value_ids.len}
+	for i := 0; i < option_value_ids.len; i++ {
+		res[i] = record.ProductOptionValueVariant{
+			option_value_id: option_value_ids[i]
+			variant_id:      variant_id
+		}
+	}
+	return res
+}
+
+fn parse_product_translations(product_id ID, translations []ProductTranslationCreateParams) []record.ProductTranslationCreateParams {
+	mut res := []record.ProductTranslationCreateParams{len: 0, cap: translations.len}
+	for _, translation in translations {
+		res << record.ProductTranslationCreateParams{
+			product_id:  product_id
+			locale_id:   translation.locale_id
+			title:       translation.title
+			subtitle:    translation.subtitle
+			description: translation.description
+		}
+	}
+	return res
+}
+
+fn parse_seo_translations(seo_id ID, translations []SEOTranslationParams) []record.SEOTranslationCreateParams {
+	mut res := []record.SEOTranslationCreateParams{len: 0, cap: translations.len}
+	for _, translation in translations {
+		res << translation.parse(seo_id)
+	}
+	return res
+}
+
 pub struct ProductTranslationCreateParams {
 pub:
 	locale_id   ID
@@ -36,7 +69,6 @@ pub:
 
 pub struct ProductOptionCreateParams {
 pub:
-	option_rank  i32
 	title        string
 	values       []ProductOptionValueCreateParams
 	translations ?[]ProductOptionTranslationCreateParams
@@ -77,18 +109,7 @@ pub:
 
 fn (p ProductCreateParams) check_handle(mut tx firebird.ClientTransaction) ! {
 	handle := p.handle or { return }
-	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
-		handle:       handle
-		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        min_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
-	}) or { return errors.internal('Failed to retrieve product count', err.msg()) }
-
-	if count != 0 {
-		return errors.unprocessable_entity('handle not unique',
-			'A product already exists with the given handle')
-	}
+	check_product_handle(mut tx, handle)!
 }
 
 fn (p ProductCreateParams) check_sales_channel_ids(mut tx firebird.ClientTransaction) ! {
@@ -108,7 +129,7 @@ fn (p ProductCreateParams) check_sales_channel_ids(mut tx firebird.ClientTransac
 }
 
 fn (p ProductCreateParams) parse_product(product_id ID) record.ProductCreateParams {
-	handle := p.handle or { slugify.default().make(p.title) }
+	handle := p.handle or { slugify.default().make(p.title) } // TODO could be duplicate, need check or better default
 
 	return record.ProductCreateParams{
 		id:           product_id
@@ -142,11 +163,7 @@ fn (p ProductCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTransl
 		return none
 	}
 
-	mut res := []record.SEOTranslationCreateParams{len: 0, cap: translations.len}
-	for _, translation in translations {
-		res << translation.parse(seo_id)
-	}
-	return res
+	return parse_seo_translations(seo_id, translations)
 }
 
 fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id ID) []record.ProductOptionCreateParams {
@@ -269,20 +286,6 @@ fn (p ProductCreateParams) parse_option_value_translations(parsed_values []recor
 				}
 			}
 			value_index++
-		}
-	}
-	return res
-}
-
-fn (p ProductCreateParams) parse_translations(product_id ID, translations []ProductTranslationCreateParams) []record.ProductTranslationCreateParams {
-	mut res := []record.ProductTranslationCreateParams{len: 0, cap: translations.len}
-	for _, translation in translations {
-		res << record.ProductTranslationCreateParams{
-			product_id:  product_id
-			locale_id:   translation.locale_id
-			title:       translation.title
-			subtitle:    translation.subtitle
-			description: translation.description
 		}
 	}
 	return res
@@ -622,6 +625,7 @@ fn (p ProductCreateParams) parse_variant_images(
 	return res
 }
 
+// TODO all checks
 pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
 	p.check_handle(mut tx)!
 
@@ -629,6 +633,13 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	product := p.parse_product(product_id)
 	record.product_create(mut tx, product) or {
 		return errors.internal('Failed to create product', err.msg())
+	}
+
+	if translations := p.translations {
+		t := parse_product_translations(product_id, translations)
+		record.product_translation_create(mut tx, t) or {
+			return errors.internal('Failed to update product translations', err.msg())
+		}
 	}
 
 	seo := p.parse_seo(mut g, product_id)
@@ -699,13 +710,6 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 		return errors.internal('Failed to update product_sales_channel', err.msg())
 	}
 
-	if translations := p.translations {
-		t := p.parse_translations(product_id, translations)
-		record.product_translation_create(mut tx, t) or {
-			return errors.internal('Failed to update product translations', err.msg())
-		}
-	}
-
 	if _ := p.images {
 		images := p.parse_images(mut g)!
 		record.image_create(mut tx, images) or {
@@ -748,6 +752,242 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	}
 
 	return product_id
+}
+
+pub struct ProductImageUpdateParams {
+pub:
+	id           ?ID
+	url          ?string
+	alt          ?string
+	translations ?[]ImageTranslationCreateParams
+}
+
+pub struct ProductOptionValueUpdateParams {
+pub:
+	id           ?ID
+	name         ?string
+	translations ?[]ProductOptionValueTranslationCreateParams
+}
+
+pub struct ProductOptionUpdateParams {
+pub:
+	id           ?ID
+	title        ?string
+	values       ?[]ProductOptionValueUpdateParams
+	translations ?[]ProductOptionTranslationCreateParams
+}
+
+pub struct ProductVariantUpdateParams {
+pub:
+	id             ?ID
+	product_id     ID
+	title          ?string
+	ean            ?string
+	upc            ?string
+	barcode        ?string
+	metadata       ?string
+	option_values  ?[]i32
+	inventory_item ?InventoryItemUpdateParams
+	money_amounts  ?[]VariantMoneyAmountUpdateParams
+	image          ?i32
+}
+
+pub struct ProductUpdateParams {
+pub:
+	id                ID
+	title             ?string
+	subtitle          ?string
+	description       ?string
+	handle            ?string
+	is_giftcard       ?bool
+	status            ?string
+	discountable      ?bool
+	metadata          ?string
+	sales_channel_ids ?[]ID
+	category_ids      ?[]ID
+	translations      ?[]ProductTranslationCreateParams
+	thumbnail         ?i32
+	images            ?[]ProductImageUpdateParams
+	seo               ?SEOParams
+	options           ?[]ProductOptionUpdateParams
+	variants          ?[]VariantUpdateParams
+	// type_id           ?ID
+	// tag_ids           ?[]ID
+}
+
+fn (p ProductUpdateParams) check_handle(mut tx firebird.ClientTransaction) ! {
+	handle := p.handle or { return }
+	check_product_handle(mut tx, handle)!
+}
+
+fn (p ProductUpdateParams) parse_product() record.ProductUpdateParams {
+	return record.ProductUpdateParams{
+		id:           p.id
+		title:        p.title
+		subtitle:     p.subtitle
+		description:  p.description
+		handle:       p.handle
+		is_giftcard:  p.is_giftcard
+		status:       p.status
+		discountable: p.discountable
+		metadata:     p.metadata
+		// type_id:      p.type_id
+	}
+}
+
+fn (p ProductUpdateParams) parse_seo(mut tx firebird.ClientTransaction, seo SEOParams) !record.SEOUpdateParams {
+	seos := record.product_seo_retrieve(mut tx, [p.id]) or {
+		return errors.internal('Failed to retrieve seo', err.msg())
+	}
+
+	if seos.len == 0 {
+		return errors.internal(errors.database_malformed,
+			'Missing seo for product with id `${p.id.string()}`')
+	}
+
+	current := seos[0]
+
+	return record.SEOUpdateParams{
+		id:          current.id
+		title:       common.unwrap_option_or_option(seo.title, current.title)
+		description: common.unwrap_option_or_option(seo.description, current.description)
+	}
+}
+
+// 	images
+// 	thumbnail_id
+// 	sales_channel_ids
+// 	category_ids
+// 	options
+// 	option_translations
+// 	option_values
+// 	option_value_translations
+// 	option_value_variant
+// 	variants
+// 	inventory_items
+// 	variant_money_amounts
+
+pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) ! {
+	p.check_handle(mut tx)!
+	check_product_id_exists(mut tx, p.id)!
+
+	// always update the product row for `updated_at`
+	product := p.parse_product()
+	record.product_update(mut tx, product) or {
+		return errors.internal('Failed to update product', err.msg())
+	}
+
+	if translations := p.translations {
+		record.product_translation_delete(mut tx, p.id) or {
+			return errors.internal('Failed to delete product translations', err.msg())
+		}
+
+		if translations.len > 0 {
+			t := parse_product_translations(p.id, translations)
+			record.product_translation_create(mut tx, t) or {
+				return errors.internal('Failed to create product translations', err.msg())
+			}
+		}
+	}
+
+	if seo := p.seo {
+		s := p.parse_seo(mut tx, seo)!
+		record.seo_update(mut tx, s) or {
+			return errors.internal('Could not update seo', err.msg())
+		}
+
+		if translations := seo.translations {
+			record.product_seo_translations_delete(mut tx, p.id) or {
+				return errors.internal('Failed to delete seo translations', err.msg())
+			}
+
+			if translations.len > 0 {
+				t := parse_seo_translations(s.id, translations)
+				record.seo_translations_create(mut tx, t)!
+			}
+		}
+	}
+
+	if images := p.images {
+		product_images_update(mut tx, p.product.id, images)!
+	}
+
+	if thumbnail_id := p.thumbnail_id {
+		record.product_thumbnail_update(mut tx, p.product.id, thumbnail_id) or {
+			return errors.internal('Failed to update product thumbnail', err.msg())
+		}
+	}
+
+	if sales_channel_ids := p.sales_channel_ids {
+		record.product_sales_channel_update(mut tx, p.product.id, sales_channel_ids) or {
+			return errors.internal('Failed to update product sales channel', err.msg())
+		}
+	}
+
+	if category_ids := p.category_ids {
+		record.category_product_update(mut tx, p.product.id, category_ids) or {
+			return errors.internal('Failed to update product category relation', err.msg())
+		}
+	}
+
+	if options := p.options {
+		record.product_option_update(mut tx, options) or {
+			return errors.internal('Could not update product_option', err.msg())
+		}
+	}
+
+	if translations := p.option_translations {
+		record.product_option_translations_update(mut tx, translations) or {
+			return errors.internal('Could not update product_option_translations', err.msg())
+		}
+	}
+
+	if option_values := p.option_values {
+		record.product_option_value_update(mut tx, option_values) or {
+			return errors.internal('Could not update product_option_value', err.msg())
+		}
+	}
+
+	if translations := p.option_value_translations {
+		record.product_option_value_translations_update(mut tx, translations) or {
+			return errors.internal('Could not update option_value_translations', err.msg())
+		}
+	}
+
+	if variants := p.variants {
+		record.product_variant_update(mut tx, p.product.id, variants) or {
+			return errors.internal('Failed to update variants', err.msg())
+		}
+	}
+
+	if inventory_items := p.inventory_items {
+		record.inventory_item_update(mut tx, inventory_items) or {
+			return errors.internal('Failed to update inventory items', err.msg())
+		}
+
+		record.inventory_item_sync_delete(mut tx, p.product.id) or {
+			return errors.internal('Failed to delete inventory items', err.msg())
+		}
+	}
+
+	if option_value_variant := p.option_value_variant {
+		record.product_option_value_variant_update(mut tx, option_value_variant) or {
+			return errors.internal('Failed to update product_option_value_variant', err.msg())
+		}
+	}
+
+	if variant_money_amounts := p.variant_money_amounts {
+		record.variant_money_amount_update(mut tx, variant_money_amounts) or {
+			return errors.internal('Failed to update variant_money_amount', err.msg())
+		}
+	}
+}
+
+pub fn product_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
+	check_product_id_exists(mut tx, product_id)!
+	record.product_delete(mut tx, product_id) or {
+		return errors.internal('Failed to delete product', err.msg())
+	}
 }
 
 fn get_products_translations(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
@@ -981,168 +1221,4 @@ pub fn product_get_store(mut tx firebird.ClientTransaction, product_id ID, sales
 	get_products_options(mut tx, mut products_map, product_ids)!
 	get_products_variants(mut tx, mut products_map, product_ids)!
 	return products_map[product_id.string()]
-}
-
-pub struct ProductUpdateData {
-pub:
-	product                   record.ProductUpdateParams
-	translations              ?[]record.ProductTranslationCreateParams
-	seo                       ?record.SEOUpdateParams
-	seo_translations          ?[]record.SEOTranslationCreateParams
-	images                    ?[]record.ProductImageCreateParams
-	thumbnail_id              ?ID
-	sales_channel_ids         ?[]ID
-	category_ids              ?[]ID
-	options                   ?[]record.ProductOptionUpdateParams
-	option_translations       ?record.ProductOptionTranslationUpdateParams
-	option_values             ?[]record.ProductOptionValueUpdateParams
-	option_value_translations ?record.ProductOptionValueTranslationUpdateParams
-	option_value_variant      ?[]record.ProductOptionValueVariant
-	variants                  ?[]record.VariantUpdateParams
-	inventory_items           ?[]record.InventoryItemUpdateParams
-	variant_money_amounts     ?[]record.VariantMoneyAmountUpdateParams
-}
-
-fn product_translations_update(mut tx firebird.ClientTransaction, product_id ID, p []record.ProductTranslationCreateParams) ! {
-	record.product_translation_delete(mut tx, product_id) or {
-		return errors.internal('Failed to delete existing product_translation', err.msg())
-	}
-
-	if p.len > 0 {
-		record.product_translation_create(mut tx, p) or {
-			return errors.internal('Failed to create product_translation', err.msg())
-		}
-	}
-}
-
-fn product_seo_translations_update(mut tx firebird.ClientTransaction, product_id ID, p []record.SEOTranslationCreateParams) ! {
-	record.product_seo_translations_delete(mut tx, product_id) or {
-		return errors.internal('Could not delete seo_translations', err.msg())
-	}
-
-	if p.len > 0 {
-		record.seo_translations_create(mut tx, p) or {
-			return errors.internal('Could not update seo_translations', err.msg())
-		}
-	}
-}
-
-fn product_images_update(mut tx firebird.ClientTransaction, product_id ID, images []record.ProductImageCreateParams) ! {
-	record.product_thumbnail_delete(mut tx, product_id) or {
-		return errors.internal('Failed to delete product thumbnail', err.msg())
-	}
-
-	record.product_image_delete(mut tx, product_id) or {
-		return errors.internal('Failed to delete product images', err.msg())
-	}
-
-	if images.len > 0 {
-		record.product_image_update(mut tx, product_id, images) or {
-			return errors.internal('Failed to update product images', err.msg())
-		}
-	}
-}
-
-pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateData) ! {
-	check_product_id_exists(mut tx, p.product.id)!
-
-	// always update the product row for `updated_at`
-	record.product_update(mut tx, p.product) or {
-		return errors.internal('Failed to update product', err.msg())
-	}
-
-	if translations := p.translations {
-		product_translations_update(mut tx, p.product.id, translations)!
-	}
-
-	if seo := p.seo {
-		record.seo_update(mut tx, seo) or {
-			return errors.internal('Could not update seo', err.msg())
-		}
-	}
-
-	if translations := p.seo_translations {
-		product_seo_translations_update(mut tx, p.product.id, translations)!
-	}
-
-	if images := p.images {
-		product_images_update(mut tx, p.product.id, images)!
-	}
-
-	if thumbnail_id := p.thumbnail_id {
-		record.product_thumbnail_update(mut tx, p.product.id, thumbnail_id) or {
-			return errors.internal('Failed to update product thumbnail', err.msg())
-		}
-	}
-
-	if sales_channel_ids := p.sales_channel_ids {
-		record.product_sales_channel_update(mut tx, p.product.id, sales_channel_ids) or {
-			return errors.internal('Failed to update product sales channel', err.msg())
-		}
-	}
-
-	if category_ids := p.category_ids {
-		record.category_product_update(mut tx, p.product.id, category_ids) or {
-			return errors.internal('Failed to update product category relation', err.msg())
-		}
-	}
-
-	if options := p.options {
-		record.product_option_update(mut tx, options) or {
-			return errors.internal('Could not update product_option', err.msg())
-		}
-	}
-
-	if translations := p.option_translations {
-		record.product_option_translations_update(mut tx, translations) or {
-			return errors.internal('Could not update product_option_translations', err.msg())
-		}
-	}
-
-	if option_values := p.option_values {
-		record.product_option_value_update(mut tx, option_values) or {
-			return errors.internal('Could not update product_option_value', err.msg())
-		}
-	}
-
-	if translations := p.option_value_translations {
-		record.product_option_value_translations_update(mut tx, translations) or {
-			return errors.internal('Could not update option_value_translations', err.msg())
-		}
-	}
-
-	if variants := p.variants {
-		record.product_variant_update(mut tx, p.product.id, variants) or {
-			return errors.internal('Failed to update variants', err.msg())
-		}
-	}
-
-	if inventory_items := p.inventory_items {
-		record.inventory_item_update(mut tx, inventory_items) or {
-			return errors.internal('Failed to update inventory items', err.msg())
-		}
-
-		record.inventory_item_sync_delete(mut tx, p.product.id) or {
-			return errors.internal('Failed to delete inventory items', err.msg())
-		}
-	}
-
-	if option_value_variant := p.option_value_variant {
-		record.product_option_value_variant_update(mut tx, option_value_variant) or {
-			return errors.internal('Failed to update product_option_value_variant', err.msg())
-		}
-	}
-
-	if variant_money_amounts := p.variant_money_amounts {
-		record.variant_money_amount_update(mut tx, variant_money_amounts) or {
-			return errors.internal('Failed to update variant_money_amount', err.msg())
-		}
-	}
-}
-
-pub fn product_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
-	check_product_id_exists(mut tx, product_id)!
-	record.product_delete(mut tx, product_id) or {
-		return errors.internal('Failed to delete product', err.msg())
-	}
 }

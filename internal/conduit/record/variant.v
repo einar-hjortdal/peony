@@ -359,7 +359,7 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 
 	query := 'MERGE INTO variant t
 		USING (${get_merge_source(src)}) s
-		ON s.id = t.id
+		ON s.id = t.id AND s.product_id = t.product_id
 		WHEN MATCHED THEN UPDATE
 			SET
 				updated_at = CURRENT_TIMESTAMP,

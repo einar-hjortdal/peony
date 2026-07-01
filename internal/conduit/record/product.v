@@ -391,16 +391,15 @@ pub fn product_create(mut tx firebird.ClientTransaction, p ProductCreateParams) 
 pub struct ProductUpdateParams {
 pub:
 	id           ID
-	title        string
-	subtitle     string
-	description  string
-	handle       string
-	is_giftcard  bool
-	status       string
-	type_id      string
-	type_id_bin  []u8
-	discountable bool
-	metadata     string
+	title        ?string
+	subtitle     ?string
+	description  ?string
+	handle       ?string
+	is_giftcard  ?bool
+	status       ?string
+	type_id      ?ID
+	discountable ?bool
+	metadata     ?string
 }
 
 pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) ! {
@@ -408,43 +407,65 @@ pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) 
 		return error('Invalid product_id in ProductUpdateParams: `${p.id}`')
 	}
 
-	if p.handle == '' {
-		return error('Invalid handle in ProductUpdateParams: `${p.handle}`')
-	}
+	mut columns := []string{len: 0, cap: 9}
+	mut params := []firebird.Value{len: 0, cap: 10, init: firebird.Null{}}
 
-	if p.title == '' {
-		return error('Invalid title in ProductUpdateParams: `${p.title}`')
-	}
-
-	columns := [
-		'handle',
-		'title',
-		'subtitle',
-		'description',
-		'is_giftcard',
-		'status',
-		'type_id',
-		'discountable',
-		'metadata',
-	]
 	query := 'UPDATE product SET ${get_set_columns_with_updated_at(columns)} WHERE product.id = ?'
 
-	mut params := []firebird.Value{len: 10, init: firebird.Null{}}
+	if handle := p.handle {
+		if handle == '' {
+			return error('Invalid handle in ProductUpdateParams: `${p.handle}`')
+		}
 
-	params[0] = p.handle
-	params[1] = p.title
-	params[2] = p.subtitle
-	params[3] = p.description
-	params[4] = p.is_giftcard
-	params[5] = p.status
-
-	if p.type_id_bin.len > 0 {
-		params[6] = p.type_id_bin
+		columns << 'handle'
+		params << handle
 	}
 
-	params[7] = p.discountable
-	params[8] = p.metadata
-	params[9] = p.id.bytes()
+	if title := p.title {
+		if title == '' {
+			return error('Invalid title in ProductUpdateParams: `${p.title}`')
+		}
+
+		columns << 'title'
+		params << title
+	}
+
+	if subtitle := p.subtitle {
+		columns << 'subtitle'
+		params << subtitle
+	}
+
+	if description := p.description {
+		columns << 'description'
+		params << description
+	}
+
+	if is_giftcard := p.is_giftcard {
+		columns << 'is_giftcard'
+		params << is_giftcard
+	}
+
+	if status := p.status {
+		columns << 'status'
+		params << status
+	}
+
+	if type_id := p.type_id {
+		columns << 'type_id'
+		params << type_id.bytes()
+	}
+
+	if discountable := p.discountable {
+		columns << 'discountable'
+		params << discountable
+	}
+
+	if metadata := p.metadata {
+		columns << 'metadata'
+		params << metadata
+	}
+
+	params << p.id.bytes()
 
 	tx.execute(query, ...params)!
 }

@@ -291,7 +291,7 @@ pub:
 	translations ?map[string]ImageTranslationRequest
 }
 
-fn (p ProductImageCreateRequest) hygienise() !conduit.ProductImageCreateParams {
+fn (p ProductImageCreateRequest) hygienise() !conduit.ImageCreateParams {
 	if alt := p.alt {
 		if utf8_str_visible_length(alt) > max_length_alt {
 			return errors.bad_request(error_field_too_long,
@@ -304,7 +304,7 @@ fn (p ProductImageCreateRequest) hygienise() !conduit.ProductImageCreateParams {
 		translations = hygienise_image_translations(ts)!
 	}
 
-	return conduit.ProductImageCreateParams{
+	return conduit.ImageCreateParams{
 		url:          p.url
 		alt:          p.alt
 		translations: translations
@@ -2057,6 +2057,22 @@ fn (p ProductCreateRequest) hygienise_product_options(options []ProductOptionCre
 	return res
 }
 
+fn (p ProductCreateRequest) hygienise_product_variants(variants []ProductVariantCreateRequest) ![]conduit.ProductVariantCreateParams {
+	mut res := []conduit.ProductVariantCreateParams{len: 0, cap: variants.len}
+	for _, variant in variants {
+		res << variant.hygienise()!
+	}
+	return res
+}
+
+fn (p ProductCreateRequest) hygienise_product_images(images []ProductImageCreateRequest) ![]conduit.ImageCreateParams {
+	mut res := []conduit.ImageCreateParams{len: 0, cap: images.len}
+	for _, image in images {
+		res << image.hygienise()!
+	}
+	return res
+}
+
 // the request could contain one variant and no options, in which case a default option is created.
 // the request may contain one variant and one option. In this case, references must be verified.
 fn (p ProductCreateRequest) validate_one_variant_case() ! {
@@ -2257,12 +2273,12 @@ fn (p ProductCreateRequest) hygienise() !conduit.ProductCreateParams {
 
 	mut variants := ?[]conduit.ProductVariantCreateParams(none)
 	if v := p.variants {
-		variants = hygienise_product_variants(v)!
+		variants = p.hygienise_product_variants(v)!
 	}
 
-	mut images := ?[]ImageCreateParams(none)
+	mut images := ?[]conduit.ImageCreateParams(none)
 	if i := p.images {
-		images = hygienise_product_images(i)
+		images = p.hygienise_product_images(i)!
 	}
 
 	return conduit.ProductCreateParams{
