@@ -251,10 +251,6 @@ pub fn product_option_retrieve(mut tx firebird.ClientTransaction, product_ids []
 
 	rows := data.rows()
 
-	if rows.len == 0 {
-		return []ProductOption{}
-	}
-
 	mut options := []ProductOption{len: rows.len}
 	for i := 0; i < rows.len; i++ {
 		v := rows[i].values()

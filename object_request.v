@@ -250,6 +250,57 @@ fn hygienise_image_translations(p map[string]ImageTranslationRequest) ![]conduit
 	return res
 }
 
+// ImageCreateRequest describes the body of the request to create a new image.
+//
+// # Fields
+//
+// ## url
+// Image source URL. This field is required.
+//
+// ## alt
+// Alternative text for the image. If omitted, no alt text is set.
+//
+// ## translations
+// Localized versions of image fields. The keys of the map are the locale id.
+pub struct ImageCreateRequest {
+pub:
+	url          string
+	alt          ?string
+	translations ?map[string]ImageTranslationRequest
+}
+
+fn (p ImageCreateRequest) hygienise() !conduit.ImageCreateParams {
+	if alt := p.alt {
+		if utf8_str_visible_length(alt) > max_length_alt {
+			return errors.bad_request(error_field_too_long,
+				'alt can be at most ${max_length_alt} UTF8 characters long')
+		}
+	}
+
+	mut translations := ?[]conduit.ImageTranslationCreateParams(none)
+	if ts := p.translations {
+		translations = hygienise_image_translations(ts)!
+	}
+
+	return conduit.ImageCreateParams{
+		url:          p.url
+		alt:          p.alt
+		translations: translations
+	}
+}
+
+// ImageUpdateRequest describes the body of the request to update an image.
+//
+// # Fields
+//
+// ## url
+// Image source URL. This field is required.
+//
+// ## alt
+// Alternative text for the image. If omitted, no alt text is set.
+//
+// ## translations
+// Localized versions of image fields. The keys of the map are the locale id.
 pub struct ImageUpdateRequest {
 pub:
 	url          ?string
@@ -266,45 +317,6 @@ fn (p ImageUpdateRequest) hygienise(image_id ID) !conduit.ImageUpdateParams {
 
 	return conduit.ImageUpdateParams{
 		id:           image_id
-		url:          p.url
-		alt:          p.alt
-		translations: translations
-	}
-}
-
-// ProductImageCreateRequest describes the body of the request to create a new image in a product create.
-//
-// # Fields
-//
-// ## url
-// Image source URL. This field is required.
-//
-// ## alt
-// Alternative text for the image. If omitted, no alt text is set.
-//
-// ## translations
-// Localized versions of image fields. The keys of the map are the locale id.
-pub struct ProductImageCreateRequest {
-pub:
-	url          string
-	alt          ?string
-	translations ?map[string]ImageTranslationRequest
-}
-
-fn (p ProductImageCreateRequest) hygienise() !conduit.ImageCreateParams {
-	if alt := p.alt {
-		if utf8_str_visible_length(alt) > max_length_alt {
-			return errors.bad_request(error_field_too_long,
-				'alt can be at most ${max_length_alt} UTF8 characters long')
-		}
-	}
-
-	mut translations := ?[]conduit.ImageTranslationCreateParams(none)
-	if ts := p.translations {
-		translations = hygienise_image_translations(ts)!
-	}
-
-	return conduit.ImageCreateParams{
 		url:          p.url
 		alt:          p.alt
 		translations: translations
@@ -1888,7 +1900,7 @@ pub:
 	options           ?[]ProductOptionCreateRequest
 	variants          ?[]ProductVariantCreateRequest
 	thumbnail         ?i32
-	images            ?[]ProductImageCreateRequest
+	images            ?[]ImageCreateRequest
 	// type_id           ?string @[json: 'typeId']
 	// tag_ids           ?[]string @[json: 'tagIds']
 }
@@ -2047,7 +2059,6 @@ fn (p ProductCreateRequest) hygienise_product_options(options []ProductOptionCre
 		}
 
 		res << conduit.ProductOptionCreateParams{
-			option_rank:  i32(option_rank)
 			title:        option.title
 			values:       values
 			translations: translations
@@ -2065,7 +2076,7 @@ fn (p ProductCreateRequest) hygienise_product_variants(variants []ProductVariant
 	return res
 }
 
-fn (p ProductCreateRequest) hygienise_product_images(images []ProductImageCreateRequest) ![]conduit.ImageCreateParams {
+fn (p ProductCreateRequest) hygienise_product_images(images []ImageCreateRequest) ![]conduit.ImageCreateParams {
 	mut res := []conduit.ImageCreateParams{len: 0, cap: images.len}
 	for _, image in images {
 		res << image.hygienise()!
@@ -2386,7 +2397,7 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?map[string]ProductTranslationRequest
 	thumbnail         ?i32
-	images            ?[]ProductImageUpdateRequest
+	images            ?[]ImageUpdateRequest
 	seo               ?SEORequest
 	options           ?[]ProductOptionUpdateRequest
 	variants          ?[]ProductVariantUpdateRequest
@@ -2394,7 +2405,7 @@ pub:
 	// tag_ids           ?[]string @[json: 'tagIds']
 }
 
-fn (p ProductUpdateRequest) hygienise(product_id ID) !ProductUpdateRequestHygienised {
+fn (p ProductUpdateRequest) hygienise(product_id ID) !conduit.ProductUpdateParams {
 	if title := p.title {
 		if title == '' {
 			return errors.unprocessable_entity(error_field_empty, 'title')
@@ -2512,7 +2523,8 @@ fn (p ProductUpdateRequest) hygienise(product_id ID) !ProductUpdateRequestHygien
 		}
 	}
 
-	mut ph := ProductUpdateRequestHygienised{
+	mut ph := conduit.ProductUpdateParams{
+		id:                product_id
 		title:             p.title
 		subtitle:          p.subtitle
 		description:       p.description

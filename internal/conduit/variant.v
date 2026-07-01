@@ -198,7 +198,6 @@ fn (p VariantCreateParams) parse_variant(variant_id ID) !record.VariantCreatePar
 	return record.VariantCreateParams{
 		id:           variant_id
 		product_id:   p.product_id
-		image_id:     p.image_id
 		title:        p.title
 		barcode:      p.barcode
 		ean:          p.ean
@@ -304,7 +303,16 @@ pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	money_amounts := p.parse_money_amounts(mut tx, mut g, variant_id)!
 
 	record.variant_create(mut tx, [variant]) or {
-		return errors.internal('Could not create product_variant', err.msg())
+		return errors.internal('Could not create variant', err.msg())
+	}
+
+	if image_id := p.image_id {
+		record.variant_image_update(mut tx, [
+			record.VariantImage{
+				variant_id: variant_id
+				image_id:   image_id
+			},
+		]) or { return errors.internal('Could not set variant image', err.msg()) }
 	}
 
 	record.product_option_value_variant_update(mut tx, option_values) or {
@@ -389,7 +397,6 @@ fn (p VariantUpdateParams) parse_variant(mut tx firebird.ClientTransaction) !rec
 	return record.VariantUpdateParams{
 		id:           p.id
 		product_id:   current.product_id
-		image_id:     common.unwrap_option_or_option(p.image_id, current.image_id)
 		title:        common.unwrap_option_or_option(p.title, current.title)
 		barcode:      common.unwrap_option_or_option(p.barcode, current.barcode)
 		ean:          common.unwrap_option_or_option(p.ean, current.ean)
@@ -451,6 +458,15 @@ pub fn variant_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	variant := p.parse_variant(mut tx)!
 	record.variant_update(mut tx, variant) or {
 		return errors.internal('Could not update product_variant', err.msg())
+	}
+
+	if image_id := p.image_id {
+		record.variant_image_update(mut tx, [
+			record.VariantImage{
+				variant_id: p.id
+				image_id:   image_id
+			},
+		]) or { return errors.internal('Could not set variant image', err.msg()) }
 	}
 
 	if option_value_ids := p.option_value_ids {

@@ -317,7 +317,10 @@ fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id ID) 
 }
 
 // assumes options and variants are ordered (as returned by ProductCreateParams.parse_options and ProductCreateParams.parse_option_values)
-fn (p ProductCreateParams) parse_option_value_variants(parsed_variants []record.VariantCreateParams, parsed_options []record.ProductOptionCreateParams, parsed_option_values []record.ProductOptionValueCreateParams) ![]record.ProductOptionValueVariant {
+fn (p ProductCreateParams) parse_option_value_variants(
+	parsed_variants []record.VariantCreateParams,
+	parsed_options []record.ProductOptionCreateParams,
+	parsed_option_values []record.ProductOptionValueCreateParams) ![]record.ProductOptionValueVariant {
 	if parsed_variants.len == 0 {
 		return errors.internal('Expected at least one option',
 			'ProductCreateParams.parse_option_value_variants received empty parsed_variants array')
@@ -351,7 +354,7 @@ fn (p ProductCreateParams) parse_option_value_variants(parsed_variants []record.
 	for _, value in parsed_option_values {
 		option_index := option_id_to_index[value.option_id.string()]
 		if option_index !in option_index_value_ids {
-			option_index_value_ids[option_index] = []ID{len: 0, cap: 4} // TODO sane default, use const
+			option_index_value_ids[option_index] = []ID{len: 0, cap: 4} // TODO scan for n
 		}
 		option_index_value_ids[option_index] << value.id
 	}
@@ -810,7 +813,7 @@ pub:
 	images            ?[]ProductImageUpdateParams
 	seo               ?SEOParams
 	options           ?[]ProductOptionUpdateParams
-	variants          ?[]VariantUpdateParams
+	variants          ?[]ProductVariantUpdateParams
 	// type_id           ?ID
 	// tag_ids           ?[]ID
 }
@@ -854,24 +857,221 @@ fn (p ProductUpdateParams) parse_seo(mut tx firebird.ClientTransaction, seo SEOP
 	}
 }
 
-// 	images
+fn (p ProductUpdateParams) parse_options(
+	mut tx firebird.ClientTransaction, mut g luuid.Generator) ![]record.ProductOptionUpdateParams {
+	options := p.options or {
+		return errors.internal('failed to parse product options', '
+			ProductUpdateParams.parse_options was used when p.options was none')
+	}
+
+	current_options := record.product_option_retrieve(mut tx, [p.id]) or {
+		return errors.internal('failed to retrieve product_option', err.msg())
+	}
+
+	current_map, _ := common.make_identifiable_map(current_options)
+
+	mut res := []record.ProductOptionUpdateParams{len: 0, cap: options.len}
+	for option_rank, option in options {
+		option_id := option.id or {
+			title := option.title or {
+				return errors.internal('failed to parse product options',
+					'ProductUpdateParams.parse_options detected a new option with title == none')
+			}
+
+			res << record.ProductOptionUpdateParams{
+				id:          common.new_id(mut g)
+				product_id:  p.id
+				option_rank: i32(option_rank)
+				title:       title
+			}
+			continue
+		}
+
+		current := current_map[option_id.string()]
+		res << record.ProductOptionUpdateParams{
+			id:          option_id
+			product_id:  p.id
+			option_rank: i32(option_rank)
+			title:       common.unwrap_option_or(option.title, current.title)
+		}
+	}
+	return res
+}
+
+// TODO option translations
+
+fn (p ProductUpdateParams) updates_option_values() bool {
+	options := p.options or { return false }
+	for _, option in options {
+		if option.values != none { return true }
+	}
+	return false
+}
+
+fn (p ProductUpdateParams) parse_option_values(
+	mut tx firebird.ClientTransaction,
+	mut g luuid.Generator,
+	parsed_options []record.ProductOptionUpdateParams) ![]record.ProductOptionValueUpdateParams {
+	options := p.options or {
+		return errors.internal('failed to parse product option values', '
+			ProductUpdateParams.parse_options was used when p.options was none')
+	}
+
+	current_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
+		product_ids: [p.id]
+	}) or { return errors.internal('failed to retrieve option values', err.msg()) }
+
+	current_map, _ := common.make_identifiable_map(current_values)
+
+	mut n_values := 0
+	for _, option in options {
+		if values := option.values {
+			n_values += values.len
+		}
+	}
+
+	mut res := []record.ProductOptionValueUpdateParams{len: 0, cap: n_values}
+	for option_rank, option in options {
+		values := option.values or { continue }
+		parsed_option := parsed_options[option_rank]
+		for value_rank, value in values {
+			value_id := value.id or {
+				name := value.name or {
+					return errors.internal('failed to parse product option values',
+						'ProductUpdateParams.parse_option_values detected a new option value with name == none')
+				}
+
+				res << record.ProductOptionValueUpdateParams{
+					id:         common.new_id(mut g)
+					option_id:  parsed_option.id
+					value_rank: i32(value_rank)
+					name:       name
+				}
+				continue
+			}
+
+			current := current_map[value_id.string()]
+			res << record.ProductOptionValueUpdateParams{
+				id:         value_id
+				option_id:  parsed_option.id
+				value_rank: i32(value_rank)
+				name:       common.unwrap_option_or(value.name, current.name)
+			}
+		}
+	}
+	return res
+}
+
+// TODO value translations
+
+fn (p ProductUpdateParams) parse_variants(
+	mut tx firebird.ClientTransaction,
+	mut g luuid.Generator) ![]record.VariantUpdateParams {
+	variants := p.variants or {
+		return errors.internal('failed to parse variants', '
+			ProductUpdateParams.parse_variants was used when p.variants was none')
+	}
+
+	current_variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
+		product_ids:  [p.id]
+		with_deleted: false
+		offset:       offset_default
+		fetch:        max_fetch
+		order:        order_default
+	}) or { return errors.internal('failed to retrieve variants', err.msg()) }
+
+	current_map, _ := common.make_identifiable_map(current_variants)
+
+	mut res := []record.VariantUpdateParams{len: 0, cap: variants.len}
+	for variant_rank, variant in variants {
+		variant_id := variant.id or {
+			res << record.VariantUpdateParams{
+				id:           common.new_id(mut g)
+				product_id:   p.id
+				title:        variant.title
+				barcode:      variant.barcode
+				ean:          variant.ean
+				upc:          variant.upc
+				variant_rank: i32(variant_rank)
+				metadata:     variant.metadata
+			}
+			continue
+		}
+
+		current := current_map[variant_id.string()]
+		res << record.VariantUpdateParams{
+			id:           variant_id
+			product_id:   p.id
+			title:        common.unwrap_option_or_option(variant.title, current.title)
+			barcode:      common.unwrap_option_or_option(variant.barcode, current.barcode)
+			ean:          common.unwrap_option_or_option(variant.ean, current.ean)
+			upc:          common.unwrap_option_or_option(variant.upc, current.upc)
+			variant_rank: i32(variant_rank)
+			metadata:     common.unwrap_option_or_option(variant.metadata, current.metadata)
+		}
+	}
+	return res
+}
+
+fn (p ProductUpdateParams) updates_option_value_variants() bool {
+	variants := p.variants or { return false }
+	for _, variant in variants {
+		if variant.option_values != none {
+			return true
+		}
+	}
+	return false
+}
+
+fn (p ProductUpdateParams) parse_option_value_variants(
+	variant_ids []ID,
+	parsed_options []record.ProductOptionUpdateParams,
+	parsed_option_values []record.ProductOptionValueUpdateParams) ![]record.ProductOptionValueVariant {
+	variants := p.variants or {
+		return errors.internal('failed to parse option value variant relations', '
+			ProductUpdateParams.parse_option_value_variants was used when p.variants was none')
+	}
+
+	mut option_id_to_rank := map[string]i32{}
+	for _, option in parsed_options {
+		option_id_to_rank[option.id.string()] = option.option_rank
+	}
+
+	mut option_rank_value_ids := map[i32][]ID{}
+	for _, value in parsed_option_values {
+		option_index := option_id_to_rank[value.option_id.string()]
+		if option_index !in option_rank_value_ids {
+			option_rank_value_ids[option_index] = []ID{len: 0, cap: 4} // TODO scan for n
+		}
+		option_rank_value_ids[option_index] << value.id
+	}
+
+	mut res := []record.ProductOptionValueVariant{len: 0, cap: variants.len * parsed_options.len}
+	for variant_rank, variant in variants {
+		option_values := variant.option_values or { continue }
+		variant_id := variant_ids[variant_rank]
+		for option_rank, value_rank in option_values {
+			res << record.ProductOptionValueVariant{
+				option_value_id: option_rank_value_ids[option_rank][value_rank]
+				variant_id:      variant_id
+			}
+		}
+	}
+	return res
+}
+
 // 	thumbnail_id
-// 	sales_channel_ids
-// 	category_ids
-// 	options
 // 	option_translations
-// 	option_values
 // 	option_value_translations
-// 	option_value_variant
-// 	variants
+// 	variant image
+// 	images
 // 	inventory_items
 // 	variant_money_amounts
 
-pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) ! {
+pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductUpdateParams) ! {
 	p.check_handle(mut tx)!
 	check_product_id_exists(mut tx, p.id)!
 
-	// always update the product row for `updated_at`
 	product := p.parse_product()
 	record.product_update(mut tx, product) or {
 		return errors.internal('Failed to update product', err.msg())
@@ -908,55 +1108,68 @@ pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) 
 		}
 	}
 
-	if images := p.images {
-		product_images_update(mut tx, p.product.id, images)!
+	mut variant_ids := []ID{}
+	if p.variants != none {
+		parsed_variants := p.parse_variants(mut tx, mut g)!
+		record.product_variant_update(mut tx, p.id, parsed_variants) or {
+			return errors.internal('failed to update variant', err.msg())
+		}
+
+		variant_ids = []ID{len: 0, cap: parsed_variants.len}
+		for _, variant in parsed_variants {
+			variant_ids << variant.id
+		}
+	} else {
+		current_variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
+			product_ids:  [p.id]
+			with_deleted: false
+			offset:       offset_default
+			fetch:        max_fetch
+			order:        order_default
+		}) or { return errors.internal('failed to retrieve variants', err.msg()) }
+
+		variant_ids = []ID{len: 0, cap: current_variants.len}
+		for _, variant in current_variants {
+			variant_ids << variant.id
+		}
 	}
 
-	if thumbnail_id := p.thumbnail_id {
-		record.product_thumbnail_update(mut tx, p.product.id, thumbnail_id) or {
-			return errors.internal('Failed to update product thumbnail', err.msg())
+	if p.options != none {
+		parsed_options := p.parse_options(mut tx, mut g)!
+		record.product_option_update(mut tx, parsed_options) or {
+			return errors.internal('Could not update product_option', err.msg())
+		}
+
+		// TODO translations
+
+		if p.updates_option_values() {
+			parsed_option_values := p.parse_option_values(mut tx, mut g, parsed_options)!
+			record.product_option_value_update(mut tx, parsed_option_values) or {
+				return errors.internal('Could not update product_option_value', err.msg())
+			}
+
+			// TODO translations
+
+			if p.updates_option_value_variants() {
+				option_value_variants := p.parse_option_value_variants(variant_ids, parsed_options,
+					parsed_option_values)!
+				record.product_option_value_variant_update(mut tx, option_value_variants) or {
+					return errors.internal('Failed to update relations in product_option_value_variant',
+						err.msg())
+				}
+			}
 		}
 	}
 
 	if sales_channel_ids := p.sales_channel_ids {
-		record.product_sales_channel_update(mut tx, p.product.id, sales_channel_ids) or {
+		record.product_sales_channel_update(mut tx, p.id, sales_channel_ids) or {
 			return errors.internal('Failed to update product sales channel', err.msg())
 		}
 	}
 
 	if category_ids := p.category_ids {
-		record.category_product_update(mut tx, p.product.id, category_ids) or {
+		record.category_product_update(mut tx, p.id, category_ids) or {
 			return errors.internal('Failed to update product category relation', err.msg())
-		}
-	}
-
-	if options := p.options {
-		record.product_option_update(mut tx, options) or {
-			return errors.internal('Could not update product_option', err.msg())
-		}
-	}
-
-	if translations := p.option_translations {
-		record.product_option_translations_update(mut tx, translations) or {
-			return errors.internal('Could not update product_option_translations', err.msg())
-		}
-	}
-
-	if option_values := p.option_values {
-		record.product_option_value_update(mut tx, option_values) or {
-			return errors.internal('Could not update product_option_value', err.msg())
-		}
-	}
-
-	if translations := p.option_value_translations {
-		record.product_option_value_translations_update(mut tx, translations) or {
-			return errors.internal('Could not update option_value_translations', err.msg())
-		}
-	}
-
-	if variants := p.variants {
-		record.product_variant_update(mut tx, p.product.id, variants) or {
-			return errors.internal('Failed to update variants', err.msg())
 		}
 	}
 
@@ -973,12 +1186,6 @@ pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) 
 	if option_value_variant := p.option_value_variant {
 		record.product_option_value_variant_update(mut tx, option_value_variant) or {
 			return errors.internal('Failed to update product_option_value_variant', err.msg())
-		}
-	}
-
-	if variant_money_amounts := p.variant_money_amounts {
-		record.variant_money_amount_update(mut tx, variant_money_amounts) or {
-			return errors.internal('Failed to update variant_money_amount', err.msg())
 		}
 	}
 }

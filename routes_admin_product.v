@@ -73,8 +73,8 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 
 	p := encoded.hygienise(parsed_product_id) or { return ctx.handle_error(err) }
 
-	product := app.with_commit(fn [p, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
-		conduit.product_update(mut tx, p)!
+	product := app.with_commit(fn [mut app, p, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.Product {
+		conduit.product_update(mut tx, mut app.luuid_generator, p)!
 		return conduit.product_get(mut tx, parsed_product_id)
 	}) or { return ctx.handle_error(err) }
 
@@ -175,14 +175,15 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	decoded := json.decode(ProductImageCreateRequest, ctx.req.data) or {
+	decoded := json.decode(ImageCreateRequest, ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode ImageCreateRequest', err.msg()))
 	}
 
 	p := decoded.hygienise() or { return ctx.handle_error(err) }
 
 	image := app.with_commit(fn [mut app, p, parsed_product_id] (mut tx firebird.ClientTransaction) !conduit.ProductImage {
-		image_id := conduit.product_image_create(mut tx, mut app.luuid_generator, p)!
+		image_id := conduit.product_image_create(mut tx, mut app.luuid_generator,
+			parsed_product_id, p)!
 		return conduit.product_image_get(mut tx, parsed_product_id, image_id)
 	}) or { return ctx.handle_error(err) }
 

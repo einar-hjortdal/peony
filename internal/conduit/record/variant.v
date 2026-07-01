@@ -81,7 +81,7 @@ pub fn variant_retrieve_count(mut tx firebird.ClientTransaction, p VariantRetrie
 pub fn variant_retrieve(mut tx firebird.ClientTransaction, p VariantRetrieveParams) ![]Variant {
 	conditions, mut params := variant_retrieve_conditions(p)
 
-	mut sorting := 'ORDER BY c.created_at ${p.order}
+	mut sorting := 'ORDER BY variant_rank ${p.order}
 		OFFSET ? ROWS
 		FETCH NEXT ? ROWS ONLY'
 	params = arrays.concat(params, p.offset, p.fetch)

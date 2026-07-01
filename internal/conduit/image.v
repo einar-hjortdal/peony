@@ -30,13 +30,6 @@ pub:
 	translations ?[]ImageTranslationCreateParams
 }
 
-pub struct ProductImageCreateParams {
-	ImageCreateParams
-pub:
-	product_id ID
-	image_rank ?i32
-}
-
 pub fn product_image_get(mut tx firebird.ClientTransaction, product_id ID, image_id ID) !ProductImage {
 	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
 		image_ids:   [image_id]
@@ -51,7 +44,7 @@ pub fn product_image_get(mut tx firebird.ClientTransaction, product_id ID, image
 	return images[0]
 }
 
-pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductImageCreateParams) !ID {
+pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, product_id ID, p ImageCreateParams) !ID {
 	image_id := common.new_id(mut g)
 
 	record.image_create(mut tx, [
@@ -69,7 +62,7 @@ pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Gener
 		}
 	}
 
-	record.product_image_create_one(mut tx, p.product_id, image_id) or {
+	record.product_image_create_one(mut tx, product_id, image_id) or {
 		return errors.internal('Failed to create product_image', err.msg())
 	}
 
