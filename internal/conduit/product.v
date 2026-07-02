@@ -1060,6 +1060,77 @@ fn (p ProductUpdateParams) parse_option_value_variants(
 	return res
 }
 
+fn (p ProductUpdateParams) parse_images(
+	mut tx firebird.ClientTransaction,
+	mut g luuid.Generator) ![]record.ProductImageUpdateParams {
+	images := p.images or {
+		return errors.internal('failed to parse product images', '
+			ProductUpdateParams.parse_images was used when p.images was none')
+	}
+
+	current_images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
+		product_ids: [p.id]
+	}) or { return errors.internal('failed to retrieve product images', err.msg()) }
+
+	mut current_map := map[string]ProductImage{}
+	for _, image in current_images {
+		current_map[image.id.string()] = image
+	}
+
+	mut res := []record.ProductImageUpdateParams{len: 0, cap: images.len}
+	for image_rank, image in images {
+		image_id := image.id or {
+			url := image.url or {
+				return errors.internal('failed to parse product images',
+					'ProductUpdateParams.parse_images detected a new image with no url')
+			}
+
+			res << record.ProductImageUpdateParams{
+				id:         common.new_id(mut g)
+				url:        url
+				alt:        image.alt
+				image_rank: i32(image_rank)
+			}
+			continue
+		}
+
+		current := current_map[image_id.string()]
+		res << record.ProductImageUpdateParams{
+			id:         image_id
+			url:        common.unwrap_option_or(image.url, current.url)
+			alt:        common.unwrap_option_or_option(image.alt, current.alt)
+			image_rank: i32(image_rank)
+		}
+	}
+	return res
+}
+
+fn (p ProductUpdateParams) updates_inventory_items() bool {
+	variants := p.variants or { return false }
+	for _, variant in variants {
+		if variant.inventory_item != none {
+			return true
+		}
+	}
+	return false
+}
+
+fn (p ProductUpdateParams) parse_inventory_items(mut tx firebird.ClientTransaction) ![]record.InventoryItemUpdateParams {
+}
+
+fn (p ProductUpdateParams) updates_money_amounts() bool {
+	variants := p.variants or { return false }
+	for _, variant in variants {
+		if variant.money_amounts != none {
+			return true
+		}
+	}
+	return false
+}
+
+fn (p ProductUpdateParams) parse_money_amounts(mut g luuid.Generator) ![]record.VariantMoneyAmountUpdateParams {
+}
+
 // 	thumbnail_id
 // 	option_translations
 // 	option_value_translations
@@ -1108,18 +1179,31 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 		}
 	}
 
-	mut variant_ids := []ID{}
-	if p.variants != none {
-		parsed_variants := p.parse_variants(mut tx, mut g)!
-		record.product_variant_update(mut tx, p.id, parsed_variants) or {
-			return errors.internal('failed to update variant', err.msg())
+	mut image_ids := []ID{}
+	if p.images != none {
+		parsed_images := p.parse_images(mut tx, mut g)!
+		record.product_image_update(mut tx, p.id, parsed_images) or {
+			return errors.internal('failed to update product images', err.msg())
 		}
 
-		variant_ids = []ID{len: 0, cap: parsed_variants.len}
-		for _, variant in parsed_variants {
-			variant_ids << variant.id
+		image_ids = []ID{len: 0, cap: parsed_images.len}
+		for _, image in parsed_images {
+			image_ids << image.id
 		}
 	} else {
+		// TODO maybe I can encapsulate this in the variants update step, because I don't need to fetch images if no variants are updated
+		current_images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
+			product_ids: [p.id]
+		}) or { return errors.internal('failed to retrieve product images', err.msg()) }
+
+		image_ids = []ID{len: 0, cap: current_images.len}
+		for _, image in current_images {
+			image_ids << image.id
+		}
+	}
+
+	mut variant_ids := []ID{}
+	if p.variants == none {
 		current_variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 			product_ids:  [p.id]
 			with_deleted: false
@@ -1131,6 +1215,32 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 		variant_ids = []ID{len: 0, cap: current_variants.len}
 		for _, variant in current_variants {
 			variant_ids << variant.id
+		}
+	} else {
+		parsed_variants := p.parse_variants(mut tx, mut g)!
+		record.product_variant_update(mut tx, p.id, parsed_variants) or {
+			return errors.internal('failed to update variant', err.msg())
+		}
+
+		variant_ids = []ID{len: 0, cap: parsed_variants.len}
+		for _, variant in parsed_variants {
+			variant_ids << variant.id
+		}
+
+		// TODO variant image
+
+		if p.updates_inventory_items() {
+			inventory_items := p.parse_inventory_items(mut tx)!
+			record.inventory_item_update(mut tx, inventory_items) or {
+				return errors.internal('Failed to update inventory items', err.msg())
+			}
+		}
+
+		if p.updates_money_amounts() {
+			money_amounts := p.parse_money_amounts(mut g)!
+			record.variant_money_amount_update(mut tx, money_amounts) or {
+				return errors.internal('Failed to update inventory items', err.msg())
+			}
 		}
 	}
 
@@ -1170,22 +1280,6 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	if category_ids := p.category_ids {
 		record.category_product_update(mut tx, p.id, category_ids) or {
 			return errors.internal('Failed to update product category relation', err.msg())
-		}
-	}
-
-	if inventory_items := p.inventory_items {
-		record.inventory_item_update(mut tx, inventory_items) or {
-			return errors.internal('Failed to update inventory items', err.msg())
-		}
-
-		record.inventory_item_sync_delete(mut tx, p.product.id) or {
-			return errors.internal('Failed to delete inventory items', err.msg())
-		}
-	}
-
-	if option_value_variant := p.option_value_variant {
-		record.product_option_value_variant_update(mut tx, option_value_variant) or {
-			return errors.internal('Failed to update product_option_value_variant', err.msg())
 		}
 	}
 }

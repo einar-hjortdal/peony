@@ -572,21 +572,3 @@ pub fn inventory_item_delete(mut tx firebird.ClientTransaction, inventory_item_i
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		inventory_item_id.bytes())!
 }
-
-// used when updating variants within a product update
-pub fn inventory_item_sync_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
-	tx.execute('MERGE INTO inventory_item t
-		USING
-			(
-				SELECT 
-					id AS variant_id,
-					deleted_at
-				FROM variant
-				WHERE product_id = ?
-					AND deleted_at IS NOT NULL
-			) s
-		ON s.variant_id = t.variant_id
-		WHEN MATCHED AND t.deleted_at IS NULL THEN UPDATE 
-			SET t.deleted_at = s.deleted_at',
-		product_id.bytes())!
-}

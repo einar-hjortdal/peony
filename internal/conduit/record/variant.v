@@ -401,6 +401,21 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 	params = arrays.concat(params, product_id.bytes())
 
 	tx.execute(query, ...params)!
+
+	tx.execute('MERGE INTO inventory_item t
+		USING
+			(
+				SELECT 
+					id AS variant_id,
+					deleted_at
+				FROM variant
+				WHERE product_id = ?
+					AND deleted_at IS NOT NULL
+			) s
+		ON s.variant_id = t.variant_id
+		WHEN MATCHED AND t.deleted_at IS NULL THEN UPDATE 
+			SET t.deleted_at = s.deleted_at',
+		product_id.bytes())!
 }
 
 pub fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {

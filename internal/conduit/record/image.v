@@ -2,6 +2,7 @@ module record
 
 // import arrays
 import einar_hjortdal.firebird
+import arrays
 
 pub struct ImageTranslation {
 pub:
@@ -237,46 +238,28 @@ pub fn image_create(mut tx firebird.ClientTransaction, images []ImageCreateParam
 pub struct ImageUpdateParams {
 pub:
 	id  ID
-	url string
+	url ?string
 	alt ?string
 }
 
-// For use during product updates. Intended for manual diffs.
-pub fn image_update(mut tx firebird.ClientTransaction, images []ImageUpdateParams) ! {
-	mut src := []string{len: 0, cap: images.len}
-	n_params := 3
-	mut params := []firebird.Value{len: 0, cap: n_params * images.len, init: firebird.Null{}}
-	for _, image in images {
-		src << 'SELECT
-			CAST(? AS BINARY(16)),
-			CAST(? AS BLOB SUB_TYPE TEXT),
-			CAST(? AS VARCHAR(191))
-			FROM RDB\$DATABASE'
+// updates one image
+pub fn image_update(mut tx firebird.ClientTransaction, image ImageUpdateParams) ! {
+	mut columns := []string{len: 0, cap: 2}
+	mut params := []firebird.Value{len: 0, cap: 3, init: firebird.Null{}}
 
-		params << image.id.bytes()
-		params << image.url.clone()
-
-		if alt := image.alt {
-			if alt == '' {
-				params << firebird.Null{}
-			} else {
-				params << alt
-			}
-		} else {
-			params << firebird.Null{}
-		}
+	if url := image.url {
+		columns << 'url'
+		params << url
 	}
 
-	query := 'MERGE INTO image t
-		USING (${get_merge_source(src)}) s (id, url, alt)
-		ON t.id = s.id
-		WHEN MATCHED THEN
-			UPDATE SET t.url = s.url, t.alt = s.alt
-		WHEN NOT MATCHED THEN
-			INSERT (id, url, alt)
-			VALUES (s.id, s.url, s.alt)'
+	if alt := image.alt {
+		columns << 'alt'
+		params << alt
+	}
 
-	tx.execute(query, ...params)!
+	params << image.id.bytes()
+
+	tx.execute('UPDATE image SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }
 
 pub fn image_delete(mut tx firebird.ClientTransaction, image_ids []ID) ! {
@@ -333,6 +316,96 @@ pub fn product_image_create_one(mut tx firebird.ClientTransaction, product_id ID
 	tx.execute(query, product_id.bytes(), image_id.bytes(), product_id.bytes())!
 }
 
-pub fn product_image_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
-	tx.execute('DELETE FROM product_image WHERE product_id = ?', product_id.bytes())!
+pub struct ProductImageUpdateParams {
+pub:
+	id         ID
+	url        string
+	image_rank i32
+	alt        ?string
+}
+
+pub fn product_image_update(mut tx firebird.ClientTransaction, product_id ID, images []ProductImageUpdateParams) ! {
+	if images.len == 0 {
+		tx.execute('DELETE FROM image i WHERE EXISTS
+			(
+				SELECT 1 FROM product_image pi
+				WHERE pi.product_id = ?
+				AND pi.image_id = i.id
+			)',
+			product_id.bytes())!
+		return
+	}
+
+	mut src := []string{len: 0, cap: images.len}
+	mut params := []firebird.Value{len: 0, cap: 3 * images.len, init: firebird.Null{}}
+	mut image_ids := []ID{len: 0, cap: images.len}
+	for _, image in images {
+		src << 'SELECT
+			CAST(? AS BINARY(16)),
+			CAST(? AS BLOB SUB_TYPE TEXT),
+			CAST(? AS VARCHAR(191))
+			FROM RDB\$DATABASE'
+
+		params << image.id.bytes()
+		params << image.url.clone()
+
+		if alt := image.alt {
+			if alt == '' {
+				params << firebird.Null{}
+			} else {
+				params << alt
+			}
+		} else {
+			params << firebird.Null{}
+		}
+
+		image_ids << image.id
+	}
+
+	tx.execute('MERGE INTO image t
+		USING (${get_merge_source(src)}) s (id, url, alt)
+		ON t.id = s.id
+		WHEN MATCHED THEN
+			UPDATE SET t.url = s.url, t.alt = s.alt
+		WHEN NOT MATCHED THEN
+			INSERT (id, url, alt)
+			VALUES (s.id, s.url, s.alt)',
+		...params)!
+
+	tx.execute('DELETE FROM image i WHERE EXISTS
+			(
+				SELECT 1 FROM product_image pi
+				WHERE pi.product_id = ?
+				AND pi.image_id = i.id
+			)
+			AND i.id NOT IN (${get_placeholders(image_ids)})', ...ids_bytes(arrays.concat([
+		product_id,
+	], ...image_ids)))!
+
+	src = []string{len: 0, cap: images.len}
+	params = []firebird.Value{len: 0, cap: 3 * images.len + 1, init: firebird.Null{}}
+
+	for _, image in images {
+		src << 'SELECT
+			CAST(? AS BINARY(16)),
+			CAST(? AS BLOB SUB_TYPE TEXT),
+			CAST(? AS INTEGER)
+			FROM RDB\$DATABASE'
+
+		params << product_id.bytes()
+		params << image.id.bytes()
+		params << i32(image.image_rank)
+	}
+
+	params << product_id.bytes()
+
+	tx.execute('MERGE INTO product_image t
+		USING (${get_merge_source(src)}) s (product_id, image_id, image_rank)
+		ON t.product_id = s.product_id AND t.image_id = s.image_id
+		WHEN MATCHED THEN
+			UPDATE SET t.image_rank = s.image_rank
+		WHEN NOT MATCHED THEN
+			INSERT (product_id, image_id, image_rank)
+			VALUES (s.product_id, s.image_id, s.image_rank)',
+		...params)!
 }

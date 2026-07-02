@@ -82,14 +82,12 @@ pub:
 }
 
 pub fn variant_money_amount_update(mut tx firebird.ClientTransaction, p []VariantMoneyAmountUpdateParams) ! {
-	// deduplicate variant ids
 	mut variant_ids_map := map[string]ID{}
 	for i := 0; i < p.len; i++ {
 		variant_id := p[i].variant_id
 		variant_ids_map[variant_id.string()] = variant_id
 	}
-
-	mut variant_ids := variant_ids_map.values()
+	variant_ids := variant_ids_map.values()
 
 	// delete all related money amount first
 	mut query := 'DELETE FROM money_amount
