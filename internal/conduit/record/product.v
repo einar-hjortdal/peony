@@ -478,7 +478,3 @@ pub fn product_thumbnail_update(mut tx firebird.ClientTransaction, product_id ID
 	tx.execute('UPDATE product SET thumbnail_id = ? WHERE id = ?', image_id.bytes(),
 		product_id.bytes())!
 }
-
-pub fn product_thumbnail_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
-	tx.execute('UPDATE product SET thumbnail_id = NULL WHERE id = ?', product_id.bytes())!
-}

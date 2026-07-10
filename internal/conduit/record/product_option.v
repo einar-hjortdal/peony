@@ -345,10 +345,16 @@ pub:
 
 // - product_option_value_ids: IDs of all the product_option_value being updated.
 pub fn product_option_value_translations_update(mut tx firebird.ClientTransaction, product_option_value_ids []ID, p []ProductOptionValueTranslationCreateParams) ! {
+	if p.len == 0 {
+		tx.execute('DELETE FROM product_option_value_translations
+			WHERE product_option_value_id IN (${get_placeholders(product_option_value_ids)})',
+			...ids_bytes(product_option_value_ids))!
+		return
+	}
+
 	mut src := []string{len: p.len}
 	n_params := 3
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
-	mut product_option_value_ids_map := map[string][]u8{}
 	for i := 0; i < p.len; i++ {
 		translation := p[i]
 		product_option_value_id := translation.product_option_value_id
@@ -361,14 +367,11 @@ pub fn product_option_value_translations_update(mut tx firebird.ClientTransactio
 		params[i * n_params + 0] = product_option_value_id.bytes()
 		params[i * n_params + 1] = translation.locale_id.bytes()
 		params[i * n_params + 2] = translation.name
-
-		product_option_value_ids_map[product_option_value_id.string()] =
-			product_option_value_id.bytes()
 	}
 
 	params = arrays.concat(params, ...ids_bytes(product_option_value_ids))
 
-	query := 'MERGE INTO product_option_value_ids_map
+	query := 'MERGE INTO product_option_value_translations
 		USING (${get_merge_source(src)}) s
 		ON s.product_option_value_id = t.product_option_value_id AND s.locale_id = t.locale_id
 		WHEN MATCHED THEN UPDATE
@@ -377,7 +380,7 @@ pub fn product_option_value_translations_update(mut tx firebird.ClientTransactio
 			(product_option_value_id, locale_id, name)
 			VALUES (s.product_option_value_id, s.locale_id, s.name)
 		WHEN NOT MATCHED BY SOURCE 
-			AND t.product_option_value_ids_bin IN (${get_placeholders(product_option_value_ids)})
+			AND t.product_option_value_id IN (${get_placeholders(product_option_value_ids)})
 			THEN DELETE'
 
 	tx.execute(query, ...params)!
@@ -455,6 +458,13 @@ pub:
 
 // - product_option_ids: IDs of all options being updated
 pub fn product_option_translations_update(mut tx firebird.ClientTransaction, product_option_ids []ID, p []ProductOptionTranslationCreateParams) ! {
+	if p.len == 0 {
+		tx.execute('DELETE FROM product_option_translations
+			WHERE product_option_id IN (${get_placeholders(product_option_ids)})',
+			...ids_bytes(product_option_ids))!
+		return
+	}
+
 	mut src := []string{len: p.len}
 	n_params := 3
 	mut params := []firebird.Value{len: p.len * n_params + 1, init: firebird.Null{}}

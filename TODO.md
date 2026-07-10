@@ -137,6 +137,10 @@
 - [x] Refactor record fields to use option types instead of firebird.NullT
 - [ ] Use maps internally for translations for potentially more efficient response formatting
 
+## To consider
+
+- [ ] drop inventory_item.variant_id column: inventory_item.id should be a foreign key to variant.id, this represents a one-to-one relation. However, in the literature, this would make variant a supertype, which may be understood as a different relation to what inventory_item is to variant in this model.
+
 ## Upstream
 
 - [Veb graceful shutdown](https://github.com/vlang/v/issues/25655)

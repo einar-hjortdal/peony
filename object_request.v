@@ -2350,7 +2350,7 @@ fn (p ProductCreateRequest) hygienise() !conduit.ProductCreateParams {
 // Localized versions of product fields. The keys of the map are the locale id.
 //
 // ## thumbnail
-// Logic depends on the `images` field:
+// Depending on the `images` field:
 // - If `thumbnail` is provided and `images` is empty, the image whose `rank` equals `thumbnail` is used.
 // - If both are provided, the thumbnail is the image at index `thumbnail` in the `images` array.
 //
