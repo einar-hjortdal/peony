@@ -348,50 +348,6 @@ pub:
 	translations ?map[string]ImageTranslationRequest
 }
 
-struct ProductImageUpdateRequestHygienised {
-	id  ?ID
-	url ?string
-	alt ?string
-mut:
-	translations ?[]conduit.ImageTranslationCreateParams
-}
-
-fn (p ProductImageUpdateRequest) hygienise() !ProductImageUpdateRequestHygienised {
-	if p.id != none && p.url != none {
-		return errors.unprocessable_entity('unable to update image url', 'both id and url are set')
-	}
-
-	if p.id == none && p.url == none {
-		return errors.unprocessable_entity('unable to create image without url',
-			'both id and url are unset')
-	}
-
-	if alt := p.alt {
-		if utf8_str_visible_length(alt) > max_length_alt {
-			return errors.unprocessable_entity(error_field_too_long,
-				'alt can be at most ${max_length_alt} UTF8 characters long')
-		}
-	}
-
-	mut parsed_id := ?ID(none)
-	if id := p.id {
-		parsed_id = id_from_string(id) or {
-			return errors.unprocessable_entity(errors.id_invalid, 'id')
-		}
-	}
-
-	mut image := ProductImageUpdateRequestHygienised{
-		id:  parsed_id
-		url: p.url
-		alt: p.alt
-	}
-
-	if translations := p.translations {
-		image.translations = hygienise_image_translations(translations)!
-	}
-	return image
-}
-
 pub struct UserCreateRequest {
 pub:
 	email      string
@@ -399,7 +355,7 @@ pub:
 	first_name ?string @[json: 'firstName']
 	last_name  ?string @[json: 'lastName']
 	role       ?string
-	image      ?ProductImageCreateRequest // TODO change
+	image      ?ImageCreateRequest
 	metadata   ?string @[raw]
 }
 
@@ -573,37 +529,6 @@ pub:
 	translations ?map[string]ProductOptionValueTranslationRequest
 }
 
-struct ProductOptionValueUpdateRequestHygienised {
-	id   ?ID
-	name ?string
-mut:
-	translations ?[]ProductOptionValueTranslationRequestHygienised
-}
-
-fn (p ProductOptionValueUpdateRequest) hygienise() !ProductOptionValueUpdateRequestHygienised {
-	if p.name == none && p.translations == none {
-		return errors.bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
-	}
-
-	mut parsed_id := ?ID(none)
-	if id := p.id {
-		parsed_id = id_from_string(id) or {
-			return errors.unprocessable_entity(errors.id_invalid, 'id')
-		}
-	}
-
-	mut ph := ProductOptionValueUpdateRequestHygienised{
-		id:   parsed_id
-		name: p.name
-	}
-
-	if translations := p.translations {
-		ph.translations = hygienise_product_option_value_translations(translations)!
-	}
-
-	return ph
-}
-
 pub struct ProductOptionTranslationRequest {
 pub:
 	title string
@@ -663,15 +588,35 @@ pub:
 	values       ?[]ProductOptionValueUpdateRequest
 }
 
-struct ProductOptionUpdateRequestHygienised {
-	id    ?ID
-	title ?string
-mut:
-	translations ?[]ProductOptionTranslationRequestHygienised
-	values       ?[]ProductOptionValueUpdateRequestHygienised
+fn hygienise_product_option_values(p []ProductOptionValueUpdateRequest) ![]conduit.ProductOptionValueUpdateParams {
+	mut res := []conduit.ProductOptionValueUpdateParams{len: 0, cap: p.len}
+	for _, value in p {
+		if value.name == none && value.translations == none {
+			return errors.bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
+		}
+
+		mut parsed_id := ?ID(none)
+		if id := value.id {
+			parsed_id = id_from_string(id) or {
+				return errors.unprocessable_entity(errors.id_invalid, 'id')
+			}
+		}
+
+		mut translations := ?[]conduit.ProductOptionValueTranslationCreateParams(none)
+		if ts := value.translations {
+			translations = hygienise_product_option_value_translations(ts)!
+		}
+
+		res << conduit.ProductOptionValueUpdateParams{
+			id:           parsed_id
+			name:         value.name
+			translations: translations
+		}
+	}
+	return res
 }
 
-fn (p ProductOptionUpdateRequest) hygienise() !conduit.ProductOptionUpdateRequestHygienised {
+fn (p ProductOptionUpdateRequest) hygienise() !conduit.ProductOptionUpdateParams {
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
@@ -679,18 +624,23 @@ fn (p ProductOptionUpdateRequest) hygienise() !conduit.ProductOptionUpdateReques
 		}
 	}
 
-	mut ph := ProductOptionUpdateRequestHygienised{
-		id:    parsed_id
-		title: p.title
+	mut translations := ?[]conduit.ProductOptionTranslationCreateParams(none)
+	if ts := p.translations {
+		translations = hygienise_product_option_translations(ts)!
 	}
 
-	if translations := p.translations {
-		ph.translations = hygienise_product_option_translations(translations)!
+	mut values := ?[]conduit.ProductOptionValueUpdateParams(none)
+	if vs := p.values {
+		values = hygienise_product_option_values(vs)!
 	}
 
 	// TODO values are missing here
-
-	return ph
+	return conduit.ProductOptionUpdateParams{
+		id:           parsed_id
+		title:        p.title
+		translations: translations
+		values:       values
+	}
 }
 
 pub struct VariantPriceRequest {
@@ -894,7 +844,7 @@ pub:
 	allow_backorder   ?bool @[json: 'allowBackorder']
 }
 
-fn (p InventoryItemUpdateRequest) hygienise(variant_id ID) !conduit.InventoryItemUpdateParams {
+fn (p InventoryItemUpdateRequest) hygienise() !conduit.InventoryItemUpdateParams {
 	if p.sku == none && p.origin_country == none && p.hs_code == none && p.mid_code == none
 		&& p.material == none && p.weight == none && p.length == none && p.height == none
 		&& p.width == none && p.requires_shipping == none && p.manage_inventory == none
@@ -937,7 +887,6 @@ fn (p InventoryItemUpdateRequest) hygienise(variant_id ID) !conduit.InventoryIte
 	}
 
 	mut inventory_item := conduit.InventoryItemUpdateParams{
-		variant_id:        variant_id
 		sku:               p.sku
 		origin_country:    p.origin_country
 		hs_code:           p.hs_code
@@ -1143,21 +1092,7 @@ pub:
 	regional_prices ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-struct ProductVariantUpdateRequestHygienised {
-	id             ?ID
-	title          ?string
-	ean            ?string
-	upc            ?string
-	barcode        ?string
-	image          ?i32
-	inventory_item ?InventoryItemUpdateRequestHygienised
-	option_values  ?[]i32
-	metadata       ?string
-mut:
-	money_amounts ?[]VariantMoneyAmountRequestHygienised
-}
-
-fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygienised {
+fn (p ProductVariantUpdateRequest) hygienise() !conduit.ProductVariantUpdateParams {
 	mut parsed_id := ?ID(none)
 	if id := p.id {
 		parsed_id = id_from_string(id) or {
@@ -1186,7 +1121,7 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		}
 	}
 
-	mut inventory_item := InventoryItemUpdateRequestHygienised{}
+	mut inventory_item := ?conduit.InventoryItemUpdateParams(none)
 	if ii := p.inventory_item {
 		inventory_item = ii.hygienise()!
 	}
@@ -1198,7 +1133,16 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		}
 	}
 
-	mut ph := ProductVariantUpdateRequestHygienised{
+	mut money_amounts := ?[]conduit.VariantMoneyAmountUpdateParams(none)
+	if prices := p.regional_prices {
+		if prices.len == 0 {
+			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
+		}
+
+		money_amounts = parse_money_amounts(prices)!
+	}
+
+	return conduit.ProductVariantUpdateParams{
 		id:             parsed_id
 		title:          p.title
 		ean:            p.ean
@@ -1208,17 +1152,8 @@ fn (p ProductVariantUpdateRequest) hygienise() !ProductVariantUpdateRequestHygie
 		inventory_item: inventory_item
 		option_values:  p.option_values
 		metadata:       p.metadata
+		money_amounts:  money_amounts
 	}
-
-	if prices := p.regional_prices {
-		if prices.len == 0 {
-			errors.bad_request(error_field_empty, 'prices cannot be an empty map')
-		}
-
-		ph.money_amounts = parse_money_amounts(prices)!
-	}
-
-	return ph
 }
 
 // VariantCreateRequest describes the body of the request to create a new product variant.
@@ -1413,7 +1348,7 @@ fn (p VariantUpdateRequest) hygienise(product_id ID, variant_id ID) !conduit.Var
 
 	mut inventory_item := ?conduit.InventoryItemUpdateParams(none)
 	if ii := p.inventory_item {
-		inventory_item = ii.hygienise(variant_id)!
+		inventory_item = ii.hygienise()!
 	}
 
 	return conduit.VariantUpdateParams{
@@ -2038,7 +1973,7 @@ fn (p ProductCreateRequest) hygienise_product_options(options []ProductOptionCre
 	}
 
 	mut res := []conduit.ProductOptionCreateParams{len: 0, cap: options.len}
-	for option_rank, option in options {
+	for _, option in options {
 		if option.title == '' {
 			return errors.bad_request(error_field_empty, 'option title is required')
 		}
@@ -2397,12 +2332,70 @@ pub:
 	category_ids      ?[]string @[json: 'categoryIds']
 	translations      ?map[string]ProductTranslationRequest
 	thumbnail         ?i32
-	images            ?[]ImageUpdateRequest
+	images            ?[]ProductImageUpdateRequest
 	seo               ?SEORequest
 	options           ?[]ProductOptionUpdateRequest
 	variants          ?[]ProductVariantUpdateRequest
 	// type_id           ?string @[json: 'typeId']
 	// tag_ids           ?[]string @[json: 'tagIds']
+}
+
+fn hygienise_image_update_requests(p []ProductImageUpdateRequest) ![]conduit.ProductImageUpdateParams {
+	mut res := []conduit.ProductImageUpdateParams{len: p.len}
+	for _, image in p {
+		if image.id != none && image.url != none {
+			return errors.unprocessable_entity('unable to update image url',
+				'both id and url are set')
+		}
+
+		if image.id == none && image.url == none {
+			return errors.unprocessable_entity('unable to create image without url',
+				'both id and url are unset')
+		}
+
+		if alt := image.alt {
+			if utf8_str_visible_length(alt) > max_length_alt {
+				return errors.unprocessable_entity(error_field_too_long,
+					'alt can be at most ${max_length_alt} UTF8 characters long')
+			}
+		}
+
+		mut parsed_id := ?ID(none)
+		if id := image.id {
+			parsed_id = id_from_string(id) or {
+				return errors.unprocessable_entity(errors.id_invalid, 'image_id')
+			}
+		}
+
+		mut translations := ?[]conduit.ImageTranslationCreateParams(none)
+		if t := image.translations {
+			translations = hygienise_image_translations(t)!
+		}
+
+		res << conduit.ProductImageUpdateParams{
+			id:           parsed_id
+			url:          image.url
+			alt:          image.alt
+			translations: translations
+		}
+	}
+	return res
+}
+
+fn hygienise_product_option_update_requests(p []ProductOptionUpdateRequest) ![]conduit.ProductOptionUpdateParams {
+	mut res := []conduit.ProductOptionUpdateParams{len: 0, cap: p.len}
+	for option in p {
+		res << option.hygienise()!
+	}
+	return res
+}
+
+fn hygienise_product_variant_update_requests(p []ProductVariantUpdateRequest) ![]conduit.ProductVariantUpdateParams {
+	mut res := []conduit.ProductVariantUpdateParams{len: 0, cap: p.len}
+	for _, variant in p {
+		res << variant.hygienise()!
+	}
+	return res
 }
 
 fn (p ProductUpdateRequest) hygienise(product_id ID) !conduit.ProductUpdateParams {
@@ -2523,7 +2516,32 @@ fn (p ProductUpdateRequest) hygienise(product_id ID) !conduit.ProductUpdateParam
 		}
 	}
 
-	mut ph := conduit.ProductUpdateParams{
+	mut translations := ?[]conduit.ProductTranslationCreateParams(none)
+	if ts := p.translations {
+		translations = hygienise_product_translations(ts)!
+	}
+
+	mut images := ?[]conduit.ProductImageUpdateParams(none)
+	if imgs := p.images {
+		images = hygienise_image_update_requests(imgs)!
+	}
+
+	mut seo := ?conduit.SEOParams(none)
+	if s := p.seo {
+		seo = s.hygienise()!
+	}
+
+	mut options := ?[]conduit.ProductOptionUpdateParams(none)
+	if o := p.options {
+		options = hygienise_product_option_update_requests(o)!
+	}
+
+	mut variants := ?[]conduit.ProductVariantUpdateParams(none)
+	if v := p.variants {
+		variants = hygienise_product_variant_update_requests(v)!
+	}
+
+	return conduit.ProductUpdateParams{
 		id:                product_id
 		title:             p.title
 		subtitle:          p.subtitle
@@ -2536,39 +2554,10 @@ fn (p ProductUpdateRequest) hygienise(product_id ID) !conduit.ProductUpdateParam
 		sales_channel_ids: parsed_sales_channel_ids
 		category_ids:      parsed_category_ids
 		thumbnail:         p.thumbnail
+		translations:      translations
+		images:            images
+		seo:               seo
+		options:           options
+		variants:          variants
 	}
-
-	if translations := p.translations {
-		ph.translations = hygienise_product_translations(translations)!
-	}
-
-	if images := p.images {
-		mut h := []ProductImageUpdateRequestHygienised{len: images.len}
-		for i := 0; i < images.len; i++ {
-			h[i] = images[i].hygienise()!
-		}
-		ph.images = h
-	}
-
-	if seo := p.seo {
-		ph.seo = seo.hygienise()!
-	}
-
-	if options := p.options {
-		mut o := []ProductOptionUpdateRequestHygienised{len: options.len}
-		for i := 0; i < options.len; i++ {
-			o[i] = options[i].hygienise()!
-		}
-		ph.options = o
-	}
-
-	if variants := p.variants {
-		mut v := []ProductVariantUpdateRequestHygienised{len: variants.len}
-		for i := 0; i < variants.len; i++ {
-			v[i] = variants[i].hygienise()!
-		}
-		ph.variants = v
-	}
-
-	return ph
 }

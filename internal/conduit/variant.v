@@ -332,7 +332,6 @@ pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 
 pub struct InventoryItemUpdateParams {
 pub:
-	variant_id        ID
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string

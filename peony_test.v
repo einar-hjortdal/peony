@@ -135,11 +135,9 @@ fn app_routine(ch chan bool) {
 		session_secret:        session_secret
 	}
 
-	providers := peony.Providers{
+	mut app := peony.new_peony_app(config, peony.Providers{
 		blob: new_provider_blob_dummy()
-	}
-
-	mut app := peony.new_peony_app(config, providers) or { panic(err) }
+	}) or { panic(err) }
 	go app.run()
 	_ := <-ch
 

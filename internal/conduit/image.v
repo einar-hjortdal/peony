@@ -88,7 +88,7 @@ pub fn product_image_update(mut tx firebird.ClientTransaction, p ImageUpdatePara
 			url: common.unwrap_option_or(p.url, current.url)
 			alt: common.unwrap_option_or_option(p.alt, current.alt)
 		}
-		record.image_update(mut tx, [diff]) or {
+		record.image_update(mut tx, diff) or {
 			return errors.internal('Failed to update image', err.msg())
 		}
 	}
