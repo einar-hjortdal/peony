@@ -36,6 +36,6 @@ pub fn (mut app App) store_region_get(mut ctx Context, region_id string) veb.Res
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(RegionResponseEnvelope{
-		regions: format_region_response(region)
+		region: format_region_response(region)
 	})
 }
