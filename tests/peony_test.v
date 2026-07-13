@@ -945,7 +945,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: new_value_name
 					},
 				]
@@ -969,7 +969,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: new_value_name
 					},
 				]
@@ -993,7 +993,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: new_value_name
 					},
 				]
@@ -1017,7 +1017,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: new_value_name
 					},
 				]
@@ -1093,11 +1093,17 @@ fn creates_product_without_options_with_variant(cookie_value string) ! {
 		'Product contains unexpected number of variants: expected 1, got ${variants.len}')!
 
 	variant := variants[0]
-	expect(variant.title != '', 'Variant title was not set')!
-	expect(variant.ean != '', 'Variant ean was not set')!
-	expect(variant.upc != '', 'Variant upc was not set')!
-	expect(variant.barcode != '', 'Variant barcode was not set')!
-	expect(variant.metadata != '', 'Variant metadata was not set')!
+	v_title := unwrap_or_error(variant.title, 'variant title missing')!
+	v_ean := unwrap_or_error(variant.ean, 'variant ean missing')!
+	v_upc := unwrap_or_error(variant.upc, 'variant upc missing')!
+	v_barcode := unwrap_or_error(variant.barcode, 'variant barcode missing')!
+	v_metadata := unwrap_or_error(variant.metadata, 'variant metadata missing')!
+
+	expect(v_title != '', 'Variant title was not set')! // TODO check identical
+	expect(v_ean != '', 'Variant ean was not set')! // TODO check identical
+	expect(v_upc != '', 'Variant upc was not set')! // TODO check identical
+	expect(v_barcode != '', 'Variant barcode was not set')! // TODO check identical
+	expect(v_metadata != '', 'Variant metadata was not set')! // TODO check identical
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
