@@ -3,18 +3,16 @@ module peony
 import json
 import net.http
 import veb
+import time
+import log
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import internal.conduit
 import internal.errors
 import internal.common
-import time
-import log
+import objects
 
 pub const lib = 'peony'
-
-const min_fetch = common.min_fetch
-const max_fetch = common.max_fetch
 
 pub const length_currency_code = 3
 pub const length_country_code = 2
@@ -59,33 +57,23 @@ const error_reference_invalid = 'Field references invalid object'
 
 const error_handle_fallback_too_long = 'The provided handle already exists. The default fallback is to add the product id to the provided duplicate handle, but this results in the handle being too long. Please provide a unique handle for this product.'
 
-const details_order_direction_invalid = 'order must either be ${order_asc} or ${order_desc}'
+const details_order_direction_invalid = 'order must either be ${objects.order_asc} or ${objects.order_desc}'
 
 const transaction_attempts = 3
 const transaction_retry_backoff = 8 * time.millisecond
 
-const offset_default = common.offset_default
-const order_asc = common.order_asc
-const order_desc = common.order_desc
-const order_default = common.order_default
-
-const role_admin = common.role_admin
-const role_member = common.role_member
-const role_developer = common.role_developer
-const role_author = common.role_author
-const role_contributor = common.role_contributor
-
 const roles = [
-	role_admin,
-	role_member,
-	role_developer,
-	role_author,
-	role_contributor,
+	objects.role_admin,
+	objects.role_member,
+	objects.role_developer,
+	objects.role_author,
+	objects.role_contributor,
 ]
 
 fn role_is_valid(role string) ! {
 	match role {
-		role_admin, role_member, role_developer, role_author, role_contributor {}
+		objects.role_admin, objects.role_member, objects.role_developer, objects.role_author,
+		objects.role_contributor {}
 		else {
 			return new_error_role_invalid()
 		}
@@ -341,8 +329,8 @@ fn email_is_valid(e string) ! {
 }
 
 fn product_status_is_valid(s string) bool {
-	return s == common.product_status_draft || s == common.product_status_proposed
-		|| s == common.product_status_published || s == common.product_status_rejected
+	return s == objects.product_status_draft || s == objects.product_status_proposed
+		|| s == objects.product_status_published || s == objects.product_status_rejected
 }
 
 fn string_value(s ?string) string {
@@ -361,16 +349,18 @@ fn i32_value(i ?i32) i32 {
 
 fn parse_order_direction(s string) !string {
 	normalized := s.to_upper()
-	if normalized == order_asc {
-		return order_asc
+	match normalized {
+		objects.order_asc {
+			return objects.order_asc
+		}
+		objects.order_desc {
+			return objects.order_desc
+		}
+		else {
+			return errors.unprocessable_entity(error_order_direction_invalid,
+				details_order_direction_invalid)
+		}
 	}
-
-	if normalized == order_desc {
-		return order_desc
-	}
-
-	return errors.unprocessable_entity(error_order_direction_invalid,
-		details_order_direction_invalid)
 }
 
 fn get_header_content_type(mut ctx Context) ?string {
@@ -378,14 +368,14 @@ fn get_header_content_type(mut ctx Context) ?string {
 }
 
 fn get_fetch_or_default(fetch ?i32) !i32 {
-	f := fetch or { return max_fetch }
-	if f < min_fetch {
-		return errors.unprocessable_entity('Too few objects requested. Minimum ${min_fetch} must be requested',
+	f := fetch or { return objects.max_fetch }
+	if f < objects.min_fetch {
+		return errors.unprocessable_entity('Too few objects requested. Minimum ${objects.min_fetch} must be requested',
 			'requested ${f}')
 	}
 
-	if f > max_fetch {
-		return errors.unprocessable_entity('Too many objects requested. Maximum ${max_fetch} can be requested',
+	if f > objects.max_fetch {
+		return errors.unprocessable_entity('Too many objects requested. Maximum ${objects.max_fetch} can be requested',
 			'requested ${f}')
 	}
 
@@ -393,15 +383,16 @@ fn get_fetch_or_default(fetch ?i32) !i32 {
 }
 
 fn get_offset_or_default(offset ?i32) !i32 {
-	o := offset or { return offset_default }
-	if o < offset_default {
-		return errors.unprocessable_entity('Minimum offset is ${offset_default}', 'requested ${o}')
+	o := offset or { return objects.offset_default }
+	if o < objects.offset_default {
+		return errors.unprocessable_entity('Minimum offset is ${objects.offset_default}',
+			'requested ${o}')
 	}
 	return o
 }
 
 fn get_order_direction_or_default(direction ?string) !string {
-	d := direction or { return order_default }
+	d := direction or { return objects.order_default }
 	return parse_order_direction(d)
 }
 

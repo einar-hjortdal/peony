@@ -7,6 +7,7 @@ import einar_hjortdal.slugify
 import record
 import internal.common
 import internal.errors
+import objects
 
 fn parse_option_values(option_value_ids []ID, variant_id ID) []record.ProductOptionValueVariant {
 	mut res := []record.ProductOptionValueVariant{len: option_value_ids.len}
@@ -117,9 +118,9 @@ fn (p ProductCreateParams) check_sales_channel_ids(mut tx firebird.ClientTransac
 	sales_channels_count := record.sales_channel_retrieve_count(mut tx, record.SalesChannelRetrieveParams{
 		ids:          sales_channel_ids
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        min_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.min_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn
 	}) or { return errors.internal('Failed to retrieve sales_channel count', err.msg()) }
 
 	if sales_channels_count != sales_channel_ids.len {
@@ -137,9 +138,9 @@ fn (p ProductCreateParams) parse_product(product_id ID) record.ProductCreatePara
 		title:        p.title
 		subtitle:     p.subtitle
 		description:  p.description
-		is_giftcard:  common.bool_or(p.is_giftcard, common.product_is_giftcard_default)
-		status:       common.unwrap_option_or(p.status, common.product_status_draft)
-		discountable: common.bool_or(p.discountable, common.product_discountable_default)
+		is_giftcard:  common.bool_or(p.is_giftcard, objects.product_is_giftcard_default)
+		status:       common.unwrap_option_or(p.status, objects.product_status_draft)
+		discountable: common.bool_or(p.discountable, objects.product_discountable_default)
 		metadata:     p.metadata
 	}
 }
@@ -171,8 +172,8 @@ fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id ID) [
 		default_option := record.ProductOptionCreateParams{
 			id:          common.new_id(mut g)
 			product_id:  product_id
-			option_rank: common.product_option_rank_default
-			title:       common.product_option_title_default
+			option_rank: objects.product_option_rank_default
+			title:       objects.product_option_title_default
 		}
 		return [default_option]
 	}
@@ -227,8 +228,8 @@ fn (p ProductCreateParams) parse_option_values(mut g luuid.Generator, parsed_opt
 		default_option_value := record.ProductOptionValueCreateParams{
 			id:         common.new_id(mut g)
 			option_id:  option.id
-			value_rank: common.product_option_value_rank_default
-			name:       common.product_option_value_name_default
+			value_rank: objects.product_option_value_rank_default
+			name:       objects.product_option_value_name_default
 		}
 		return [default_option_value]
 	}
@@ -296,7 +297,7 @@ fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id ID) 
 		default_variant := record.VariantCreateParams{
 			id:           common.new_id(mut g)
 			product_id:   product_id
-			variant_rank: common.variant_rank_default
+			variant_rank: objects.variant_rank_default
 		}
 		return [default_variant]
 	}
@@ -383,9 +384,9 @@ fn (p ProductCreateParams) parse_inventory_items(mut g luuid.Generator, parsed_v
 			record.InventoryItemCreateParams{
 				id:                common.new_id(mut g)
 				variant_id:        parsed_variants[0].id
-				requires_shipping: common.inventory_item_requires_shipping_default
-				manage_inventory:  common.inventory_item_manage_inventory_default
-				allow_backorder:   common.inventory_item_allow_backorder_default
+				requires_shipping: objects.inventory_item_requires_shipping_default
+				manage_inventory:  objects.inventory_item_manage_inventory_default
+				allow_backorder:   objects.inventory_item_allow_backorder_default
 			},
 		]
 	}
@@ -397,9 +398,9 @@ fn (p ProductCreateParams) parse_inventory_items(mut g luuid.Generator, parsed_v
 			res << record.InventoryItemCreateParams{
 				id:                common.new_id(mut g)
 				variant_id:        variant_id
-				requires_shipping: common.inventory_item_requires_shipping_default
-				manage_inventory:  common.inventory_item_manage_inventory_default
-				allow_backorder:   common.inventory_item_allow_backorder_default
+				requires_shipping: objects.inventory_item_requires_shipping_default
+				manage_inventory:  objects.inventory_item_manage_inventory_default
+				allow_backorder:   objects.inventory_item_allow_backorder_default
 			}
 			continue
 		}
@@ -417,11 +418,11 @@ fn (p ProductCreateParams) parse_inventory_items(mut g luuid.Generator, parsed_v
 			height:            item.height
 			width:             item.width
 			requires_shipping: common.unwrap_option_or(item.requires_shipping,
-				common.inventory_item_requires_shipping_default)
+				objects.inventory_item_requires_shipping_default)
 			manage_inventory:  common.unwrap_option_or(item.manage_inventory,
-				common.inventory_item_manage_inventory_default)
+				objects.inventory_item_manage_inventory_default)
 			allow_backorder:   common.unwrap_option_or(item.allow_backorder,
-				common.inventory_item_allow_backorder_default)
+				objects.inventory_item_allow_backorder_default)
 		}
 	}
 	return res
@@ -435,9 +436,9 @@ fn (p ProductCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 
 	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
 		with_deleted: false
-		offset:       offset_default
-		fetch:        max_fetch // limit 250 regions or refactor? or make const internal_max_fetch = max_i32?
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.max_fetch // TODO limit 250 regions or refactor? or make const internal_max_fetch = max_i32?
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	variants := p.variants or {
@@ -447,8 +448,8 @@ fn (p ProductCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 				variant_id:      parsed_variants[0].id
 				region_id:       region.id
 				money_amount_id: common.new_id(mut g)
-				amount:          common.money_amount_default_amount
-				is_original:     common.money_amount_default_is_original
+				amount:          objects.money_amount_default_amount
+				is_original:     objects.money_amount_default_is_original
 			}
 		}
 		return res
@@ -463,8 +464,8 @@ fn (p ProductCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 					variant_id:      parsed_variants[variant_index].id
 					region_id:       region.id
 					money_amount_id: common.new_id(mut g)
-					amount:          common.money_amount_default_amount
-					is_original:     common.money_amount_default_is_original
+					amount:          objects.money_amount_default_amount
+					is_original:     objects.money_amount_default_is_original
 				}
 			}
 			continue
@@ -1077,9 +1078,9 @@ fn (p ProductUpdateParams) parse_variants(
 	current_variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		product_ids:  [p.id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        max_fetch
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.max_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('failed to retrieve variants', err.msg()) }
 
 	current_map, _ := common.make_identifiable_map(current_variants)
@@ -1341,11 +1342,11 @@ fn (p ProductUpdateParams) parse_inventory_items(
 			height:            item.height
 			width:             item.width
 			requires_shipping: common.bool_or(item.requires_shipping,
-				common.inventory_item_requires_shipping_default)
+				objects.inventory_item_requires_shipping_default)
 			manage_inventory:  common.bool_or(item.manage_inventory,
-				common.inventory_item_manage_inventory_default)
+				objects.inventory_item_manage_inventory_default)
 			allow_backorder:   common.bool_or(item.allow_backorder,
-				common.inventory_item_allow_backorder_default)
+				objects.inventory_item_allow_backorder_default)
 		}
 	}
 	return res
@@ -1448,9 +1449,9 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 		current_variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 			product_ids:  [p.id]
 			with_deleted: false
-			offset:       offset_default
-			fetch:        max_fetch
-			order:        order_default
+			offset:       objects.offset_default
+			fetch:        objects.max_fetch
+			order:        objects.order_default
 		}) or { return errors.internal('failed to retrieve variants', err.msg()) }
 
 		variant_ids = []ID{len: 0, cap: current_variants.len}
@@ -1657,9 +1658,9 @@ fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		product_ids:  product_ids
 		with_deleted: false
-		offset:       offset_default
-		fetch:        max_fetch
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.max_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve product_variant', err.msg()) }
 
 	mut variants_map, variant_ids_bin := common.make_identifiable_map(variants)
@@ -1722,9 +1723,9 @@ pub fn product_get(mut tx firebird.ClientTransaction, product_id ID) !record.Pro
 	products := record.product_retrieve(mut tx, ProductRetrieveParams{
 		ids:          [product_id]
 		with_deleted: false
-		offset:       offset_default
+		offset:       objects.offset_default
 		fetch:        1
-		order:        order_default
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve products data', err.msg()) }
 
 	if products.len == 0 {
@@ -1748,12 +1749,12 @@ pub fn product_get(mut tx firebird.ClientTransaction, product_id ID) !record.Pro
 pub fn product_get_store(mut tx firebird.ClientTransaction, product_id ID, sales_channel_id ID) !record.Product {
 	products := record.product_retrieve(mut tx, ProductRetrieveParams{
 		ids:              [product_id]
-		status:           common.product_status_published
+		status:           objects.product_status_published
 		sales_channel_id: sales_channel_id
 		with_deleted:     false
-		offset:           offset_default
+		offset:           objects.offset_default
 		fetch:            1
-		order:            order_default
+		order:            objects.order_default
 	}) or { return errors.internal('Failed to retrieve products data', err.msg()) }
 
 	if products.len == 0 {

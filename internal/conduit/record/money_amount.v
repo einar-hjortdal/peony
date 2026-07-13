@@ -1,7 +1,7 @@
 module record
 
 import einar_hjortdal.firebird
-import common
+import objects
 
 pub struct MoneyAmount {
 pub:
@@ -117,7 +117,7 @@ pub fn variant_money_amount_update(mut tx firebird.ClientTransaction, p []Varian
 		if is_original := p[i].is_original {
 			params[i * n_params + 2] = is_original
 		} else {
-			params[i * n_params + 2] = common.money_amount_default_is_original
+			params[i * n_params + 2] = objects.money_amount_default_is_original
 		}
 
 		params[i * n_params + 3] = p[i].amount

@@ -1,3 +1,5 @@
+module tests
+
 import peony
 import peony.providers
 

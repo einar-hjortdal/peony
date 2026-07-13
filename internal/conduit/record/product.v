@@ -125,11 +125,11 @@ pub:
 	metadata     ?string
 pub mut:
 	seo                ProductSEO
-	images             []ProductImage
+	images             []ProductImage // TODO is option
 	options            []ProductOption
-	translations       []ProductTranslation
+	translations       []ProductTranslation // TODO is option
 	variants           []Variant
-	category_ids       []ID
+	category_ids       []ID // TODO is option
 	sales_channels_ids []ID
 	// tags         []Tag
 }

@@ -2,13 +2,6 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
-import internal.common
-
-const role_admin = common.role_admin
-const role_member = common.role_member
-const role_developer = common.role_developer
-const role_author = common.role_author
-const role_contributor = common.role_contributor
 
 pub struct User {
 pub:

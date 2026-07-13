@@ -2,7 +2,7 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
-import common
+import objects
 
 pub struct InventoryLevel {
 pub:
@@ -370,19 +370,19 @@ pub fn inventory_item_create(mut tx firebird.ClientTransaction, p []InventoryIte
 		if requires_shipping := item.requires_shipping {
 			params[i * n_params + 11] = requires_shipping
 		} else {
-			params[i * n_params + 11] = common.inventory_item_requires_shipping_default
+			params[i * n_params + 11] = objects.inventory_item_requires_shipping_default
 		}
 
 		if manage_inventory := item.manage_inventory {
 			params[i * n_params + 12] = manage_inventory
 		} else {
-			params[i * n_params + 12] = common.inventory_item_manage_inventory_default
+			params[i * n_params + 12] = objects.inventory_item_manage_inventory_default
 		}
 
 		if allow_backorder := item.allow_backorder {
 			params[i * n_params + 13] = allow_backorder
 		} else {
-			params[i * n_params + 13] = common.inventory_item_allow_backorder_default
+			params[i * n_params + 13] = objects.inventory_item_allow_backorder_default
 		}
 	}
 

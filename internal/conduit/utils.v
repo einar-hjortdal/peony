@@ -5,19 +5,7 @@ import einar_hjortdal.luuid
 import internal.common
 import internal.errors
 import record
-
-const min_fetch = common.min_fetch
-const max_fetch = common.max_fetch
-const offset_default = common.offset_default
-const order_asc = common.order_asc
-const order_desc = common.order_desc
-const order_default = common.order_default
-
-const role_admin = common.role_admin
-const role_member = common.role_member
-const role_developer = common.role_developer
-const role_author = common.role_author
-const role_contributor = common.role_contributor
+import objects
 
 pub type ID = common.ID
 
@@ -59,9 +47,9 @@ fn check_product_id_exists(mut tx firebird.ClientTransaction, product_id ID) ! {
 	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
 		ids:          [product_id]
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn	
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.max_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn	
 	}) or { return errors.internal('Failed to retrieve product', err.msg()) }
 
 	if count == 0 {
@@ -73,9 +61,9 @@ fn check_variant_id_exists(mut tx firebird.ClientTransaction, variant_id ID) ! {
 	count := record.variant_retrieve_count(mut tx, record.VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn	
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.max_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn	
 	}) or { return errors.internal('Failed to retrieve product', err.msg()) }
 
 	if count == 0 {
@@ -94,9 +82,9 @@ fn check_money_amount_regions(mut tx firebird.ClientTransaction, p []VariantMone
 	count_existing := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		ids:          ids
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.max_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	if count_existing != ids.len {
@@ -108,9 +96,9 @@ fn check_money_amount_regions(mut tx firebird.ClientTransaction, p []VariantMone
 	// check there is one given_id for each existing region
 	count_region := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.max_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	if count_region != ids.len {
@@ -192,9 +180,9 @@ fn check_product_handle(mut tx firebird.ClientTransaction, handle string) ! {
 	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
 		handle:       handle
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        min_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.min_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn
 	}) or { return errors.internal('Failed to retrieve product count', err.msg()) }
 
 	if count != 0 {

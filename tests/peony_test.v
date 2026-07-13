@@ -1,4 +1,7 @@
+module tests
+
 import peony
+import peony.objects
 import peony.providers
 
 // deps
@@ -229,7 +232,7 @@ fn is_not_found(r http.Response) ! {
 }
 
 fn extract_cookie_from_set_cookie(r http.Response) !string {
-	v := r.header.get(http.CommonHeader.set_cookie)!
+	v := r.header.get(http.CommonHeader.set_cookie) or { return error('no cookie was extracted') }
 	return v.split(';')[0] // remove attributes
 }
 
@@ -300,7 +303,7 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 	expect(user.id != '', 'Returned empty user id')!
 	expect(user.email == default_user_email, 'Unexpected user email: ${user.email}')!
 	expect(user.handle != '', 'Unexpected user handle: ${user.handle}')!
-	expect(user.role == peony.role_admin, 'Unexpected user role: ${user.role}')!
+	expect(user.role == objects.role_admin, 'Unexpected user role: ${user.role}')!
 	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
 }
 
@@ -317,7 +320,7 @@ fn admin_users_list_users(cookie_value string) ! {
 	println('admin_users_list_users')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	is_ok(response)!
-	mut r := json.decode(peony.UserListResponseEnvelope, response.body)!
+	mut r := json.decode(peony.UserResponseListEnvelope, response.body)!
 	expect(r.count != 0, 'Unexpected count: ${r.count}')!
 	expect(r.users.len != 0, 'No users returned')!
 	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
@@ -336,7 +339,7 @@ fn admin_users_list_users(cookie_value string) ! {
 	expect(found, 'Default user not found in response')!
 	expect(default_user.id != '', 'Unexpected user id: ${default_user.id}')!
 	expect(default_user.handle != '', 'Unexpected user handle: ${default_user.handle}')!
-	expect(default_user.role == peony.role_admin, 'Unexpected user role: ${default_user.role}')!
+	expect(default_user.role == objects.role_admin, 'Unexpected user role: ${default_user.role}')!
 }
 
 // Verifies:
@@ -347,7 +350,7 @@ fn admin_users_list_users(cookie_value string) ! {
 fn admin_users_create_and_delete_user(cookie_value string) ! {
 	println('admin_users_create_and_delete_user')
 	mut response := do_authenticated_get_request(endpoint_admin_users, cookie_value)!
-	mut r := json.decode(peony.UserListResponseEnvelope, response.body)!
+	mut r := json.decode(peony.UserResponseListEnvelope, response.body)!
 	old_count := r.count
 	old_users_len := r.users.len
 
@@ -367,7 +370,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	is_ok(response)!
-	r = json.decode(peony.UserListResponseEnvelope, response.body)!
+	r = json.decode(peony.UserResponseListEnvelope, response.body)!
 	expect(r.count == old_count + 1, 'Unexpected count. Count does not include new user')!
 	expect(r.users.len == old_users_len + 1,
 		'Unexpected users.len. Count does not include new user')!
@@ -391,7 +394,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	is_ok(response)!
-	r = json.decode(peony.UserListResponseEnvelope, response.body)!
+	r = json.decode(peony.UserResponseListEnvelope, response.body)!
 	expect(r.count == old_count, 'Unexpected count. Count includes deleted user')!
 	expect(r.users.len == old_users_len, 'Unexpected users.len. Response includes deleted user')!
 }
@@ -410,7 +413,7 @@ fn admin_locales_lists_locales(cookie_value string) ! {
 	expect(r.count == locale_codes.len,
 		'Count does not match amount of locales that should be in the db')!
 	expect(r.offset == 0, 'Wrong page')!
-	expect(r.fetch == peony.max_fetch, 'Maximum number of items fetched does not match max_fetch')!
+	expect(r.fetch == objects.max_fetch, 'Maximum number of items fetched does not match max_fetch')!
 }
 
 // TODO create helper functions to:
@@ -462,7 +465,7 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 	locales := r_2.locales
 
 	// get a random locale
-	safe_max := peony.max_fetch - 1 // reserve 1
+	safe_max := objects.max_fetch - 1 // reserve 1
 	random_index := rand.int_in_range(0, safe_max)!
 	mut random_locale := locales[random_index]
 	if random_locale.id == old_store.default_locale_id {
@@ -594,15 +597,21 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 			break
 		}
 	}
+	nc_description := unwrap_or_error(new_category.description, 'category description missing')!
+	nc_metadata := unwrap_or_error(new_category.metadata, 'category metadata missing')!
+	nc_seo_title := unwrap_or_error(new_category.seo.title, 'category seo title missing')!
+	nc_seo_description := unwrap_or_error(new_category.seo.description,
+		'category seo description missing')!
+
 	expect(found, 'Categories returned do not include newly created category')!
 	expect(new_category.id != '', 'Category is missing id')!
 	expect(new_category.name == name, 'name does not match')!
-	expect(new_category.description == description, 'description does not match')!
+	expect(nc_description == description, 'description does not match')!
 	expect(new_category.handle == handle, 'handle does not match')!
 	expect(new_category.is_internal == is_internal, 'is_internal does not match')!
-	expect(new_category.metadata == '"${metadata}"', 'metadata does not match')!
-	expect(new_category.seo.title == seo_title, 'seo_title does not match')!
-	expect(new_category.seo.description == seo_description, 'seo_description does not match')!
+	expect(nc_metadata == '"${metadata}"', 'metadata does not match')!
+	expect(nc_seo_title == seo_title, 'seo_title does not match')!
+	expect(nc_seo_description == seo_description, 'seo_description does not match')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value)!
@@ -667,14 +676,18 @@ fn admin_categories_updates_category(cookie_value string) ! {
 		}
 	}
 
+	uc_description := unwrap_or_error(updated_category.description, 'category description missing')!
+	uc_metadata := unwrap_or_error(updated_category.metadata, 'category metadata missing')!
+	// TODO update seo
+
 	expect(updated_category.updated_at > new_category.updated_at,
 		'updated_at field was not updated')!
 	expect(updated_category.name == new_name, 'name does not match')!
-	expect(updated_category.description == new_description, 'description does not match')!
+	expect(uc_description == new_description, 'description does not match')!
 	expect(updated_category.handle == new_handle, 'handle does not match')!
 	expect(updated_category.is_internal == new_is_internal, 'is_internal does not match')!
 	expect(updated_category.is_active == new_is_active, 'is_internal does not match')!
-	expect(updated_category.metadata == '"${new_metadata}"', 'metadata does not match')!
+	expect(uc_metadata == '"${new_metadata}"', 'metadata does not match')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value)!
@@ -720,7 +733,7 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	subtitle := luuid.v2()
 	description := luuid.v2()
 	handle := luuid.v2()
-	status := peony.product_status_draft
+	status := objects.product_status_draft
 	discountable := true
 	metadata := luuid.v2()
 	seo_title := luuid.v2()
@@ -759,25 +772,38 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 	is_created(response)!
 	r := json.decode(peony.ProductResponseEnvelope, response.body)!
 	created_product := r.product
-	expect(created_product.id != '', 'Product is missing id')!
-	expect(created_product.title == title, 'title does not match')!
-	expect(created_product.subtitle == subtitle, 'subtitle does not match')!
-	expect(created_product.description == description, 'description does not match')!
-	expect(created_product.status == status, 'status does not match')!
-	expect(created_product.discountable == discountable, 'discountable does not match')!
-	expect(created_product.metadata == '"${metadata}"', 'metadata does not match')!
-	expect(created_product.seo.title == seo_title, 'seo_title does not match')!
-	expect(created_product.seo.description == seo_description, 'seo_description does not match')!
-	expect(created_product.thumbnail.id != '', 'thumbnail is missing id')!
-	expect(created_product.thumbnail.url == image_1_url, 'thumbnail url does not match')!
-	expect(created_product.thumbnail.alt == image_1_alt, 'thumbnail alt does not match')!
-	expect(created_product.images.len == 2, 'Missing images')!
+
 	image_0 := created_product.images[0]
 	image_1 := created_product.images[1]
+
+	np_subtitle := unwrap_or_error(created_product.subtitle, 'product subtitle missing')!
+	np_description := unwrap_or_error(created_product.description, 'product description missing')!
+	np_metadata := unwrap_or_error(created_product.metadata, 'product metadata missing')!
+	np_seo_title := unwrap_or_error(created_product.seo.title, 'product seo title missing')!
+	np_seo_description := unwrap_or_error(created_product.seo.description,
+		'product seo description missing')!
+	np_thumnail_alt := unwrap_or_error(created_product.thumbnail.alt,
+		'product thumnail alt missing')!
+	np_i0_alt := unwrap_or_error(image_0.alt, 'product image 0 alt missing')!
+	np_i1_alt := unwrap_or_error(image_0.alt, 'product image 1 alt missing')!
+
+	expect(created_product.id != '', 'Product is missing id')!
+	expect(created_product.title == title, 'title does not match')!
+	expect(np_subtitle == subtitle, 'subtitle does not match')!
+	expect(np_description == description, 'description does not match')!
+	expect(created_product.status == status, 'status does not match')!
+	expect(created_product.discountable == discountable, 'discountable does not match')!
+	expect(np_metadata == '"${metadata}"', 'metadata does not match')!
+	expect(np_seo_title == seo_title, 'seo_title does not match')!
+	expect(np_seo_description == seo_description, 'seo_description does not match')!
+	expect(created_product.thumbnail.id != '', 'thumbnail is missing id')!
+	expect(created_product.thumbnail.url == image_1_url, 'thumbnail url does not match')!
+	expect(np_thumnail_alt == image_1_alt, 'thumbnail alt does not match')!
+	expect(created_product.images.len == 2, 'Missing images')!
 	expect(image_0.url == image_0_url, 'image_0_url does not match')!
-	expect(image_0.alt == image_0_alt, 'image_0_alt does not match')!
+	expect(np_i0_alt == image_0_alt, 'image_0_alt does not match')!
 	expect(image_1.url == image_1_url, 'image_1_url does not match')!
-	expect(image_1.alt == image_1_alt, 'image_1_alt does not match')!
+	expect(np_i1_alt == image_1_alt, 'image_1_alt does not match')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${created_product.id}',
 		cookie_value)!
@@ -865,7 +891,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		options: [
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
-				values: []peony.ProductOptionValueRequest{}
+				values: []peony.ProductOptionValueCreateRequest{}
 			},
 		]
 	}
@@ -882,7 +908,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: new_value_name
 					},
 				]
@@ -900,7 +926,7 @@ fn creates_product_with_one_option(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  new_option_title
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: new_value_name
 					},
 				]

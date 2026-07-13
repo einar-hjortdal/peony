@@ -4,6 +4,7 @@ import json
 import internal.conduit
 import internal.errors
 import internal.common
+import objects
 
 pub const category_default_is_active = true
 pub const category_default_is_internal = false
@@ -820,11 +821,11 @@ fn (p InventoryItemCreateRequest) hygienise() !conduit.InventoryItemCreateParams
 		height:            p.height
 		width:             p.width
 		requires_shipping: common.bool_or(p.requires_shipping,
-			common.inventory_item_requires_shipping_default)
+			objects.inventory_item_requires_shipping_default)
 		manage_inventory:  common.bool_or(p.manage_inventory,
-			common.inventory_item_manage_inventory_default)
+			objects.inventory_item_manage_inventory_default)
 		allow_backorder:   common.bool_or(p.allow_backorder,
-			common.inventory_item_allow_backorder_default)
+			objects.inventory_item_allow_backorder_default)
 	}
 }
 
@@ -1252,7 +1253,7 @@ fn (p VariantCreateRequest) hygienise(product_id ID) !conduit.VariantCreateParam
 		upc:              p.upc
 		barcode:          p.barcode
 		metadata:         p.metadata
-		variant_rank:     common.variant_rank_default
+		variant_rank:     objects.variant_rank_default
 		option_value_ids: parsed_option_value_ids
 		money_amounts:    money_amounts
 		inventory_item:   inventory_item

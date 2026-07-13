@@ -2,11 +2,7 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
-import common
-
-pub const variant_default_title = 'default variant'
-pub const option_default_title = 'default option'
-pub const option_value_default_name = 'default value'
+import objects
 
 pub struct Variant {
 pub:
@@ -210,7 +206,7 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 		if variant_rank := v.variant_rank {
 			params[i * n_params + 6] = variant_rank
 		} else {
-			params[i * n_params + 6] = common.variant_rank_default
+			params[i * n_params + 6] = objects.variant_rank_default
 		}
 
 		if metadata := v.metadata {
@@ -349,7 +345,7 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 		if variant_rank := v.variant_rank {
 			params[i * n_params + 6] = variant_rank
 		} else {
-			params[i * n_params + 6] = common.variant_rank_default
+			params[i * n_params + 6] = objects.variant_rank_default
 		}
 
 		if metadata := v.metadata {

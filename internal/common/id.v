@@ -57,11 +57,3 @@ pub fn id_from_bytes(b []u8) !ID {
 		b: b
 	}
 }
-
-pub interface Translation {
-	locale_id() ID
-}
-
-pub interface Translatable {
-	translations() ?[]Translation
-}

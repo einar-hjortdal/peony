@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import objects
 
 // TODO create image
 pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
@@ -44,9 +45,9 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) !List[User
 pub fn user_get_by_id(mut tx firebird.ClientTransaction, user_id ID) !User {
 	users := record.user_list(mut tx, record.UserListParams{
 		ids:    [user_id]
-		offset: offset_default
-		fetch:  1
-		order:  order_default
+		offset: objects.offset_default
+		fetch:  objects.min_fetch
+		order:  objects.order_default
 	}) or { return errors.internal('Failed to retrieve users', err.msg()) }
 
 	if users.len == 0 {
@@ -59,9 +60,9 @@ pub fn user_get_by_id(mut tx firebird.ClientTransaction, user_id ID) !User {
 pub fn user_get_by_email(mut tx firebird.ClientTransaction, email string) !User {
 	users := record.user_list(mut tx, record.UserListParams{
 		email:  email
-		offset: offset_default
-		fetch:  1
-		order:  order_default
+		offset: objects.offset_default
+		fetch:  objects.min_fetch
+		order:  objects.order_default
 	}) or { return errors.internal('Failed to retrieve users', err.msg()) }
 
 	if users.len == 0 {

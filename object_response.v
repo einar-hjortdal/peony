@@ -986,15 +986,15 @@ pub:
 	title             string
 	subtitle          ?string                               @[omitempty]
 	description       ?string                               @[omitempty]
-	category_ids      []string                              @[json: 'categoryIds'; omitempty]
-	thumbnail         ProductImageResponse                  @[omitempty]
-	images            []ProductImageResponse                @[omitempty]
+	category_ids      []string                              @[json: 'categoryIds'; omitempty] // TODO is option
+	thumbnail         ProductImageResponse                  @[omitempty]                      // TODO is option
+	images            []ProductImageResponse                @[omitempty]                      // TODO is option
 	options           []ProductOptionResponse               @[omitempty]
 	variants          []VariantResponse                     @[omitempty]
 	sales_channel_ids []string                              @[json: 'salesChannels']
-	translations      map[string]ProductTranslationResponse @[omitempty]
-	seo               SEOResponse @[omitempty]
-	// tags         []Tag                       @[omitempty] // return ids only
+	translations      map[string]ProductTranslationResponse @[omitempty] // TODO is option
+	seo               SEOResponse
+	// tags         ?[]Tag                       @[omitempty] // return ids only
 }
 
 pub struct ProductResponseEnvelope {
@@ -1083,13 +1083,13 @@ pub:
 	title        string
 	subtitle     ?string                 @[omitempty]
 	description  ?string                 @[omitempty]
-	category_ids []string                @[json: 'categoryIds'; omitempty]
-	thumbnail    ProductImageResponse    @[omitempty]
-	images       []ProductImageResponse  @[omitempty]
+	category_ids []string                @[json: 'categoryIds'; omitempty] // TODO is option
+	thumbnail    ProductImageResponse    @[omitempty]                      // TODO is option
+	images       []ProductImageResponse  @[omitempty]                      // TODO is option
 	options      []ProductOptionResponse @[omitempty]
 	variants     []VariantResponseStore  @[omitempty]
-	seo          SEOResponseStore        @[omitempty]
-	// tags         []Tag                       @[omitempty]
+	seo          SEOResponseStore
+	// tags         ?[]Tag                       @[omitempty]
 }
 
 pub struct ProductResponseStoreEnvelope {

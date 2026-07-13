@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import objects
 
 pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) !List[Region] {
 	count := record.region_retrieve_count(mut tx, p) or {
@@ -34,9 +35,9 @@ pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) !Li
 pub fn region_get(mut tx firebird.ClientTransaction, region_id ID) !record.Region {
 	regions := record.region_retrieve(mut tx, RegionRetriveParams{
 		ids:    [region_id]
-		offset: offset_default
-		fetch:  1
-		order:  order_default
+		offset: objects.offset_default
+		fetch:  objects.min_fetch
+		order:  objects.order_default
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	if regions.len == 0 {
@@ -66,9 +67,9 @@ fn check_countries_have_no_region(mut tx firebird.ClientTransaction, country_cod
 
 	countries := record.country_retrieve(mut tx, CountryRetrieveParams{
 		codes:  country_codes
-		offset: offset_default
+		offset: objects.offset_default
 		fetch:  country_codes.len
-		order:  order_default
+		order:  objects.order_default
 	}) or { return errors.internal('Failed to retrieve country', err.msg()) }
 
 	for i := 0; i < countries.len; i++ {
@@ -85,9 +86,9 @@ fn (p RegionCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	count := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		ids:          [p.id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        1
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	if count == 0 {
@@ -144,9 +145,9 @@ fn (p RegionUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 	count := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		ids:          [p.id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        1
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve region count', err.msg()) }
 
 	if count == 0 {
@@ -191,9 +192,9 @@ pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
 	count := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		ids:          [region_id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        1
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve region count', err.msg()) }
 
 	if count == 0 {

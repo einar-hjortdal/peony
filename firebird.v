@@ -5,6 +5,7 @@ import strconv
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import internal.conduit
+import objects
 
 const schema_file = $embed_file('migrations/seed-schema.sql')
 const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
@@ -96,7 +97,7 @@ fn firebird_insert_default_user(mut tx firebird.ClientTransaction, email string,
 	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, password_parameters_id, role)
 	VALUES (?, ?, ?, ?, ?, ?)',
 		user_id.bytes(), user_id.string(), email, password_hash.hash, password_hash.salt,
-		password_parameters_id.bytes(), role_admin)!
+		password_parameters_id.bytes(), objects.role_admin)!
 }
 
 fn firebird_insert_default_region(mut tx firebird.ClientTransaction, region_id ID) ! {

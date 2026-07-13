@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import objects
 
 pub fn sales_channel_list(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) !List[SalesChannel] {
 	count := record.sales_channel_retrieve_count(mut tx, p) or {
@@ -38,9 +39,9 @@ pub fn sales_channel_update(mut tx firebird.ClientTransaction, p record.SalesCha
 pub fn sales_channel_get(mut tx firebird.ClientTransaction, sales_channel_id ID) !record.SalesChannel {
 	sales_channels := record.sales_channel_retrieve(mut tx, SalesChannelRetrieveParams{
 		ids:    [sales_channel_id]
-		offset: offset_default
-		fetch:  1
-		order:  order_default
+		offset: objects.offset_default
+		fetch:  objects.min_fetch
+		order:  objects.order_default
 	}) or { return errors.internal('Could not retrieve sales channels', err.msg()) }
 
 	if sales_channels.len == 0 {

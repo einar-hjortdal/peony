@@ -4,6 +4,7 @@ import crypto.argon2
 import crypto.blake2b
 import crypto.rand
 import json
+import internal.errors
 
 const argon2id_name = 'argon2id'
 const argon2id_version = i32(argon2.version)
@@ -77,7 +78,7 @@ fn (p Argon2idParameters) encode() !(string, []u8) {
 
 fn decode_argon2id_parameters(s string) !Argon2idParameters {
 	res := json.decode(Argon2idParameters, s) or {
-		return new_error_internal('Failed to decode Argon2idParameters', err.msg())
+		return errors.internal('Failed to decode Argon2idParameters', err.msg())
 	}
 	return res
 }

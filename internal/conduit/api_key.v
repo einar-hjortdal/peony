@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import objects
 
 pub struct APIKeyCreateParams {
 pub:
@@ -34,9 +35,9 @@ pub fn api_key_create(mut tx firebird.ClientTransaction, p APIKeyCreateParams) !
 pub fn api_key_get(mut tx firebird.ClientTransaction, api_key_id ID) !APIKey {
 	api_keys := record.api_key_retrieve(mut tx, APIKeyRetrieveParams{
 		ids:    [api_key_id]
-		offset: 0
-		fetch:  1
-		order:  order_default
+		offset: objects.offset_default
+		fetch:  objects.min_fetch
+		order:  objects.order_default
 	}) or { return errors.internal('Could not retrieve api_key', err.msg()) }
 
 	if api_keys.len == 0 {

@@ -74,20 +74,20 @@ fn is_fitting_price(ma conduit.VariantMoneyAmount, region_id ID, _ i32) bool {
 }
 
 // returns empty MoneyAmount if no original_price exists
-fn get_original_price(mas []VariantMoneyAmount, region_id ID) VariantMoneyAmount {
+fn get_original_price(mas []conduit.VariantMoneyAmount, region_id ID) conduit.VariantMoneyAmount {
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
-		if ma.is_original && ma.region_id_bin == region_id.bytes() {
+		if ma.is_original && ma.region_id.string() == region_id.string() {
 			return ma
 		}
 	}
-	return VariantMoneyAmount{}
+	return conduit.VariantMoneyAmount{}
 }
 
 // returns empty MoneyAmount if no price exists for the region
 // TODO It cannot return empty though, peony must guarantee prices exist for each region
-fn get_regional_prices(mas []VariantMoneyAmount, region_id ID, quantity i32) []VariantMoneyAmount {
-	mut fitting_prices := []VariantMoneyAmount{}
+fn get_regional_prices(mas []conduit.VariantMoneyAmount, region_id ID, quantity i32) []conduit.VariantMoneyAmount {
+	mut fitting_prices := []conduit.VariantMoneyAmount{}
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
 		if is_fitting_price(ma, region_id, quantity) {

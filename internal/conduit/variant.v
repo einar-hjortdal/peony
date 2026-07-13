@@ -6,6 +6,7 @@ import einar_hjortdal.firebird
 import record
 import internal.errors
 import internal.common
+import objects
 
 fn get_variants_money_amounts(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
 	money_amounts := record.variant_money_amount_retrieve(mut tx, variant_ids) or {
@@ -71,9 +72,9 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        1
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Could not retrieve product_variant', err.msg()) }
 
 	if variants.len == 0 {
@@ -213,9 +214,9 @@ fn (p VariantCreateParams) parse_inventory_item(mut g luuid.Generator, variant_i
 		return record.InventoryItemCreateParams{
 			id:                id
 			variant_id:        variant_id
-			requires_shipping: common.inventory_item_requires_shipping_default
-			manage_inventory:  common.inventory_item_manage_inventory_default
-			allow_backorder:   common.inventory_item_allow_backorder_default
+			requires_shipping: objects.inventory_item_requires_shipping_default
+			manage_inventory:  objects.inventory_item_manage_inventory_default
+			allow_backorder:   objects.inventory_item_allow_backorder_default
 		}
 	}
 
@@ -240,9 +241,9 @@ fn (p VariantCreateParams) parse_inventory_item(mut g luuid.Generator, variant_i
 fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator, variant_id ID) ![]record.VariantMoneyAmountUpdateParams {
 	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
 		with_deleted: false
-		offset:       offset_default
-		fetch:        max_fetch // limit 250 regions or refactor? or make const internal_max_fetch = max_i32?
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.max_fetch // limit 250 regions or refactor? or make const internal_max_fetch = max_i32?
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve region', err.msg()) }
 
 	// at max one base and one original per region
@@ -254,8 +255,8 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 				variant_id:      variant_id
 				region_id:       region.id
 				money_amount_id: common.new_id(mut g)
-				amount:          common.money_amount_default_amount
-				is_original:     common.money_amount_default_is_original
+				amount:          objects.money_amount_default_amount
+				is_original:     objects.money_amount_default_is_original
 			}
 		}
 		return res
@@ -286,8 +287,8 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 			variant_id:      variant_id
 			region_id:       region.id
 			money_amount_id: common.new_id(mut g)
-			amount:          common.money_amount_default_amount
-			is_original:     common.money_amount_default_is_original
+			amount:          objects.money_amount_default_amount
+			is_original:     objects.money_amount_default_is_original
 		}
 	}
 	return res
@@ -382,9 +383,9 @@ fn (p VariantUpdateParams) parse_variant(mut tx firebird.ClientTransaction) !rec
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		ids:          [p.id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        min_fetch
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Failed to retrieve variant', err.msg()) }
 
 	if variants.len == 0 {
@@ -498,9 +499,9 @@ pub fn variant_delete(mut tx firebird.ClientTransaction, product_id ID, variant_
 		ids:          [variant_id]
 		product_ids:  [product_id]
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn	
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.max_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn	
 	}) or { return errors.internal('Failed to retrieve variant count', err.msg()) }
 
 	if count == 0 {
@@ -511,9 +512,9 @@ pub fn variant_delete(mut tx firebird.ClientTransaction, product_id ID, variant_
 	count = record.variant_retrieve_count(mut tx, record.VariantRetrieveParams{
 		product_ids:  [product_id]
 		with_deleted: false
-		offset:       offset_default // ignored by count fn
-		fetch:        max_fetch      // ignored by count fn
-		order:        order_default  // ignored by count fn	
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.max_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn	
 	}) or { return errors.internal('Failed to retrieve variant count', err.msg()) }
 
 	if count == 1 {

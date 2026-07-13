@@ -3,11 +3,6 @@ module record
 import einar_hjortdal.firebird
 import internal.common
 
-const offset_default = common.offset_default
-const order_asc = common.order_asc
-const order_desc = common.order_desc
-const order_default = common.order_default
-
 type ID = common.ID
 
 fn id_from_string(s string) !ID {

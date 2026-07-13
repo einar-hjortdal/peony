@@ -7,6 +7,7 @@ import einar_hjortdal.slugify
 import record
 import internal.errors
 import internal.common
+import objects
 
 // TODO split store/admin conduit to fetch only data required by the endpoint
 pub fn category_list(mut tx firebird.ClientTransaction, p CategoryRetrieveParams) !List[Category] {
@@ -80,9 +81,9 @@ pub fn category_get(mut tx firebird.ClientTransaction, category_id ID) !Category
 	categories := record.category_retrieve(mut tx, CategoryRetrieveParams{
 		ids:          [category_id]
 		with_deleted: false
-		offset:       offset_default
+		offset:       objects.offset_default
 		fetch:        1
-		order:        order_default
+		order:        objects.order_default
 	}) or { return errors.internal('Could not retrieve category', err.msg()) }
 
 	if categories.len == 0 {
@@ -149,9 +150,9 @@ fn (p CategoryCreateParams) check(mut tx firebird.ClientTransaction) ! {
 		count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
 			ids:          [parent_category_id]
 			with_deleted: true
-			offset:       offset_default
-			fetch:        min_fetch
-			order:        order_default
+			offset:       objects.offset_default // ignored by count fn
+			fetch:        objects.min_fetch      // ignored by count fn
+			order:        objects.order_default  // ignored by count fn
 		}) or { return errors.internal('Could not retrieve category count', err.msg()) }
 		if count == 0 {
 			return errors.unprocessable_entity(errors.id_invalid,
@@ -289,9 +290,9 @@ fn (p CategoryUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 	count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
 		ids:          [p.id]
 		with_deleted: true
-		offset:       offset_default
-		fetch:        min_fetch
-		order:        order_default
+		offset:       objects.offset_default // ignored by count fn
+		fetch:        objects.min_fetch      // ignored by count fn
+		order:        objects.order_default  // ignored by count fn
 	}) or { return errors.internal('Could not retrieve category count', err.msg()) }
 	if count == 0 {
 		return errors.unprocessable_entity(errors.id_invalid,
@@ -302,9 +303,9 @@ fn (p CategoryUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 		parent_count := record.category_retrieve_count(mut tx, CategoryRetrieveParams{
 			ids:          [parent_category_id]
 			with_deleted: true
-			offset:       offset_default
-			fetch:        min_fetch
-			order:        order_default
+			offset:       objects.offset_default // ignored by count fn
+			fetch:        objects.min_fetch      // ignored by count fn
+			order:        objects.order_default  // ignored by count fn
 		}) or { return errors.internal('Could not retrieve category count', err.msg()) }
 		if parent_count == 0 {
 			return errors.unprocessable_entity(errors.id_invalid,

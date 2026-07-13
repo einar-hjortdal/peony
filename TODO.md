@@ -139,7 +139,7 @@
 
 ## To consider
 
-- [ ] drop inventory_item.variant_id column: inventory_item.id should be a foreign key to variant.id, this represents a one-to-one relation. However, in the literature, this would make variant a supertype, which may be understood as a different relation to what inventory_item is to variant in this model.
+- [ ] drop inventory_item.variant_id column: inventory_item.id should be a foreign key to variant.id, this represents a one-to-one relation. However, the literature suggests that this change would make variant a supertype, which may be understood as a different relation to what inventory_item is to variant in this model. A supertype suggests variant IS A inventory_item, in our case a variant is the conceptual representation of an inventory item. Is this acceptable?
 
 ## Upstream
 

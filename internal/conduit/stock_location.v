@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import objects
 
 pub fn stock_location_list(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) !List[StockLocation] {
 	count := record.stock_location_retrieve_count(mut tx, record.StockLocationRetrieveParams{
@@ -37,9 +38,9 @@ pub fn stock_location_get(mut tx firebird.ClientTransaction, stock_location_id I
 	stock_locations := record.stock_location_retrieve(mut tx, record.StockLocationRetrieveParams{
 		ids:          [stock_location_id]
 		with_deleted: true
-		offset:       offset_default
-		fetch:        min_fetch
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('Could not get stock_location', err.msg()) }
 
 	if stock_locations.len == 0 {
@@ -67,9 +68,9 @@ fn (p StockLocationUpdateParams) check(mut tx firebird.ClientTransaction) ! {
 	count := record.stock_location_retrieve_count(mut tx, record.StockLocationRetrieveParams{
 		ids:          [p.id]
 		with_deleted: true
-		offset:       offset_default
-		fetch:        min_fetch
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	})!
 
 	if count == 0 {
@@ -106,9 +107,9 @@ pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_i
 	stock_locations := record.stock_location_retrieve(mut tx, record.StockLocationRetrieveParams{
 		ids:          [stock_location_id]
 		with_deleted: false
-		offset:       offset_default
-		fetch:        min_fetch
-		order:        order_default
+		offset:       objects.offset_default
+		fetch:        objects.min_fetch
+		order:        objects.order_default
 	}) or { return errors.internal('failed to retrieve stock_locations', err.msg()) }
 
 	if stock_locations.len == 0 {

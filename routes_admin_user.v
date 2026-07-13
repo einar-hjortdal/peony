@@ -6,6 +6,7 @@ import einar_hjortdal.firebird
 import internal.common
 import internal.conduit
 import internal.errors
+import objects
 
 // lists users
 @['/admin/users'; get]
@@ -64,7 +65,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 			password_hash:          password_hash.hash
 			password_salt:          password_hash.salt
 			password_parameters_id: password_details.id
-			role:                   unwrap_option_or(p.role, role_admin)
+			role:                   unwrap_option_or(p.role, objects.role_admin)
 			first_name:             p.first_name
 			last_name:              p.last_name
 			// image_id

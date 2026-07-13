@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import objects
 
 pub fn locale_list(mut tx firebird.ClientTransaction, p LocaleRetrieveParams) !List[Locale] {
 	count := record.locale_retrieve_count(mut tx, p) or {
@@ -27,8 +28,8 @@ pub fn locale_get_by_id(mut tx firebird.ClientTransaction, locale_id ID) !Locale
 	locales := record.locale_retrieve(mut tx, LocaleRetrieveParams{
 		ids:    [locale_id]
 		fetch:  1
-		offset: offset_default
-		order:  order_default
+		offset: objects.offset_default
+		order:  objects.order_default
 	}) or { return errors.internal('Could not retrieve locale', err.msg()) }
 
 	if locales.len == 0 {
