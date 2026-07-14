@@ -53,6 +53,10 @@ pub mut:
 	translations []ProductOptionValueTranslation
 }
 
+pub fn (pov ProductOptionValue) id() common.ID {
+	return pov.id
+}
+
 // TODO fetch...
 pub struct ProductOptionValueRetrieveParams {
 pub:
