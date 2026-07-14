@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 import objects
 
 pub fn locale_list(mut tx firebird.ClientTransaction, p LocaleRetrieveParams) !List[Locale] {
@@ -24,7 +25,7 @@ pub fn locale_list(mut tx firebird.ClientTransaction, p LocaleRetrieveParams) !L
 	}
 }
 
-pub fn locale_get_by_id(mut tx firebird.ClientTransaction, locale_id ID) !Locale {
+pub fn locale_get_by_id(mut tx firebird.ClientTransaction, locale_id common.ID) !Locale {
 	locales := record.locale_retrieve(mut tx, LocaleRetrieveParams{
 		ids:    [locale_id]
 		fetch:  1

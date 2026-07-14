@@ -2,6 +2,7 @@ module peony
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 import log
@@ -24,12 +25,12 @@ struct VariantPrice {
 // customer_id is used for price_list prices, it is obtained from customer session.
 // cart_id and region_id are obtained from url parameters.
 struct PriceContext {
-	region_id   ID
-	cart_id     ?ID
-	customer_id ?ID
+	region_id   common.ID
+	cart_id     ?common.ID
+	customer_id ?common.ID
 }
 
-fn (mut app App) get_price_context_region(id ?ID) !ID {
+fn (mut app App) get_price_context_region(id ?common.ID) !common.ID {
 	region_id := id or {
 		log.debug('region_id not provided, using default')
 		return app.get_default_region_id()!
@@ -67,14 +68,14 @@ fn (mut app App) get_price_context(m map[string]string) !PriceContext {
 fn calculate_taxes() {}
 
 // TODO should also consider money_amount related to price-list.
-fn is_fitting_price(ma conduit.VariantMoneyAmount, region_id ID, _ i32) bool {
+fn is_fitting_price(ma conduit.VariantMoneyAmount, region_id common.ID, _ i32) bool {
 	return !ma.is_original && ma.region_id.string() == region_id.string()
 	// && (ma.min_quantity.is_null || ma.max_quantity.value < quantity)
 	// && (ma.max_quantity.is_null || ma.max_quantity.value > quantity)
 }
 
 // returns empty MoneyAmount if no original_price exists
-fn get_original_price(mas []conduit.VariantMoneyAmount, region_id ID) conduit.VariantMoneyAmount {
+fn get_original_price(mas []conduit.VariantMoneyAmount, region_id common.ID) conduit.VariantMoneyAmount {
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]
 		if ma.is_original && ma.region_id.string() == region_id.string() {
@@ -86,7 +87,7 @@ fn get_original_price(mas []conduit.VariantMoneyAmount, region_id ID) conduit.Va
 
 // returns empty MoneyAmount if no price exists for the region
 // TODO It cannot return empty though, peony must guarantee prices exist for each region
-fn get_regional_prices(mas []conduit.VariantMoneyAmount, region_id ID, quantity i32) []conduit.VariantMoneyAmount {
+fn get_regional_prices(mas []conduit.VariantMoneyAmount, region_id common.ID, quantity i32) []conduit.VariantMoneyAmount {
 	mut fitting_prices := []conduit.VariantMoneyAmount{}
 	for i := 0; i < mas.len; i++ {
 		ma := mas[i]

@@ -1,5 +1,6 @@
 module peony
 
+import internal.common
 import internal.conduit
 
 // used by admin endpoints.
@@ -33,7 +34,7 @@ fn new_variant_availability(purchasable bool, amount_available i32) VariantAvail
 }
 
 // used by store endpoints
-fn get_variant_availability(v conduit.Variant, sales_channel_id ID) VariantAvailability {
+fn get_variant_availability(v conduit.Variant, sales_channel_id common.ID) VariantAvailability {
 	if !v.inventory_item.manage_inventory {
 		return VariantAvailability{
 			purchasable:      true

@@ -2,11 +2,12 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct Country {
 pub:
 	code      string
-	region_id ?ID
+	region_id ?common.ID
 }
 
 pub struct CountryRetrieveParams {
@@ -56,9 +57,9 @@ pub fn country_retrieve(mut tx firebird.ClientTransaction, p CountryRetrievePara
 		code, _ := v[0].get_string()!
 		region_id_bin := v[1].get_null_array_u8()!
 
-		mut region_id := ?ID(none)
+		mut region_id := ?common.ID(none)
 		if !region_id_bin.is_null() {
-			region_id = id_from_bytes(region_id_bin.value())!
+			region_id = common.id_from_bytes(region_id_bin.value())!
 		}
 
 		country := Country{

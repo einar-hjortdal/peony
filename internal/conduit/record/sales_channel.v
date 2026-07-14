@@ -2,11 +2,12 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 // TODO include stock locations
 pub struct SalesChannel {
 pub:
-	id          ID
+	id          common.ID
 	created_at  firebird.DateTime
 	updated_at  firebird.DateTime
 	deleted_at  ?firebird.DateTime
@@ -17,13 +18,13 @@ pub:
 	// stock_locations []StockLocation
 }
 
-pub fn (sc SalesChannel) id() ID {
+pub fn (sc SalesChannel) id() common.ID {
 	return sc.id
 }
 
 pub struct SalesChannelRetrieveParams {
 pub:
-	ids          ?[]ID
+	ids          ?[]common.ID
 	with_deleted bool
 	offset       i32
 	fetch        i32
@@ -90,7 +91,7 @@ pub fn sales_channel_retrieve(mut tx firebird.ClientTransaction, p SalesChannelR
 		description, _ := v[5].get_string()!
 		is_disabled, _ := v[6].get_bool()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		sales_channels[i] = SalesChannel{
 			id:          id
@@ -108,7 +109,7 @@ pub fn sales_channel_retrieve(mut tx firebird.ClientTransaction, p SalesChannelR
 
 pub struct SalesChannelCreateParams {
 pub:
-	id          ID
+	id          common.ID
 	name        string
 	description ?string
 	is_disabled bool
@@ -128,7 +129,7 @@ pub fn sales_channel_create(mut tx firebird.ClientTransaction, p SalesChannelCre
 }
 
 pub struct SalesChannelUpdateParams {
-	id          ID
+	id          common.ID
 	name        ?string
 	description ?string
 	is_disabled ?bool
@@ -159,18 +160,18 @@ pub fn sales_channel_update(mut tx firebird.ClientTransaction, p SalesChannelUpd
 		...params)!
 }
 
-pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id ID) ! {
+pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id common.ID) ! {
 	tx.execute('UPDATE sales_channel SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		sales_channel_id.bytes())!
 }
 
 pub struct ProductSalesChannel {
 pub:
-	product_id       ID
-	sales_channel_id ID
+	product_id       common.ID
+	sales_channel_id common.ID
 }
 
-pub fn product_sales_channel_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductSalesChannel {
+pub fn product_sales_channel_retrieve(mut tx firebird.ClientTransaction, product_ids []common.ID) ![]ProductSalesChannel {
 	data := tx.execute('SELECT product_id, sales_channel_id FROM product_sales_channel
 		WHERE product_id IN (${get_placeholders(product_ids)})',
 		...ids_values(product_ids))!
@@ -184,8 +185,8 @@ pub fn product_sales_channel_retrieve(mut tx firebird.ClientTransaction, product
 		product_id_bin, _ := v[0].get_array_u8()!
 		sales_channel_id_bin, _ := v[1].get_array_u8()!
 
-		product_id := id_from_bytes(product_id_bin)!
-		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
+		sales_channel_id := common.id_from_bytes(sales_channel_id_bin)!
 
 		product_sales_channels[i] = ProductSalesChannel{
 			product_id:       product_id
@@ -196,7 +197,7 @@ pub fn product_sales_channel_retrieve(mut tx firebird.ClientTransaction, product
 	return product_sales_channels
 }
 
-pub fn product_sales_channel_update(mut tx firebird.ClientTransaction, product_id ID, sales_channel_ids []ID) ! {
+pub fn product_sales_channel_update(mut tx firebird.ClientTransaction, product_id common.ID, sales_channel_ids []common.ID) ! {
 	mut d := ''
 	mut pa := []firebird.Value{}
 	for i := 0; i < sales_channel_ids.len; i++ {
@@ -222,13 +223,13 @@ pub fn product_sales_channel_update(mut tx firebird.ClientTransaction, product_i
 }
 
 pub struct SalesChannelStockLocation {
-	sales_channel_id  ID
-	stock_location_id ID
+	sales_channel_id  common.ID
+	stock_location_id common.ID
 }
 
 pub struct SalesChannelStockLocationRetrieveParams {
-	stock_location_ids ?[]ID
-	sales_channel_ids  ?[]ID
+	stock_location_ids ?[]common.ID
+	sales_channel_ids  ?[]common.ID
 }
 
 pub fn sales_channel_stock_location_retrieve(mut tx firebird.ClientTransaction, p SalesChannelStockLocationRetrieveParams) ![]SalesChannelStockLocation {
@@ -265,8 +266,8 @@ pub fn sales_channel_stock_location_retrieve(mut tx firebird.ClientTransaction, 
 		sales_channel_id_bin, _ := v[0].get_array_u8()!
 		stock_location_id_bin, _ := v[1].get_array_u8()!
 
-		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
-		stock_location_id := id_from_bytes(stock_location_id_bin)!
+		sales_channel_id := common.id_from_bytes(sales_channel_id_bin)!
+		stock_location_id := common.id_from_bytes(stock_location_id_bin)!
 
 		sales_channel_stock_locations[i] = SalesChannelStockLocation{
 			sales_channel_id:  sales_channel_id
@@ -276,13 +277,13 @@ pub fn sales_channel_stock_location_retrieve(mut tx firebird.ClientTransaction, 
 	return sales_channel_stock_locations
 }
 
-pub fn sales_channel_stock_location_add(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
+pub fn sales_channel_stock_location_add(mut tx firebird.ClientTransaction, sales_channel_id common.ID, stock_location_id common.ID) ! {
 	tx.execute('INSERT INTO sales_channel_stock_location (sales_channel_id, stock_location_id) 
 		VALUES (?, ?)',
 		sales_channel_id.bytes(), stock_location_id.bytes())!
 }
 
-pub fn sales_channel_stock_location_delete(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
+pub fn sales_channel_stock_location_delete(mut tx firebird.ClientTransaction, sales_channel_id common.ID, stock_location_id common.ID) ! {
 	tx.execute('DELETE FROM sales_channel_stock_location WHERE sales_channel_id = ? AND stock_location_id = ?)',
 		sales_channel_id.bytes(), stock_location_id.bytes())!
 }

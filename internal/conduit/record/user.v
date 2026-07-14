@@ -2,15 +2,16 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct User {
 pub:
-	id                     ID
+	id                     common.ID
 	handle                 string
 	email                  string
 	password_hash          []u8
 	password_salt          []u8
-	password_parameters_id ID
+	password_parameters_id common.ID
 	role                   string
 	created_at             firebird.DateTime
 	updated_at             firebird.DateTime
@@ -22,21 +23,21 @@ pub mut:
 	image UserImage
 }
 
-pub fn (u User) id() ID {
+pub fn (u User) id() common.ID {
 	return u.id
 }
 
 pub struct UserCreateParams {
-	user_id                ID
+	user_id                common.ID
 	handle                 string
 	email                  string
 	password_hash          []u8
 	password_salt          []u8
-	password_parameters_id ID
+	password_parameters_id common.ID
 	role                   string
 	first_name             ?string
 	last_name              ?string
-	image_id               ?ID
+	image_id               ?common.ID
 	metadata               ?string
 }
 
@@ -82,7 +83,7 @@ pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 
 pub struct UserListParams {
 pub:
-	ids          ?[]ID
+	ids          ?[]common.ID
 	handle       ?string
 	email        ?string
 	roles        ?[]string
@@ -178,8 +179,8 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 		last_name, _ := v[11].get_string()!
 		metadata := v[12].get_null_string()!
 
-		id := id_from_bytes(id_bin)!
-		password_parameters_id := id_from_bytes(password_parameters_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		password_parameters_id := common.id_from_bytes(password_parameters_id_bin)!
 
 		users[i] = User{
 			id:                     id
@@ -212,7 +213,7 @@ pub:
 
 // TODO handle password
 // TODO validate params
-pub fn user_update(mut tx firebird.ClientTransaction, user_id ID, p UserUpdateParams) ! {
+pub fn user_update(mut tx firebird.ClientTransaction, user_id common.ID, p UserUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 
@@ -255,6 +256,6 @@ pub fn user_update(mut tx firebird.ClientTransaction, user_id ID, p UserUpdatePa
 		...params)!
 }
 
-pub fn user_delete(mut tx firebird.ClientTransaction, user_id ID) ! {
+pub fn user_delete(mut tx firebird.ClientTransaction, user_id common.ID) ! {
 	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id.bytes())!
 }

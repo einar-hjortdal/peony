@@ -77,7 +77,7 @@ pub fn category_list(mut tx firebird.ClientTransaction, p CategoryRetrieveParams
 	}
 }
 
-pub fn category_get(mut tx firebird.ClientTransaction, category_id ID) !Category {
+pub fn category_get(mut tx firebird.ClientTransaction, category_id common.ID) !Category {
 	categories := record.category_retrieve(mut tx, CategoryRetrieveParams{
 		ids:          [category_id]
 		with_deleted: false
@@ -122,25 +122,25 @@ pub fn category_get(mut tx firebird.ClientTransaction, category_id ID) !Category
 
 pub struct CategoryTranslationParams {
 pub:
-	locale_id   ID
+	locale_id   common.ID
 	name        ?string
 	description ?string
 }
 
-fn (p CategoryTranslationParams) locale_id() ID {
+fn (p CategoryTranslationParams) locale_id() common.ID {
 	return p.locale_id
 }
 
 pub struct CategoryCreateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               string
 	handle             ?string
 	description        ?string
 	is_internal        bool
 	is_active          bool
 	metadata           ?string
-	parent_category_id ?ID
+	parent_category_id ?common.ID
 	seo                ?SEOParams
 	translations       ?[]CategoryTranslationParams
 }
@@ -185,7 +185,7 @@ fn (p CategoryCreateParams) parse_translations() ?[]record.CategoryTranslationCr
 	return res
 }
 
-fn (p CategoryCreateParams) parse_seo(seo_id ID) record.CategorySEOCreateParams {
+fn (p CategoryCreateParams) parse_seo(seo_id common.ID) record.CategorySEOCreateParams {
 	s := p.seo or {
 		return record.CategorySEOCreateParams{
 			id:          seo_id
@@ -196,7 +196,7 @@ fn (p CategoryCreateParams) parse_seo(seo_id ID) record.CategorySEOCreateParams 
 	return s.parse_category_create(seo_id, p.id)
 }
 
-fn (p CategoryCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
+fn (p CategoryCreateParams) parse_seo_translations(seo_id common.ID) ?[]record.SEOTranslationCreateParams {
 	seo := p.seo or { return none }
 	translations := seo.translations or { return none }
 	if translations.len == 0 {
@@ -231,7 +231,7 @@ fn (p CategoryCreateParams) parse(mut _ firebird.ClientTransaction, mut g luuid.
 	}
 	translations := p.parse_translations()
 
-	seo_id := new_id(mut g)
+	seo_id := common.new_id(mut g)
 	seo := p.parse_seo(seo_id)
 	seo_translations := p.parse_seo_translations(seo_id)
 
@@ -274,14 +274,14 @@ pub fn category_create(mut tx firebird.ClientTransaction, mut g luuid.Generator,
 
 pub struct CategoryUpdateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               ?string
 	description        ?string
 	handle             ?string
 	is_active          ?bool
 	is_internal        ?bool
 	metadata           ?string
-	parent_category_id ?ID
+	parent_category_id ?common.ID
 	seo                ?SEOParams
 	translations       ?[]CategoryTranslationParams
 }
@@ -338,12 +338,12 @@ fn (p CategoryUpdateParams) parse_translations() ?[]record.CategoryTranslationCr
 	return res
 }
 
-fn (p CategoryUpdateParams) parse_seo(seo_id ID) ?record.SEOUpdateParams {
+fn (p CategoryUpdateParams) parse_seo(seo_id common.ID) ?record.SEOUpdateParams {
 	s := p.seo or { return none }
 	return s.parse_update(seo_id)
 }
 
-fn (p CategoryUpdateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
+fn (p CategoryUpdateParams) parse_seo_translations(seo_id common.ID) ?[]record.SEOTranslationCreateParams {
 	seo := p.seo or { return none }
 	translations := seo.translations or { return none }
 
@@ -434,7 +434,7 @@ pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateParams
 	}
 }
 
-pub fn category_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
+pub fn category_delete(mut tx firebird.ClientTransaction, category_id common.ID) ! {
 	record.category_delete(mut tx, category_id) or {
 		return errors.internal('Could not delete category', err.msg())
 	}

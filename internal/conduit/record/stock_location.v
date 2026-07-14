@@ -2,10 +2,11 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct StockLocation {
 pub:
-	id         ID
+	id         common.ID
 	created_at firebird.DateTime
 	updated_at firebird.DateTime
 	deleted_at ?firebird.DateTime
@@ -14,13 +15,13 @@ pub:
 	// sales_channels []SalesChannel
 }
 
-pub fn (sl StockLocation) id() ID {
+pub fn (sl StockLocation) id() common.ID {
 	return sl.id
 }
 
 pub struct StockLocationCreateParams {
 pub:
-	id   ID
+	id   common.ID
 	name string
 	// address
 }
@@ -31,7 +32,7 @@ pub fn stock_location_create(mut tx firebird.ClientTransaction, p StockLocationC
 
 pub struct StockLocationUpdateParams {
 pub:
-	id   ID
+	id   common.ID
 	name string
 	// address
 }
@@ -45,7 +46,7 @@ pub fn stock_location_update(mut tx firebird.ClientTransaction, p StockLocationU
 
 pub struct StockLocationRetrieveParams {
 pub:
-	ids          ?[]ID
+	ids          ?[]common.ID
 	with_deleted bool
 	offset       i32
 	fetch        i32
@@ -110,7 +111,7 @@ pub fn stock_location_retrieve(mut tx firebird.ClientTransaction, p StockLocatio
 		deleted_at := v[3].get_null_date_time()!
 		name, _ := v[4].get_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		stock_locations[i] = StockLocation{
 			id:         id
@@ -125,7 +126,7 @@ pub fn stock_location_retrieve(mut tx firebird.ClientTransaction, p StockLocatio
 }
 
 // NOTE: when an item_reservation is removed, it should not restore item_availability if stock_location.deleted_at is not null
-pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_id ID) ! {
+pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_id common.ID) ! {
 	result := tx.execute('UPDATE stock_location
 		SET deleted_at = CURRENT_TIMESTAMP
 		WHERE id = ?

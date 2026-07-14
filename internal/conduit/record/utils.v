@@ -3,17 +3,7 @@ module record
 import einar_hjortdal.firebird
 import internal.common
 
-type ID = common.ID
-
-fn id_from_string(s string) !ID {
-	return common.id_from_string(s)
-}
-
-fn id_from_bytes(b []u8) !ID {
-	return common.id_from_bytes(b)
-}
-
-fn ids_bytes(ids []ID) [][]u8 {
+fn ids_bytes(ids []common.ID) [][]u8 {
 	mut res := [][]u8{len: ids.len}
 	for i := 0; i < ids.len; i++ {
 		res[i] = ids[i].bytes()
@@ -21,7 +11,7 @@ fn ids_bytes(ids []ID) [][]u8 {
 	return res
 }
 
-fn ids_values(ids []ID) []firebird.Value {
+fn ids_values(ids []common.ID) []firebird.Value {
 	bs := ids_bytes(ids)
 	mut r := []firebird.Value{len: 0, cap: bs.len, init: firebird.Null{}}
 	for _, id in ids {

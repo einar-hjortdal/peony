@@ -1,21 +1,10 @@
 module conduit
 
 import einar_hjortdal.firebird
-import einar_hjortdal.luuid
 import internal.common
 import internal.errors
 import record
 import objects
-
-pub type ID = common.ID
-
-pub fn new_id(mut g luuid.Generator) ID {
-	return common.new_id(mut g)
-}
-
-pub fn id_from_string(s string) !ID {
-	return common.id_from_string(s)
-}
 
 pub struct List[T] {
 pub:
@@ -43,7 +32,7 @@ fn check_translation_locale_ids(mut tx firebird.ClientTransaction, translations 
 	}
 }
 
-fn check_product_id_exists(mut tx firebird.ClientTransaction, product_id ID) ! {
+fn check_product_id_exists(mut tx firebird.ClientTransaction, product_id common.ID) ! {
 	count := record.product_retrieve_count(mut tx, record.ProductRetrieveParams{
 		ids:          [product_id]
 		with_deleted: false
@@ -57,7 +46,7 @@ fn check_product_id_exists(mut tx firebird.ClientTransaction, product_id ID) ! {
 	}
 }
 
-fn check_variant_id_exists(mut tx firebird.ClientTransaction, variant_id ID) ! {
+fn check_variant_id_exists(mut tx firebird.ClientTransaction, variant_id common.ID) ! {
 	count := record.variant_retrieve_count(mut tx, record.VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
@@ -72,7 +61,7 @@ fn check_variant_id_exists(mut tx firebird.ClientTransaction, variant_id ID) ! {
 }
 
 fn check_money_amount_regions(mut tx firebird.ClientTransaction, p []VariantMoneyAmountUpdateParams) ! {
-	mut given_ids := map[string]ID{}
+	mut given_ids := map[string]common.ID{}
 	for i := 0; i < p.len; i++ {
 		id := p[i].region_id
 		given_ids[id.string()] = id
@@ -107,7 +96,7 @@ fn check_money_amount_regions(mut tx firebird.ClientTransaction, p []VariantMone
 	}
 }
 
-fn check_option_values(mut tx firebird.ClientTransaction, product_id ID, option_value_ids []ID) ! {
+fn check_option_values(mut tx firebird.ClientTransaction, product_id common.ID, option_value_ids []common.ID) ! {
 	// check given option_value ids exist
 	option_values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
 		ids:         option_value_ids
@@ -159,7 +148,7 @@ fn check_option_values(mut tx firebird.ClientTransaction, product_id ID, option_
 	}
 }
 
-fn check_image_id_belongs_to_product(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
+fn check_image_id_belongs_to_product(mut tx firebird.ClientTransaction, product_id common.ID, image_id common.ID) ! {
 	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
 		image_ids:   [image_id]
 		product_ids: [product_id]

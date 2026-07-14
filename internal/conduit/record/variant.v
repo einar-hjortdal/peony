@@ -2,16 +2,17 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 import objects
 
 pub struct Variant {
 pub:
-	id           ID
+	id           common.ID
 	created_at   firebird.DateTime
 	updated_at   firebird.DateTime
 	deleted_at   ?firebird.DateTime
-	product_id   ID
-	image_id     ?ID
+	product_id   common.ID
+	image_id     ?common.ID
 	title        ?string
 	barcode      ?string
 	ean          ?string
@@ -24,14 +25,14 @@ pub mut:
 	option_values  []ProductOptionValue
 }
 
-pub fn (v Variant) id() ID {
+pub fn (v Variant) id() common.ID {
 	return v.id
 }
 
 pub struct VariantRetrieveParams {
 pub:
-	ids             ?[]ID
-	product_ids     ?[]ID
+	ids             ?[]common.ID
+	product_ids     ?[]common.ID
 	allow_backorder ?bool
 	with_deleted    bool
 	offset          i32
@@ -119,12 +120,12 @@ pub fn variant_retrieve(mut tx firebird.ClientTransaction, p VariantRetrievePara
 		variant_rank, _ := v[10].get_i32()!
 		metadata := v[11].get_null_string()!
 
-		id := id_from_bytes(id_bin)!
-		product_id := id_from_bytes(product_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
 
-		mut image_id := ?ID(none)
+		mut image_id := ?common.ID(none)
 		if !image_id_is_null {
-			image_id = id_from_bytes(image_id_bin)!
+			image_id = common.id_from_bytes(image_id_bin)!
 		}
 
 		variants[i] = Variant{
@@ -147,8 +148,8 @@ pub fn variant_retrieve(mut tx firebird.ClientTransaction, p VariantRetrievePara
 
 pub struct VariantCreateParams {
 pub:
-	id           ID
-	product_id   ID
+	id           common.ID
+	product_id   common.ID
 	title        ?string
 	barcode      ?string
 	ean          ?string
@@ -233,8 +234,8 @@ pub fn variant_create(mut tx firebird.ClientTransaction, p []VariantCreateParams
 
 pub struct VariantUpdateParams {
 pub:
-	id           ID
-	product_id   ID
+	id           common.ID
+	product_id   common.ID
 	title        ?string
 	barcode      ?string
 	ean          ?string
@@ -297,7 +298,7 @@ pub fn variant_update(mut tx firebird.ClientTransaction, p VariantUpdateParams) 
 	tx.execute(query, ...params)!
 }
 
-pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, p []VariantUpdateParams) ! {
+pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id common.ID, p []VariantUpdateParams) ! {
 	mut src := []string{len: p.len}
 	n_params := 9
 	mut params := []firebird.Value{len: p.len * n_params, init: firebird.Null{}}
@@ -414,7 +415,7 @@ pub fn product_variant_update(mut tx firebird.ClientTransaction, product_id ID, 
 		product_id.bytes())!
 }
 
-pub fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
+pub fn variant_delete(mut tx firebird.ClientTransaction, variant_id common.ID) ! {
 	tx.execute('UPDATE variant SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', variant_id.bytes())!
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE variant_id = ?',
 		variant_id.bytes())!
@@ -422,8 +423,8 @@ pub fn variant_delete(mut tx firebird.ClientTransaction, variant_id ID) ! {
 
 pub struct VariantImage {
 pub:
-	variant_id ID
-	image_id   ID
+	variant_id common.ID
+	image_id   common.ID
 }
 
 pub fn variant_image_update(mut tx firebird.ClientTransaction, p []VariantImage) ! {

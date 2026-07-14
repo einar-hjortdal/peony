@@ -2,6 +2,7 @@ module peony
 
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -20,7 +21,7 @@ pub fn (mut app App) admin_store_get(mut ctx Context) veb.Result {
 // updates store details
 @['/admin/store/:store_id'; post]
 pub fn (mut app App) admin_store_post(mut ctx Context, store_id string) veb.Result {
-	parsed_store_id := id_from_string(store_id) or {
+	parsed_store_id := common.id_from_string(store_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'store_id'))
 	}
 

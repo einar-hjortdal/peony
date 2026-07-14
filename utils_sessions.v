@@ -1,12 +1,14 @@
 module peony
 
+import internal.common
+
 struct UserSessionValues {
 mut:
-	id ?ID
+	id ?common.ID
 }
 
 // WIP
 struct CustomerSessionValues {
 mut:
-	id ?ID
+	id ?common.ID
 }

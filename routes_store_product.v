@@ -2,6 +2,7 @@ module peony
 
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -34,7 +35,7 @@ pub fn (mut app App) store_products_get(mut ctx Context) veb.Result {
 // TODO cache response. I don't think this can be cached easily: need to normalize parameters.
 @['/store/products/:product_id'; get]
 pub fn (mut app App) store_products_get_by_id(mut ctx Context, product_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 

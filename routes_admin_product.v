@@ -46,7 +46,7 @@ pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
 // get a product by id
 @['/admin/products/:product_id'; get]
 pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
@@ -62,7 +62,7 @@ pub fn (mut app App) admin_product_get(mut ctx Context, product_id string) veb.R
 // updates a product
 @['/admin/products/:product_id'; post]
 pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
@@ -86,7 +86,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 // deletes a product
 @['/admin/products/:product_id'; delete]
 pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
@@ -101,7 +101,7 @@ pub fn (mut app App) admin_products_id_delete(mut ctx Context, product_id string
 // creates a variant
 @['/admin/products/:product_id/variants/'; post]
 pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
@@ -125,11 +125,11 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 // updates a variant
 @['/admin/products/:product_id/variants/:variant_id'; post]
 pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, variant_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	parsed_variant_id := id_from_string(variant_id) or {
+	parsed_variant_id := common.id_from_string(variant_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'variant_id'))
 	}
 
@@ -152,11 +152,11 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 // deletes a variant
 @['/admin/products/:product_id/variants/:variant_id'; delete]
 pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	parsed_variant_id := id_from_string(variant_id) or {
+	parsed_variant_id := common.id_from_string(variant_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'variant_id'))
 	}
 
@@ -171,7 +171,7 @@ pub fn (mut app App) variant_delete(mut ctx Context, product_id string, variant_
 // creates a new product image
 @['/admin/products/:product_id/images'; post]
 pub fn (mut app App) product_image_create(mut ctx Context, product_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
@@ -195,11 +195,11 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string) ve
 // retrieves a product image
 @['/admin/products/:product_id/images/:image_id'; get]
 pub fn (mut app App) product_image_get(mut ctx Context, product_id string, image_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	parsed_image_id := id_from_string(image_id) or {
+	parsed_image_id := common.id_from_string(image_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
 	}
 
@@ -215,11 +215,11 @@ pub fn (mut app App) product_image_get(mut ctx Context, product_id string, image
 // updates a product image
 @['/admin/products/:product_id/images/:image_id'; post]
 pub fn (mut app App) product_image_update(mut ctx Context, product_id string, image_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	parsed_image_id := id_from_string(image_id) or {
+	parsed_image_id := common.id_from_string(image_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
 	}
 
@@ -242,11 +242,11 @@ pub fn (mut app App) product_image_update(mut ctx Context, product_id string, im
 // deletes a product image
 @['/admin/products/:product_id/images/:image_id'; delete]
 pub fn (mut app App) product_image_delete(mut ctx Context, product_id string, image_id string) veb.Result {
-	parsed_product_id := id_from_string(product_id) or {
+	parsed_product_id := common.id_from_string(product_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	parsed_image_id := id_from_string(image_id) or {
+	parsed_image_id := common.id_from_string(image_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
 	}
 

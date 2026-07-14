@@ -22,7 +22,7 @@ pub fn (mut app App) admin_sales_channels_get(mut ctx Context) veb.Result {
 // retrieves a sales channel by id
 @['/admin/sales-channels/:sales_channel_id'; get]
 pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_id string) veb.Result {
-	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+	parsed_sales_channel_id := common.id_from_string(sales_channel_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'sales_channel_id'))
 	}
 
@@ -56,7 +56,7 @@ pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
 // updates a sales channel
 @['/admin/sales-channels/:sales_channel_id'; post]
 pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel_id string) veb.Result {
-	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+	parsed_sales_channel_id := common.id_from_string(sales_channel_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id'))
 	}
 
@@ -77,7 +77,7 @@ pub fn (mut app App) admin_sales_channels_id_post(mut ctx Context, sales_channel
 // deletes a sales channel
 @['/admin/sales-channels/:sales_channel_id'; delete]
 pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_channel_id string) veb.Result {
-	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+	parsed_sales_channel_id := common.id_from_string(sales_channel_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id'))
 	}
 
@@ -112,11 +112,11 @@ pub fn (mut app App) admin_sales_channels_id_delete(mut ctx Context, sales_chann
 // associates stock location to a channel
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; post]
 pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
-	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+	parsed_sales_channel_id := common.id_from_string(sales_channel_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'sales_channel_id'))
 	}
 
-	parsed_stock_location_id := id_from_string(stock_location_id) or {
+	parsed_stock_location_id := common.id_from_string(stock_location_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
@@ -134,11 +134,11 @@ pub fn (mut app App) admin_sales_channels_location_post(mut ctx Context, sales_c
 // removes stock location from a channel
 @['/admin/sales-channels/:sales_channel_id/stock-location/:stock_location_id'; delete]
 pub fn (mut app App) admin_sales_channels_location_delete(mut ctx Context, sales_channel_id string, stock_location_id string) veb.Result {
-	parsed_sales_channel_id := id_from_string(sales_channel_id) or {
+	parsed_sales_channel_id := common.id_from_string(sales_channel_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id'))
 	}
 
-	parsed_stock_location_id := id_from_string(stock_location_id) or {
+	parsed_stock_location_id := common.id_from_string(stock_location_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'stock_location_id'))
 	}
 

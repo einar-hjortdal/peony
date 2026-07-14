@@ -2,33 +2,34 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct SEOTranslation {
 pub:
-	seo_id      ID
-	locale_id   ID
+	seo_id      common.ID
+	locale_id   common.ID
 	title       ?string
 	description ?string
 }
 
-pub fn (seo_t SEOTranslation) locale_id() ID {
+pub fn (seo_t SEOTranslation) locale_id() common.ID {
 	return seo_t.locale_id
 }
 
 pub struct SEO {
 pub:
-	id          ID
+	id          common.ID
 	title       ?string
 	description ?string
 pub mut:
 	translations []SEOTranslation
 }
 
-pub fn (seo SEO) id() ID {
+pub fn (seo SEO) id() common.ID {
 	return seo.id
 }
 
-pub fn seo_translation_retrieve(mut tx firebird.ClientTransaction, seo_ids []ID) ![]SEOTranslation {
+pub fn seo_translation_retrieve(mut tx firebird.ClientTransaction, seo_ids []common.ID) ![]SEOTranslation {
 	data := tx.execute('SELECT seo_id, locale_id, title, description
 		FROM seo_translations
 		WHERE seo_id IN (${get_placeholders(seo_ids)})',
@@ -45,8 +46,8 @@ pub fn seo_translation_retrieve(mut tx firebird.ClientTransaction, seo_ids []ID)
 		title := v[2].get_null_string()!
 		description := v[3].get_null_string()!
 
-		seo_id := id_from_bytes(seo_id_bin)!
-		locale_id := id_from_bytes(locale_id_bin)!
+		seo_id := common.id_from_bytes(seo_id_bin)!
+		locale_id := common.id_from_bytes(locale_id_bin)!
 
 		seo_translations[i] = SEOTranslation{
 			seo_id:      seo_id
@@ -62,12 +63,12 @@ pub fn seo_translation_retrieve(mut tx firebird.ClientTransaction, seo_ids []ID)
 pub struct ProductSEO {
 	SEO
 pub:
-	product_id ID
+	product_id common.ID
 }
 
 pub struct SEOCreateParams {
 pub:
-	id          ID
+	id          common.ID
 	title       ?string
 	description ?string
 }
@@ -75,7 +76,7 @@ pub:
 pub struct ProductSEOCreateParams {
 	SEOCreateParams
 pub:
-	product_id ID
+	product_id common.ID
 }
 
 pub fn product_seo_create(mut tx firebird.ClientTransaction, p ProductSEOCreateParams) ! {
@@ -103,7 +104,7 @@ pub fn product_seo_create(mut tx firebird.ClientTransaction, p ProductSEOCreateP
 		...params)!
 }
 
-pub fn product_seo_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductSEO {
+pub fn product_seo_retrieve(mut tx firebird.ClientTransaction, product_ids []common.ID) ![]ProductSEO {
 	data := tx.execute('SELECT id, product_id, title, description FROM seo
 		WHERE product_id IN (${get_placeholders(product_ids)})',
 		...ids_values(product_ids))!
@@ -119,8 +120,8 @@ pub fn product_seo_retrieve(mut tx firebird.ClientTransaction, product_ids []ID)
 		title := v[2].get_null_string()!
 		description := v[3].get_null_string()!
 
-		id := id_from_bytes(id_bin)!
-		product_id := id_from_bytes(product_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
 
 		product_seo[i] = ProductSEO{
 			id:          id
@@ -135,7 +136,7 @@ pub fn product_seo_retrieve(mut tx firebird.ClientTransaction, product_ids []ID)
 
 pub struct SEOUpdateParams {
 pub:
-	id          ID
+	id          common.ID
 	title       ?string
 	description ?string
 }
@@ -168,13 +169,13 @@ pub fn seo_update(mut tx firebird.ClientTransaction, p SEOUpdateParams) ! {
 
 pub struct SEOTranslationCreateParams {
 pub:
-	seo_id      ID
-	locale_id   ID
+	seo_id      common.ID
+	locale_id   common.ID
 	title       ?string
 	description ?string
 }
 
-pub fn (p SEOTranslationCreateParams) locale_id() ID {
+pub fn (p SEOTranslationCreateParams) locale_id() common.ID {
 	return p.locale_id
 }
 
@@ -214,7 +215,7 @@ pub fn seo_translations_create(mut tx firebird.ClientTransaction, p []SEOTransla
 		...params)!
 }
 
-pub fn category_seo_translations_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
+pub fn category_seo_translations_delete(mut tx firebird.ClientTransaction, category_id common.ID) ! {
 	tx.execute('DELETE FROM seo_translations st 
 		WHERE EXISTS (
 			SELECT 1 FROM seo s
@@ -224,7 +225,7 @@ pub fn category_seo_translations_delete(mut tx firebird.ClientTransaction, categ
 		category_id.bytes())!
 }
 
-pub fn product_seo_translations_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
+pub fn product_seo_translations_delete(mut tx firebird.ClientTransaction, product_id common.ID) ! {
 	tx.execute('DELETE FROM seo_translations st 
 		WHERE EXISTS (
 			SELECT 1 FROM seo s
@@ -237,13 +238,13 @@ pub fn product_seo_translations_delete(mut tx firebird.ClientTransaction, produc
 pub struct CategorySEO {
 	SEO
 pub:
-	category_id ID
+	category_id common.ID
 }
 
 pub struct CategorySEOCreateParams {
 	SEOCreateParams
 pub:
-	category_id ID
+	category_id common.ID
 }
 
 pub fn category_seo_create(mut tx firebird.ClientTransaction, p CategorySEOCreateParams) ! {
@@ -271,7 +272,7 @@ pub fn category_seo_create(mut tx firebird.ClientTransaction, p CategorySEOCreat
 		...params)!
 }
 
-pub fn category_seo_retrieve(mut tx firebird.ClientTransaction, category_ids []ID) ![]CategorySEO {
+pub fn category_seo_retrieve(mut tx firebird.ClientTransaction, category_ids []common.ID) ![]CategorySEO {
 	data := tx.execute('SELECT id, category_id, title, description FROM seo
 		WHERE category_id IN (${get_placeholders(category_ids)})',
 		...ids_bytes(category_ids))!
@@ -287,8 +288,8 @@ pub fn category_seo_retrieve(mut tx firebird.ClientTransaction, category_ids []I
 		title := v[2].get_null_string()!
 		description := v[3].get_null_string()!
 
-		id := id_from_bytes(id_bin)!
-		product_id := id_from_bytes(product_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
 
 		category_seo[i] = CategorySEO{
 			id:          id

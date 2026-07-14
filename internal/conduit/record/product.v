@@ -2,21 +2,22 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct ProductTranslation {
 pub:
-	product_id  ID
-	locale_id   ID
+	product_id  common.ID
+	locale_id   common.ID
 	title       string
 	subtitle    string
 	description string
 }
 
-pub fn (p_t ProductTranslation) locale_id() ID {
+pub fn (p_t ProductTranslation) locale_id() common.ID {
 	return p_t.locale_id
 }
 
-pub fn product_translations_retrieve(mut tx firebird.ClientTransaction, product_ids []ID) ![]ProductTranslation {
+pub fn product_translations_retrieve(mut tx firebird.ClientTransaction, product_ids []common.ID) ![]ProductTranslation {
 	data := tx.execute('SELECT
 		product_id,
 		locale_id,
@@ -39,8 +40,8 @@ pub fn product_translations_retrieve(mut tx firebird.ClientTransaction, product_
 		subtitle, _ := v[3].get_string()!
 		description, _ := v[4].get_string()!
 
-		product_id := id_from_bytes(product_id_bin)!
-		locale_id := id_from_bytes(locale_id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
+		locale_id := common.id_from_bytes(locale_id_bin)!
 
 		translations[i] = ProductTranslation{
 			product_id:  product_id
@@ -54,14 +55,14 @@ pub fn product_translations_retrieve(mut tx firebird.ClientTransaction, product_
 	return translations
 }
 
-pub fn product_translation_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
+pub fn product_translation_delete(mut tx firebird.ClientTransaction, product_id common.ID) ! {
 	tx.execute('DELETE FROM product_translations WHERE product_id = ?', product_id.bytes())!
 }
 
 pub struct ProductTranslationCreateParams {
 pub:
-	product_id  ID
-	locale_id   ID
+	product_id  common.ID
+	locale_id   common.ID
 	title       ?string
 	subtitle    ?string
 	description ?string
@@ -109,7 +110,7 @@ pub fn product_translation_create(mut tx firebird.ClientTransaction, p []Product
 
 pub struct Product {
 pub:
-	id           ID
+	id           common.ID
 	created_at   firebird.DateTime
 	updated_at   firebird.DateTime
 	deleted_at   ?firebird.DateTime
@@ -119,8 +120,8 @@ pub:
 	description  ?string
 	is_giftcard  bool
 	status       string
-	thumbnail_id ?ID
-	type_id      ?ID
+	thumbnail_id ?common.ID
+	type_id      ?common.ID
 	discountable bool
 	metadata     ?string
 pub mut:
@@ -129,23 +130,23 @@ pub mut:
 	options            []ProductOption
 	translations       []ProductTranslation // TODO is option
 	variants           []Variant
-	category_ids       []ID // TODO is option
-	sales_channels_ids []ID
+	category_ids       []common.ID // TODO is option
+	sales_channels_ids []common.ID
 	// tags         []Tag
 }
 
-pub fn (p Product) id() ID {
+pub fn (p Product) id() common.ID {
 	return p.id
 }
 
 pub struct ProductRetrieveParams {
 pub:
-	ids              ?[]ID
+	ids              ?[]common.ID
 	handle           ?string
 	is_giftcard      ?bool
 	status           ?string
-	category_ids     ?[]ID
-	sales_channel_id ?ID
+	category_ids     ?[]common.ID
+	sales_channel_id ?common.ID
 	with_deleted     bool
 	offset           i32
 	fetch            i32
@@ -282,16 +283,16 @@ pub fn product_retrieve(mut tx firebird.ClientTransaction, p ProductRetrievePara
 		subtitle := v[12].get_null_string()!
 		description := v[13].get_null_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
-		mut thumbnail_id := ?ID(none)
+		mut thumbnail_id := ?common.ID(none)
 		if !thumbnail_id_bin_is_null {
-			thumbnail_id = id_from_bytes(thumbnail_id_bin)!
+			thumbnail_id = common.id_from_bytes(thumbnail_id_bin)!
 		}
 
-		mut type_id := ?ID(none)
+		mut type_id := ?common.ID(none)
 		if !type_id_bin_is_null {
-			type_id = id_from_bytes(type_id_bin)!
+			type_id = common.id_from_bytes(type_id_bin)!
 		}
 
 		products[i] = Product{
@@ -316,7 +317,7 @@ pub fn product_retrieve(mut tx firebird.ClientTransaction, p ProductRetrievePara
 
 pub struct ProductCreateParams {
 pub:
-	id           ID
+	id           common.ID
 	handle       string
 	title        string
 	subtitle     ?string
@@ -390,14 +391,14 @@ pub fn product_create(mut tx firebird.ClientTransaction, p ProductCreateParams) 
 
 pub struct ProductUpdateParams {
 pub:
-	id           ID
+	id           common.ID
 	title        ?string
 	subtitle     ?string
 	description  ?string
 	handle       ?string
 	is_giftcard  ?bool
 	status       ?string
-	type_id      ?ID
+	type_id      ?common.ID
 	discountable ?bool
 	metadata     ?string
 }
@@ -470,11 +471,11 @@ pub fn product_update(mut tx firebird.ClientTransaction, p ProductUpdateParams) 
 	tx.execute(query, ...params)!
 }
 
-pub fn product_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
+pub fn product_delete(mut tx firebird.ClientTransaction, product_id common.ID) ! {
 	tx.execute('UPDATE product SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', product_id.bytes())!
 }
 
-pub fn product_thumbnail_update(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
+pub fn product_thumbnail_update(mut tx firebird.ClientTransaction, product_id common.ID, image_id common.ID) ! {
 	tx.execute('UPDATE product SET thumbnail_id = ? WHERE id = ?', image_id.bytes(),
 		product_id.bytes())!
 }

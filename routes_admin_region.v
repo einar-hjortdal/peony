@@ -44,7 +44,7 @@ pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
 // get a region
 @['/admin/regions/:region_id'; get]
 pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Result {
-	parsed_region_id := id_from_string(region_id) or {
+	parsed_region_id := common.id_from_string(region_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 
@@ -60,7 +60,7 @@ pub fn (mut app App) admin_region_get(mut ctx Context, region_id string) veb.Res
 // updates a region
 @['/admin/regions/:region_id'; post]
 pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.Result {
-	parsed_region_id := id_from_string(region_id) or {
+	parsed_region_id := common.id_from_string(region_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 
@@ -81,7 +81,7 @@ pub fn (mut app App) admin_region_update(mut ctx Context, region_id string) veb.
 // deletes a region
 @['/admin/regions/:region_id'; delete]
 pub fn (mut app App) admin_region_delete(mut ctx Context, region_id string) veb.Result {
-	parsed_region_id := id_from_string(region_id) or {
+	parsed_region_id := common.id_from_string(region_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, err.msg()))
 	}
 

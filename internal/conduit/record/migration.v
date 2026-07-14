@@ -1,15 +1,16 @@
 module record
 
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct Migration {
 pub:
-	id         ID
+	id         common.ID
 	created_at firebird.DateTime
 	name       string
 }
 
-pub fn migration_create(mut tx firebird.ClientTransaction, migration_id ID, name string) ! {
+pub fn migration_create(mut tx firebird.ClientTransaction, migration_id common.ID, name string) ! {
 	tx.execute('INSERT INTO migration (id, name) VALUES (?, ?)', migration_id.bytes(), name)!
 }
 
@@ -23,7 +24,7 @@ pub fn migration_retrieve(mut tx firebird.ClientTransaction) ![]Migration {
 		created_at, _ := v[1].get_date_time()!
 		name, _ := v[2].get_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		migrations[i] = Migration{
 			id:         id

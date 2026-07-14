@@ -48,7 +48,7 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 // get a category by its id
 @['/admin/categories/:category_id'; get]
 pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Result {
-	parsed_category_id := id_from_string(category_id) or {
+	parsed_category_id := common.id_from_string(category_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
@@ -65,7 +65,7 @@ pub fn (mut app App) category_get(mut ctx Context, category_id string) veb.Resul
 // TODO check handle length
 @['/admin/categories/:category_id'; post]
 pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Result {
-	parsed_category_id := id_from_string(category_id) or {
+	parsed_category_id := common.id_from_string(category_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 
@@ -86,7 +86,7 @@ pub fn (mut app App) category_update(mut ctx Context, category_id string) veb.Re
 // deletes a category
 @['/admin/categories/:category_id'; delete]
 pub fn (mut app App) category_delete(mut ctx Context, category_id string) veb.Result {
-	parsed_category_id := id_from_string(category_id) or {
+	parsed_category_id := common.id_from_string(category_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 

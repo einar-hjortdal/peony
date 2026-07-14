@@ -2,10 +2,11 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct Region {
 pub:
-	id                 ID
+	id                 common.ID
 	name               string
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
@@ -18,13 +19,13 @@ pub mut:
 	tax_rates []TaxRate
 }
 
-pub fn (r Region) id() ID {
+pub fn (r Region) id() common.ID {
 	return r.id
 }
 
 pub struct RegionRetriveParams {
 pub:
-	ids          ?[]ID
+	ids          ?[]common.ID
 	with_deleted bool
 	offset       i32
 	fetch        i32
@@ -94,7 +95,7 @@ pub fn region_retrieve(mut tx firebird.ClientTransaction, p RegionRetriveParams)
 		gift_cards_taxable, _ := v[7].get_bool()!
 		automatic_taxes, _ := v[8].get_bool()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		regions[i] = Region{
 			id:                 id
@@ -114,7 +115,7 @@ pub fn region_retrieve(mut tx firebird.ClientTransaction, p RegionRetriveParams)
 
 pub struct RegionCreateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               string
 	currency_code      string
 	includes_tax       bool
@@ -150,7 +151,7 @@ pub fn region_create(mut tx firebird.ClientTransaction, p RegionCreateParams) ! 
 
 pub struct RegionUpdateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               ?string
 	currency_code      ?string
 	includes_tax       ?bool
@@ -194,6 +195,6 @@ pub fn region_update(mut tx firebird.ClientTransaction, p RegionUpdateParams) ! 
 	}
 }
 
-pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
+pub fn region_delete(mut tx firebird.ClientTransaction, region_id common.ID) ! {
 	tx.execute('UPDATE region SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', region_id.bytes())!
 }

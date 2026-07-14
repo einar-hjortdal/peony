@@ -4,8 +4,9 @@ import arrays
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 
-pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id ID, stock_location_id ID) !InventoryLevel {
+pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id common.ID, stock_location_id common.ID) !InventoryLevel {
 	inventory_level := record.inventory_level_get(mut tx, inventory_item_id, stock_location_id) or {
 		return errors.internal('Failed to retrieve stock inventory_level', err.msg())
 	}
@@ -14,8 +15,8 @@ pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id 
 
 pub struct InventoryLevelUpdateParams {
 pub:
-	inventory_item_id   ID
-	stock_location_id   ID
+	inventory_item_id   common.ID
+	stock_location_id   common.ID
 	quantity_adjustment i32
 }
 
@@ -47,7 +48,7 @@ pub fn inventory_level_update(mut tx firebird.ClientTransaction, p InventoryLeve
 	}
 }
 
-fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map map[string]record.InventoryItem, items_ids []ID) ! {
+fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map map[string]record.InventoryItem, items_ids []common.ID) ! {
 	inventory_levels := record.inventory_level_retrieve(mut tx, items_ids) or {
 		return errors.internal('Failed to retrieve inventory_level', err.msg())
 	}
@@ -60,7 +61,7 @@ fn get_inventory_items_levels(mut tx firebird.ClientTransaction, mut items_map m
 	}
 }
 
-fn get_item_availability(mut tx firebird.ClientTransaction, mut items_map map[string]record.InventoryItem, items_ids []ID) ! {
+fn get_item_availability(mut tx firebird.ClientTransaction, mut items_map map[string]record.InventoryItem, items_ids []common.ID) ! {
 	item_availabilities := record.item_availability_retrieve(mut tx, items_ids) or {
 		return errors.internal('Failed to retrieve item_availability', err.msg())
 	}

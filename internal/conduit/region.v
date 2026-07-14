@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 import objects
 
 pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) !List[Region] {
@@ -32,7 +33,7 @@ pub fn region_list(mut tx firebird.ClientTransaction, p RegionRetriveParams) !Li
 	}
 }
 
-pub fn region_get(mut tx firebird.ClientTransaction, region_id ID) !record.Region {
+pub fn region_get(mut tx firebird.ClientTransaction, region_id common.ID) !record.Region {
 	regions := record.region_retrieve(mut tx, RegionRetriveParams{
 		ids:    [region_id]
 		offset: objects.offset_default
@@ -50,7 +51,7 @@ pub fn region_get(mut tx firebird.ClientTransaction, region_id ID) !record.Regio
 
 pub struct RegionCreateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               string
 	currency_code      string
 	includes_tax       bool
@@ -129,7 +130,7 @@ pub fn region_create(mut tx firebird.ClientTransaction, p RegionCreateParams) ! 
 
 pub struct RegionUpdateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               ?string
 	currency_code      ?string
 	includes_tax       ?bool
@@ -188,7 +189,7 @@ pub fn region_update(mut tx firebird.ClientTransaction, p RegionUpdateParams) ! 
 	}
 }
 
-pub fn region_delete(mut tx firebird.ClientTransaction, region_id ID) ! {
+pub fn region_delete(mut tx firebird.ClientTransaction, region_id common.ID) ! {
 	count := record.region_retrieve_count(mut tx, record.RegionRetriveParams{
 		ids:          [region_id]
 		with_deleted: false

@@ -1,24 +1,25 @@
 module record
 
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct PasswordDetails {
 pub:
-	id            ID
+	id            common.ID
 	function_name string
 	parameters    string
 	hash          []u8
 	created_at    firebird.DateTime
 }
 
-pub fn (p PasswordDetails) id() ID {
+pub fn (p PasswordDetails) id() common.ID {
 	return p.id
 }
 
 pub struct PasswordDetailsGetParams {
 pub:
 	hash []u8
-	id   ?ID
+	id   ?common.ID
 }
 
 pub fn password_details_get(mut tx firebird.ClientTransaction, p PasswordDetailsGetParams) !PasswordDetails {
@@ -52,7 +53,7 @@ pub fn password_details_get(mut tx firebird.ClientTransaction, p PasswordDetails
 	hash, _ := v[3].get_array_u8()!
 	created_at, _ := v[4].get_date_time()!
 
-	id := id_from_bytes(id_bin)!
+	id := common.id_from_bytes(id_bin)!
 
 	return PasswordDetails{
 		id:            id
@@ -63,7 +64,7 @@ pub fn password_details_get(mut tx firebird.ClientTransaction, p PasswordDetails
 	}
 }
 
-pub fn password_details_create(mut tx firebird.ClientTransaction, id ID, function_name string, parameters string, hash []u8) ! {
+pub fn password_details_create(mut tx firebird.ClientTransaction, id common.ID, function_name string, parameters string, hash []u8) ! {
 	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
 		id.bytes(), function_name, parameters, hash)!
 }

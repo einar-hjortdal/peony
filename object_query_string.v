@@ -21,9 +21,9 @@ fn extract_locale_context_query_params(m map[string]string) LocaleContextQueryPa
 
 fn hygienise_locale_context_query_params(m map[string]string) !LocaleContext {
 	p := extract_locale_context_query_params(m)
-	mut locale_id := ?ID(none)
+	mut locale_id := ?common.ID(none)
 	if id_string := p.locale_id {
-		locale_id = id_from_string(id_string) or {
+		locale_id = common.id_from_string(id_string) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 	}
@@ -44,8 +44,8 @@ pub:
 }
 
 struct PriceContextQueryParamsHygienised {
-	cart_id   ?ID
-	region_id ?ID
+	cart_id   ?common.ID
+	region_id ?common.ID
 }
 
 fn extract_price_context_query_params(m map[string]string) PriceContextQueryParams {
@@ -57,16 +57,16 @@ fn extract_price_context_query_params(m map[string]string) PriceContextQueryPara
 
 fn hygienise_price_context_query_params(m map[string]string) !PriceContextQueryParamsHygienised {
 	p := extract_price_context_query_params(m)
-	mut cart_id := ?ID(none)
+	mut cart_id := ?common.ID(none)
 	if id_string := p.cart_id {
-		cart_id = id_from_string(id_string) or {
+		cart_id = common.id_from_string(id_string) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'cart_id')
 		}
 	}
 
-	mut region_id := ?ID(none)
+	mut region_id := ?common.ID(none)
 	if id_string := p.region_id {
-		region_id = id_from_string(id_string) or {
+		region_id = common.id_from_string(id_string) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'region_id')
 		}
 	}
@@ -99,7 +99,7 @@ fn extract_api_key_list_query_params(m map[string]string) APIKeyListQueryParams 
 fn hygienise_api_key_list_query_params(m map[string]string) !conduit.APIKeyRetrieveParams {
 	p := extract_api_key_list_query_params(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
@@ -139,7 +139,7 @@ fn extract_user_list_request_query(m map[string]string) UserListQueryParams {
 fn hygienise_user_list_request_query(m map[string]string) !conduit.UserListParams {
 	p := extract_user_list_request_query(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
@@ -177,7 +177,7 @@ fn extract_region_list_request_query(m map[string]string) RegionListQueryParams 
 fn hygienise_region_list_request_query(m map[string]string) !conduit.RegionRetriveParams {
 	p := extract_region_list_request_query(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
@@ -287,7 +287,7 @@ fn extract_locale_retrieve_params(m map[string]string) LocaleListQueryParams {
 fn hygienise_retrieve_locale_params(m map[string]string) !conduit.LocaleRetrieveParams {
 	p := extract_locale_retrieve_params(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
@@ -322,7 +322,7 @@ fn extract_sales_channels_list_query_params(m map[string]string) SalesChannelLis
 fn hygienise_sales_channels_list_query_params(m map[string]string) !conduit.SalesChannelRetrieveParams {
 	p := extract_sales_channels_list_query_params(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
@@ -368,17 +368,17 @@ fn extract_category_list_request_query(m map[string]string) CategoryListQueryPar
 fn hygienise_category_list_query_params(m map[string]string) !conduit.CategoryRetrieveParams {
 	p := extract_category_list_request_query(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	mut parent_category_id := ?ID(none)
+	mut parent_category_id := ?common.ID(none)
 	if id_string := p.parent_category_id {
-		parent_category_id = id_from_string(id_string)!
+		parent_category_id = common.id_from_string(id_string)!
 	}
 
-	mut product_ids := ?[]ID(none)
+	mut product_ids := ?[]common.ID(none)
 	if ids_string := p.product_ids {
 		product_ids = ids_from_array_string(ids_string)!
 	}
@@ -423,17 +423,17 @@ fn extract_category_list_request_query_store(m map[string]string) CategoryListQu
 fn hygienise_category_list_query_params_store(m map[string]string) !conduit.CategoryRetrieveParams {
 	p := extract_category_list_request_query_store(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	mut parent_category_id := ?ID(none)
+	mut parent_category_id := ?common.ID(none)
 	if id_string := p.parent_category_id {
-		parent_category_id = id_from_string(id_string)!
+		parent_category_id = common.id_from_string(id_string)!
 	}
 
-	mut product_ids := ?[]ID(none)
+	mut product_ids := ?[]common.ID(none)
 	if ids_string := p.product_ids {
 		product_ids = ids_from_array_string(ids_string)!
 	}
@@ -488,19 +488,19 @@ fn extract_product_list_query_params(m map[string]string) ProductListQueryParams
 fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetrieveParams {
 	p := extract_product_list_query_params(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	mut category_ids := ?[]ID(none)
+	mut category_ids := ?[]common.ID(none)
 	if ids_string := p.category_ids {
 		category_ids = ids_from_array_string(ids_string)!
 	}
 
-	mut sales_channel_id := ?ID(none)
+	mut sales_channel_id := ?common.ID(none)
 	if id_string := p.sales_channel_id {
-		sales_channel_id = id_from_string(id_string)!
+		sales_channel_id = common.id_from_string(id_string)!
 	}
 
 	return conduit.ProductRetrieveParams{
@@ -522,7 +522,7 @@ fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetr
 // # Fields
 //
 // ## ids
-// Comma-separated product ids. Exact match on product IDs. Most efficient lookup.
+// Comma-separated product ids. Exact match on product common.IDs. Most efficient lookup.
 //
 // ## handle
 // Exact match on product handle. Less efficient than ids.
@@ -531,7 +531,7 @@ fn hygienise_product_list_query_params(m map[string]string) !conduit.ProductRetr
 // Filters gift cards.
 //
 // ## category_ids
-// Exact match on product category IDs.
+// Exact match on product category common.IDs.
 //
 // ## offset
 // Pagination offset.
@@ -564,15 +564,15 @@ fn extract_product_list_query_params_store(m map[string]string) ProductListQuery
 	}
 }
 
-fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_id ID) !conduit.ProductRetrieveParams {
+fn hygienise_product_list_query_params_store(m map[string]string, sales_channel_id common.ID) !conduit.ProductRetrieveParams {
 	p := extract_product_list_query_params_store(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}
 
-	mut category_ids := ?[]ID(none)
+	mut category_ids := ?[]common.ID(none)
 	if ids_string := p.category_ids {
 		category_ids = ids_from_array_string(ids_string)!
 	}
@@ -634,7 +634,7 @@ fn extract_stock_location_query_params(m map[string]string) StockLocationListQue
 fn hygienise_stock_location_list_query_params(m map[string]string) !conduit.StockLocationRetrieveParams {
 	p := extract_stock_location_query_params(m)
 
-	mut ids := ?[]ID(none)
+	mut ids := ?[]common.ID(none)
 	if ids_string := p.ids {
 		ids = ids_from_array_string(ids_string)!
 	}

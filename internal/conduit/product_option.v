@@ -6,7 +6,7 @@ import record
 import internal.common
 import internal.errors
 
-fn get_product_option_translations(mut tx firebird.ClientTransaction, mut options_map map[string]record.ProductOption, option_ids []ID) ! {
+fn get_product_option_translations(mut tx firebird.ClientTransaction, mut options_map map[string]record.ProductOption, option_ids []common.ID) ! {
 	translations := record.product_option_translations_retrieve(mut tx, option_ids) or {
 		return errors.internal('Failed to retrieve product_option_translations', err.msg())
 	}
@@ -19,7 +19,7 @@ fn get_product_option_translations(mut tx firebird.ClientTransaction, mut option
 	}
 }
 
-fn get_product_option_values_translations(mut tx firebird.ClientTransaction, mut value_map map[string]record.ProductOptionValue, value_ids []ID) ! {
+fn get_product_option_values_translations(mut tx firebird.ClientTransaction, mut value_map map[string]record.ProductOptionValue, value_ids []common.ID) ! {
 	translations := record.product_option_value_translations_retrieve(mut tx, value_ids) or {
 		return errors.internal('Failed to retrieve product_option_value_translations', err.msg())
 	}
@@ -32,7 +32,7 @@ fn get_product_option_values_translations(mut tx firebird.ClientTransaction, mut
 	}
 }
 
-fn get_product_option_values(mut tx firebird.ClientTransaction, mut options_map map[string]record.ProductOption, option_ids []ID) ! {
+fn get_product_option_values(mut tx firebird.ClientTransaction, mut options_map map[string]record.ProductOption, option_ids []common.ID) ! {
 	values := record.product_option_values_retrieve(mut tx, record.ProductOptionValueRetrieveParams{
 		option_ids: option_ids
 	}) or { return errors.internal('Failed to retrieve product_option_values', err.msg()) }

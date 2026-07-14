@@ -2,6 +2,7 @@ module peony
 
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -29,7 +30,7 @@ pub fn (mut app App) store_category_list(mut ctx Context) veb.Result {
 @['/store/categories/:category_id'; get]
 pub fn (mut app App) store_category_get(mut ctx Context, category_id string) veb.Result {
 	lctx := app.get_locale_context(ctx.query) or { return ctx.handle_error(err) }
-	parsed_category_id := id_from_string(category_id) or {
+	parsed_category_id := common.id_from_string(category_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'category_id'))
 	}
 

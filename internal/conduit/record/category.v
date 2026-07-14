@@ -2,35 +2,36 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct CategoryTranslation {
 pub:
-	category_id ID
-	locale_id   ID
+	category_id common.ID
+	locale_id   common.ID
 	name        ?string
 	description ?string
 }
 
-pub fn (ct CategoryTranslation) locale_id() ID {
+pub fn (ct CategoryTranslation) locale_id() common.ID {
 	return ct.locale_id
 }
 
-pub fn category_translations_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
+pub fn category_translations_delete(mut tx firebird.ClientTransaction, category_id common.ID) ! {
 	tx.execute('DELETE FROM category_translations WHERE category_id = ?', category_id.bytes())!
 }
 
 pub struct CategoryTranslationCreateParams {
 pub:
-	locale_id   ID
+	locale_id   common.ID
 	name        ?string
 	description ?string
 }
 
-pub fn (p CategoryTranslationCreateParams) locale_id() ID {
+pub fn (p CategoryTranslationCreateParams) locale_id() common.ID {
 	return p.locale_id
 }
 
-pub fn category_translations_create(mut tx firebird.ClientTransaction, category_id ID, p []CategoryTranslationCreateParams) ! {
+pub fn category_translations_create(mut tx firebird.ClientTransaction, category_id common.ID, p []CategoryTranslationCreateParams) ! {
 	mut src := []string{len: p.len}
 	mut params := []firebird.Value{len: p.len * 4, init: firebird.Null{}}
 	for i := 0; i < p.len; i++ {
@@ -62,7 +63,7 @@ pub fn category_translations_create(mut tx firebird.ClientTransaction, category_
 		...params)!
 }
 
-pub fn category_translations_get(mut tx firebird.ClientTransaction, category_ids []ID) ![]CategoryTranslation {
+pub fn category_translations_get(mut tx firebird.ClientTransaction, category_ids []common.ID) ![]CategoryTranslation {
 	data := tx.execute('SELECT category_id, locale_id, name, description
 		FROM category_translations
 		WHERE category_id IN (${get_placeholders(category_ids)})',
@@ -78,8 +79,8 @@ pub fn category_translations_get(mut tx firebird.ClientTransaction, category_ids
 		name := translation[2].get_null_string()!
 		description := translation[3].get_null_string()!
 
-		category_id := id_from_bytes(category_id_bin)!
-		locale_id := id_from_bytes(locale_id_bin)!
+		category_id := common.id_from_bytes(category_id_bin)!
+		locale_id := common.id_from_bytes(locale_id_bin)!
 
 		category_translations[i] = CategoryTranslation{
 			category_id: category_id
@@ -93,7 +94,7 @@ pub fn category_translations_get(mut tx firebird.ClientTransaction, category_ids
 
 pub struct Category {
 pub:
-	id                 ID
+	id                 common.ID
 	created_at         firebird.DateTime
 	updated_at         firebird.DateTime
 	deleted_at         ?firebird.DateTime
@@ -102,27 +103,27 @@ pub:
 	handle             string
 	is_active          bool
 	is_internal        bool
-	parent_category_id ?ID
+	parent_category_id ?common.ID
 	metadata           ?string
 pub mut:
 	seo          CategorySEO
 	translations []CategoryTranslation
 }
 
-pub fn (c Category) id() ID {
+pub fn (c Category) id() common.ID {
 	return c.id
 }
 
 pub struct CategoryCreateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               string
 	handle             string
 	description        ?string
 	is_active          bool
 	is_internal        bool
 	metadata           ?string
-	parent_category_id ?ID
+	parent_category_id ?common.ID
 }
 
 pub fn category_create(mut tx firebird.ClientTransaction, p CategoryCreateParams) ! {
@@ -151,14 +152,14 @@ pub fn category_create(mut tx firebird.ClientTransaction, p CategoryCreateParams
 
 pub struct CategoryUpdateParams {
 pub:
-	id                 ID
+	id                 common.ID
 	name               ?string
 	description        ?string
 	handle             ?string
 	is_active          ?bool
 	is_internal        ?bool
 	metadata           ?string
-	parent_category_id ?ID
+	parent_category_id ?common.ID
 }
 
 pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateParams) ! {
@@ -208,12 +209,12 @@ pub fn category_update(mut tx firebird.ClientTransaction, p CategoryUpdateParams
 
 pub struct CategoryRetrieveParams {
 pub:
-	ids                ?[]ID
+	ids                ?[]common.ID
 	handle             ?string
 	is_active          ?bool
 	is_internal        ?bool
-	product_ids        ?[]ID
-	parent_category_id ?ID
+	product_ids        ?[]common.ID
+	parent_category_id ?common.ID
 	with_deleted       bool
 	offset             i32
 	fetch              i32
@@ -312,11 +313,11 @@ pub fn category_retrieve(mut tx firebird.ClientTransaction, p CategoryRetrievePa
 		parent_category_id_bin := v[9].get_null_array_u8()!
 		metadata := v[10].get_null_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
-		mut parent_category_id := ?ID(none)
+		mut parent_category_id := ?common.ID(none)
 		if !parent_category_id_bin.is_null() {
-			parent_category_id = id_from_bytes(parent_category_id_bin.value())!
+			parent_category_id = common.id_from_bytes(parent_category_id_bin.value())!
 		}
 
 		categories[i] = Category{
@@ -337,21 +338,21 @@ pub fn category_retrieve(mut tx firebird.ClientTransaction, p CategoryRetrievePa
 	return categories
 }
 
-pub fn category_delete(mut tx firebird.ClientTransaction, category_id ID) ! {
+pub fn category_delete(mut tx firebird.ClientTransaction, category_id common.ID) ! {
 	tx.execute('UPDATE category SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		category_id.bytes())!
 }
 
 pub struct CategoryProduct {
 pub:
-	category_id ID
-	product_id  ID
+	category_id common.ID
+	product_id  common.ID
 }
 
 pub struct CategoryProductRetrieveParams {
 pub:
-	category_ids ?[]ID
-	product_ids  ?[]ID
+	category_ids ?[]common.ID
+	product_ids  ?[]common.ID
 }
 
 pub fn category_product_retrieve(mut tx firebird.ClientTransaction,
@@ -388,8 +389,8 @@ pub fn category_product_retrieve(mut tx firebird.ClientTransaction,
 		category_id_bin, _ := v[0].get_array_u8()!
 		product_id_bin, _ := v[1].get_array_u8()!
 
-		category_id := id_from_bytes(category_id_bin)!
-		product_id := id_from_bytes(product_id_bin)!
+		category_id := common.id_from_bytes(category_id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
 
 		category_products[i] = CategoryProduct{
 			category_id: category_id
@@ -399,7 +400,7 @@ pub fn category_product_retrieve(mut tx firebird.ClientTransaction,
 	return category_products
 }
 
-pub fn category_product_update(mut tx firebird.ClientTransaction, product_id ID, category_ids []ID) ! {
+pub fn category_product_update(mut tx firebird.ClientTransaction, product_id common.ID, category_ids []common.ID) ! {
 	mut src := []string{len: category_ids.len}
 	mut params := []firebird.Value{len: category_ids.len * 2 + 1, init: firebird.Null{}}
 	for i := 0; i < category_ids.len; i++ {

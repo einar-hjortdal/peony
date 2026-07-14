@@ -8,7 +8,7 @@ import record
 
 pub struct ImageTranslationCreateParams {
 pub:
-	locale_id ID
+	locale_id common.ID
 	alt       string
 }
 
@@ -30,7 +30,7 @@ pub:
 	translations ?[]ImageTranslationCreateParams
 }
 
-pub fn product_image_get(mut tx firebird.ClientTransaction, product_id ID, image_id ID) !ProductImage {
+pub fn product_image_get(mut tx firebird.ClientTransaction, product_id common.ID, image_id common.ID) !ProductImage {
 	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
 		image_ids:   [image_id]
 		product_ids: [product_id]
@@ -44,7 +44,7 @@ pub fn product_image_get(mut tx firebird.ClientTransaction, product_id ID, image
 	return images[0]
 }
 
-pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, product_id ID, p ImageCreateParams) !ID {
+pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, product_id common.ID, p ImageCreateParams) !common.ID {
 	image_id := common.new_id(mut g)
 
 	record.image_create(mut tx, [
@@ -71,7 +71,7 @@ pub fn product_image_create(mut tx firebird.ClientTransaction, mut g luuid.Gener
 
 pub struct ImageUpdateParams {
 pub:
-	id           ID
+	id           common.ID
 	url          ?string
 	alt          ?string
 	translations ?[]ImageTranslationCreateParams
@@ -105,7 +105,7 @@ pub fn product_image_update(mut tx firebird.ClientTransaction, p ImageUpdatePara
 	}
 }
 
-pub fn product_image_delete(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
+pub fn product_image_delete(mut tx firebird.ClientTransaction, product_id common.ID, image_id common.ID) ! {
 	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
 		image_ids:   [image_id]
 		product_ids: [product_id]

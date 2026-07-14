@@ -2,20 +2,21 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct Locale {
 pub:
-	id   ID
+	id   common.ID
 	code string
 }
 
-pub fn (l Locale) id() ID {
+pub fn (l Locale) id() common.ID {
 	return l.id
 }
 
 pub struct LocaleRetrieveParams {
 pub:
-	ids    ?[]ID
+	ids    ?[]common.ID
 	offset i32
 	fetch  i32
 	order  string
@@ -60,7 +61,7 @@ pub fn locale_retrieve(mut tx firebird.ClientTransaction, p LocaleRetrieveParams
 		id_bin, _ := v[0].get_array_u8()!
 		code, _ := v[1].get_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		locales[i] = Locale{
 			id:   id

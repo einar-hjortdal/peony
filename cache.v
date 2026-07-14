@@ -4,6 +4,7 @@ import log
 import json
 import einar_hjortdal.firebird
 import internal.conduit
+import internal.common
 
 // TODO cache for store endpoints:
 // store items in redis after retrieving from db
@@ -30,12 +31,12 @@ fn (mut app App) cache_api_key_set(api_key conduit.APIKey) ! {
 		app.config.cache_duration).error()!
 }
 
-fn (mut app App) cache_api_key_get(api_key_id ID) !conduit.APIKey {
+fn (mut app App) cache_api_key_get(api_key_id common.ID) !conduit.APIKey {
 	encoded := app.redict.get(build_key(api_key_prefix, api_key_id.string())).result()!
 	return json.decode(conduit.APIKey, encoded)!
 }
 
-fn (mut app App) cache_api_key_del(api_key_id ID) ! {
+fn (mut app App) cache_api_key_del(api_key_id common.ID) ! {
 	app.redict.del(build_key(api_key_prefix, api_key_id.string())).error()!
 }
 
@@ -44,12 +45,12 @@ fn (mut app App) cache_region_set(region conduit.Region) ! {
 		app.config.cache_duration).error()!
 }
 
-fn (mut app App) cache_region_get(region_id ID) !conduit.Region {
+fn (mut app App) cache_region_get(region_id common.ID) !conduit.Region {
 	encoded := app.redict.get(build_key(region_prefix, region_id.string())).result()!
 	return json.decode(conduit.Region, encoded)!
 }
 
-fn (mut app App) cache_region_del(region_id ID) ! {
+fn (mut app App) cache_region_del(region_id common.ID) ! {
 	app.redict.del(build_key(region_prefix, region_id.string())).error()!
 }
 
@@ -61,12 +62,12 @@ fn (mut app App) cache_store_locale_set(locale conduit.Locale) ! {
 		app.config.cache_duration).error()!
 }
 
-fn (mut app App) cache_store_locale_get(locale_id ID) !conduit.Locale {
+fn (mut app App) cache_store_locale_get(locale_id common.ID) !conduit.Locale {
 	encoded := app.redict.get(build_key(store_locale_prefix, locale_id.string())).result()!
 	return json.decode(conduit.Locale, encoded)!
 }
 
-fn (mut app App) cache_store_locale_del(locale_id ID) ! {
+fn (mut app App) cache_store_locale_del(locale_id common.ID) ! {
 	locale := app.cache_store_locale_get(locale_id)!
 
 	app.redict.del(build_key(store_locale_prefix, locale_id.string()), build_key(store_locale_prefix,
@@ -79,34 +80,34 @@ fn (mut app App) cache_store_locale_id_get(locale_code string) !conduit.Locale {
 	return json.decode(conduit.Locale, encoded)!
 }
 
-fn (mut app App) cache_default_locale_id_set(locale_id ID) ! {
+fn (mut app App) cache_default_locale_id_set(locale_id common.ID) ! {
 	app.redict.set(build_key(default_locale_id_key_prefix), locale_id.string(),
 		app.config.cache_duration).error()!
 }
 
-fn (mut app App) cache_default_locale_id_get() !ID {
+fn (mut app App) cache_default_locale_id_get() !common.ID {
 	id := app.redict.get(build_key(default_locale_id_key_prefix)).result()!
-	return id_from_string(id)
+	return common.id_from_string(id)
 }
 
-fn (mut app App) cache_default_region_id_set(region_id ID) ! {
+fn (mut app App) cache_default_region_id_set(region_id common.ID) ! {
 	app.redict.set(build_key(default_region_id_key_prefix), region_id.string(),
 		app.config.cache_duration).error()!
 }
 
-fn (mut app App) cache_default_region_id_get() !ID {
+fn (mut app App) cache_default_region_id_get() !common.ID {
 	id := app.redict.get(build_key(default_region_id_key_prefix)).result()!
-	return id_from_string(id)
+	return common.id_from_string(id)
 }
 
-fn (mut app App) cache_default_sales_channel_id_set(sales_channel_id ID) ! {
+fn (mut app App) cache_default_sales_channel_id_set(sales_channel_id common.ID) ! {
 	app.redict.set(build_key(default_sales_channel_id_key_prefix), sales_channel_id.string(),
 		app.config.cache_duration).error()!
 }
 
-fn (mut app App) cache_default_sales_channel_id_get() !ID {
+fn (mut app App) cache_default_sales_channel_id_get() !common.ID {
 	id := app.redict.get(build_key(default_sales_channel_id_key_prefix)).result()!
-	return id_from_string(id)
+	return common.id_from_string(id)
 }
 
 fn (mut app App) cache_set_store(store conduit.Store) {
@@ -134,7 +135,7 @@ fn (mut app App) cache_set_store(store conduit.Store) {
 	}
 }
 
-fn (mut app App) get_default_locale_id() !ID {
+fn (mut app App) get_default_locale_id() !common.ID {
 	default_locale_id := app.cache_default_locale_id_get() or {
 		log.debug('default_locale_id not taken from cache: ${err.msg()}')
 		store := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Store {
@@ -146,7 +147,7 @@ fn (mut app App) get_default_locale_id() !ID {
 	return default_locale_id
 }
 
-fn (mut app App) get_default_region_id() !ID {
+fn (mut app App) get_default_region_id() !common.ID {
 	default_region_id := app.cache_default_region_id_get() or {
 		log.debug('default_region_id not taken from cache: ${err.msg()}')
 		store := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Store {

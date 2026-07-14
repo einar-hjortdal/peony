@@ -2,22 +2,23 @@ module record
 
 import arrays
 import einar_hjortdal.firebird
+import internal.common
 
 pub struct Store {
 pub:
-	id                        ID
+	id                        common.ID
 	created_at                firebird.DateTime
 	updated_at                firebird.DateTime
 	name                      string
-	default_locale_id         ID
-	default_region_id         ID
-	default_stock_location_id ID
-	default_sales_channel_id  ID
+	default_locale_id         common.ID
+	default_region_id         common.ID
+	default_stock_location_id common.ID
+	default_sales_channel_id  common.ID
 pub mut:
 	locales []Locale
 }
 
-pub fn (s Store) id() ID {
+pub fn (s Store) id() common.ID {
 	return s.id
 }
 
@@ -50,11 +51,11 @@ pub fn store_retrieve(mut tx firebird.ClientTransaction) !Store {
 	default_stock_location_id_bin, _ := v[6].get_array_u8()!
 	default_sales_channel_id_bin, _ := v[7].get_array_u8()!
 
-	id := id_from_bytes(id_bin)!
-	default_locale_id := id_from_bytes(default_locale_id_bin)!
-	default_region_id := id_from_bytes(default_region_id_bin)!
-	default_stock_location_id := id_from_bytes(default_stock_location_id_bin)!
-	default_sales_channel_id := id_from_bytes(default_sales_channel_id_bin)!
+	id := common.id_from_bytes(id_bin)!
+	default_locale_id := common.id_from_bytes(default_locale_id_bin)!
+	default_region_id := common.id_from_bytes(default_region_id_bin)!
+	default_stock_location_id := common.id_from_bytes(default_stock_location_id_bin)!
+	default_sales_channel_id := common.id_from_bytes(default_sales_channel_id_bin)!
 
 	return Store{
 		id:                        id
@@ -81,7 +82,7 @@ pub fn store_locales_retrieve(mut tx firebird.ClientTransaction) ![]Locale {
 		id_bin, _ := v[0].get_array_u8()!
 		code, _ := v[1].get_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		locales[i] = Locale{
 			id:   id
@@ -92,7 +93,7 @@ pub fn store_locales_retrieve(mut tx firebird.ClientTransaction) ![]Locale {
 	return locales
 }
 
-pub fn store_locales_update(mut tx firebird.ClientTransaction, store_id ID, locale_ids []ID) ! {
+pub fn store_locales_update(mut tx firebird.ClientTransaction, store_id common.ID, locale_ids []common.ID) ! {
 	mut src := []string{len: locale_ids.len}
 	mut params := []firebird.Value{len: locale_ids.len * 2 + 2, init: firebird.Null{}}
 	for i := 0; i < locale_ids.len; i++ {
@@ -125,13 +126,13 @@ pub fn store_locales_update(mut tx firebird.ClientTransaction, store_id ID, loca
 pub struct StoreUpdateParams {
 pub:
 	name                      ?string
-	default_locale_id         ?ID
-	default_region_id         ?ID
-	default_stock_location_id ?ID
-	default_sales_channel_id  ?ID
+	default_locale_id         ?common.ID
+	default_region_id         ?common.ID
+	default_stock_location_id ?common.ID
+	default_sales_channel_id  ?common.ID
 }
 
-pub fn store_update(mut tx firebird.ClientTransaction, store_id ID, p StoreUpdateParams) ! {
+pub fn store_update(mut tx firebird.ClientTransaction, store_id common.ID, p StoreUpdateParams) ! {
 	mut columns := []string{}
 	mut params := []firebird.Value{}
 

@@ -2,6 +2,7 @@ module peony
 
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -25,7 +26,7 @@ pub fn (mut app App) admin_locales_get(mut ctx Context) veb.Result {
 // get locale by id
 @['/admin/locales/:locale_id'; get]
 pub fn (mut app App) admin_locales_get_by_id(mut ctx Context, locale_id string) veb.Result {
-	parsed_locale_id := id_from_string(locale_id) or {
+	parsed_locale_id := common.id_from_string(locale_id) or {
 		perr := errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		return ctx.handle_error(perr)
 	}

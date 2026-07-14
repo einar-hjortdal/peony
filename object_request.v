@@ -39,7 +39,7 @@ pub:
 	sales_channel_id string
 }
 
-fn hygienise_api_key_create_request(s string, api_key_id ID) !conduit.APIKeyCreateParams {
+fn hygienise_api_key_create_request(s string, api_key_id common.ID) !conduit.APIKeyCreateParams {
 	p := json.decode(APIKeyCreateRequest, s) or {
 		return errors.bad_request('Could not decode APIKeyCreateRequest', err.msg())
 	}
@@ -49,7 +49,7 @@ fn hygienise_api_key_create_request(s string, api_key_id ID) !conduit.APIKeyCrea
 			'name can be at most ${max_length_api_key_name} UTF8 characters long')
 	}
 
-	sales_channel_id := id_from_string(p.sales_channel_id) or {
+	sales_channel_id := common.id_from_string(p.sales_channel_id) or {
 		return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id')
 	}
 
@@ -66,7 +66,7 @@ pub:
 	sales_channel_id ?string
 }
 
-fn hygienise_api_key_update_request(s string, api_key_id ID) !conduit.APIKeyUpdateParams {
+fn hygienise_api_key_update_request(s string, api_key_id common.ID) !conduit.APIKeyUpdateParams {
 	p := json.decode(APIKeyUpdateRequest, s) or {
 		return errors.bad_request('Could not decode APIKeyUpdateRequest', err.msg())
 	}
@@ -82,9 +82,9 @@ fn hygienise_api_key_update_request(s string, api_key_id ID) !conduit.APIKeyUpda
 		}
 	}
 
-	mut sales_channel_id := ?ID(none)
+	mut sales_channel_id := ?common.ID(none)
 	if id_string := p.sales_channel_id {
-		sales_channel_id = id_from_string(id_string) or {
+		sales_channel_id = common.id_from_string(id_string) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_id')
 		}
 	}
@@ -106,40 +106,40 @@ pub:
 	locale_ids                ?[]string @[json: 'localeIds']
 }
 
-fn hygienise_store_request(s string, store_id ID) !conduit.StoreUpdateParams {
+fn hygienise_store_request(s string, store_id common.ID) !conduit.StoreUpdateParams {
 	p := json.decode(StoreUpdateRequest, s) or {
 		return errors.bad_request('Could not decode StoreUpdateRequest', err.msg())
 	}
 
-	mut parsed_default_locale_id := ?ID(none)
+	mut parsed_default_locale_id := ?common.ID(none)
 	if id := p.default_locale_id {
-		parsed_default_locale_id = id_from_string(id) or {
+		parsed_default_locale_id = common.id_from_string(id) or {
 			return errors.bad_request(errors.id_invalid, 'default_locale_id')
 		}
 	}
 
-	mut parsed_default_region_id := ?ID(none)
+	mut parsed_default_region_id := ?common.ID(none)
 	if id := p.default_region_id {
-		parsed_default_region_id = id_from_string(id) or {
+		parsed_default_region_id = common.id_from_string(id) or {
 			return errors.bad_request(errors.id_invalid, 'default_region_id')
 		}
 	}
 
-	mut parsed_default_stock_location_id := ?ID(none)
+	mut parsed_default_stock_location_id := ?common.ID(none)
 	if id := p.default_stock_location_id {
-		parsed_default_stock_location_id = id_from_string(id) or {
+		parsed_default_stock_location_id = common.id_from_string(id) or {
 			return errors.bad_request(errors.id_invalid, 'default_stock_location_id')
 		}
 	}
 
-	mut parsed_default_sales_channel_id := ?ID(none)
+	mut parsed_default_sales_channel_id := ?common.ID(none)
 	if id := p.default_sales_channel_id {
-		parsed_default_sales_channel_id = id_from_string(id) or {
+		parsed_default_sales_channel_id = common.id_from_string(id) or {
 			return errors.bad_request(errors.id_invalid, 'default_sales_channel_id')
 		}
 	}
 
-	mut parsed_locale_ids := ?[]ID(none)
+	mut parsed_locale_ids := ?[]common.ID(none)
 	if ids := p.locale_ids {
 		parsed_locale_ids = ids_from_array_string(ids) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_ids')
@@ -164,7 +164,7 @@ pub:
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
-fn hygienise_sales_channel_create_request(s string, sales_channel_id ID) !conduit.SalesChannelCreateParams {
+fn hygienise_sales_channel_create_request(s string, sales_channel_id common.ID) !conduit.SalesChannelCreateParams {
 	p := json.decode(SalesChannelCreateRequest, s) or {
 		return errors.bad_request('Could not decode SalesChannelCreateRequest', err.msg())
 	}
@@ -200,7 +200,7 @@ pub:
 	is_disabled ?bool @[json: 'isDisabled']
 }
 
-fn hygienise_sales_channel_update_request(s string, sales_channel_id ID) !conduit.SalesChannelUpdateParams {
+fn hygienise_sales_channel_update_request(s string, sales_channel_id common.ID) !conduit.SalesChannelUpdateParams {
 	p := json.decode(SalesChannelUpdateRequest, s) or {
 		return errors.bad_request('Could not decode SalesChannelUpdateRequest', err.msg())
 	}
@@ -239,7 +239,7 @@ pub:
 fn hygienise_image_translations(p map[string]ImageTranslationRequest) ![]conduit.ImageTranslationCreateParams {
 	mut res := []conduit.ImageTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
-		parsed_locale_id := id_from_string(locale_id) or {
+		parsed_locale_id := common.id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
@@ -309,7 +309,7 @@ pub:
 	translations ?map[string]ImageTranslationRequest
 }
 
-fn (p ImageUpdateRequest) hygienise(image_id ID) !conduit.ImageUpdateParams {
+fn (p ImageUpdateRequest) hygienise(image_id common.ID) !conduit.ImageUpdateParams {
 	// TODO check alt length, translation locales...
 	mut translations := ?[]conduit.ImageTranslationCreateParams(none)
 	if t := p.translations {
@@ -448,7 +448,7 @@ pub:
 fn hygienise_product_translations(p map[string]ProductTranslationRequest) ![]conduit.ProductTranslationCreateParams {
 	mut res := []conduit.ProductTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
-		parsed_locale_id := id_from_string(locale_id) or {
+		parsed_locale_id := common.id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
@@ -470,7 +470,7 @@ pub:
 fn hygienise_product_option_value_translations(p map[string]ProductOptionValueTranslationRequest) ![]conduit.ProductOptionValueTranslationCreateParams {
 	mut res := []conduit.ProductOptionValueTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
-		parsed_locale_id := id_from_string(locale_id) or {
+		parsed_locale_id := common.id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
@@ -538,7 +538,7 @@ pub:
 fn hygienise_product_option_translations(p map[string]ProductOptionTranslationRequest) ![]conduit.ProductOptionTranslationCreateParams {
 	mut res := []conduit.ProductOptionTranslationCreateParams{len: 0, cap: p.len}
 	for locale_id, translation in p {
-		parsed_locale_id := id_from_string(locale_id) or {
+		parsed_locale_id := common.id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
@@ -596,9 +596,9 @@ fn hygienise_product_option_values(p []ProductOptionValueUpdateRequest) ![]condu
 			return errors.bad_request(error_empty_object, 'ProductOptionValueUpdateRequest')
 		}
 
-		mut parsed_id := ?ID(none)
+		mut parsed_id := ?common.ID(none)
 		if id := value.id {
-			parsed_id = id_from_string(id) or {
+			parsed_id = common.id_from_string(id) or {
 				return errors.unprocessable_entity(errors.id_invalid, 'id')
 			}
 		}
@@ -618,9 +618,9 @@ fn hygienise_product_option_values(p []ProductOptionValueUpdateRequest) ![]condu
 }
 
 fn (p ProductOptionUpdateRequest) hygienise() !conduit.ProductOptionUpdateParams {
-	mut parsed_id := ?ID(none)
+	mut parsed_id := ?common.ID(none)
 	if id := p.id {
-		parsed_id = id_from_string(id) or {
+		parsed_id = common.id_from_string(id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'id')
 		}
 	}
@@ -655,7 +655,7 @@ fn parse_money_amounts(p map[string]VariantPriceRequest) ![]conduit.VariantMoney
 	region_ids := p.keys()
 	for i := 0; i < region_ids.len; i++ {
 		region_id := region_ids[i]
-		parsed_region_id := id_from_string(region_id) or {
+		parsed_region_id := common.id_from_string(region_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'region_id')
 		}
 
@@ -693,7 +693,7 @@ pub:
 	name string
 }
 
-fn hygienise_stock_location_create_request(s string, stock_location_id ID) !conduit.StockLocationCreateParams {
+fn hygienise_stock_location_create_request(s string, stock_location_id common.ID) !conduit.StockLocationCreateParams {
 	p := json.decode(StockLocationCreateRequest, s) or {
 		return errors.bad_request('Could not decode StockLocationCreateRequest', err.msg())
 	}
@@ -714,7 +714,7 @@ pub:
 	name string
 }
 
-fn hygienise_stock_location_update_request(s string, stock_location_id ID) !conduit.StockLocationUpdateParams {
+fn hygienise_stock_location_update_request(s string, stock_location_id common.ID) !conduit.StockLocationUpdateParams {
 	p := json.decode(StockLocationUpdateRequest, s) or {
 		return errors.bad_request('Could not decode StockLocationUpdateRequest', err.msg())
 	}
@@ -739,7 +739,7 @@ pub:
 	quantity_adjustment i32 @[json: 'quantityAdjustment']
 }
 
-fn hygienise_inventory_level_update_request(s string, inventory_item_id ID, stock_location_id ID) !conduit.InventoryLevelUpdateParams {
+fn hygienise_inventory_level_update_request(s string, inventory_item_id common.ID, stock_location_id common.ID) !conduit.InventoryLevelUpdateParams {
 	p := json.decode(InventoryLevelUpdateRequest, s) or {
 		return errors.bad_request('Could not decode InventoryLevelUpdateRequest', err.msg())
 	}
@@ -1094,9 +1094,9 @@ pub:
 }
 
 fn (p ProductVariantUpdateRequest) hygienise() !conduit.ProductVariantUpdateParams {
-	mut parsed_id := ?ID(none)
+	mut parsed_id := ?common.ID(none)
 	if id := p.id {
-		parsed_id = id_from_string(id) or {
+		parsed_id = common.id_from_string(id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'id')
 		}
 	}
@@ -1206,7 +1206,7 @@ pub:
 	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-fn (p VariantCreateRequest) hygienise(product_id ID) !conduit.VariantCreateParams {
+fn (p VariantCreateRequest) hygienise(product_id common.ID) !conduit.VariantCreateParams {
 	title := p.title or { return errors.bad_request(error_field_empty, 'title not provided') }
 	if title == '' {
 		return errors.bad_request(error_field_empty, 'title cannot be an empty string')
@@ -1217,17 +1217,17 @@ fn (p VariantCreateRequest) hygienise(product_id ID) !conduit.VariantCreateParam
 			'option_value_ids cannot be an empty array')
 	}
 
-	mut parsed_option_value_ids := []ID{len: p.option_value_ids.len}
+	mut parsed_option_value_ids := []common.ID{len: p.option_value_ids.len}
 	for i := 0; i < p.option_value_ids.len; i++ {
 		id := p.option_value_ids[i]
-		parsed_option_value_ids[i] = id_from_string(id) or {
+		parsed_option_value_ids[i] = common.id_from_string(id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'option_value_ids')
 		}
 	}
 
-	mut parsed_image_id := ?ID(none)
+	mut parsed_image_id := ?common.ID(none)
 	if id := p.image_id {
-		parsed_image_id = id_from_string(id) or {
+		parsed_image_id = common.id_from_string(id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'image_id')
 		}
 	}
@@ -1324,15 +1324,15 @@ pub:
 	regional_prices  ?map[string]VariantPriceRequest @[json: 'regionalPrices']
 }
 
-fn (p VariantUpdateRequest) hygienise(product_id ID, variant_id ID) !conduit.VariantUpdateParams {
-	mut parsed_image_id := ?ID(none)
+fn (p VariantUpdateRequest) hygienise(product_id common.ID, variant_id common.ID) !conduit.VariantUpdateParams {
+	mut parsed_image_id := ?common.ID(none)
 	if id := p.image_id {
-		parsed_image_id = id_from_string(id) or {
+		parsed_image_id = common.id_from_string(id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'image_id')
 		}
 	}
 
-	mut parsed_option_value_ids := ?[]ID(none)
+	mut parsed_option_value_ids := ?[]common.ID(none)
 	if ids := p.option_value_ids {
 		parsed_option_value_ids = ids_from_array_string(ids) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'option_value_ids')
@@ -1380,7 +1380,7 @@ pub:
 	//  taxes
 }
 
-fn hygienise_region_create_request(s string, region_id ID) !conduit.RegionCreateParams {
+fn hygienise_region_create_request(s string, region_id common.ID) !conduit.RegionCreateParams {
 	p := json.decode(RegionCreateRequest, s) or {
 		return errors.bad_request('Could not decode RegionCreateRequest', err.msg())
 	}
@@ -1437,7 +1437,7 @@ pub:
 	//  taxes
 }
 
-fn hygienise_region_update_request(s string, region_id ID) !conduit.RegionUpdateParams {
+fn hygienise_region_update_request(s string, region_id common.ID) !conduit.RegionUpdateParams {
 	p := json.decode(RegionUpdateRequest, s) or {
 		return errors.bad_request('Could not decode RegionUpdateRequest', err.msg())
 	}
@@ -1499,7 +1499,7 @@ fn hygienise_category_translations(p map[string]CategoryTranslationRequest) ![]c
 	mut res := []conduit.CategoryTranslationParams{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		parsed_locale_id := id_from_string(locale_id) or {
+		parsed_locale_id := common.id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
@@ -1520,7 +1520,7 @@ pub:
 }
 
 struct SEOTranslationRequestHygienised {
-	locale_id   ID
+	locale_id   common.ID
 	title       ?string
 	description ?string
 }
@@ -1529,7 +1529,7 @@ fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]conduit.SEO
 	mut res := []conduit.SEOTranslationParams{len: p.len}
 	mut i := 0
 	for locale_id, translation in p {
-		parsed_locale_id := id_from_string(locale_id) or {
+		parsed_locale_id := common.id_from_string(locale_id) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'locale_id')
 		}
 
@@ -1543,7 +1543,7 @@ fn hygienise_seo_translations(p map[string]SEOTranslationRequest) ![]conduit.SEO
 	return res
 }
 
-fn (r SEOTranslationRequestHygienised) locale_id() ID {
+fn (r SEOTranslationRequestHygienised) locale_id() common.ID {
 	return r.locale_id
 }
 
@@ -1615,10 +1615,10 @@ pub:
 	seo                ?SEORequest
 }
 
-fn (p CategoryCreateRequest) hygienise(category_id ID) !conduit.CategoryCreateParams {
-	mut parsed_parent_category_id := ?ID(none)
+fn (p CategoryCreateRequest) hygienise(category_id common.ID) !conduit.CategoryCreateParams {
+	mut parsed_parent_category_id := ?common.ID(none)
 	if id := p.parent_category_id {
-		parsed_parent_category_id = id_from_string(id) or {
+		parsed_parent_category_id = common.id_from_string(id) or {
 			return errors.bad_request(errors.id_invalid, 'parent_category_id')
 		}
 	}
@@ -1695,7 +1695,7 @@ pub:
 	seo                ?SEORequest
 }
 
-fn hygienise_category_update_request(s string, category_id ID) !conduit.CategoryUpdateParams {
+fn hygienise_category_update_request(s string, category_id common.ID) !conduit.CategoryUpdateParams {
 	p := json.decode(CategoryUpdateRequest, s) or {
 		return errors.bad_request('Could not decode CategoryUpdateRequest', err.msg())
 	}
@@ -1706,9 +1706,9 @@ fn hygienise_category_update_request(s string, category_id ID) !conduit.Category
 		return errors.bad_request(error_empty_object, 'CategoryUpdateRequest')
 	}
 
-	mut parsed_parent_category_id := ?ID(none)
+	mut parsed_parent_category_id := ?common.ID(none)
 	if id := p.parent_category_id {
-		parsed_parent_category_id = id_from_string(id) or {
+		parsed_parent_category_id = common.id_from_string(id) or {
 			return errors.bad_request(errors.id_invalid, 'parent_category_id')
 		}
 	}
@@ -2114,14 +2114,14 @@ fn (p ProductCreateRequest) hygienise() !conduit.ProductCreateParams {
 		}
 	}
 
-	mut parsed_sales_channel_ids := ?[]ID(none)
+	mut parsed_sales_channel_ids := ?[]common.ID(none)
 	if ids := p.sales_channel_ids {
 		parsed_sales_channel_ids = ids_from_array_string(ids) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_ids')
 		}
 	}
 
-	mut parsed_category_ids := ?[]ID(none)
+	mut parsed_category_ids := ?[]common.ID(none)
 	if ids := p.category_ids {
 		parsed_category_ids = ids_from_array_string(ids) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'category_ids')
@@ -2361,9 +2361,9 @@ fn hygienise_image_update_requests(p []ProductImageUpdateRequest) ![]conduit.Pro
 			}
 		}
 
-		mut parsed_id := ?ID(none)
+		mut parsed_id := ?common.ID(none)
 		if id := image.id {
-			parsed_id = id_from_string(id) or {
+			parsed_id = common.id_from_string(id) or {
 				return errors.unprocessable_entity(errors.id_invalid, 'image_id')
 			}
 		}
@@ -2399,7 +2399,7 @@ fn hygienise_product_variant_update_requests(p []ProductVariantUpdateRequest) ![
 	return res
 }
 
-fn (p ProductUpdateRequest) hygienise(product_id ID) !conduit.ProductUpdateParams {
+fn (p ProductUpdateRequest) hygienise(product_id common.ID) !conduit.ProductUpdateParams {
 	if title := p.title {
 		if title == '' {
 			return errors.unprocessable_entity(error_field_empty, 'title')
@@ -2442,14 +2442,14 @@ fn (p ProductUpdateRequest) hygienise(product_id ID) !conduit.ProductUpdateParam
 		}
 	}
 
-	mut parsed_sales_channel_ids := ?[]ID(none)
+	mut parsed_sales_channel_ids := ?[]common.ID(none)
 	if ids := p.sales_channel_ids {
 		parsed_sales_channel_ids = ids_from_array_string(ids) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'sales_channel_ids')
 		}
 	}
 
-	mut parsed_category_ids := ?[]ID(none)
+	mut parsed_category_ids := ?[]common.ID(none)
 	if ids := p.category_ids {
 		parsed_category_ids = ids_from_array_string(ids) or {
 			return errors.unprocessable_entity(errors.id_invalid, 'category_ids')

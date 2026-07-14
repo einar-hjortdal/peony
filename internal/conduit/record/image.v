@@ -1,21 +1,21 @@
 module record
 
-// import arrays
-import einar_hjortdal.firebird
 import arrays
+import einar_hjortdal.firebird
+import internal.common
 
 pub struct ImageTranslation {
 pub:
-	image_id  ID
-	locale_id ID
+	image_id  common.ID
+	locale_id common.ID
 	alt       string
 }
 
-pub fn (it ImageTranslation) locale_id() ID {
+pub fn (it ImageTranslation) locale_id() common.ID {
 	return it.locale_id
 }
 
-pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids []ID) ![]ImageTranslation {
+pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids []common.ID) ![]ImageTranslation {
 	data := tx.execute('SELECT image_id, locale_id, alt FROM image_translations
 		WHERE image_id IN (${get_placeholders(image_ids)})',
 		...ids_bytes(image_ids))!
@@ -30,8 +30,8 @@ pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids [
 		locale_id_bin, _ := v[1].get_array_u8()!
 		alt, _ := v[2].get_string()!
 
-		image_id := id_from_bytes(image_id_bin)!
-		locale_id := id_from_bytes(locale_id_bin)!
+		image_id := common.id_from_bytes(image_id_bin)!
+		locale_id := common.id_from_bytes(locale_id_bin)!
 
 		image_translations[i] = ImageTranslation{
 			image_id:  image_id
@@ -45,8 +45,8 @@ pub fn image_translation_retrieve(mut tx firebird.ClientTransaction, image_ids [
 
 pub struct ImageTranslationCreateParams {
 pub:
-	image_id  ID
-	locale_id ID
+	image_id  common.ID
+	locale_id common.ID
 	alt       string
 }
 
@@ -75,7 +75,7 @@ pub fn image_translation_create(mut tx firebird.ClientTransaction,
 		...params)!
 }
 
-pub fn image_translation_delete(mut tx firebird.ClientTransaction, image_ids []ID) ! {
+pub fn image_translation_delete(mut tx firebird.ClientTransaction, image_ids []common.ID) ! {
 	if image_ids.len == 0 {
 		return
 	}
@@ -86,18 +86,18 @@ pub fn image_translation_delete(mut tx firebird.ClientTransaction, image_ids []I
 
 pub struct Image {
 pub:
-	id  ID
+	id  common.ID
 	url string
 	alt ?string
 pub mut:
 	translations []ImageTranslation
 }
 
-pub fn (img Image) id() ID {
+pub fn (img Image) id() common.ID {
 	return img.id
 }
 
-pub fn image_retrieve(mut tx firebird.ClientTransaction, image_ids []ID) !Image {
+pub fn image_retrieve(mut tx firebird.ClientTransaction, image_ids []common.ID) !Image {
 	data := tx.execute('SELECT id, url, alt FROM image WHERE id IN (${get_placeholders(image_ids)})',
 		ids_bytes(image_ids))!
 
@@ -111,7 +111,7 @@ pub fn image_retrieve(mut tx firebird.ClientTransaction, image_ids []ID) !Image 
 	url, _ := v[1].get_string()!
 	alt := v[2].get_null_string()!
 
-	image_id := id_from_bytes(image_id_bin)!
+	image_id := common.id_from_bytes(image_id_bin)!
 
 	return Image{
 		id:  image_id
@@ -123,20 +123,20 @@ pub fn image_retrieve(mut tx firebird.ClientTransaction, image_ids []ID) !Image 
 pub struct UserImage {
 	Image
 pub:
-	user_id ID
+	user_id common.ID
 }
 
 pub struct ProductImage {
 	Image
 pub:
-	product_id ID
+	product_id common.ID
 	image_rank i32
 }
 
 pub struct ProductImageRetrieveParams {
 pub:
-	image_ids   ?[]ID
-	product_ids ?[]ID
+	image_ids   ?[]common.ID
+	product_ids ?[]common.ID
 }
 
 fn product_image_retrieve_condition(p ProductImageRetrieveParams) (string, []firebird.Value) {
@@ -184,8 +184,8 @@ pub fn product_image_retrieve(mut tx firebird.ClientTransaction, p ProductImageR
 		image_rank, _ := v[3].get_i32()!
 		product_id_bin, _ := v[4].get_array_u8()!
 
-		id := id_from_bytes(id_bin)!
-		product_id := id_from_bytes(product_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		product_id := common.id_from_bytes(product_id_bin)!
 
 		product_images[i] = ProductImage{
 			id:         id
@@ -201,7 +201,7 @@ pub fn product_image_retrieve(mut tx firebird.ClientTransaction, p ProductImageR
 
 pub struct ImageCreateParams {
 pub:
-	id  ID
+	id  common.ID
 	url string
 	alt ?string
 }
@@ -237,7 +237,7 @@ pub fn image_create(mut tx firebird.ClientTransaction, images []ImageCreateParam
 
 pub struct ImageUpdateParams {
 pub:
-	id  ID
+	id  common.ID
 	url ?string
 	alt ?string
 }
@@ -262,15 +262,15 @@ pub fn image_update(mut tx firebird.ClientTransaction, image ImageUpdateParams) 
 	tx.execute('UPDATE image SET ${get_set_columns(columns)} WHERE id = ?', ...params)!
 }
 
-pub fn image_delete(mut tx firebird.ClientTransaction, image_ids []ID) ! {
+pub fn image_delete(mut tx firebird.ClientTransaction, image_ids []common.ID) ! {
 	tx.execute('DELETE FROM image WHERE id IN (${get_placeholders(image_ids)})',
 		ids_bytes(image_ids))!
 }
 
 pub struct ProductImageCreateParams {
 pub:
-	product_id ID
-	image_id   ID
+	product_id common.ID
+	image_id   common.ID
 	image_rank ?i32
 }
 
@@ -302,7 +302,7 @@ pub fn product_image_create(mut tx firebird.ClientTransaction, p []ProductImageC
 	tx.execute(query, ...params)!
 }
 
-pub fn product_image_create_one(mut tx firebird.ClientTransaction, product_id ID, image_id ID) ! {
+pub fn product_image_create_one(mut tx firebird.ClientTransaction, product_id common.ID, image_id common.ID) ! {
 	query := 'INSERT INTO product_image (product_id, image_id, image_rank)
 		SELECT
 			CAST(? AS BINARY(16)),
@@ -318,13 +318,13 @@ pub fn product_image_create_one(mut tx firebird.ClientTransaction, product_id ID
 
 pub struct ProductImageUpdateParams {
 pub:
-	id         ID
+	id         common.ID
 	url        string
 	image_rank i32
 	alt        ?string
 }
 
-pub fn product_image_update(mut tx firebird.ClientTransaction, product_id ID, images []ProductImageUpdateParams) ! {
+pub fn product_image_update(mut tx firebird.ClientTransaction, product_id common.ID, images []ProductImageUpdateParams) ! {
 	if images.len == 0 {
 		tx.execute('DELETE FROM image i WHERE EXISTS
 			(
@@ -338,7 +338,7 @@ pub fn product_image_update(mut tx firebird.ClientTransaction, product_id ID, im
 
 	mut src := []string{len: 0, cap: images.len}
 	mut params := []firebird.Value{len: 0, cap: 3 * images.len, init: firebird.Null{}}
-	mut image_ids := []ID{len: 0, cap: images.len}
+	mut image_ids := []common.ID{len: 0, cap: images.len}
 	for _, image in images {
 		src << 'SELECT
 			CAST(? AS BINARY(16)),

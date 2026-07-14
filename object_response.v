@@ -3,6 +3,7 @@ module peony
 import time
 import einar_hjortdal.firebird
 import providers
+import internal.common
 import internal.conduit
 
 fn format_none_date_time(ndt ?firebird.DateTime) ?time.Time {
@@ -10,12 +11,12 @@ fn format_none_date_time(ndt ?firebird.DateTime) ?time.Time {
 	return date_time.Time
 }
 
-fn format_none_id(nid ?ID) ?string {
+fn format_none_id(nid ?common.ID) ?string {
 	id := nid or { return none }
 	return id.string()
 }
 
-fn format_array_id(aid []ID) []string {
+fn format_array_id(aid []common.ID) []string {
 	mut res := []string{len: aid.len}
 	for i := 0; i < aid.len; i++ {
 		res[i] = aid[i].string()
@@ -695,7 +696,7 @@ pub:
 	price            VariantPriceResponse
 }
 
-fn format_variant_response_store(v conduit.Variant, p VariantPrice, sales_channel_id ID) VariantResponseStore {
+fn format_variant_response_store(v conduit.Variant, p VariantPrice, sales_channel_id common.ID) VariantResponseStore {
 	availability := get_variant_availability(v, sales_channel_id)
 
 	mut option_values := []ProductOptionValueResponse{len: v.option_values.len}
@@ -1096,7 +1097,7 @@ pub struct ProductResponseStoreEnvelope {
 	product ProductResponseStore
 }
 
-fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id ID, lctx LocaleContext) ProductResponseStore {
+fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_channel_id common.ID, lctx LocaleContext) ProductResponseStore {
 	mut thumbnail := ProductImageResponse{}
 	mut images := []ProductImageResponse{len: p.images.len}
 	for i := 0; i < p.images.len; i++ {
@@ -1178,7 +1179,7 @@ pub struct ProductResponseStoreListEnvelope {
 	fetch    i32
 }
 
-fn format_product_response_store_list(p []conduit.Product, pctx PriceContext, sales_channel_id ID, lctx LocaleContext) []ProductResponseStore {
+fn format_product_response_store_list(p []conduit.Product, pctx PriceContext, sales_channel_id common.ID, lctx LocaleContext) []ProductResponseStore {
 	mut res := []ProductResponseStore{len: p.len}
 	for i := 0; i < p.len; i++ {
 		res[i] = format_product_response_store(p[i], pctx, sales_channel_id, lctx)

@@ -2,22 +2,23 @@ module record
 
 import einar_hjortdal.firebird
 import arrays
+import internal.common
 
 pub struct APIKey {
 pub:
-	id               ID
+	id               common.ID
 	created_at       firebird.DateTime
 	updated_at       firebird.DateTime
 	deleted_at       ?firebird.DateTime
 	name             string
-	sales_channel_id ID
+	sales_channel_id common.ID
 }
 
 pub struct APIKeyCreateParams {
 pub:
-	id               ID
+	id               common.ID
 	name             string
-	sales_channel_id ID
+	sales_channel_id common.ID
 }
 
 pub fn api_key_create(mut tx firebird.ClientTransaction, p APIKeyCreateParams) ! {
@@ -27,8 +28,8 @@ pub fn api_key_create(mut tx firebird.ClientTransaction, p APIKeyCreateParams) !
 
 pub struct APIKeyRetrieveParams {
 pub:
-	ids               ?[]ID
-	sales_channel_ids ?[]ID
+	ids               ?[]common.ID
+	sales_channel_ids ?[]common.ID
 	with_deleted      bool
 	offset            i32
 	fetch             i32
@@ -99,8 +100,8 @@ pub fn api_key_retrieve(mut tx firebird.ClientTransaction, p APIKeyRetrieveParam
 		name, _ := v[4].get_string()!
 		sales_channel_id_bin, _ := v[5].get_array_u8()!
 
-		id := id_from_bytes(id_bin)!
-		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		sales_channel_id := common.id_from_bytes(sales_channel_id_bin)!
 
 		api_keys[i] = APIKey{
 			id:               id
@@ -116,9 +117,9 @@ pub fn api_key_retrieve(mut tx firebird.ClientTransaction, p APIKeyRetrieveParam
 
 pub struct APIKeyUpdateParams {
 pub:
-	id               ID
+	id               common.ID
 	name             ?string
-	sales_channel_id ?ID
+	sales_channel_id ?common.ID
 }
 
 pub fn api_key_update(mut tx firebird.ClientTransaction, p APIKeyUpdateParams) ! {
@@ -140,6 +141,6 @@ pub fn api_key_update(mut tx firebird.ClientTransaction, p APIKeyUpdateParams) !
 	tx.execute(query, ...params)!
 }
 
-pub fn api_key_delete(mut tx firebird.ClientTransaction, api_key ID) ! {
+pub fn api_key_delete(mut tx firebird.ClientTransaction, api_key common.ID) ! {
 	tx.execute('UPDATE api_key SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', api_key.bytes())!
 }

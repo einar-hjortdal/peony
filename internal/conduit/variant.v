@@ -8,7 +8,7 @@ import internal.errors
 import internal.common
 import objects
 
-fn get_variants_money_amounts(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
+fn get_variants_money_amounts(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []common.ID) ! {
 	money_amounts := record.variant_money_amount_retrieve(mut tx, variant_ids) or {
 		return errors.internal('Failed to retrieve product_variant_money_amount', err.msg())
 	}
@@ -21,7 +21,7 @@ fn get_variants_money_amounts(mut tx firebird.ClientTransaction, mut variants_ma
 	}
 }
 
-fn get_variants_inventory_items(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
+fn get_variants_inventory_items(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []common.ID) ! {
 	inventory_items := record.inventory_item_retrieve(mut tx, variant_ids) or {
 		return errors.internal('Failed to retrieve inventory_item', err.msg())
 	}
@@ -36,7 +36,7 @@ fn get_variants_inventory_items(mut tx firebird.ClientTransaction, mut variants_
 	}
 }
 
-fn get_variants_option_values(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []ID) ! {
+fn get_variants_option_values(mut tx firebird.ClientTransaction, mut variants_map map[string]record.Variant, variant_ids []common.ID) ! {
 	option_value_variants := record.product_option_value_variant_retrieve(mut tx, record.ProductOptionValueVariantRetrieveParams{
 		variant_ids: variant_ids
 	}) or {
@@ -50,7 +50,7 @@ fn get_variants_option_values(mut tx firebird.ClientTransaction, mut variants_ma
 	mut value_map, value_ids := common.make_identifiable_map(option_values)
 	get_product_option_values_translations(mut tx, mut value_map, value_ids)!
 
-	mut variant_values_map := map[string][]ID{}
+	mut variant_values_map := map[string][]common.ID{}
 	for i := 0; i < option_value_variants.len; i++ {
 		variant_id := option_value_variants[i].variant_id
 		value_id := option_value_variants[i].option_value_id
@@ -68,7 +68,7 @@ fn get_variants_option_values(mut tx firebird.ClientTransaction, mut variants_ma
 	}
 }
 
-pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Variant {
+pub fn variant_get(mut tx firebird.ClientTransaction, variant_id common.ID) !record.Variant {
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		ids:          [variant_id]
 		with_deleted: false
@@ -108,7 +108,7 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 		variant_ids: [variant.id]
 	}) or { return errors.internal('Could not retrieve product_option_value_variant', err.msg()) }
 
-	mut option_value_ids := []ID{len: option_value_variants.len}
+	mut option_value_ids := []common.ID{len: option_value_variants.len}
 	for i := 0; i < option_value_variants.len; i++ {
 		option_value_variant := option_value_variants[i]
 		option_value_ids[i] = option_value_variant.option_value_id
@@ -145,7 +145,7 @@ pub fn variant_get(mut tx firebird.ClientTransaction, variant_id ID) !record.Var
 
 pub struct VariantMoneyAmountUpdateParams {
 pub:
-	region_id   ID
+	region_id   common.ID
 	amount      i32
 	is_original bool
 }
@@ -168,15 +168,15 @@ pub:
 
 pub struct VariantCreateParams {
 pub:
-	product_id       ID
-	image_id         ?ID
+	product_id       common.ID
+	image_id         ?common.ID
 	title            ?string
 	ean              ?string
 	upc              ?string
 	barcode          ?string
 	metadata         ?string
 	variant_rank     i32
-	option_value_ids []ID
+	option_value_ids []common.ID
 	inventory_item   ?InventoryItemCreateParams
 	money_amounts    ?[]VariantMoneyAmountUpdateParams
 }
@@ -195,7 +195,7 @@ fn (p VariantCreateParams) check(mut tx firebird.ClientTransaction) ! {
 	}
 }
 
-fn (p VariantCreateParams) parse_variant(variant_id ID) !record.VariantCreateParams {
+fn (p VariantCreateParams) parse_variant(variant_id common.ID) !record.VariantCreateParams {
 	return record.VariantCreateParams{
 		id:           variant_id
 		product_id:   p.product_id
@@ -208,7 +208,7 @@ fn (p VariantCreateParams) parse_variant(variant_id ID) !record.VariantCreatePar
 	}
 }
 
-fn (p VariantCreateParams) parse_inventory_item(mut g luuid.Generator, variant_id ID) record.InventoryItemCreateParams {
+fn (p VariantCreateParams) parse_inventory_item(mut g luuid.Generator, variant_id common.ID) record.InventoryItemCreateParams {
 	id := common.new_id(mut g)
 	ii := p.inventory_item or {
 		return record.InventoryItemCreateParams{
@@ -238,7 +238,7 @@ fn (p VariantCreateParams) parse_inventory_item(mut g luuid.Generator, variant_i
 	}
 }
 
-fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator, variant_id ID) ![]record.VariantMoneyAmountUpdateParams {
+fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction, mut g luuid.Generator, variant_id common.ID) ![]record.VariantMoneyAmountUpdateParams {
 	regions := record.region_retrieve(mut tx, record.RegionRetriveParams{
 		with_deleted: false
 		offset:       objects.offset_default
@@ -294,7 +294,7 @@ fn (p VariantCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 	return res
 }
 
-pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) !ID {
+pub fn variant_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p VariantCreateParams) !common.ID {
 	variant_id := common.new_id(mut g)
 	p.check(mut tx)!
 
@@ -349,15 +349,15 @@ pub:
 
 pub struct VariantUpdateParams {
 pub:
-	id               ID
-	product_id       ID
-	image_id         ?ID
+	id               common.ID
+	product_id       common.ID
+	image_id         ?common.ID
 	title            ?string
 	barcode          ?string
 	ean              ?string
 	upc              ?string
 	metadata         ?string
-	option_value_ids ?[]ID
+	option_value_ids ?[]common.ID
 	inventory_item   ?InventoryItemUpdateParams
 	money_amounts    ?[]VariantMoneyAmountUpdateParams
 }
@@ -491,7 +491,7 @@ pub fn variant_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	}
 }
 
-pub fn variant_delete(mut tx firebird.ClientTransaction, product_id ID, variant_id ID) ! {
+pub fn variant_delete(mut tx firebird.ClientTransaction, product_id common.ID, variant_id common.ID) ! {
 	check_product_id_exists(mut tx, product_id)!
 	check_variant_id_exists(mut tx, variant_id)!
 

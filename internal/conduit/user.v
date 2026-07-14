@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 import objects
 
 // TODO create image
@@ -11,13 +12,13 @@ pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 }
 
 // TODO update image
-pub fn user_update(mut tx firebird.ClientTransaction, user_id ID, p record.UserUpdateParams) ! {
+pub fn user_update(mut tx firebird.ClientTransaction, user_id common.ID, p record.UserUpdateParams) ! {
 	record.user_update(mut tx, user_id, p) or {
 		return errors.internal('Failed to create user', err.msg())
 	}
 }
 
-pub fn user_delete(mut tx firebird.ClientTransaction, user_id ID) ! {
+pub fn user_delete(mut tx firebird.ClientTransaction, user_id common.ID) ! {
 	record.user_delete(mut tx, user_id) or {
 		return errors.internal('Failed to delete user', err.msg())
 	}
@@ -42,7 +43,7 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) !List[User
 	}
 }
 
-pub fn user_get_by_id(mut tx firebird.ClientTransaction, user_id ID) !User {
+pub fn user_get_by_id(mut tx firebird.ClientTransaction, user_id common.ID) !User {
 	users := record.user_list(mut tx, record.UserListParams{
 		ids:    [user_id]
 		offset: objects.offset_default

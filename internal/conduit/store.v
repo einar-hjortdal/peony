@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 
 pub fn store_get(mut tx firebird.ClientTransaction) !Store {
 	mut store := record.store_retrieve(mut tx) or {
@@ -19,13 +20,13 @@ pub fn store_get(mut tx firebird.ClientTransaction) !Store {
 
 pub struct StoreUpdateParams {
 pub:
-	id                        ID
+	id                        common.ID
 	name                      ?string
-	default_locale_id         ?ID
-	default_region_id         ?ID
-	default_stock_location_id ?ID
-	default_sales_channel_id  ?ID
-	locale_ids                ?[]ID
+	default_locale_id         ?common.ID
+	default_region_id         ?common.ID
+	default_stock_location_id ?common.ID
+	default_sales_channel_id  ?common.ID
+	locale_ids                ?[]common.ID
 }
 
 fn (p StoreUpdateParams) check(mut _ firebird.ClientTransaction) ! {
@@ -36,14 +37,14 @@ fn (p StoreUpdateParams) check(mut _ firebird.ClientTransaction) ! {
 	// TODO locale_ids exist
 }
 
-fn (p StoreUpdateParams) parse_locales() ?[]ID {
+fn (p StoreUpdateParams) parse_locales() ?[]common.ID {
 	locale_ids := p.locale_ids or { return none }
 	return locale_ids
 }
 
 struct StoreUpdateData {
 	store      record.StoreUpdateParams
-	locale_ids ?[]ID
+	locale_ids ?[]common.ID
 }
 
 fn (p StoreUpdateParams) parse() StoreUpdateData {

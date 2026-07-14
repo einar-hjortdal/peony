@@ -95,7 +95,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 // retrieves a user details
 @['/admin/users/:user_id'; get]
 pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result {
-	parsed_user_id := id_from_string(user_id) or {
+	parsed_user_id := common.id_from_string(user_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'user_id'))
 	}
 
@@ -111,7 +111,7 @@ pub fn (mut app App) get_user_by_id(mut ctx Context, user_id string) veb.Result 
 // updates a user
 @['/admin/users/:user_id'; post]
 pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Result {
-	parsed_user_id := id_from_string(user_id) or {
+	parsed_user_id := common.id_from_string(user_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
@@ -146,7 +146,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 // deletes a user
 @['/admin/users/:user_id'; delete]
 pub fn (mut app App) admin_users_id_delete(mut ctx Context, user_id string) veb.Result {
-	parsed_user_id := id_from_string(user_id) or {
+	parsed_user_id := common.id_from_string(user_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 

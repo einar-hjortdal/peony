@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 import objects
 
 pub fn sales_channel_list(mut tx firebird.ClientTransaction, p SalesChannelRetrieveParams) !List[SalesChannel] {
@@ -36,7 +37,7 @@ pub fn sales_channel_update(mut tx firebird.ClientTransaction, p record.SalesCha
 	}
 }
 
-pub fn sales_channel_get(mut tx firebird.ClientTransaction, sales_channel_id ID) !record.SalesChannel {
+pub fn sales_channel_get(mut tx firebird.ClientTransaction, sales_channel_id common.ID) !record.SalesChannel {
 	sales_channels := record.sales_channel_retrieve(mut tx, SalesChannelRetrieveParams{
 		ids:    [sales_channel_id]
 		offset: objects.offset_default
@@ -53,7 +54,7 @@ pub fn sales_channel_get(mut tx firebird.ClientTransaction, sales_channel_id ID)
 	return sales_channel
 }
 
-pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id ID) ! {
+pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id common.ID) ! {
 	store := store_get(mut tx)!
 	if store.default_sales_channel_id.string() == sales_channel_id.string() {
 		return errors.unprocessable_entity('Refusing to delete default sales_channel',
@@ -65,13 +66,13 @@ pub fn sales_channel_delete(mut tx firebird.ClientTransaction, sales_channel_id 
 	}
 }
 
-pub fn sales_channel_stock_location_add(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
+pub fn sales_channel_stock_location_add(mut tx firebird.ClientTransaction, sales_channel_id common.ID, stock_location_id common.ID) ! {
 	record.sales_channel_stock_location_add(mut tx, sales_channel_id, stock_location_id) or {
 		return errors.internal('Could not add stock_location to sales_channel', err.msg())
 	}
 }
 
-pub fn sales_channel_stock_location_delete(mut tx firebird.ClientTransaction, sales_channel_id ID, stock_location_id ID) ! {
+pub fn sales_channel_stock_location_delete(mut tx firebird.ClientTransaction, sales_channel_id common.ID, stock_location_id common.ID) ! {
 	record.sales_channel_stock_location_delete(mut tx, sales_channel_id, stock_location_id) or {
 		tx.rollback() or {}
 		return errors.internal('Could not remove stock_location from sales_channel', err.msg())

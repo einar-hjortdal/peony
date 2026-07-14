@@ -3,16 +3,20 @@ module record
 import arrays
 import einar_hjortdal.firebird
 import objects
+import internal.common
 
 pub struct InventoryLevel {
 pub:
-	inventory_item_id ID
-	stock_location_id ID
+	inventory_item_id common.ID
+	stock_location_id common.ID
 	stocked_quantity  i32
 	reserved_quantity i32
 }
 
-pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id ID, stock_location_id ID) !InventoryLevel {
+pub fn inventory_level_get(
+	mut tx firebird.ClientTransaction,
+	inventory_item_id common.ID,
+	stock_location_id common.ID) !InventoryLevel {
 	data := tx.execute('SELECT 
 		il.stocked_quantity,
 		COALESCE(r.reserved_quantity, 0) as reserved_quantity
@@ -46,7 +50,7 @@ pub fn inventory_level_get(mut tx firebird.ClientTransaction, inventory_item_id 
 	}
 }
 
-pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]InventoryLevel {
+pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []common.ID) ![]InventoryLevel {
 	mut params := arrays.concat(ids_values(inventory_item_ids), ...ids_values(inventory_item_ids))
 
 	data := tx.execute('SELECT 
@@ -75,8 +79,8 @@ pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_ite
 		stocked_quantity, _ := v[2].get_i32()!
 		reserved_quantity, _ := v[3].get_i32()!
 
-		inventory_item_id := id_from_bytes(inventory_item_id_bin)!
-		stock_location_id := id_from_bytes(stock_location_id_bin)!
+		inventory_item_id := common.id_from_bytes(inventory_item_id_bin)!
+		stock_location_id := common.id_from_bytes(stock_location_id_bin)!
 
 		inventory_levels[i] = InventoryLevel{
 			inventory_item_id: inventory_item_id
@@ -91,8 +95,8 @@ pub fn inventory_level_retrieve(mut tx firebird.ClientTransaction, inventory_ite
 
 pub struct InventoryLevelUpdateParams {
 pub:
-	inventory_item_id   ID
-	stock_location_id   ID
+	inventory_item_id   common.ID
+	stock_location_id   common.ID
 	quantity_adjustment i32
 }
 
@@ -130,12 +134,12 @@ pub fn inventory_level_update(mut tx firebird.ClientTransaction, p InventoryLeve
 
 pub struct ItemAvailability {
 pub:
-	item_id          ID
-	sales_channel_id ID
+	item_id          common.ID
+	sales_channel_id common.ID
 	amount           i32
 }
 
-pub fn item_availability_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []ID) ![]ItemAvailability {
+pub fn item_availability_retrieve(mut tx firebird.ClientTransaction, inventory_item_ids []common.ID) ![]ItemAvailability {
 	data := tx.execute('SELECT item_id, sales_channel_id, amount
 		FROM item_availability
 		WHERE item_id IN (${get_placeholders(inventory_item_ids)})',
@@ -149,8 +153,8 @@ pub fn item_availability_retrieve(mut tx firebird.ClientTransaction, inventory_i
 		sales_channel_id_bin, _ := v[1].get_array_u8()!
 		amount, _ := v[2].get_i32()!
 
-		item_id := id_from_bytes(item_id_bin)!
-		sales_channel_id := id_from_bytes(sales_channel_id_bin)!
+		item_id := common.id_from_bytes(item_id_bin)!
+		sales_channel_id := common.id_from_bytes(sales_channel_id_bin)!
 
 		item_availabilities[i] = ItemAvailability{
 			item_id:          item_id
@@ -164,11 +168,11 @@ pub fn item_availability_retrieve(mut tx firebird.ClientTransaction, inventory_i
 
 pub struct InventoryItem {
 pub:
-	id                ID
+	id                common.ID
 	created_at        firebird.DateTime
 	updated_at        firebird.DateTime
 	deleted_at        ?firebird.DateTime
-	variant_id        ID
+	variant_id        common.ID
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string
@@ -186,7 +190,7 @@ pub mut:
 	inventory_levels []InventoryLevel   // TODO could be none
 }
 
-pub fn (ii InventoryItem) id() ID {
+pub fn (ii InventoryItem) id() common.ID {
 	return ii.id
 }
 
@@ -195,7 +199,7 @@ pub fn (ii InventoryItem) id() ID {
 // The amount of items in each stock_location is an inventory_level.
 // Each stock location may serve 0 or more sales_channel.
 // item_availability tracks the amount of stocked items available to each sales_channel.
-pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []ID) ![]InventoryItem {
+pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []common.ID) ![]InventoryItem {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -240,8 +244,8 @@ pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []
 		manage_inventory, _ := v[15].get_bool()!
 		allow_backorder, _ := v[16].get_bool()!
 
-		id := id_from_bytes(id_bin)!
-		variant_id := id_from_bytes(variant_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		variant_id := common.id_from_bytes(variant_id_bin)!
 
 		inventory_items[i] = InventoryItem{
 			id:                id
@@ -269,8 +273,8 @@ pub fn inventory_item_retrieve(mut tx firebird.ClientTransaction, variant_ids []
 
 pub struct InventoryItemCreateParams {
 pub:
-	id                ID
-	variant_id        ID
+	id                common.ID
+	variant_id        common.ID
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string
@@ -409,8 +413,8 @@ pub fn inventory_item_create(mut tx firebird.ClientTransaction, p []InventoryIte
 
 pub struct InventoryItemUpdateParams {
 pub:
-	id                ID
-	variant_id        ID
+	id                common.ID
+	variant_id        common.ID
 	sku               ?string
 	origin_country    ?string
 	hs_code           ?string
@@ -568,7 +572,7 @@ pub fn inventory_item_update(mut tx firebird.ClientTransaction, p []InventoryIte
 	tx.execute(query, ...params)!
 }
 
-pub fn inventory_item_delete(mut tx firebird.ClientTransaction, inventory_item_id ID) ! {
+pub fn inventory_item_delete(mut tx firebird.ClientTransaction, inventory_item_id common.ID) ! {
 	tx.execute('UPDATE inventory_item SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?',
 		inventory_item_id.bytes())!
 }

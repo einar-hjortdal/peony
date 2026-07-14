@@ -25,7 +25,7 @@ pub fn (mut app App) stock_location_list(mut ctx Context) veb.Result {
 // get a stock location by id
 @['/admin/stock-locations/:stock_location_id'; get]
 pub fn (mut app App) stock_location_get(mut ctx Context, stock_location_id string) veb.Result {
-	parsed_stock_location_id := id_from_string(stock_location_id) or {
+	parsed_stock_location_id := common.id_from_string(stock_location_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
@@ -59,7 +59,7 @@ pub fn (mut app App) stock_location_create(mut ctx Context) veb.Result {
 // updates a stock location
 @['/admin/stock-locations/:stock_location_id'; post]
 pub fn (mut app App) stock_location_update(mut ctx Context, stock_location_id string) veb.Result {
-	parsed_stock_location_id := id_from_string(stock_location_id) or {
+	parsed_stock_location_id := common.id_from_string(stock_location_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 
@@ -80,7 +80,7 @@ pub fn (mut app App) stock_location_update(mut ctx Context, stock_location_id st
 // deletes a stock location
 @['/admin/stock-locations/:stock_location_id'; delete]
 pub fn (mut app App) stock_location_delete(mut ctx Context, stock_location_id string) veb.Result {
-	parsed_stock_location_id := id_from_string(stock_location_id) or {
+	parsed_stock_location_id := common.id_from_string(stock_location_id) or {
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'stock_location_id'))
 	}
 

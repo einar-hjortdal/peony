@@ -52,7 +52,7 @@ pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
 // get api keys
 @['/admin/api-keys/:api_key_id'; get]
 pub fn (mut app App) api_keys_get(mut ctx Context, api_key_id string) veb.Result {
-	parsed_api_key_id := id_from_string(api_key_id) or {
+	parsed_api_key_id := common.id_from_string(api_key_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'api_key_id'))
 	}
 
@@ -68,7 +68,7 @@ pub fn (mut app App) api_keys_get(mut ctx Context, api_key_id string) veb.Result
 // update api key (and update cache)
 @['/admin/api-keys/:api_key_id'; post]
 pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Result {
-	parsed_api_key_id := id_from_string(api_key_id) or {
+	parsed_api_key_id := common.id_from_string(api_key_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'api_key_id'))
 	}
 
@@ -93,7 +93,7 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 // delete api key (and invalidate cache)
 @['/admin/api-keys/:api_key_id'; delete]
 pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Result {
-	parsed_api_key_id := id_from_string(api_key_id) or {
+	parsed_api_key_id := common.id_from_string(api_key_id) or {
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'api_key_id'))
 	}
 

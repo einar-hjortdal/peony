@@ -9,7 +9,7 @@ import internal.common
 import internal.errors
 import objects
 
-fn parse_option_values(option_value_ids []ID, variant_id ID) []record.ProductOptionValueVariant {
+fn parse_option_values(option_value_ids []common.ID, variant_id common.ID) []record.ProductOptionValueVariant {
 	mut res := []record.ProductOptionValueVariant{len: option_value_ids.len}
 	for i := 0; i < option_value_ids.len; i++ {
 		res[i] = record.ProductOptionValueVariant{
@@ -20,7 +20,7 @@ fn parse_option_values(option_value_ids []ID, variant_id ID) []record.ProductOpt
 	return res
 }
 
-fn parse_product_translations(product_id ID, translations []ProductTranslationCreateParams) []record.ProductTranslationCreateParams {
+fn parse_product_translations(product_id common.ID, translations []ProductTranslationCreateParams) []record.ProductTranslationCreateParams {
 	mut res := []record.ProductTranslationCreateParams{len: 0, cap: translations.len}
 	for _, translation in translations {
 		res << record.ProductTranslationCreateParams{
@@ -34,7 +34,7 @@ fn parse_product_translations(product_id ID, translations []ProductTranslationCr
 	return res
 }
 
-fn parse_seo_translations(seo_id ID, translations []SEOTranslationParams) []record.SEOTranslationCreateParams {
+fn parse_seo_translations(seo_id common.ID, translations []SEOTranslationParams) []record.SEOTranslationCreateParams {
 	mut res := []record.SEOTranslationCreateParams{len: 0, cap: translations.len}
 	for _, translation in translations {
 		res << translation.parse(seo_id)
@@ -44,7 +44,7 @@ fn parse_seo_translations(seo_id ID, translations []SEOTranslationParams) []reco
 
 pub struct ProductTranslationCreateParams {
 pub:
-	locale_id   ID
+	locale_id   common.ID
 	title       ?string
 	subtitle    ?string
 	description ?string
@@ -52,7 +52,7 @@ pub:
 
 pub struct ProductOptionValueTranslationCreateParams {
 pub:
-	locale_id ID
+	locale_id common.ID
 	name      string
 }
 
@@ -64,7 +64,7 @@ pub:
 
 pub struct ProductOptionTranslationCreateParams {
 pub:
-	locale_id ID
+	locale_id common.ID
 	title     string
 }
 
@@ -98,8 +98,8 @@ pub:
 	status            ?string
 	discountable      ?bool
 	metadata          ?string
-	sales_channel_ids ?[]ID
-	category_ids      ?[]ID
+	sales_channel_ids ?[]common.ID
+	category_ids      ?[]common.ID
 	translations      ?[]ProductTranslationCreateParams
 	seo               ?SEOParams
 	options           ?[]ProductOptionCreateParams
@@ -129,7 +129,7 @@ fn (p ProductCreateParams) check_sales_channel_ids(mut tx firebird.ClientTransac
 	}
 }
 
-fn (p ProductCreateParams) parse_product(product_id ID) record.ProductCreateParams {
+fn (p ProductCreateParams) parse_product(product_id common.ID) record.ProductCreateParams {
 	handle := p.handle or { slugify.default().make(p.title) } // TODO could be duplicate, need check or better default
 
 	return record.ProductCreateParams{
@@ -145,7 +145,7 @@ fn (p ProductCreateParams) parse_product(product_id ID) record.ProductCreatePara
 	}
 }
 
-fn (p ProductCreateParams) parse_seo(mut g luuid.Generator, product_id ID) record.ProductSEOCreateParams {
+fn (p ProductCreateParams) parse_seo(mut g luuid.Generator, product_id common.ID) record.ProductSEOCreateParams {
 	seo_id := common.new_id(mut g)
 	s := p.seo or {
 		return record.ProductSEOCreateParams{
@@ -157,7 +157,7 @@ fn (p ProductCreateParams) parse_seo(mut g luuid.Generator, product_id ID) recor
 	return s.parse_product_create(seo_id, product_id)
 }
 
-fn (p ProductCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTranslationCreateParams {
+fn (p ProductCreateParams) parse_seo_translations(seo_id common.ID) ?[]record.SEOTranslationCreateParams {
 	seo := p.seo or { return none }
 	translations := seo.translations or { return none }
 	if translations.len == 0 {
@@ -167,7 +167,7 @@ fn (p ProductCreateParams) parse_seo_translations(seo_id ID) ?[]record.SEOTransl
 	return parse_seo_translations(seo_id, translations)
 }
 
-fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id ID) []record.ProductOptionCreateParams {
+fn (p ProductCreateParams) parse_options(mut g luuid.Generator, product_id common.ID) []record.ProductOptionCreateParams {
 	options := p.options or {
 		default_option := record.ProductOptionCreateParams{
 			id:          common.new_id(mut g)
@@ -292,7 +292,7 @@ fn (p ProductCreateParams) parse_option_value_translations(parsed_values []recor
 	return res
 }
 
-fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id ID) []record.VariantCreateParams {
+fn (p ProductCreateParams) parse_variants(mut g luuid.Generator, product_id common.ID) []record.VariantCreateParams {
 	variants := p.variants or {
 		default_variant := record.VariantCreateParams{
 			id:           common.new_id(mut g)
@@ -351,11 +351,11 @@ fn (p ProductCreateParams) parse_option_value_variants(
 		option_id_to_index[option.id.string()] = option.option_rank
 	}
 
-	mut option_index_value_ids := map[i32][]ID{}
+	mut option_index_value_ids := map[i32][]common.ID{}
 	for _, value in parsed_option_values {
 		option_index := option_id_to_index[value.option_id.string()]
 		if option_index !in option_index_value_ids {
-			option_index_value_ids[option_index] = []ID{len: 0, cap: 4} // TODO scan for n
+			option_index_value_ids[option_index] = []common.ID{len: 0, cap: 4} // TODO scan for n
 		}
 		option_index_value_ids[option_index] << value.id
 	}
@@ -485,7 +485,7 @@ fn (p ProductCreateParams) parse_money_amounts(mut tx firebird.ClientTransaction
 	return res
 }
 
-fn (p ProductCreateParams) parse_sales_channel_ids(mut tx firebird.ClientTransaction) ![]ID {
+fn (p ProductCreateParams) parse_sales_channel_ids(mut tx firebird.ClientTransaction) ![]common.ID {
 	sales_channels := p.sales_channel_ids or {
 		store := record.store_retrieve(mut tx) or {
 			return errors.internal('Failed to retrieve store', err.msg())
@@ -515,7 +515,7 @@ fn (p ProductCreateParams) parse_images(mut g luuid.Generator) ![]record.ImageCr
 	return res
 }
 
-fn (p ProductCreateParams) parse_product_images(product_id ID, parsed_images []record.ImageCreateParams) ![]record.ProductImageCreateParams {
+fn (p ProductCreateParams) parse_product_images(product_id common.ID, parsed_images []record.ImageCreateParams) ![]record.ProductImageCreateParams {
 	images := p.images or {
 		return errors.internal('failed to parse product images for creation',
 			'ProductCreateParams.parse_product_images was used when p.images was none')
@@ -630,7 +630,7 @@ fn (p ProductCreateParams) parse_variant_images(
 }
 
 // TODO all checks
-pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !ID {
+pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, p ProductCreateParams) !common.ID {
 	p.check_handle(mut tx)!
 
 	product_id := common.new_id(mut g)
@@ -663,7 +663,7 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	}
 
 	if option_translations := p.parse_option_translations(options) {
-		mut option_ids := []ID{len: 0, cap: options.len}
+		mut option_ids := []common.ID{len: 0, cap: options.len}
 		for _, option in options {
 			option_ids << option.id
 		}
@@ -678,7 +678,7 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	}
 
 	if option_value_translations := p.parse_option_value_translations(option_values) {
-		mut option_value_ids := []ID{len: 0, cap: option_values.len}
+		mut option_value_ids := []common.ID{len: 0, cap: option_values.len}
 		for _, value in option_values {
 			option_value_ids << value.id
 		}
@@ -760,7 +760,7 @@ pub fn product_create(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 
 pub struct ProductImageUpdateParams {
 pub:
-	id           ?ID
+	id           ?common.ID
 	url          ?string
 	alt          ?string
 	translations ?[]ImageTranslationCreateParams
@@ -768,14 +768,14 @@ pub:
 
 pub struct ProductOptionValueUpdateParams {
 pub:
-	id           ?ID
+	id           ?common.ID
 	name         ?string
 	translations ?[]ProductOptionValueTranslationCreateParams
 }
 
 pub struct ProductOptionUpdateParams {
 pub:
-	id           ?ID
+	id           ?common.ID
 	title        ?string
 	values       ?[]ProductOptionValueUpdateParams
 	translations ?[]ProductOptionTranslationCreateParams
@@ -783,8 +783,8 @@ pub:
 
 pub struct ProductVariantUpdateParams {
 pub:
-	id             ?ID
-	product_id     ID
+	id             ?common.ID
+	product_id     common.ID
 	title          ?string
 	ean            ?string
 	upc            ?string
@@ -798,7 +798,7 @@ pub:
 
 pub struct ProductUpdateParams {
 pub:
-	id                ID
+	id                common.ID
 	title             ?string
 	subtitle          ?string
 	description       ?string
@@ -807,16 +807,16 @@ pub:
 	status            ?string
 	discountable      ?bool
 	metadata          ?string
-	sales_channel_ids ?[]ID
-	category_ids      ?[]ID
+	sales_channel_ids ?[]common.ID
+	category_ids      ?[]common.ID
 	translations      ?[]ProductTranslationCreateParams
 	thumbnail         ?i32
 	images            ?[]ProductImageUpdateParams
 	seo               ?SEOParams
 	options           ?[]ProductOptionUpdateParams
 	variants          ?[]ProductVariantUpdateParams
-	// type_id           ?ID
-	// tag_ids           ?[]ID
+	// type_id           ?common.ID
+	// tag_ids           ?[]common.ID
 }
 
 fn (p ProductUpdateParams) check_handle(mut tx firebird.ClientTransaction) ! {
@@ -923,7 +923,7 @@ fn (p ProductUpdateParams) update_option_translations(
 		n_translations += translations.len
 	}
 
-	mut option_ids := []ID{len: 0, cap: n_option_updated}
+	mut option_ids := []common.ID{len: 0, cap: n_option_updated}
 	mut option_translations := []record.ProductOptionTranslationCreateParams{len: 0, cap: n_translations}
 	for option_rank, option in options {
 		translations := option.translations or { continue }
@@ -1038,7 +1038,7 @@ fn (p ProductUpdateParams) update_option_value_translations(
 	}
 
 	mut option_value_index := 0 // parsed_option_values is flat
-	mut option_value_ids := []ID{len: 0, cap: n_option_value_updated}
+	mut option_value_ids := []common.ID{len: 0, cap: n_option_value_updated}
 	mut option_value_translations := []record.ProductOptionValueTranslationCreateParams{len: 0, cap: n_translations}
 	for _, option in options {
 		values := option.values or { continue }
@@ -1127,7 +1127,7 @@ fn (p ProductUpdateParams) updates_option_value_variants() bool {
 }
 
 fn (p ProductUpdateParams) parse_option_value_variants(
-	variant_ids []ID,
+	variant_ids []common.ID,
 	parsed_options []record.ProductOptionUpdateParams,
 	parsed_option_values []record.ProductOptionValueUpdateParams) ![]record.ProductOptionValueVariant {
 	variants := p.variants or {
@@ -1140,11 +1140,11 @@ fn (p ProductUpdateParams) parse_option_value_variants(
 		option_id_to_rank[option.id.string()] = option.option_rank
 	}
 
-	mut option_rank_value_ids := map[i32][]ID{}
+	mut option_rank_value_ids := map[i32][]common.ID{}
 	for _, value in parsed_option_values {
 		option_index := option_id_to_rank[value.option_id.string()]
 		if option_index !in option_rank_value_ids {
-			option_rank_value_ids[option_index] = []ID{len: 0, cap: 4} // TODO scan for n
+			option_rank_value_ids[option_index] = []common.ID{len: 0, cap: 4} // TODO scan for n
 		}
 		option_rank_value_ids[option_index] << value.id
 	}
@@ -1234,7 +1234,7 @@ fn (p ProductUpdateParams) updates_variant_images() bool {
 	return false
 }
 
-fn (p ProductUpdateParams) parse_variant_images(mut tx firebird.ClientTransaction, variant_ids []ID) ![]record.VariantImage {
+fn (p ProductUpdateParams) parse_variant_images(mut tx firebird.ClientTransaction, variant_ids []common.ID) ![]record.VariantImage {
 	variants := p.variants or {
 		return errors.internal('failed to parse variant image',
 			'ProductUpdateParams.parse_variant_images was used when p.variants was none')
@@ -1282,7 +1282,7 @@ fn (p ProductUpdateParams) updates_inventory_items() bool {
 fn (p ProductUpdateParams) parse_inventory_items(
 	mut tx firebird.ClientTransaction,
 	mut g luuid.Generator,
-	variant_ids []ID) ![]record.InventoryItemUpdateParams {
+	variant_ids []common.ID) ![]record.InventoryItemUpdateParams {
 	variants := p.variants or {
 		return errors.internal('failed to parse inventory items',
 			'ProductUpdateParams.parse_inventory_items was used when p.variants was none')
@@ -1362,7 +1362,7 @@ fn (p ProductUpdateParams) updates_money_amounts() bool {
 	return false
 }
 
-fn (p ProductUpdateParams) parse_money_amounts(mut g luuid.Generator, variant_ids []ID) ![]record.VariantMoneyAmountUpdateParams {
+fn (p ProductUpdateParams) parse_money_amounts(mut g luuid.Generator, variant_ids []common.ID) ![]record.VariantMoneyAmountUpdateParams {
 	variants := p.variants or {
 		return errors.internal('failed to parse money amounts',
 			'ProductUpdateParams.parse_money_amounts was used when p.variants was none')
@@ -1444,7 +1444,7 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 		}
 	}
 
-	mut variant_ids := []ID{}
+	mut variant_ids := []common.ID{}
 	if p.variants == none {
 		current_variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 			product_ids:  [p.id]
@@ -1454,7 +1454,7 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 			order:        objects.order_default
 		}) or { return errors.internal('failed to retrieve variants', err.msg()) }
 
-		variant_ids = []ID{len: 0, cap: current_variants.len}
+		variant_ids = []common.ID{len: 0, cap: current_variants.len}
 		for _, variant in current_variants {
 			variant_ids << variant.id
 		}
@@ -1464,7 +1464,7 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 			return errors.internal('failed to update variant', err.msg())
 		}
 
-		variant_ids = []ID{len: 0, cap: parsed_variants.len}
+		variant_ids = []common.ID{len: 0, cap: parsed_variants.len}
 		for _, variant in parsed_variants {
 			variant_ids << variant.id
 		}
@@ -1535,14 +1535,14 @@ pub fn product_update(mut tx firebird.ClientTransaction, mut g luuid.Generator, 
 	}
 }
 
-pub fn product_delete(mut tx firebird.ClientTransaction, product_id ID) ! {
+pub fn product_delete(mut tx firebird.ClientTransaction, product_id common.ID) ! {
 	check_product_id_exists(mut tx, product_id)!
 	record.product_delete(mut tx, product_id) or {
 		return errors.internal('Failed to delete product', err.msg())
 	}
 }
 
-fn get_products_translations(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_translations(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	translations := record.product_translations_retrieve(mut tx, product_ids) or {
 		return errors.internal('Failed to retrieve product_translation', err.msg())
 	}
@@ -1555,7 +1555,7 @@ fn get_products_translations(mut tx firebird.ClientTransaction, mut products_map
 	}
 }
 
-fn get_products_seo(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_seo(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	product_seo := record.product_seo_retrieve(mut tx, product_ids) or {
 		return errors.internal('Failed to retrieve seo', err.msg())
 	}
@@ -1580,7 +1580,7 @@ fn get_products_seo(mut tx firebird.ClientTransaction, mut products_map map[stri
 	}
 }
 
-fn get_products_images(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_images(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	images := record.product_image_retrieve(mut tx, record.ProductImageRetrieveParams{
 		product_ids: product_ids
 	}) or { return errors.internal('Failed to retrieve product_image', err.msg()) }
@@ -1611,7 +1611,7 @@ fn get_products_images(mut tx firebird.ClientTransaction, mut products_map map[s
 	}
 }
 
-fn get_products_sales_channels(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_sales_channels(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	sales_channels := record.product_sales_channel_retrieve(mut tx, product_ids) or {
 		return errors.internal('Failed to retrieve product_sales_channel', err.msg())
 	}
@@ -1624,7 +1624,7 @@ fn get_products_sales_channels(mut tx firebird.ClientTransaction, mut products_m
 	}
 }
 
-fn get_products_categories(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_categories(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	category_products := record.category_product_retrieve(mut tx, record.CategoryProductRetrieveParams{
 		product_ids: product_ids
 	}) or { return errors.internal('Failed to retrieve category_product', err.msg()) }
@@ -1637,7 +1637,7 @@ fn get_products_categories(mut tx firebird.ClientTransaction, mut products_map m
 	}
 }
 
-fn get_products_options(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_options(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	options := record.product_option_retrieve(mut tx, product_ids) or {
 		return errors.internal('Failed to retrieve product_option', err.msg())
 	}
@@ -1653,7 +1653,7 @@ fn get_products_options(mut tx firebird.ClientTransaction, mut products_map map[
 	}
 }
 
-fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []ID) ! {
+fn get_products_variants(mut tx firebird.ClientTransaction, mut products_map map[string]record.Product, product_ids []common.ID) ! {
 	// TODO loop for pagination
 	variants := record.variant_retrieve(mut tx, record.VariantRetrieveParams{
 		product_ids:  product_ids
@@ -1719,7 +1719,7 @@ pub fn product_list(mut tx firebird.ClientTransaction, p ProductRetrieveParams) 
 	}
 }
 
-pub fn product_get(mut tx firebird.ClientTransaction, product_id ID) !record.Product {
+pub fn product_get(mut tx firebird.ClientTransaction, product_id common.ID) !record.Product {
 	products := record.product_retrieve(mut tx, ProductRetrieveParams{
 		ids:          [product_id]
 		with_deleted: false
@@ -1746,7 +1746,7 @@ pub fn product_get(mut tx firebird.ClientTransaction, product_id ID) !record.Pro
 	return products_map[product_id.string()]
 }
 
-pub fn product_get_store(mut tx firebird.ClientTransaction, product_id ID, sales_channel_id ID) !record.Product {
+pub fn product_get_store(mut tx firebird.ClientTransaction, product_id common.ID, sales_channel_id common.ID) !record.Product {
 	products := record.product_retrieve(mut tx, ProductRetrieveParams{
 		ids:              [product_id]
 		status:           objects.product_status_published

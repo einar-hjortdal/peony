@@ -5,7 +5,6 @@ import net.http
 import veb
 import time
 import log
-import einar_hjortdal.luuid
 import einar_hjortdal.firebird
 import internal.conduit
 import internal.errors
@@ -51,7 +50,7 @@ const error_field_explicit_empty = 'Field explicitly empty'
 const error_field_too_long = 'Field too long'
 const error_header_invalid = 'Invalid header'
 const error_header_missing = 'Missing header'
-const error_id_generation = 'Failed to generate ID'
+const error_id_generation = 'Failed to generate common.ID'
 const error_order_direction_invalid = 'Invalid order direction'
 const error_reference_invalid = 'Field references invalid object'
 
@@ -78,16 +77,6 @@ fn role_is_valid(role string) ! {
 			return new_error_role_invalid()
 		}
 	}
-}
-
-pub type ID = common.ID
-
-fn new_id(mut g luuid.Generator) ID {
-	return common.new_id(mut g)
-}
-
-fn id_from_string(s string) !ID {
-	return common.id_from_string(s)
 }
 
 fn (mut app App) start_transaction() !&firebird.ClientTransaction {
@@ -174,15 +163,15 @@ fn get_none_bool(m map[string]string, k string) ?bool {
 }
 
 // to parse query strings
-fn ids_from_array_string(ids_string []string) ![]ID {
-	mut ids := []ID{len: ids_string.len}
+fn ids_from_array_string(ids_string []string) ![]common.ID {
+	mut ids := []common.ID{len: ids_string.len}
 	for i := 0; i < ids_string.len; i++ {
-		ids[i] = id_from_string(ids_string[i])!
+		ids[i] = common.id_from_string(ids_string[i])!
 	}
 	return ids
 }
 
-fn (mut app App) gen_id() ID {
+fn (mut app App) gen_id() common.ID {
 	return common.new_id(mut app.luuid_generator)
 }
 
@@ -397,7 +386,7 @@ fn get_order_direction_or_default(direction ?string) !string {
 }
 
 struct LocaleContext {
-	locale_id ?ID
+	locale_id ?common.ID
 }
 
 fn new_error_fetch_zero() errors.PeonyError {

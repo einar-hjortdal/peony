@@ -1,6 +1,7 @@
 module record
 
 import einar_hjortdal.firebird
+import internal.common
 
 pub const tax_additive = 'additive'
 pub const tax_substitutive = 'substitutive'
@@ -12,7 +13,7 @@ pub const tax_compounding = 'compounding'
 
 pub struct TaxRate {
 pub:
-	id         ID
+	id         common.ID
 	created_at firebird.DateTime
 	updated_at firebird.DateTime
 	deleted_at ?firebird.DateTime
@@ -22,11 +23,11 @@ pub:
 	tax_type   string
 }
 
-pub fn (r TaxRate) id() ID {
+pub fn (r TaxRate) id() common.ID {
 	return r.id
 }
 
-pub fn tax_rate_retrieve(mut tx firebird.ClientTransaction, tax_rate_ids []ID) ![]TaxRate {
+pub fn tax_rate_retrieve(mut tx firebird.ClientTransaction, tax_rate_ids []common.ID) ![]TaxRate {
 	data := tx.execute('SELECT
 		id,
 		created_at,
@@ -54,7 +55,7 @@ pub fn tax_rate_retrieve(mut tx firebird.ClientTransaction, tax_rate_ids []ID) !
 		name, _ := v[6].get_string()!
 		tax_type, _ := v[7].get_string()!
 
-		id := id_from_bytes(id_bin)!
+		id := common.id_from_bytes(id_bin)!
 
 		tax_rates[i] = TaxRate{
 			id:         id

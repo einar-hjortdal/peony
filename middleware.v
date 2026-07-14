@@ -6,6 +6,7 @@ import log
 import einar_hjortdal.firebird
 import internal.conduit
 import internal.errors
+import internal.common
 
 pub const header_store_api_key = 'Peony-Store-API-Key'
 
@@ -51,7 +52,7 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 			'Empty ${header_store_api_key} header'))
 	}
 
-	api_key_id := id_from_string(api_key_string) or {
+	api_key_id := common.id_from_string(api_key_string) or {
 		return ctx.middleware_handle_error((errors.unprocessable_entity(errors.id_invalid,
 			'api_key')))
 	}

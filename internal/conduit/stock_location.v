@@ -3,6 +3,7 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 import objects
 
 pub fn stock_location_list(mut tx firebird.ClientTransaction, p StockLocationRetrieveParams) !List[StockLocation] {
@@ -34,7 +35,7 @@ pub fn stock_location_list(mut tx firebird.ClientTransaction, p StockLocationRet
 	}
 }
 
-pub fn stock_location_get(mut tx firebird.ClientTransaction, stock_location_id ID) !StockLocation {
+pub fn stock_location_get(mut tx firebird.ClientTransaction, stock_location_id common.ID) !StockLocation {
 	stock_locations := record.stock_location_retrieve(mut tx, record.StockLocationRetrieveParams{
 		ids:          [stock_location_id]
 		with_deleted: true
@@ -60,7 +61,7 @@ pub fn stock_location_create(mut tx firebird.ClientTransaction, p StockLocationC
 
 pub struct StockLocationUpdateParams {
 pub:
-	id   ID
+	id   common.ID
 	name string
 }
 
@@ -94,7 +95,7 @@ pub fn stock_location_update(mut tx firebird.ClientTransaction, p StockLocationU
 	}
 }
 
-pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_id ID) ! {
+pub fn stock_location_delete(mut tx firebird.ClientTransaction, stock_location_id common.ID) ! {
 	store := record.store_retrieve(mut tx) or {
 		return errors.internal('failed to retrieve store', err.msg())
 	}

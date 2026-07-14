@@ -3,13 +3,14 @@ module conduit
 import einar_hjortdal.firebird
 import record
 import internal.errors
+import internal.common
 import objects
 
 pub struct APIKeyCreateParams {
 pub:
-	id               ID
+	id               common.ID
 	name             string
-	sales_channel_id ID
+	sales_channel_id common.ID
 }
 
 fn (p APIKeyCreateParams) check(mut _ firebird.ClientTransaction) ! {
@@ -32,7 +33,7 @@ pub fn api_key_create(mut tx firebird.ClientTransaction, p APIKeyCreateParams) !
 	}
 }
 
-pub fn api_key_get(mut tx firebird.ClientTransaction, api_key_id ID) !APIKey {
+pub fn api_key_get(mut tx firebird.ClientTransaction, api_key_id common.ID) !APIKey {
 	api_keys := record.api_key_retrieve(mut tx, APIKeyRetrieveParams{
 		ids:    [api_key_id]
 		offset: objects.offset_default
@@ -74,9 +75,9 @@ pub fn api_key_list(mut tx firebird.ClientTransaction, p APIKeyRetrieveParams) !
 
 pub struct APIKeyUpdateParams {
 pub:
-	id               ID
+	id               common.ID
 	name             ?string
-	sales_channel_id ?ID
+	sales_channel_id ?common.ID
 }
 
 fn (p APIKeyUpdateParams) check() ! {
@@ -100,7 +101,7 @@ pub fn api_key_update(mut tx firebird.ClientTransaction, p APIKeyUpdateParams) !
 	}
 }
 
-pub fn api_key_delete(mut tx firebird.ClientTransaction, api_key ID) ! {
+pub fn api_key_delete(mut tx firebird.ClientTransaction, api_key common.ID) ! {
 	record.api_key_delete(mut tx, api_key) or {
 		return errors.internal('Could not delete api_key', err.msg())
 	}

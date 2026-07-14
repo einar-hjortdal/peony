@@ -2,28 +2,29 @@ module record
 
 import einar_hjortdal.firebird
 import objects
+import internal.common
 
 pub struct MoneyAmount {
 pub:
-	id          ID
+	id          common.ID
 	amount      i32
 	is_original bool
 }
 
-pub fn (ma MoneyAmount) id() ID {
+pub fn (ma MoneyAmount) id() common.ID {
 	return ma.id
 }
 
 pub struct VariantMoneyAmount {
 	MoneyAmount
 pub:
-	variant_id    ID
-	region_id     ID
+	variant_id    common.ID
+	region_id     common.ID
 	currency_code string // from region
 	includes_tax  bool   // from region
 }
 
-pub fn variant_money_amount_retrieve(mut tx firebird.ClientTransaction, variant_ids []ID) ![]VariantMoneyAmount {
+pub fn variant_money_amount_retrieve(mut tx firebird.ClientTransaction, variant_ids []common.ID) ![]VariantMoneyAmount {
 	data := tx.execute('SELECT
 		ma.id,
 		ma.amount,
@@ -54,9 +55,9 @@ pub fn variant_money_amount_retrieve(mut tx firebird.ClientTransaction, variant_
 		includes_tax, _ := v[5].get_bool()!
 		variant_id_bin, _ := v[6].get_array_u8()!
 
-		id := id_from_bytes(id_bin)!
-		region_id := id_from_bytes(region_id_bin)!
-		variant_id := id_from_bytes(variant_id_bin)!
+		id := common.id_from_bytes(id_bin)!
+		region_id := common.id_from_bytes(region_id_bin)!
+		variant_id := common.id_from_bytes(variant_id_bin)!
 
 		variant_money_amounts[i] = VariantMoneyAmount{
 			id:            id
@@ -74,15 +75,15 @@ pub fn variant_money_amount_retrieve(mut tx firebird.ClientTransaction, variant_
 
 pub struct VariantMoneyAmountUpdateParams {
 pub:
-	variant_id      ID
-	region_id       ID
-	money_amount_id ID
+	variant_id      common.ID
+	region_id       common.ID
+	money_amount_id common.ID
 	amount          i32
 	is_original     ?bool
 }
 
 pub fn variant_money_amount_update(mut tx firebird.ClientTransaction, p []VariantMoneyAmountUpdateParams) ! {
-	mut variant_ids_map := map[string]ID{}
+	mut variant_ids_map := map[string]common.ID{}
 	for i := 0; i < p.len; i++ {
 		variant_id := p[i].variant_id
 		variant_ids_map[variant_id.string()] = variant_id
