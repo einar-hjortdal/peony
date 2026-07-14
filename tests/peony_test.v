@@ -1118,10 +1118,10 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1164,10 +1164,10 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1175,10 +1175,10 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1242,7 +1242,8 @@ fn creates_product_with_variant_image(cookie_value string) ! {
 
 	image := images[0]
 	variant := variants[0]
-	expect(image.id == variant.image_id, 'variant image_id does not match the expected image id')!
+	v_image_id := unwrap_or_error(variant.image_id, 'variant image id mising')!
+	expect(image.id == v_image_id, 'variant image_id does not match the expected image id')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1283,10 +1284,10 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 	new_product_data := peony.ProductUpdateRequest{
 		title:    luuid.v2()
 		images:   [
-			peony.ImageUpdateRequest{
+			peony.ProductImageUpdateRequest{
 				url: rand.ascii(63)
 			},
-			peony.ImageUpdateRequest{
+			peony.ProductImageUpdateRequest{
 				id: image.id
 			},
 		]
@@ -1311,7 +1312,8 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 
 	variant = product.variants[0]
 	new_image_id := product.images[0].id
-	expect(new_image_id == variant.image_id, 'Updated variant references wrong image')!
+	v_image_id := unwrap_or_error(variant.image_id, 'variant image id mising')!
+	expect(new_image_id == v_image_id, 'Updated variant references wrong image')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1378,10 +1380,10 @@ fn creates_a_variant(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1436,12 +1438,15 @@ fn creates_a_variant(cookie_value string) ! {
 	vr := json.decode(peony.VariantResponseEnvelope, response.body)!
 	variant := vr.variant
 
-	expect(variant.title == title,
-		'Variant title does not match: expected ${title}, got ${variant.title}')!
-	expect(variant.ean == ean, 'Variant ean does not match: expected ${ean}, got ${variant.ean}')!
-	expect(variant.upc == upc, 'Variant upc does not match: expected ${upc}, got ${variant.upc}')!
-	expect(variant.barcode == barcode,
-		'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
+	v_title := unwrap_or_error(variant.title, 'variant title mising')!
+	v_ean := unwrap_or_error(variant.ean, 'variant ean mising')!
+	v_upc := unwrap_or_error(variant.upc, 'variant upc mising')!
+	v_barcode := unwrap_or_error(variant.barcode, 'variant barcode mising')!
+	expect(v_title == title, 'Variant title does not match: expected ${title}, got ${v_title}')!
+	expect(v_ean == ean, 'Variant ean does not match: expected ${ean}, got ${v_ean}')!
+	expect(v_upc == upc, 'Variant upc does not match: expected ${upc}, got ${v_upc}')!
+	expect(v_barcode == barcode,
+		'Variant barcode does not match: expected ${barcode}, got ${v_barcode}')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_products}/${product.id}',
 		cookie_value)!
@@ -1464,10 +1469,10 @@ fn updates_a_variant(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1524,13 +1529,18 @@ fn updates_a_variant(cookie_value string) ! {
 	vr := json.decode(peony.VariantResponseEnvelope, response.body)!
 	variant := vr.variant
 
-	expect(variant.title == title,
-		'Variant title does not match: expected ${title}, got ${variant.title}')!
-	expect(variant.ean == ean, 'Variant ean does not match: expected ${ean}, got ${variant.ean}')!
-	expect(variant.upc == upc, 'Variant upc does not match: expected ${upc}, got ${variant.upc}')!
-	expect(variant.barcode == barcode,
-		'Variant barcode does not match: expected ${barcode}, got ${variant.barcode}')!
-	expect(variant.image_id == image_1.id, 'Variant image_id does not match')!
+	v_title := unwrap_or_error(variant.title, 'variant title mising')!
+	v_ean := unwrap_or_error(variant.ean, 'variant ean mising')!
+	v_upc := unwrap_or_error(variant.upc, 'variant upc mising')!
+	v_barcode := unwrap_or_error(variant.barcode, 'variant barcode mising')!
+	v_image_id := unwrap_or_error(variant.image_id, 'variant image_id mising')!
+
+	expect(v_title == title, 'Variant title does not match: expected ${title}, got ${v_title}')!
+	expect(v_ean == ean, 'Variant ean does not match: expected ${ean}, got ${v_ean}')!
+	expect(v_upc == upc, 'Variant upc does not match: expected ${upc}, got ${v_upc}')!
+	expect(v_barcode == barcode,
+		'Variant barcode does not match: expected ${barcode}, got ${v_barcode}')!
+	expect(v_image_id == image_1.id, 'Variant image_id does not match')!
 	expect(variant.option_values.len == 1,
 		'Unexpected number of option_values: expected 1, got ${variant.option_values.len}')!
 
@@ -1550,10 +1560,10 @@ fn deletes_a_variant(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1660,7 +1670,7 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1688,10 +1698,10 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1719,7 +1729,7 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1727,7 +1737,7 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1760,10 +1770,10 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1771,10 +1781,10 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1812,7 +1822,7 @@ fn admin_products_updates_product(cookie_value string) ! {
 	new_description := luuid.v2()
 	new_handle := luuid.v2()
 	new_is_giftcard := true
-	new_status := peony.product_status_published
+	new_status := objects.product_status_published
 	new_discountable := false
 	new_metadata := luuid.v2()
 	new_seo_title := luuid.v2()
@@ -1838,16 +1848,23 @@ fn admin_products_updates_product(cookie_value string) ! {
 	r = json.decode(peony.ProductResponseEnvelope, response.body)!
 	updated_product := r.product
 
+	up_subtitle := unwrap_or_error(updated_product.subtitle, 'product subtitle mising')!
+	up_description := unwrap_or_error(updated_product.description, 'product description mising')!
+	up_metadata := unwrap_or_error(updated_product.metadata, 'product metadata mising')!
+	up_seo_title := unwrap_or_error(updated_product.seo.title, 'product seo title mising')!
+	up_seo_description := unwrap_or_error(updated_product.seo.description,
+		'product seo desciption mising')!
+
 	expect(updated_product.id != '', 'Product is missing id')!
 	expect(updated_product.updated_at > new_product.updated_at, 'updated_at field was not updated')!
 	expect(updated_product.title == new_title, 'title does not match')!
-	expect(updated_product.subtitle == new_subtitle, 'subtitle does not match')!
-	expect(updated_product.description == new_description, 'description does not match')!
+	expect(up_subtitle == new_subtitle, 'subtitle does not match')!
+	expect(up_description == new_description, 'description does not match')!
 	expect(updated_product.status == new_status, 'status does not match')!
 	expect(updated_product.discountable == new_discountable, 'discountable does not match')!
-	expect(updated_product.metadata == '"${new_metadata}"', 'metadata does not match')!
-	expect(updated_product.seo.title == new_seo_title, 'seo_title does not match')!
-	expect(updated_product.seo.description == new_seo_description, 'seo_description does not match')!
+	expect(up_metadata == '"${new_metadata}"', 'metadata does not match')!
+	expect(up_seo_title == new_seo_title, 'seo_title does not match')!
+	expect(up_seo_description == new_seo_description, 'seo_description does not match')!
 }
 
 fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
@@ -1873,7 +1890,7 @@ fn updates_product_options_ranking(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1881,7 +1898,7 @@ fn updates_product_options_ranking(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -1946,10 +1963,10 @@ fn updates_variants_ranking(cookie_value string) ! {
 			peony.ProductOptionCreateRequest{
 				title:  luuid.v2()
 				values: [
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
-					peony.ProductOptionValueRequest{
+					peony.ProductOptionValueCreateRequest{
 						name: luuid.v2()
 					},
 				]
@@ -2024,7 +2041,7 @@ fn add_random_locales(cookie_value string, locales_amount i32) ![]peony.LocaleRe
 	// TODO check locales_amount is not a crazy number (negative, insane large...)
 
 	// reserve number of locales and one for default locale if encountered
-	safe_max := peony.max_fetch - locales_amount - 1
+	safe_max := objects.max_fetch - locales_amount - 1
 	if safe_max < 0 {
 		return error('Not enough locales to pick ${locales_amount}')
 	}
@@ -2118,8 +2135,9 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 		expect(new_image.id != '', 'image id is missing')!
 		expect(new_image.url == requested_image.url, 'image_1 url does not match')!
 
+		ni_alt := unwrap_or_error(new_image.alt, 'image alt missing')!
 		if alt := requested_image.alt {
-			expect(new_image.alt == alt, 'image_1 alt does not match')!
+			expect(ni_alt == alt, 'image_1 alt does not match')!
 		}
 
 		// verify all requested translations were created
@@ -2136,13 +2154,13 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 
 	// update sorting order
 	mut images_update := [
-		peony.ImageUpdateRequest{
+		peony.ProductImageUpdateRequest{
 			id: new_product.images[2].id
 		},
-		peony.ImageUpdateRequest{
+		peony.ProductImageUpdateRequest{
 			id: new_product.images[0].id
 		},
-		peony.ImageUpdateRequest{
+		peony.ProductImageUpdateRequest{
 			id: new_product.images[1].id
 		},
 	]
@@ -2234,8 +2252,13 @@ fn admin_handles_category_translations(cookie_value string) ! {
 
 	category_translation_1 := new_category.translations[secondary_locale_1.id]
 	category_translation_2 := new_category.translations[secondary_locale_2.id]
-	mut seo_translation_1 := new_category.seo.translations[secondary_locale_1.id]
-	mut seo_translation_2 := new_category.seo.translations[secondary_locale_2.id]
+	seo_translation_1 := new_category.seo.translations[secondary_locale_1.id]
+	seo_translation_2 := new_category.seo.translations[secondary_locale_2.id]
+	st1_title := unwrap_or_error(seo_translation_1.title, 'seo title missing')!
+	st1_description := unwrap_or_error(seo_translation_1.description, 'seo description missing')!
+	st2_title := unwrap_or_error(seo_translation_2.title, 'seo title missing')!
+	st2_description := unwrap_or_error(seo_translation_2.description, 'seo description missing')!
+
 	expect(category_translation_1.name == category_translation_1_name,
 		'category translation 1 title does not match')!
 	expect(category_translation_1.description == category_translation_1_description,
@@ -2244,13 +2267,11 @@ fn admin_handles_category_translations(cookie_value string) ! {
 		'category translation 2 title does not match')!
 	expect(category_translation_2.description == category_translation_2_description,
 		'category translation 2 description does not match')!
-	expect(seo_translation_1.title == category_seo_translation_1_title,
-		'seo translation 1 title does not match')!
-	expect(seo_translation_1.description == category_seo_translation_1_description,
+	expect(st1_title == category_seo_translation_1_title, 'seo translation 1 title does not match')!
+	expect(st1_description == category_seo_translation_1_description,
 		'seo translation 1 description does not match')!
-	expect(seo_translation_2.title == category_seo_translation_2_title,
-		'seo translation 2 title does not match')!
-	expect(seo_translation_2.description == category_seo_translation_2_description,
+	expect(st2_title == category_seo_translation_2_title, 'seo translation 2 title does not match')!
+	expect(st2_description == category_seo_translation_2_description,
 		'seo translation 2 description does not match')!
 
 	new_category_data := json.encode(peony.CategoryUpdateRequest{
@@ -2337,6 +2358,11 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	product_translation_2 := new_product.translations[secondary_locale_2.id]
 	seo_translation_1 := new_product.seo.translations[secondary_locale_1.id]
 	seo_translation_2 := new_product.seo.translations[secondary_locale_2.id]
+	st1_title := unwrap_or_error(seo_translation_1.title, 'seo title missing')!
+	st1_description := unwrap_or_error(seo_translation_1.description, 'seo description missing')!
+	st2_title := unwrap_or_error(seo_translation_2.title, 'seo title missing')!
+	st2_description := unwrap_or_error(seo_translation_2.description, 'seo description missing')!
+
 	expect(product_translation_1.title == product_translation_1_title,
 		'product translation 1 title does not match')!
 	expect(product_translation_1.subtitle == product_translation_1_subtitle,
@@ -2349,13 +2375,11 @@ fn admin_handles_product_translations(cookie_value string) ! {
 		'product translation 2 subtitle does not match')!
 	expect(product_translation_2.description == product_translation_2_description,
 		'product translation 2 description does not match')!
-	expect(seo_translation_1.title == product_seo_translation_1_title,
-		'seo translation 1 title does not match')!
-	expect(seo_translation_1.description == product_seo_translation_1_description,
+	expect(st1_title == product_seo_translation_1_title, 'seo translation 1 title does not match')!
+	expect(st1_description == product_seo_translation_1_description,
 		'seo translation 1 description does not match')!
-	expect(seo_translation_2.title == product_seo_translation_2_title,
-		'seo translation 2 title does not match')!
-	expect(seo_translation_2.description == product_seo_translation_2_description,
+	expect(st2_title == product_seo_translation_2_title, 'seo translation 2 title does not match')!
+	expect(st2_description == product_seo_translation_2_description,
 		'seo translation 2 description does not match')!
 
 	// Product
