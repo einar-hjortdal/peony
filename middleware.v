@@ -4,9 +4,10 @@ import net.http
 import json
 import log
 import einar_hjortdal.firebird
+import internal.cache
+import internal.common
 import internal.conduit
 import internal.errors
-import internal.common
 
 pub const header_store_api_key = 'Peony-Store-API-Key'
 
@@ -57,7 +58,7 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 			'api_key')))
 	}
 
-	if api_key := app.cache_api_key_get(api_key_id) {
+	if api_key := cache.api_key_get(mut app.redict, api_key_id) {
 		ctx.api_key = api_key
 		return true
 	}
@@ -66,7 +67,9 @@ fn (mut app App) middleware_get_api_key(mut ctx Context) bool {
 		return conduit.api_key_get(mut tx, api_key_id)
 	}) or { return ctx.middleware_handle_error(err) }
 
-	app.cache_api_key_set(api_key) or { log.error('failed to set APIKey in cache') }
+	cache.api_key_set(mut app.redict, api_key, app.config.cache_duration) or {
+		log.error('failed to set APIKey in cache')
+	}
 	ctx.api_key = api_key
 	return true
 }

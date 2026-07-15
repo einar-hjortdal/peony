@@ -6,12 +6,11 @@ import veb
 import time
 import log
 import einar_hjortdal.firebird
+import internal.cache
+import internal.common
 import internal.conduit
 import internal.errors
-import internal.common
 import objects
-
-pub const lib = 'peony'
 
 pub const length_currency_code = 3
 pub const length_country_code = 2
@@ -187,7 +186,7 @@ fn (mut app App) get_locale_context(m map[string]string) !LocaleContext {
 		return LocaleContext{}
 	}
 
-	if _ := app.cache_store_locale_get(locale_id) {
+	if _ := cache.store_locale_get(mut app.redict, locale_id) {
 		log.debug('locale_id is valid, locale loaded from cache')
 		return LocaleContext{
 			locale_id: locale_id
@@ -206,7 +205,7 @@ fn (mut app App) get_locale_context(m map[string]string) !LocaleContext {
 		}
 
 		log.debug('locale_id is valid and enabled, cache must have expired')
-		app.cache_set_store(store)
+		cache.set_store(mut app.redict, store, app.config.cache_duration)
 		return LocaleContext{
 			locale_id: locale_id
 		}
@@ -396,4 +395,28 @@ fn new_error_fetch_zero() errors.PeonyError {
 fn new_error_role_invalid() errors.PeonyError {
 	return errors.unprocessable_entity(error_field_invalid,
 		'role must be one of: ${roles.join(', ')}')
+}
+
+fn (mut app App) get_default_locale_id() !common.ID {
+	default_locale_id := cache.default_locale_id_get(mut app.redict) or {
+		log.debug('default_locale_id not taken from cache: ${err.msg()}')
+		store := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Store {
+			return conduit.store_get(mut tx)!
+		})!
+		cache.set_store(mut app.redict, store, app.config.cache_duration)
+		return store.default_locale_id
+	}
+	return default_locale_id
+}
+
+fn (mut app App) get_default_region_id() !common.ID {
+	default_region_id := cache.default_region_id_get(mut app.redict) or {
+		log.debug('default_region_id not taken from cache: ${err.msg()}')
+		store := app.with_rollback(fn (mut tx firebird.ClientTransaction) !conduit.Store {
+			return conduit.store_get(mut tx)!
+		})!
+		cache.set_store(mut app.redict, store, app.config.cache_duration)
+		return store.default_region_id
+	}
+	return default_region_id
 }

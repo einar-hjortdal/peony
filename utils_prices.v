@@ -2,6 +2,7 @@ module peony
 
 import arrays
 import einar_hjortdal.firebird
+import internal.cache
 import internal.common
 import internal.conduit
 import internal.errors
@@ -36,7 +37,7 @@ fn (mut app App) get_price_context_region(id ?common.ID) !common.ID {
 		return app.get_default_region_id()!
 	}
 
-	if _ := app.cache_region_get(region_id) {
+	if _ := cache.region_get(mut app.redict, region_id) {
 		log.debug('region_id is valid, region loaded from cache')
 		return region_id
 	}
@@ -47,7 +48,7 @@ fn (mut app App) get_price_context_region(id ?common.ID) !common.ID {
 	}) or { return errors.unprocessable_entity(errors.id_invalid, 'region_id does not exist') }
 
 	log.debug('region_id is valid, region loaded from db')
-	app.cache_region_set(region) or {
+	cache.region_set(mut app.redict, region, app.config.cache_duration) or {
 		log.error('could not cache region_id with error: ${err.msg()}')
 	}
 	return region_id

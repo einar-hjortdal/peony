@@ -3,6 +3,7 @@ module peony
 import log
 import veb
 import einar_hjortdal.firebird
+import internal.cache
 import internal.common
 import internal.conduit
 import internal.errors
@@ -81,7 +82,7 @@ pub fn (mut app App) api_keys_update(mut ctx Context, api_key_id string) veb.Res
 		return conduit.api_key_get(mut tx, p.id)
 	}) or { return ctx.handle_error(err) }
 
-	app.cache_api_key_set(api_key) or {
+	cache.api_key_set(mut app.redict, api_key, app.config.cache_duration) or {
 		log.error('app.cache_api_key_set failed to cache API key with error: ${err.msg()}')
 	}
 
@@ -102,7 +103,7 @@ pub fn (mut app App) api_keys_delete(mut ctx Context, api_key_id string) veb.Res
 		return common.Empty{}
 	}) or { return ctx.handle_error(err) }
 
-	app.cache_api_key_del(parsed_api_key_id) or {
+	cache.api_key_del(mut app.redict, parsed_api_key_id) or {
 		log.error('app.cache_api_key_del failed to remove API key from cache: ${err.msg()}')
 	}
 
