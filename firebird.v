@@ -20,9 +20,9 @@ const seed_default_stock_location_name = 'default stock location'
 const seed_default_sales_channel_name = 'default sales channel'
 const seed_default_api_key_name = 'default api key'
 const seed_default_store_name = 'peony store'
-const seed_default_locale_code = 'en'
-const seed_default_region_country = 'NL'
-const seed_default_currency_code = 'EUR'
+const seed_default_locale_code = normalize_code('en')
+const seed_default_region_country = normalize_code('NL')
+const seed_default_currency_code = normalize_code('EUR')
 
 fn firebird_get_schema_queries() []string {
 	queries := schema_file.to_string().split(';')
@@ -54,7 +54,7 @@ fn firebird_insert_country_codes(mut tx firebird.ClientTransaction) ! {
 	country_codes := firebird_get_country_codes()
 	mut stmt := tx.prepare('INSERT INTO country (code) VALUES (?)')!
 	for i := 0; i < country_codes.len; i++ {
-		code := country_codes[i]
+		code := normalize_code(country_codes[i])
 		stmt.execute(code)!
 	}
 	stmt.close()!
@@ -66,7 +66,7 @@ fn firebird_insert_currency_data(mut tx firebird.ClientTransaction) ! {
 	mut stmt := tx.prepare('INSERT INTO currency (code, decimal_digits) VALUES (?, ?)')!
 	for i := 0; i < currency_data.len; i++ {
 		data := currency_data[i].split(',')
-		code := data[0]
+		code := normalize_code(data[0])
 		decimal_digits_string := data[1]
 		decimal_digits := strconv.parse_int(decimal_digits_string, 10, 32) or {
 			stmt.execute(code, firebird.Null{})!
@@ -83,7 +83,7 @@ fn firebird_insert_locale_codes(mut tx firebird.ClientTransaction, mut g luuid.G
 	mut stmt := tx.prepare('INSERT INTO locale (id, code) VALUES (?, ?)')!
 	for i := 0; i < locale_codes.len; i++ {
 		id := common.new_id(mut g)
-		code := locale_codes[i]
+		code := normalize_code(locale_codes[i])
 		stmt.execute(id.bytes(), code)!
 	}
 	stmt.close()!

@@ -3,6 +3,7 @@ module peony
 import json
 import veb
 import einar_hjortdal.firebird
+import internal.common
 import internal.conduit
 import internal.errors
 
@@ -43,12 +44,13 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		return ctx.handle_error(errors.bad_request(error_field_empty, 'password'))
 	}
 
-	email_is_valid(p.email) or {
+	email := normalize_email(p.email)
+	common.email_is_valid(email) or {
 		return ctx.handle_error(errors.bad_request('Invalid email', err.msg()))
 	}
 
-	data := app.with_rollback(fn [p] (mut tx firebird.ClientTransaction) !LoginData {
-		user := conduit.user_get_by_email(mut tx, p.email)!
+	data := app.with_rollback(fn [p, email] (mut tx firebird.ClientTransaction) !LoginData {
+		user := conduit.user_get_by_email(mut tx, email)!
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			id: user.password_parameters_id
 		})!

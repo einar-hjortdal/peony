@@ -61,7 +61,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 		conduit.user_create(mut tx, conduit.UserCreateParams{
 			user_id:                user_id
 			handle:                 user_id.string() // TODO validate and format
-			email:                  p.email
+			email:                  normalize_email(p.email)
 			password_hash:          password_hash.hash
 			password_salt:          password_hash.salt
 			password_parameters_id: password_details.id

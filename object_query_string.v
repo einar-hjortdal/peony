@@ -144,9 +144,14 @@ fn hygienise_user_list_request_query(m map[string]string) !conduit.UserListParam
 		ids = ids_from_array_string(ids_string)!
 	}
 
+	mut email := ?string(none)
+	if s := p.email {
+		email = normalize_email(s)
+	}
+
 	return conduit.UserListParams{
 		ids:          ids
-		email:        p.email
+		email:        email
 		handle:       p.handle
 		with_deleted: common.bool_or(p.with_deleted, with_deleted_default)
 		offset:       get_offset_or_default(p.offset)!

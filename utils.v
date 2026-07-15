@@ -302,18 +302,12 @@ fn format_field_too_long_details(field_name string, max_utf8_length i32) string 
 	return '${field_name} can be at most ${max_utf8_length} UTF8 characters long'
 }
 
-fn email_is_valid(e string) ! {
-	if e.len > 254 {
-		return error('email too long')
-	}
+fn normalize_email(s string) string {
+	return s.trim_space().to_upper()
+}
 
-	// a@b.cd
-	if e.len < 6 {
-		return error('email too short')
-	}
-
-	// TODO contains @
-	// TODO illegal characters
+fn normalize_code(s string) string {
+	return s.trim_space().to_upper()
 }
 
 fn product_status_is_valid(s string) bool {

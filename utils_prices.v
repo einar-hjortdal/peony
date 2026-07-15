@@ -65,7 +65,7 @@ fn (mut app App) get_price_context(m map[string]string) !PriceContext {
 	}
 }
 
-// use app.tax_provider
+// TODO use app.tax_provider
 fn calculate_taxes() {}
 
 // TODO should also consider money_amount related to price-list.

@@ -1,6 +1,7 @@
 module peony
 
 import time
+import internal.common
 
 pub const one_day = 24 * time.hour
 pub const one_month = 30 * one_day
@@ -27,11 +28,12 @@ pub:
 }
 
 fn (c Config) get_default_user_email() !string {
-	if c.default_user_email == '' {
+	normalized := normalize_email(c.default_user_email)
+	if normalized == '' {
 		return error('default_user_email is required')
 	}
-	email_is_valid(c.default_user_email) or { return error('invalid email: ${err.msg()}') }
-	return c.default_user_email
+	common.email_is_valid(normalized) or { return error('invalid email: ${err.msg()}') }
+	return normalized
 }
 
 // TODO reject simple passwords

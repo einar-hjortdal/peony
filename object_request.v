@@ -361,7 +361,9 @@ pub:
 }
 
 fn (p UserCreateRequest) hygienise() ! {
-	email_is_valid(p.email) or { return errors.bad_request('invalid email', err.msg()) }
+	common.email_is_valid(normalize_email(p.email)) or {
+		return errors.bad_request('invalid email', err.msg())
+	}
 
 	if p.password == '' {
 		return errors.bad_request(error_field_empty, 'password')
@@ -407,7 +409,9 @@ pub:
 
 fn (p UserUpdateRequest) hygienise() ! {
 	if email := p.email {
-		email_is_valid(email) or { return errors.bad_request('invalid email', err.msg()) }
+		common.email_is_valid(normalize_email(email)) or {
+			return errors.bad_request('invalid email', err.msg())
+		}
 	}
 
 	if role := p.role {
