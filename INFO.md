@@ -43,6 +43,10 @@ Example:
 
 This is the typical approach, but it is not perfect: changing default locale requires manual intervention that may be tedious. However, how often is the default locale changed?
 
+### Scaling
+
+Leveraging firebird's efficiency, it is possible to use a database-per-tenant approach: while firebird does not have sharding capabilities, it can handle many databases at once with ease.
+
 ### Classification
 
 #### Products
@@ -176,7 +180,7 @@ A `inventory_level` is the amount of `inventory_item` in one `stock_location`.
 - `stocked_quantity` is the amount of `inventory_item` located at the `stock_location`.
 - `reserved_quantity` is the amount of `inventory_item` located at the `stock_location` that is not available to be purchased. This must be subtracted from `stocked_quantity` to determine the amount of `inventory_item` that can be purchased. This functions as oversell protection.
 
-#### Overselling, underselling, contention (WIP)
+#### Overselling, underselling, contention
 
 Items in a cart must be purchaseable: the `item_availability` table keeps track of the purchaseable amounts for each sales channel. This table must be kept up to date at the application level: every update to the inventory_level, sales_channel_stock_location and product_sales_channel tables must also update item_availability while ensuring race conditions resistance.
 
@@ -198,6 +202,18 @@ If a payment fails, `item_reservation` rows are scanned, `item_availability.amou
 A periodic scan (worker) will ensure that expired `item_reservation` are processed just like payment failures.
 
 Interesting read: the [Shopify engineering team](https://shopify.engineering/scaling-inventory-reservations?utm_source=copilot.com) wrote about solving inventory reservations at scale with MySQL alone, dropping Redis.
+
+#### Address
+
+Addresses used by customers, orders, carts, fullfillment, stock locations are stored in the `address` table.
+
+An address must be frozen when an order is created. Some systems handle this situation using a separate, denormalized order_address table, where addresses are copied and never change. We expect many orders to share the same address, this means that the order_address table would have many duplicates.
+
+To prevent this, we store all addresses in the address table, if an address is referenced by the orders table, this address is considered frozen: if a customer attempts to modify it, a new one is created instead and the old one is considered replaced.
+
+#### Idempotency keys (WIP)
+
+Evaluating whether or not to use redict as single source of truth for idempotency keys.
 
 ### Inventory management
 

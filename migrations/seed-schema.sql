@@ -40,7 +40,7 @@ CREATE TABLE app_user (
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7e-15e0-f000-68e91e4d68b9" PRIMARY KEY (id),
   CONSTRAINT "069e1f68-bede-16c9-0000-ee68688a668b" FOREIGN KEY (password_details_id) REFERENCES password_details (id),
-  CONSTRAINT "0681493b-ad7e-163b-a800-88be23fc406a" CHECK ( role IN (
+  CONSTRAINT "0681493b-ad7e-163b-a800-88be23fc406a" CHECK (role IN (
     'admin', 'member', 'developer', 'author', 'contributor')
   ),
   CONSTRAINT "0686cd40-3323-15dc-7000-c90d894e0798" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE SET NULL
@@ -102,7 +102,7 @@ CREATE TABLE tax_rate (
   name VARCHAR(63) NOT NULL,
   type VARCHAR(12) DEFAULT 'additive' NOT NULL,
   CONSTRAINT "0681493b-ad84-100d-bc00-4f51f22e5a5a" PRIMARY KEY (id),
-  CONSTRAINT "0686cd40-331d-13a4-2c00-4de2e11c5727" CHECK ( type IN (
+  CONSTRAINT "0686cd40-331d-13a4-2c00-4de2e11c5727" CHECK (type IN (
     'additive', 'substitutive', 'compounding')
   )
 );
@@ -316,7 +316,7 @@ CREATE TABLE locale (
   CONSTRAINT "0681493b-ad84-1b4d-ac00-955f9befd9c9" UNIQUE (code)
 );
 
-CREATE TABLE stock_location_address (
+CREATE TABLE address (
   id BINARY(16) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -329,11 +329,42 @@ CREATE TABLE stock_location_address (
   phone VARCHAR(63),
   province VARCHAR(63),
   postal_code VARCHAR(63),
+  status VARCHAR(8) DEFAULT 'active' NOT NULL,
   CONSTRAINT "068284bc-d749-1f4e-9000-b6c6e237bd23" PRIMARY KEY (id),
-  CONSTRAINT "068284bc-d749-1fa8-4800-72394cfabf1f" FOREIGN KEY (country_code) REFERENCES country (code)
+  CONSTRAINT "068284bc-d749-1fa8-4800-72394cfabf1f" FOREIGN KEY (country_code) REFERENCES country (code),
+  CONSTRAINT "069f0dfa-3855-16c8-0800-d7caddee8ebf" CHECK (status IN ('active', 'frozen', 'replaced'))
 );
 
-CREATE INDEX "068284bc-d74a-113a-cc00-7a45c21dc847" ON stock_location_address (country_code);
+CREATE INDEX "068284bc-d74a-113a-cc00-7a45c21dc847" ON address (country_code);
+
+CREATE TABLE customer (
+  id BINARY(16) NOT NULL,
+  email VARCHAR(254), -- IETF RFC 3696 Errata 1690
+  password_hash BLOB SUB_TYPE BINARY,
+  password_salt BLOB SUB_TYPE BINARY,
+  password_details_id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  first_name VARCHAR(63),
+  last_name VARCHAR(63),
+  phone VARCHAR(63), -- E.164
+  is_registered BOOLEAN DEFAULT false NOT NULL,
+  metadata BLOB SUB_TYPE TEXT,
+  CONSTRAINT "069f0dfa-3855-118e-4000-f8c82d6be9db" PRIMARY KEY (id),
+);
+
+CREATE UNIQUE INDEX "069f0dfa-3855-14e1-4800-7572901eb095" ON customer (email);
+CREATE INDEX "069f0dfa-3855-1548-6c00-a375c401416d" ON customer (default_address_id);
+
+CREATE TABLE customer_address (
+  customer_id BINARY(16) NOT NULL,
+  address_id BINARY(16) NOT NULL,
+  is_default BOOLEAN DEFAULT false NOT NULL,
+  CONSTRAINT "069f0dfa-3855-18f4-8000-d46862af8073" PRIMARY KEY (customer_id, address_id),
+  CONSTRAINT "069f0dfa-3855-11f3-fc00-af3cf73ac34c" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE,
+  CONSTRAINT "069f0dfa-3855-11f3-fc00-af3cf73ac34c" FOREIGN KEY (address_id) REFERENCES address (id) ON DELETE CASCADE
+)
 
 CREATE TABLE stock_location (
   id BINARY(16) NOT NULL,
@@ -342,7 +373,8 @@ CREATE TABLE stock_location (
   deleted_at TIMESTAMP,
   name VARCHAR(63) NOT NULL,
   address_id BINARY(16),
-  CONSTRAINT "068284bc-d74a-1190-a400-30b8104851fe" PRIMARY KEY (id)
+  CONSTRAINT "068284bc-d74a-1190-a400-30b8104851fe" PRIMARY KEY (id),
+  CONSTRAINT "069f0dfa-3855-172a-4000-fc04a8f54638" FOREIGN KEY (address_id) REFERENCES address (id)
 );
 
 CREATE INDEX "068284bc-d74a-1362-3800-bfa41b2fe4a8" ON stock_location (address_id) WHERE deleted_at IS NOT NULL;
