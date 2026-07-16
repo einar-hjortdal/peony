@@ -1402,17 +1402,22 @@ fn hygienise_region_create_request(s string, region_id common.ID) !conduit.Regio
 		return errors.bad_request(error_field_empty, 'currency_code')
 	}
 
-	if utf8_str_visible_length(p.currency_code) != currency_code_length {
+	normalized_currency_code := normalize_code(p.currency_code)
+	if normalized_currency_code == '' {
+		return errors.bad_request(error_field_empty, 'currency_code')
+	}
+
+	if utf8_str_visible_length(normalized_currency_code) != currency_code_length {
 		return errors.bad_request(error_field_invalid,
-			'currency_code must be ${currency_code_length} characters long. Received `${p.currency_code}`')
+			'currency_code must be ${currency_code_length} characters long. Received `${normalized_currency_code}`')
 	}
 
 	if p.country_codes.len == 0 {
 		return errors.bad_request(error_empty_object, 'country_codes')
 	}
 
-	for i := 0; i < p.country_codes.len; i++ {
-		code := p.country_codes[i]
+	normalized_country_codes := normalize_codes(p.country_codes)
+	for _, code in normalized_country_codes {
 		if utf8_str_visible_length(code) != country_code_length {
 			return errors.bad_request(error_field_invalid,
 				'country_code must be ${country_code_length} characters long. Received `${code}`')
@@ -1422,11 +1427,11 @@ fn hygienise_region_create_request(s string, region_id common.ID) !conduit.Regio
 	return conduit.RegionCreateParams{
 		id:                 region_id
 		name:               p.name
-		currency_code:      p.currency_code
+		currency_code:      normalized_currency_code
 		includes_tax:       common.bool_or(p.includes_tax, region_default_includes_tax)
 		gift_cards_taxable: common.bool_or(p.gift_cards_taxable, region_default_gift_cards_taxable)
 		automatic_taxes:    common.bool_or(p.automatic_taxes, region_default_automatic_taxes)
-		country_codes:      p.country_codes
+		country_codes:      normalized_country_codes
 	}
 }
 
@@ -1457,7 +1462,8 @@ fn hygienise_region_update_request(s string, region_id common.ID) !conduit.Regio
 		}
 	}
 
-	if currency_code := p.currency_code {
+	mut normalized_currency_code := normalize_option_code(p.currency_code)
+	if currency_code := normalized_currency_code {
 		if currency_code == '' {
 			return errors.bad_request(error_field_empty, 'currency_code')
 		}
@@ -1468,13 +1474,13 @@ fn hygienise_region_update_request(s string, region_id common.ID) !conduit.Regio
 		}
 	}
 
-	if country_codes := p.country_codes {
+	mut normalized_country_codes := normalize_option_codes(p.country_codes)
+	if country_codes := normalized_country_codes {
 		if country_codes.len == 0 {
 			return errors.bad_request(error_empty_object, 'country_codes')
 		}
 
-		for i := 0; i < country_codes.len; i++ {
-			code := country_codes[i]
+		for _, code in normalized_country_codes {
 			if utf8_str_visible_length(code) != country_code_length {
 				return errors.bad_request(error_field_invalid,
 					'country_code must be ${country_code_length} characters long. Received `${code}`')
@@ -1485,11 +1491,11 @@ fn hygienise_region_update_request(s string, region_id common.ID) !conduit.Regio
 	return conduit.RegionUpdateParams{
 		id:                 region_id
 		name:               p.name
-		currency_code:      p.currency_code
+		currency_code:      normalized_currency_code
 		includes_tax:       p.includes_tax
 		gift_cards_taxable: p.gift_cards_taxable
 		automatic_taxes:    p.automatic_taxes
-		country_codes:      p.country_codes
+		country_codes:      normalized_country_codes
 	}
 }
 

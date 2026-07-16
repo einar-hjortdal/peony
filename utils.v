@@ -310,6 +310,24 @@ fn normalize_code(s string) string {
 	return s.trim_space().to_upper()
 }
 
+fn normalize_option_code(s ?string) ?string {
+	code := s or { return none }
+	return normalize_code(code)
+}
+
+fn normalize_codes(a []string) []string {
+	mut res := []string{len: 0, cap: a.len}
+	for _, code in a {
+		res << normalize_code(code)
+	}
+	return res
+}
+
+fn normalize_option_codes(a ?[]string) ?[]string {
+	codes := a or { return none }
+	return normalize_codes(codes)
+}
+
 fn product_status_is_valid(s string) bool {
 	return s == objects.product_status_draft || s == objects.product_status_proposed
 		|| s == objects.product_status_published || s == objects.product_status_rejected
