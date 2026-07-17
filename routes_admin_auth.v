@@ -1,6 +1,6 @@
 module peony
 
-import json
+import json2
 import veb
 import einar_hjortdal.firebird
 import internal.common
@@ -36,7 +36,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		return ctx.handle_error(errors.bad_request('Already logged in', 'user session exists'))
 	}
 
-	p := json.decode(AuthRequest, ctx.req.data) or {
+	p := json2.decode[AuthRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode AuthRequest', err.msg()))
 	}
 
@@ -49,7 +49,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 		return ctx.handle_error(errors.bad_request('Invalid email', err.msg()))
 	}
 
-	data := app.with_rollback(fn [p, email] (mut tx firebird.ClientTransaction) !LoginData {
+	data := app.with_rollback(fn [email] (mut tx firebird.ClientTransaction) !LoginData {
 		user := conduit.user_get_by_email(mut tx, email)!
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			id: user.password_parameters_id

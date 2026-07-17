@@ -1,7 +1,7 @@
 module peony
 
 import net.http
-import json
+import json2
 import log
 import einar_hjortdal.firebird
 import internal.cache
@@ -20,7 +20,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 	session_name := '${app.config.session_admin_prefix}-${app.config.session_name}'
 	ctx.user_session = app.session_store.new(ctx.req, session_name)
 
-	ctx.user_session_values = json.decode(UserSessionValues, ctx.user_session.values) or {
+	ctx.user_session_values = json2.decode[UserSessionValues](ctx.user_session.values) or {
 		// [/admin/auth; post] must accept unauthorized request to allow logins
 		if ctx.req.url == '/admin/auth' && ctx.req.method == http.Method.post {
 			return true
@@ -33,7 +33,7 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 }
 
 fn (mut app App) middleware_save_user_session(mut ctx Context) bool {
-	ctx.user_session.values = json.encode(ctx.user_session_values)
+	ctx.user_session.values = json2.encode(ctx.user_session_values, escape_unicode: true)
 
 	app.session_store.save(mut ctx.res.header, ctx.user_session) or {
 		return ctx.middleware_handle_error(errors.internal('Failed to save session', err.msg()))

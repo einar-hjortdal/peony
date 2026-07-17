@@ -48,7 +48,7 @@
 
 ### Currently being implemented
 
-
+- [ ] Unit pricing
 
 ### To be implemented
 
@@ -63,12 +63,11 @@
 - [ ] Product types
 - [ ] Reservations
 - [ ] Taxes
-- [ ] Unit pricing
 - [ ] User permissions
 
 ### Low-priority
 
-- [ ] OAuth
+- [ ] AuthProvider
 - [ ] Sub-divisions of country
 
 ### Not planned
@@ -79,7 +78,7 @@
 ## Provider interfaces
 
 - [x] BlobProvider
-- [ ] EmailProvider
+- [ ] NotificationProvider
 - [ ] PaymentProvider
 - [ ] FulfillmentProvider
 

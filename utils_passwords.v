@@ -3,7 +3,7 @@ module peony
 import crypto.argon2
 import crypto.blake2b
 import crypto.rand
-import json
+import json2
 import internal.errors
 
 const argon2id_name = 'argon2id'
@@ -71,13 +71,13 @@ fn (h Argon2idHash) verify_password(password string) ! {
 
 // returns encoded parameters together with the unique hash
 fn (p Argon2idParameters) encode() !(string, []u8) {
-	encoded := json.encode(p)
+	encoded := json2.encode(p, escape_unicode: true)
 	hash := blake2b.sum256(encoded.bytes())
 	return encoded, hash
 }
 
 fn decode_argon2id_parameters(s string) !Argon2idParameters {
-	res := json.decode(Argon2idParameters, s) or {
+	res := json2.decode[Argon2idParameters](s) or {
 		return errors.internal('Failed to decode Argon2idParameters', err.msg())
 	}
 	return res

@@ -1,6 +1,6 @@
 module peony
 
-import json
+import json2
 import internal.conduit
 import internal.errors
 import internal.common
@@ -40,7 +40,7 @@ pub:
 }
 
 fn hygienise_api_key_create_request(s string, api_key_id common.ID) !conduit.APIKeyCreateParams {
-	p := json.decode(APIKeyCreateRequest, s) or {
+	p := json2.decode[APIKeyCreateRequest](s) or {
 		return errors.bad_request('Could not decode APIKeyCreateRequest', err.msg())
 	}
 
@@ -67,7 +67,7 @@ pub:
 }
 
 fn hygienise_api_key_update_request(s string, api_key_id common.ID) !conduit.APIKeyUpdateParams {
-	p := json.decode(APIKeyUpdateRequest, s) or {
+	p := json2.decode[APIKeyUpdateRequest](s) or {
 		return errors.bad_request('Could not decode APIKeyUpdateRequest', err.msg())
 	}
 
@@ -107,7 +107,7 @@ pub:
 }
 
 fn hygienise_store_request(s string, store_id common.ID) !conduit.StoreUpdateParams {
-	p := json.decode(StoreUpdateRequest, s) or {
+	p := json2.decode[StoreUpdateRequest](s) or {
 		return errors.bad_request('Could not decode StoreUpdateRequest', err.msg())
 	}
 
@@ -165,7 +165,7 @@ pub:
 }
 
 fn hygienise_sales_channel_create_request(s string, sales_channel_id common.ID) !conduit.SalesChannelCreateParams {
-	p := json.decode(SalesChannelCreateRequest, s) or {
+	p := json2.decode[SalesChannelCreateRequest](s) or {
 		return errors.bad_request('Could not decode SalesChannelCreateRequest', err.msg())
 	}
 
@@ -201,7 +201,7 @@ pub:
 }
 
 fn hygienise_sales_channel_update_request(s string, sales_channel_id common.ID) !conduit.SalesChannelUpdateParams {
-	p := json.decode(SalesChannelUpdateRequest, s) or {
+	p := json2.decode[SalesChannelUpdateRequest](s) or {
 		return errors.bad_request('Could not decode SalesChannelUpdateRequest', err.msg())
 	}
 
@@ -698,7 +698,7 @@ pub:
 }
 
 fn hygienise_stock_location_create_request(s string, stock_location_id common.ID) !conduit.StockLocationCreateParams {
-	p := json.decode(StockLocationCreateRequest, s) or {
+	p := json2.decode[StockLocationCreateRequest](s) or {
 		return errors.bad_request('Could not decode StockLocationCreateRequest', err.msg())
 	}
 
@@ -719,7 +719,7 @@ pub:
 }
 
 fn hygienise_stock_location_update_request(s string, stock_location_id common.ID) !conduit.StockLocationUpdateParams {
-	p := json.decode(StockLocationUpdateRequest, s) or {
+	p := json2.decode[StockLocationUpdateRequest](s) or {
 		return errors.bad_request('Could not decode StockLocationUpdateRequest', err.msg())
 	}
 
@@ -744,7 +744,7 @@ pub:
 }
 
 fn hygienise_inventory_level_update_request(s string, inventory_item_id common.ID, stock_location_id common.ID) !conduit.InventoryLevelUpdateParams {
-	p := json.decode(InventoryLevelUpdateRequest, s) or {
+	p := json2.decode[InventoryLevelUpdateRequest](s) or {
 		return errors.bad_request('Could not decode InventoryLevelUpdateRequest', err.msg())
 	}
 
@@ -1385,7 +1385,7 @@ pub:
 }
 
 fn hygienise_region_create_request(s string, region_id common.ID) !conduit.RegionCreateParams {
-	p := json.decode(RegionCreateRequest, s) or {
+	p := json2.decode[RegionCreateRequest](s) or {
 		return errors.bad_request('Could not decode RegionCreateRequest', err.msg())
 	}
 
@@ -1447,7 +1447,7 @@ pub:
 }
 
 fn hygienise_region_update_request(s string, region_id common.ID) !conduit.RegionUpdateParams {
-	p := json.decode(RegionUpdateRequest, s) or {
+	p := json2.decode[RegionUpdateRequest](s) or {
 		return errors.bad_request('Could not decode RegionUpdateRequest', err.msg())
 	}
 
@@ -1706,7 +1706,7 @@ pub:
 }
 
 fn hygienise_category_update_request(s string, category_id common.ID) !conduit.CategoryUpdateParams {
-	p := json.decode(CategoryUpdateRequest, s) or {
+	p := json2.decode[CategoryUpdateRequest](s) or {
 		return errors.bad_request('Could not decode CategoryUpdateRequest', err.msg())
 	}
 

@@ -2,7 +2,7 @@ module providers
 
 import crypto.hmac
 import crypto.sha256
-import json
+import json2
 import log
 import net.http
 
@@ -55,7 +55,7 @@ fn (b BloblyClient) blobs_dir_exist() !bool {
 		return error(response.body)
 	}
 
-	body := json.decode(BloblyEntries, response.body)!
+	body := json2.decode[BloblyEntries](response.body)!
 	return body.entries.contains(blobly_blobs_dirname)
 }
 
@@ -84,7 +84,7 @@ fn (b BloblyClient) create(f http.FileData) !BlobFileData {
 	response := request.do()!
 
 	if response.status_code == 200 {
-		data := json.decode(BloblySuccess, response.body) or {
+		data := json2.decode[BloblySuccess](response.body) or {
 			return error('Could not decode BloblySuccess')
 		}
 		return BlobFileData{
@@ -93,7 +93,7 @@ fn (b BloblyClient) create(f http.FileData) !BlobFileData {
 		}
 	}
 
-	data := json.decode(BloblyError, response.body) or {
+	data := json2.decode[BloblyError](response.body) or {
 		return error('Could not decode BloblyError')
 	}
 	return error(data.message)
@@ -107,7 +107,7 @@ fn (b BloblyClient) delete(filename string) ! {
 		return
 	}
 
-	data := json.decode(BloblyError, response.body) or {
+	data := json2.decode[BloblyError](response.body) or {
 		return error('Could not decode BloblyError')
 	}
 	return error(data.message)

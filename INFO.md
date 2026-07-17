@@ -215,6 +215,12 @@ To prevent this, we store all addresses in the address table, if an address is r
 
 Evaluating whether or not to use redict as single source of truth for idempotency keys.
 
+Requests that need indempotency keys:
+- inventory_level updates
+- order creation
+- payment
+- refund
+
 ### Inventory management
 
 By default, peony manages the inventory of each `variant`.

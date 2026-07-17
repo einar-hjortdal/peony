@@ -1,6 +1,6 @@
 module peony
 
-import json
+import json2
 import net.http
 import veb
 import time
@@ -217,10 +217,10 @@ fn (mut app App) get_locale_context(m map[string]string) !LocaleContext {
 
 fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {
 	ctx.res.set_status(error.status_code)
-	return ctx.json(json.encode(PeonyErrorResponse{
+	return ctx.json(json2.encode(PeonyErrorResponse{
 		message: error.message
 		details: error.details
-	}))
+	}, escape_unicode: true))
 }
 
 fn (mut ctx Context) handle_error(error IError) veb.Result {
@@ -238,10 +238,10 @@ fn (mut ctx Context) middleware_handle_error(error IError) bool {
 	match error {
 		errors.PeonyError {
 			ctx.res.set_status(error.status_code)
-			ctx.json(json.encode(PeonyErrorResponse{
+			ctx.json(json2.encode(PeonyErrorResponse{
 				message: error.message
 				details: error.details
-			}))
+			}, escape_unicode: true))
 		}
 		else {
 			ctx.res.set_status(http.Status.internal_server_error)

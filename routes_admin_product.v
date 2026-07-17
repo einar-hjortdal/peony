@@ -1,6 +1,6 @@
 module peony
 
-import json
+import json2
 import veb
 import einar_hjortdal.firebird
 import internal.common
@@ -27,7 +27,7 @@ pub fn (mut app App) admin_product_list(mut ctx Context) veb.Result {
 // create a product
 @['/admin/products'; post]
 pub fn (mut app App) admin_product_create(mut ctx Context) veb.Result {
-	decoded := json.decode(ProductCreateRequest, ctx.req.data) or {
+	decoded := json2.decode[ProductCreateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode ProductRequest', err.msg()))
 	}
 
@@ -66,7 +66,7 @@ pub fn (mut app App) admin_product_update(mut ctx Context, product_id string) ve
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
-	encoded := json.decode(ProductUpdateRequest, ctx.req.data) or {
+	encoded := json2.decode[ProductUpdateRequest](ctx.req.data) or {
 		perr := errors.bad_request('Could not decode ProductUpdateRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
@@ -105,7 +105,7 @@ pub fn (mut app App) variant_create(mut ctx Context, product_id string) veb.Resu
 		return ctx.handle_error(errors.unprocessable_entity(errors.id_invalid, 'product_id'))
 	}
 
-	decoded := json.decode(VariantCreateRequest, ctx.req.data) or {
+	decoded := json2.decode[VariantCreateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode VariantCreateRequest ',
 			err.msg()))
 	}
@@ -133,7 +133,7 @@ pub fn (mut app App) admin_variants_id_post(mut ctx Context, product_id string, 
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'variant_id'))
 	}
 
-	decoded := json.decode(VariantUpdateRequest, ctx.req.data) or {
+	decoded := json2.decode[VariantUpdateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode VariantRequest', err.msg()))
 	}
 
@@ -175,7 +175,7 @@ pub fn (mut app App) product_image_create(mut ctx Context, product_id string) ve
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'product_id'))
 	}
 
-	decoded := json.decode(ImageCreateRequest, ctx.req.data) or {
+	decoded := json2.decode[ImageCreateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode ImageCreateRequest', err.msg()))
 	}
 
@@ -223,7 +223,7 @@ pub fn (mut app App) product_image_update(mut ctx Context, product_id string, im
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'image_id'))
 	}
 
-	decoded := json.decode(ImageUpdateRequest, ctx.req.data) or {
+	decoded := json2.decode[ImageUpdateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode ImageUpdateRequest', err.msg()))
 	}
 

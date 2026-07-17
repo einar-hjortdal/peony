@@ -1,6 +1,6 @@
 module peony
 
-import json
+import json2
 import veb
 import einar_hjortdal.firebird
 import internal.errors
@@ -27,7 +27,7 @@ pub fn (mut app App) category_list(mut ctx Context) veb.Result {
 // creates category
 @['/admin/categories'; post]
 pub fn (mut app App) category_create(mut ctx Context) veb.Result {
-	decoded := json.decode(CategoryCreateRequest, ctx.req.data) or {
+	decoded := json2.decode[CategoryCreateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode CategoryCreateRequest ',
 			err.msg()))
 	}

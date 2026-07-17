@@ -1,6 +1,6 @@
 module peony
 
-import json
+import json2
 import veb
 import einar_hjortdal.firebird
 import internal.common
@@ -28,7 +28,7 @@ pub fn (mut app App) admin_user_list(mut ctx Context) veb.Result {
 // creates a user
 @['/admin/users'; post]
 pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
-	p := json.decode(UserCreateRequest, ctx.req.data) or {
+	p := json2.decode[UserCreateRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode UserCreateRequest', err.msg()))
 	}
 
@@ -115,7 +115,7 @@ pub fn (mut app App) admin_users_id_post(mut ctx Context, user_id string) veb.Re
 		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
-	p := json.decode(UserUpdateRequest, ctx.req.data) or {
+	p := json2.decode[UserUpdateRequest](ctx.req.data) or {
 		perr := errors.bad_request('Could not decode UserUpdateRequest', err.msg())
 		return ctx.handle_error(perr)
 	}
