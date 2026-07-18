@@ -95,18 +95,19 @@ fn firebird_insert_default_user(
 	mut tx firebird.ClientTransaction,
 	email string,
 	password string,
-	password_parameters_id common.ID,
+	function_name string,
+	password_details_id common.ID,
 	user_id common.ID) ! {
 	log.debug('insert_default_user')
 	password_hash := hash_password(password)!
 	parameters_encoded, parameters_hash := password_hash.parameters.encode()!
-	tx.execute('INSERT INTO password_parameters (id, parameters, hash) VALUES (?, ?, ?)',
-		password_parameters_id.bytes(), parameters_encoded, parameters_hash)!
+	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
+		password_details_id.bytes(), function_name, parameters_encoded, parameters_hash)!
 
-	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, password_parameters_id, role)
-	VALUES (?, ?, ?, ?, ?, ?)',
+	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, password_details_id, role)
+	VALUES (?, ?, ?, ?, ?, ?, ?)',
 		user_id.bytes(), user_id.string(), email, password_hash.hash, password_hash.salt,
-		password_parameters_id.bytes(), objects.role_admin)!
+		password_details_id.bytes(), objects.role_admin)!
 }
 
 fn firebird_insert_default_region(mut tx firebird.ClientTransaction, region_id common.ID) ! {
@@ -227,7 +228,7 @@ fn (mut app App) add_data(mut tx firebird.ClientTransaction) ! {
 	firebird_insert_currency_data(mut tx)!
 	firebird_insert_locale_codes(mut tx, mut app.luuid_generator)!
 	firebird_insert_default_user(mut tx, app.config.default_user_email,
-		app.config.default_user_password, password_parameters_id, user_id)!
+		app.config.default_user_password, argon2id_name, password_parameters_id, user_id)!
 	firebird_insert_default_region(mut tx, region_id)!
 	firebird_insert_default_stock_location(mut tx, stock_location_id)!
 	firebird_insert_default_sales_channel(mut tx, sales_channel_id)!

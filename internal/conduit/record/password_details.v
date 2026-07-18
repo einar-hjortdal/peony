@@ -18,7 +18,7 @@ pub fn (p PasswordDetails) id() common.ID {
 
 pub struct PasswordDetailsGetParams {
 pub:
-	hash []u8
+	hash []u8 // TODO is this optional?
 	id   ?common.ID
 }
 
@@ -27,16 +27,18 @@ pub fn password_details_get(mut tx firebird.ClientTransaction, p PasswordDetails
 		return error('could not get password_details: received neither hash nor id')
 	}
 
-	mut query := 'SELECT FROM password_details (id, function_name, parameters, hash, created_at)'
-	mut params := []firebird.Value{len: 1, init: firebird.Null{}}
+	mut query := 'SELECT id, function_name, parameters, hash, created_at FROM password_details'
+	mut params := []firebird.Value{len: 0, cap: 1, init: firebird.Null{}}
+
+	// TODO handle both provided?
 	if p.hash.len != 0 {
 		query = appendln(query, 'WHERE hash = ?')
-		params[0] = p.hash
+		params << p.hash
 	}
 
 	if id := p.id {
 		query = appendln(query, 'WHERE id = ?')
-		params[0] = id.bytes()
+		params << id.bytes()
 	}
 
 	data := tx.execute(query, ...params)!

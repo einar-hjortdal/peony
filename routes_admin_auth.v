@@ -52,7 +52,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 	data := app.with_rollback(fn [email] (mut tx firebird.ClientTransaction) !LoginData {
 		user := conduit.user_get_by_email(mut tx, email)!
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
-			id: user.password_parameters_id
+			id: user.password_details_id
 		})!
 
 		return LoginData{

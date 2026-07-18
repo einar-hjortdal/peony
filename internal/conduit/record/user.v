@@ -6,19 +6,19 @@ import internal.common
 
 pub struct User {
 pub:
-	id                     common.ID
-	handle                 string
-	email                  string
-	password_hash          []u8
-	password_salt          []u8
-	password_parameters_id common.ID
-	role                   string
-	created_at             firebird.DateTime
-	updated_at             firebird.DateTime
-	deleted_at             ?firebird.DateTime
-	first_name             string
-	last_name              string
-	metadata               ?string
+	id                  common.ID
+	handle              string
+	email               string
+	password_hash       []u8
+	password_salt       []u8
+	password_details_id common.ID
+	role                string
+	created_at          firebird.DateTime
+	updated_at          firebird.DateTime
+	deleted_at          ?firebird.DateTime
+	first_name          string
+	last_name           string
+	metadata            ?string
 pub mut:
 	image UserImage
 }
@@ -28,17 +28,17 @@ pub fn (u User) id() common.ID {
 }
 
 pub struct UserCreateParams {
-	user_id                common.ID
-	handle                 string
-	email                  string
-	password_hash          []u8
-	password_salt          []u8
-	password_parameters_id common.ID
-	role                   string
-	first_name             ?string
-	last_name              ?string
-	image_id               ?common.ID
-	metadata               ?string
+	user_id             common.ID
+	handle              string
+	email               string
+	password_hash       []u8
+	password_salt       []u8
+	password_details_id common.ID
+	role                string
+	first_name          ?string
+	last_name           ?string
+	image_id            ?common.ID
+	metadata            ?string
 }
 
 pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
@@ -48,7 +48,7 @@ pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 		'email',
 		'password_hash',
 		'password_salt',
-		'password_parameters_id',
+		'password_details_id',
 		'role',
 	]
 
@@ -58,7 +58,7 @@ pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 		p.email,
 		p.password_hash,
 		p.password_salt,
-		p.password_parameters_id.bytes(),
+		p.password_details_id.bytes(),
 		p.role,
 	]
 
@@ -148,7 +148,7 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 		email,
 		password_hash,
 		password_salt,
-		password_parameters_id,
+		password_details_id,
 		role,
 		created_at,
 		updated_at,
@@ -170,7 +170,7 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 		email, _ := v[2].get_string()!
 		password_hash, _ := v[3].get_array_u8()!
 		password_salt, _ := v[4].get_array_u8()!
-		password_parameters_id_bin, _ := v[5].get_array_u8()!
+		password_details_id_bin, _ := v[5].get_array_u8()!
 		role, _ := v[6].get_string()!
 		created_at, _ := v[7].get_date_time()!
 		updated_at, _ := v[8].get_date_time()!
@@ -180,22 +180,22 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 		metadata := v[12].get_null_string()!
 
 		id := common.id_from_bytes(id_bin)!
-		password_parameters_id := common.id_from_bytes(password_parameters_id_bin)!
+		password_details_id := common.id_from_bytes(password_details_id_bin)!
 
 		users[i] = User{
-			id:                     id
-			handle:                 handle
-			email:                  email
-			password_hash:          password_hash
-			password_salt:          password_salt
-			password_parameters_id: password_parameters_id
-			role:                   role
-			created_at:             created_at
-			updated_at:             updated_at
-			deleted_at:             deleted_at.none_value()
-			first_name:             first_name
-			last_name:              last_name
-			metadata:               metadata.none_value()
+			id:                  id
+			handle:              handle
+			email:               email
+			password_hash:       password_hash
+			password_salt:       password_salt
+			password_details_id: password_details_id
+			role:                role
+			created_at:          created_at
+			updated_at:          updated_at
+			deleted_at:          deleted_at.none_value()
+			first_name:          first_name
+			last_name:           last_name
+			metadata:            metadata.none_value()
 		}
 	}
 

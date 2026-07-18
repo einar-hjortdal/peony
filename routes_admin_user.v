@@ -59,15 +59,15 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 		}
 
 		conduit.user_create(mut tx, conduit.UserCreateParams{
-			user_id:                user_id
-			handle:                 user_id.string() // TODO validate and format
-			email:                  normalize_email(p.email)
-			password_hash:          password_hash.hash
-			password_salt:          password_hash.salt
-			password_parameters_id: password_details.id
-			role:                   unwrap_option_or(p.role, objects.role_admin)
-			first_name:             p.first_name
-			last_name:              p.last_name
+			user_id:             user_id
+			handle:              user_id.string() // TODO validate and format
+			email:               normalize_email(p.email)
+			password_hash:       password_hash.hash
+			password_salt:       password_hash.salt
+			password_details_id: password_details.id
+			role:                unwrap_option_or(p.role, objects.role_admin)
+			first_name:          p.first_name
+			last_name:           p.last_name
 			// image_id
 			metadata: p.metadata
 		})!
