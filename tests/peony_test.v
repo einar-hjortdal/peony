@@ -240,7 +240,9 @@ fn user_login() !string {
 	response := do_post_request('/admin/auth', json2.encode(peony.AuthRequest{
 		email:    default_user_email
 		password: default_user_password
-	}, escape_unicode: true))!
+	},
+		escape_unicode: true
+	))!
 	return extract_cookie_from_set_cookie(response)
 }
 
@@ -276,7 +278,9 @@ fn auth_middleware_allows_logins_and_logouts() ! {
 	body := json2.encode(peony.AuthRequest{
 		email:    default_user_email
 		password: default_user_password
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	mut response := do_post_request(endpoint_admin_auth, body)!
 	is_ok(response)!
 
@@ -301,7 +305,7 @@ fn admin_auth_returns_user_data(cookie_value string) ! {
 	r := json2.decode[peony.UserResponseEnvelope](response.body)!
 	user := r.user
 	expect(user.id != '', 'Returned empty user id')!
-	expect(user.email == default_user_email, 'Unexpected user email: ${user.email}')!
+	expect(user.email == default_user_email.to_upper(), 'Unexpected user email: ${user.email}')!
 	expect(user.handle != '', 'Unexpected user handle: ${user.handle}')!
 	expect(user.role == objects.role_admin, 'Unexpected user role: ${user.role}')!
 	// TODO test created_at is not zero https://github.com/vlang/v/issues/24765
@@ -312,7 +316,9 @@ fn admin_auth_rejects_login_when_already_logged_in(cookie_value string) ! {
 	response := do_authenticated_post_request('/admin/auth', cookie_value, json2.encode(peony.AuthRequest{
 		email:    default_user_email
 		password: default_user_password
-	}, escape_unicode: true))!
+	},
+		escape_unicode: true
+	))!
 	expect(response.status_code == 400, 'Logged in user was allowed to log in again')!
 }
 
@@ -330,7 +336,7 @@ fn admin_users_list_users(cookie_value string) ! {
 	mut found := false
 	for i := 0; i < r.users.len; i++ {
 		user := r.users[i]
-		if user.email == default_user_email {
+		if user.email == default_user_email.to_upper() {
 			default_user = user
 			found = true
 			break
@@ -356,7 +362,9 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 
 	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json2.encode(peony.UserCreateRequest{
 		email: 'new_user@peony.com'
-	}, escape_unicode: true))!
+	},
+		escape_unicode: true
+	))!
 	expect(response.status_code == 400, 'Invalid request was accepted.')!
 
 	// TODO add all fields
@@ -364,10 +372,12 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 		email:    'new_user@peony.com'
 		password: 'new user password'
 	}
-	response = do_authenticated_post_request(endpoint_admin_users, cookie_value,
-		json2.encode(valid_new_user, escape_unicode: true))!
-	is_ok(response)!
+	response = do_authenticated_post_request(endpoint_admin_users, cookie_value, json2.encode(valid_new_user,
+		escape_unicode: true
+	))!
+	is_created(response)!
 
+	// TODO get new used directly instead of scanning all
 	response = do_authenticated_get_request(endpoint_admin_users, cookie_value)!
 	is_ok(response)!
 	r = json2.decode[peony.UserResponseListEnvelope](response.body)!
@@ -379,7 +389,7 @@ fn admin_users_create_and_delete_user(cookie_value string) ! {
 	mut found := false
 	for i := 0; i < r.users.len; i++ {
 		user := r.users[i]
-		if user.email == valid_new_user.email {
+		if user.email == valid_new_user.email.to_upper() {
 			new_user = user
 			found = true
 			break
@@ -440,8 +450,9 @@ fn admin_store(cookie_value string) ! {
 		// default_sales_channel_id
 	}
 	time.sleep(1 * time.second) // for updated_at
-	response = do_authenticated_post_request('${endpoint_admin_store}/${r.store.id}', cookie_value,
-		json2.encode(new_store_data, escape_unicode: true))!
+	response = do_authenticated_post_request('${endpoint_admin_store}/${r.store.id}', cookie_value, json2.encode(new_store_data,
+		escape_unicode: true
+	))!
 	is_ok(response)!
 
 	response = do_authenticated_get_request(endpoint_admin_store, cookie_value)!
@@ -475,7 +486,9 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 	new_locale_ids := [old_store.default_locale_id, random_locale.id]
 	new_store_data := json2.encode(peony.StoreUpdateRequest{
 		locale_ids: new_locale_ids
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
 		cookie_value, new_store_data)!
 	is_ok(response)!
@@ -488,7 +501,9 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 
 	restore_old_data := json2.encode(peony.StoreUpdateRequest{
 		locale_ids: [old_store.default_locale_id]
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response = do_authenticated_post_request('${endpoint_admin_store}/${old_store.id}',
 		cookie_value, restore_old_data)!
 	is_ok(response)!
@@ -507,7 +522,9 @@ fn admin_categories_create_minimal_category(cookie_value string) ! {
 	new_category_name := luuid.v2()
 	new_category_data := json2.encode(peony.CategoryCreateRequest{
 		name: new_category_name
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		new_category_data)!
 	is_ok(response)!
@@ -574,7 +591,9 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 			title:       seo_title
 			description: seo_description
 		}
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response =
 		do_authenticated_post_request(endpoint_admin_categories, cookie_value, category_data)!
 	is_ok(response)!
@@ -631,7 +650,9 @@ fn admin_categories_updates_category(cookie_value string) ! {
 	new_category_name := luuid.v2()
 	new_category_data := json2.encode(peony.CategoryCreateRequest{
 		name: new_category_name
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		new_category_data)!
 	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
@@ -659,7 +680,9 @@ fn admin_categories_updates_category(cookie_value string) ! {
 		is_internal: new_is_internal
 		is_active:   new_is_active
 		metadata:    new_metadata
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	time.sleep(1 * time.second) // needed to check updated_at
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value, updated_category_data)!
@@ -696,8 +719,9 @@ fn admin_categories_updates_category(cookie_value string) ! {
 fn admin_categories_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_categories_create_rejects_bad_requests')
 	new_category_data := peony.CategoryCreateRequest{}
-	response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
-		json2.encode(new_category_data, escape_unicode: true))!
+	response := do_authenticated_post_request(endpoint_admin_categories, cookie_value, json2.encode(new_category_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Category was created despite having no name')!
 }
 
@@ -712,8 +736,9 @@ fn admin_products_create_minimal_product(cookie_value string) ! {
 	new_product_data := peony.ProductCreateRequest{
 		title: new_product_title
 	}
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	created_product := r.product
@@ -767,8 +792,9 @@ fn admin_products_create_complex_product(cookie_value string) ! {
 			},
 		]
 	}
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	created_product := r.product
@@ -817,8 +843,9 @@ fn handles_unique_product_handles(cookie_value string) ! {
 	mut new_product_data := peony.ProductCreateRequest{
 		title: new_product_title
 	}
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	mut created_product := r.product
@@ -835,8 +862,9 @@ fn handles_unique_product_handles(cookie_value string) ! {
 		title:  new_product_title
 		handle: new_product_handle
 	}
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	r = json2.decode[peony.ProductResponseEnvelope](response.body)!
 	created_product = r.product
@@ -859,8 +887,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		options: []peony.ProductOptionCreateRequest{}
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created with explicitly no options')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -868,8 +897,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		options: [peony.ProductOptionCreateRequest{}]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created with one option without title')!
 
 	new_option_title := luuid.v2()
@@ -882,8 +912,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created with one option without values')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -896,8 +927,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with one option with explicitly no values')!
 
@@ -916,8 +948,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created with one option but no variants')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -935,8 +968,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		variants: []peony.ProductVariantCreateRequest{}
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created with explicitly no variants')!
 
 	new_product_data = peony.ProductCreateRequest{
@@ -958,8 +992,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with one variant with explicitly no option values')!
 
@@ -982,8 +1017,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with option_values referencing too many options')!
 
@@ -1006,8 +1042,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with option_values referencing non-existing options')!
 
@@ -1030,8 +1067,9 @@ fn creates_product_with_one_option(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1081,8 +1119,9 @@ fn creates_product_without_options_with_variant(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1137,8 +1176,9 @@ fn creates_product_with_one_option_and_many_variants(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1191,8 +1231,9 @@ fn creates_product_with_many_options_and_one_variant(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1226,8 +1267,9 @@ fn creates_product_with_variant_image(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1266,8 +1308,9 @@ fn updates_product_with_variant_image(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1329,8 +1372,9 @@ fn updates_product_replaces_default_variant(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	mut product := r.product
@@ -1396,8 +1440,9 @@ fn creates_a_variant(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	pr := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	product := pr.product
@@ -1486,8 +1531,9 @@ fn updates_a_variant(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	pr := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	product := pr.product
@@ -1579,8 +1625,9 @@ fn deletes_a_variant(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	pr := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	product := pr.product
@@ -1627,8 +1674,9 @@ fn creates_product_with_variant_with_regional_prices(cookie_value string) ! {
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1686,8 +1734,9 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with 1 option, 1 value and 2 variants with the same values')!
 
@@ -1718,8 +1767,9 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 	}
 
 	// 2 options, 1 value each, 2 variants
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with 1 option, 2 value and 2 variants with the same values')!
 
@@ -1753,14 +1803,16 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with 2 options, 1 value each and 2 variants with the same values')!
 
 	// 2 options, 2 values each, 2 variants
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with 1 option, 2 value and 2 variants with the same values')!
 
@@ -1800,8 +1852,9 @@ fn refuses_product_creation_with_variants_with_same_values(cookie_value string) 
 		]
 	}
 
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422,
 		'Product was created with 2 options, 1 value each and 2 variants with the same values')!
 }
@@ -1812,8 +1865,9 @@ fn admin_products_updates_product(cookie_value string) ! {
 	original_product_data := peony.ProductCreateRequest{
 		title: title
 	}
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(original_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(original_product_data,
+		escape_unicode: true
+	))!
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	new_product := r.product
 
@@ -1840,7 +1894,9 @@ fn admin_products_updates_product(cookie_value string) ! {
 			title:       new_seo_title
 			description: new_seo_description
 		}
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	time.sleep(1 * time.second) // needed to check updated_at
 	response = do_authenticated_post_request('${endpoint_admin_products}/${new_product.id}',
 		cookie_value, updated_product_data)!
@@ -1870,15 +1926,17 @@ fn admin_products_updates_product(cookie_value string) ! {
 fn admin_products_create_rejects_bad_requests(cookie_value string) ! {
 	println('admin_products_create_rejects_bad_requests')
 	mut new_product_data := peony.ProductCreateRequest{}
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created despite having no title')!
 
 	new_product_data = peony.ProductCreateRequest{
 		title: ''
 	}
-	response = do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	response = do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	expect(response.status_code == 422, 'Product was created despite request having empty title')!
 }
 
@@ -1911,8 +1969,9 @@ fn updates_product_options_ranking(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -1982,8 +2041,9 @@ fn updates_variants_ranking(cookie_value string) ! {
 		]
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(new_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(new_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
@@ -2066,7 +2126,9 @@ fn add_random_locales(cookie_value string, locales_amount i32) ![]peony.LocaleRe
 
 	new_store_data := json2.encode(peony.StoreUpdateRequest{
 		locale_ids: new_locale_ids
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response = do_authenticated_post_request('${endpoint_admin_store}/${store.id}', cookie_value,
 		new_store_data)!
 	is_ok(response)!
@@ -2081,7 +2143,9 @@ fn remove_secondary_locales(cookie_value string) ! {
 
 	new_store_data := json2.encode(peony.StoreUpdateRequest{
 		locale_ids: [default_locale_id]
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response = do_authenticated_post_request('${endpoint_admin_store}/${store.id}', cookie_value,
 		new_store_data)!
 	is_ok(response)!
@@ -2118,8 +2182,9 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 		title:  title
 		images: images
 	}
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(original_product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(original_product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	mut r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	new_product := r.product
@@ -2233,7 +2298,9 @@ fn admin_handles_category_translations(cookie_value string) ! {
 				}
 			}
 		}
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		category_data)!
 	is_ok(response)!
@@ -2281,7 +2348,9 @@ fn admin_handles_category_translations(cookie_value string) ! {
 			description:  category_seo_description
 			translations: map[string]peony.SEOTranslationRequest{}
 		}
-	}, escape_unicode: true)
+	},
+		escape_unicode: true
+	)
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value, new_category_data)!
 	is_ok(response)!
@@ -2348,8 +2417,9 @@ fn admin_handles_product_translations(cookie_value string) ! {
 		}
 	}
 
-	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value,
-		json2.encode(product_data, escape_unicode: true))!
+	mut response := do_authenticated_post_request(endpoint_admin_products, cookie_value, json2.encode(product_data,
+		escape_unicode: true
+	))!
 	is_created(response)!
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	new_product := r.product

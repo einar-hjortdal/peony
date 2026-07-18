@@ -7,7 +7,7 @@ import peony.providers
 import os
 import net.http
 import time
-import json
+import json2
 import einar_hjortdal.luuid
 
 const fail_key = 'fail'
@@ -24,7 +24,7 @@ const redict_port = '6380'
 const redict_url = 'redict://@localhost:${redict_port}/0'
 const session_secret = 'testSessionSecret'
 const port = 12080
-const default_user_email = 'info@peony.com'
+const default_user_email = 'info@peony.com'.to_upper()
 const default_user_password = 'very-secret-password'
 
 const endpoint_admin_auth = '/admin/auth'
@@ -216,10 +216,10 @@ fn extract_cookie_from_set_cookie(r http.Response) !string {
 }
 
 fn user_login() !string {
-	response := do_post_request('/admin/auth', json.encode(peony.AuthRequest{
+	response := do_post_request('/admin/auth', json2.encode(peony.AuthRequest{
 		email:    default_user_email
 		password: default_user_password
-	}))!
+	}, escape_unicode: true))!
 	return extract_cookie_from_set_cookie(response)
 }
 
