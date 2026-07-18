@@ -21,7 +21,7 @@ CREATE TABLE password_details (
   CONSTRAINT "069e1f68-bede-1661-9400-ef34b4fad290" PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX "069e1f68-bede-16c9-0000-ee68688a668b" ON password_parameters (hash);
+CREATE UNIQUE INDEX "069e1f68-bede-16c9-0000-ee68688a668b" ON password_details (hash);
 
 CREATE TABLE app_user (
   id BINARY(16) NOT NULL,
@@ -39,7 +39,7 @@ CREATE TABLE app_user (
   image_id BINARY(16),
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "0681493b-ad7e-15e0-f000-68e91e4d68b9" PRIMARY KEY (id),
-  CONSTRAINT "069e1f68-bede-16c9-0000-ee68688a668b" FOREIGN KEY (password_details_id) REFERENCES password_details (id),
+  CONSTRAINT "069f0dfa-3855-1957-dc00-cabd716f3979" FOREIGN KEY (password_details_id) REFERENCES password_details (id),
   CONSTRAINT "0681493b-ad7e-163b-a800-88be23fc406a" CHECK (role IN (
     'admin', 'member', 'developer', 'author', 'contributor')
   ),
@@ -351,11 +351,10 @@ CREATE TABLE customer (
   phone VARCHAR(63), -- E.164
   is_registered BOOLEAN DEFAULT false NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
-  CONSTRAINT "069f0dfa-3855-118e-4000-f8c82d6be9db" PRIMARY KEY (id),
+  CONSTRAINT "069f0dfa-3855-118e-4000-f8c82d6be9db" PRIMARY KEY (id)
 );
 
 CREATE UNIQUE INDEX "069f0dfa-3855-14e1-4800-7572901eb095" ON customer (email);
-CREATE INDEX "069f0dfa-3855-1548-6c00-a375c401416d" ON customer (default_address_id);
 
 CREATE TABLE customer_address (
   customer_id BINARY(16) NOT NULL,
@@ -363,8 +362,8 @@ CREATE TABLE customer_address (
   is_default BOOLEAN DEFAULT false NOT NULL,
   CONSTRAINT "069f0dfa-3855-18f4-8000-d46862af8073" PRIMARY KEY (customer_id, address_id),
   CONSTRAINT "069f0dfa-3855-11f3-fc00-af3cf73ac34c" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE,
-  CONSTRAINT "069f0dfa-3855-11f3-fc00-af3cf73ac34c" FOREIGN KEY (address_id) REFERENCES address (id) ON DELETE CASCADE
-)
+  CONSTRAINT "069f0dfa-3855-1d4c-3800-b46d77b70dd3" FOREIGN KEY (address_id) REFERENCES address (id) ON DELETE CASCADE
+);
 
 CREATE TABLE stock_location (
   id BINARY(16) NOT NULL,

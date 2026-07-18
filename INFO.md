@@ -211,7 +211,7 @@ An address must be frozen when an order is created. Some systems handle this sit
 
 To prevent this, we store all addresses in the address table, if an address is referenced by the orders table, this address is considered frozen: if a customer attempts to modify it, a new one is created instead and the old one is considered replaced.
 
-#### Idempotency keys (WIP)
+### Idempotency keys (WIP)
 
 Evaluating whether or not to use redict as single source of truth for idempotency keys.
 
@@ -228,6 +228,22 @@ By default, peony manages the inventory of each `variant`.
 - A `variant` is considered *purchasable* if `stocked_quantity` is more than its `reserved_quantity`.
 
 Each `variant` has exactly one `inventory_item`.
+
+### Payment proviers (WIP)
+
+The application must have payment providers installed to handle payments, meaning they need to have functions that handle payments. These payment providers are also referenced in the database.
+
+Problem: all deployed instances must have the same providers installed (functions), otherwise the database could reference a payment provider that is not installed in one instance but installed in another.
+
+Solution:
+
+Request users to re-deploy all instances when a new provider is installed, then enable it in the frontend. Also handle gracefully errors if missing installed provider.
+
+Problem: ideally we want luuid to uniquely identify a provider, but we can't ask the user to generate a luuid for the configuration, and this is not javascript, we can't just modify source code at runtime.
+
+Solution:
+
+We already have ask users to re-deploy all instances when they install a new provider. We can ask them to set a unique name, and create an id for that name. Cache providers when needed, show providers in frontend, use id in webhooks.
 
 ### Content Management System (WIP)
 

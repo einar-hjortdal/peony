@@ -4,9 +4,11 @@ import log
 import strconv
 import einar_hjortdal.luuid
 import einar_hjortdal.firebird
-import internal.conduit
+import internal.conduit.record
 import internal.common
 import objects
+
+// TODO this should be own module, merge with migrations directory. Is allowed to call record functions directly.
 
 const schema_file = $embed_file('migrations/seed-schema.sql')
 const schema_rollback_file = $embed_file('migrations/seed-rollback.sql')
@@ -100,6 +102,7 @@ fn firebird_insert_default_user(
 	parameters_encoded, parameters_hash := password_hash.parameters.encode()!
 	tx.execute('INSERT INTO password_parameters (id, parameters, hash) VALUES (?, ?, ?)',
 		password_parameters_id.bytes(), parameters_encoded, parameters_hash)!
+
 	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, password_parameters_id, role)
 	VALUES (?, ?, ?, ?, ?, ?)',
 		user_id.bytes(), user_id.string(), email, password_hash.hash, password_hash.salt,
@@ -173,7 +176,11 @@ fn firebird_create_schema(mut fbclient firebird.Client) ! {
 	log.debug('create_schema')
 	schema_queries := firebird_get_schema_queries()
 	for i := 0; i < schema_queries.len; i++ {
-		q := schema_queries[i]
+		q := schema_queries[i].trim_space()
+		if q.starts_with('--') { // ignore commented one-liner queries? TODO maybe better check is needed
+			continue
+		}
+
 		mut tx := fbclient.start_transaction(firebird.isolation_level_read_commited)!
 		tx.execute(q) or {
 			log.debug('Failed to execute query: ${q}')
@@ -229,11 +236,11 @@ fn (mut app App) add_data(mut tx firebird.ClientTransaction) ! {
 	firebird_insert_default_api_key(mut tx, api_key_id, sales_channel_id)!
 	firebird_insert_default_store(mut tx, region_id, store_id, sales_channel_id, stock_location_id)!
 	firebird_insert_default_store_locale(mut tx, store_id)!
-	conduit.migration_create(mut tx, migration_id, seed_migration_name)!
+	record.migration_create(mut tx, migration_id, seed_migration_name)!
 }
 
 fn (mut app App) is_ready(mut tx firebird.ClientTransaction) !bool {
-	migrations := conduit.migration_list(mut tx) or {
+	migrations := record.migration_retrieve(mut tx) or {
 		if err.msg().contains('Table unknown') {
 			log.info('Database needs setup: migration table missing')
 			return false
