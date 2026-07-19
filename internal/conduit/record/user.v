@@ -77,7 +77,7 @@ pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 		params = arrays.concat(params, metadata)
 	}
 
-	tx.execute('INSERT INTO app_user (${get_columns(c)}) VALUES (${get_placeholders(c)})',
+	tx.execute('INSERT INTO peony_user (${get_columns(c)}) VALUES (${get_placeholders(c)})',
 		...params)!
 }
 
@@ -126,7 +126,7 @@ pub fn user_list_conditions(p UserListParams) (string, []firebird.Value) {
 
 pub fn user_list_count(mut tx firebird.ClientTransaction, p UserListParams) !i64 {
 	conditions, params := user_list_conditions(p)
-	query := 'SELECT COUNT(*) FROM app_user ${conditions}'
+	query := 'SELECT COUNT(*) FROM peony_user ${conditions}'
 	data := tx.execute(query, ...params)!
 	rows := data.rows()
 	values := rows[0].values() // should always return one row
@@ -156,7 +156,7 @@ pub fn user_list(mut tx firebird.ClientTransaction, p UserListParams) ![]User {
 		first_name,
 		last_name,
 		metadata
-		FROM app_user ${conditions} ${sorting}'
+		FROM peony_user ${conditions} ${sorting}'
 
 	data := tx.execute(query, ...params)!
 
@@ -252,10 +252,10 @@ pub fn user_update(mut tx firebird.ClientTransaction, user_id common.ID, p UserU
 
 	params = arrays.concat(params, user_id.bytes())
 
-	tx.execute('UPDATE app_user SET (${get_set_columns_with_updated_at(columns)}) WHERE id = ?',
+	tx.execute('UPDATE peony_user SET (${get_set_columns_with_updated_at(columns)}) WHERE id = ?',
 		...params)!
 }
 
 pub fn user_delete(mut tx firebird.ClientTransaction, user_id common.ID) ! {
-	tx.execute('UPDATE app_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id.bytes())!
+	tx.execute('UPDATE peony_user SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', user_id.bytes())!
 }

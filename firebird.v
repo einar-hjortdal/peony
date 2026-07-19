@@ -104,7 +104,7 @@ fn firebird_insert_default_user(
 	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
 		password_details_id.bytes(), function_name, parameters_encoded, parameters_hash)!
 
-	tx.execute('INSERT INTO app_user (id, handle, email, password_hash, password_salt, password_details_id, role)
+	tx.execute('INSERT INTO peony_user (id, handle, email, password_hash, password_salt, password_details_id, role)
 	VALUES (?, ?, ?, ?, ?, ?, ?)',
 		user_id.bytes(), user_id.string(), email, password_hash.hash, password_hash.salt,
 		password_details_id.bytes(), objects.role_admin)!
