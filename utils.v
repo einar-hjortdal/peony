@@ -220,7 +220,9 @@ fn (mut ctx Context) handle_peony_error(error errors.PeonyError) veb.Result {
 	return ctx.json(json2.encode(PeonyErrorResponse{
 		message: error.message
 		details: error.details
-	}, escape_unicode: true))
+	},
+		escape_unicode: true
+	))
 }
 
 fn (mut ctx Context) handle_error(error IError) veb.Result {
@@ -241,7 +243,9 @@ fn (mut ctx Context) middleware_handle_error(error IError) bool {
 			ctx.json(json2.encode(PeonyErrorResponse{
 				message: error.message
 				details: error.details
-			}, escape_unicode: true))
+			},
+				escape_unicode: true
+			))
 		}
 		else {
 			ctx.res.set_status(http.Status.internal_server_error)

@@ -27,8 +27,9 @@ fn build_key(p ...string) string {
 }
 
 pub fn api_key_set(mut rc redict.Client, api_key conduit.APIKey, duration time.Duration) ! {
-	rc.set(build_key(api_key_prefix, api_key.id.string()),
-		json2.encode(api_key, escape_unicode: true), duration).error()!
+	rc.set(build_key(api_key_prefix, api_key.id.string()), json2.encode(api_key,
+		escape_unicode: true
+	), duration).error()!
 }
 
 pub fn api_key_get(mut rc redict.Client, api_key_id common.ID) !conduit.APIKey {
@@ -55,8 +56,9 @@ pub fn region_del(mut rc redict.Client, region_id common.ID) ! {
 }
 
 pub fn store_locale_set(mut rc redict.Client, locale conduit.Locale, duration time.Duration) ! {
-	rc.set(build_key(store_locale_prefix, locale.id.string()),
-		json2.encode(locale, escape_unicode: true), duration).error()!
+	rc.set(build_key(store_locale_prefix, locale.id.string()), json2.encode(locale,
+		escape_unicode: true
+	), duration).error()!
 
 	rc.set(build_key(store_locale_prefix, locale.code), locale.id.string(), duration).error()!
 }

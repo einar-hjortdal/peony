@@ -290,7 +290,7 @@ pub:
 	image_rank   i32
 	product_id   string  @[json: 'productId']
 	alt          ?string @[omitempty]
-	translations map[string]ImageTranslationResponse @[omitempty]
+	translations ?map[string]ImageTranslationResponse @[omitempty]
 }
 
 fn format_product_image_response(p conduit.ProductImage) ProductImageResponse {
@@ -357,7 +357,7 @@ pub:
 	option_id    string @[json: 'optionId']
 	name         string
 	value_rank   i32 @[json: 'valueRank']
-	translations map[string]ProductOptionValueTranslationResponse @[omitempty]
+	translations ?map[string]ProductOptionValueTranslationResponse @[omitempty]
 }
 
 fn format_product_option_value_response(p conduit.ProductOptionValue) ProductOptionValueResponse {
@@ -396,7 +396,7 @@ pub:
 	title        string
 	option_rank  i32 @[json: 'optionRank']
 	values       []ProductOptionValueResponse
-	translations map[string]ProductOptionTranslationResponse @[omitempty]
+	translations ?map[string]ProductOptionTranslationResponse @[omitempty]
 }
 
 fn format_product_option_response(p conduit.ProductOption) ProductOptionResponse {
@@ -749,7 +749,7 @@ pub struct SEOResponse {
 pub:
 	title        ?string @[omitempty]
 	description  ?string @[omitempty]
-	translations map[string]SEOTranslationResponse @[omitempty]
+	translations ?map[string]SEOTranslationResponse @[omitempty]
 }
 
 fn format_seo_response(p conduit.SEO) SEOResponse {
@@ -801,7 +801,7 @@ pub:
 	name               string
 	description        ?string     @[omitempty]
 	seo                SEOResponse @[omitempty]
-	translations       map[string]CategoryTranslationResponse @[omitempty]
+	translations       ?map[string]CategoryTranslationResponse @[omitempty]
 }
 
 fn format_category_response(p conduit.Category) CategoryResponse {
@@ -985,15 +985,15 @@ pub:
 	discountable      bool
 	metadata          ?string @[omitempty]
 	title             string
-	subtitle          ?string                               @[omitempty]
-	description       ?string                               @[omitempty]
-	category_ids      []string                              @[json: 'categoryIds'; omitempty] // TODO is option
-	thumbnail         ProductImageResponse                  @[omitempty]                      // TODO is option
-	images            []ProductImageResponse                @[omitempty]                      // TODO is option
-	options           []ProductOptionResponse               @[omitempty]
-	variants          []VariantResponse                     @[omitempty]
-	sales_channel_ids []string                              @[json: 'salesChannels']
-	translations      map[string]ProductTranslationResponse @[omitempty] // TODO is option
+	subtitle          ?string                                @[omitempty]
+	description       ?string                                @[omitempty]
+	category_ids      []string                               @[json: 'categoryIds'; omitempty] // TODO is option
+	thumbnail         ProductImageResponse                   @[omitempty]                      // TODO is option
+	images            []ProductImageResponse                 @[omitempty]                      // TODO is option
+	options           []ProductOptionResponse                @[omitempty]
+	variants          []VariantResponse                      @[omitempty]
+	sales_channel_ids []string                               @[json: 'salesChannels']
+	translations      ?map[string]ProductTranslationResponse @[omitempty] // TODO is option
 	seo               SEOResponse
 	// tags         ?[]Tag                       @[omitempty] // return ids only
 }

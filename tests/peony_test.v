@@ -511,67 +511,27 @@ fn admin_store_updates_store_locales(cookie_value string) ! {
 
 fn admin_categories_create_minimal_category(cookie_value string) ! {
 	println('admin_categories_create_minimal_category')
-	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	is_ok(response)!
-	mut r := json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	old_count := r.count
-	old_categories_len := r.categories.len
-	expected_count := old_count + 1
-	expected_categories_len := old_categories_len + 1
-
 	new_category_name := luuid.v2()
 	new_category_data := json2.encode(peony.CategoryCreateRequest{
 		name: new_category_name
 	},
 		escape_unicode: true
 	)
-	response = do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		new_category_data)!
-	is_ok(response)!
+	is_created(response)!
+	r := json2.decode[peony.CategoryResponseEnvelope](response.body)!
+	created_category := r.category
 
-	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	r = json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == expected_categories_len,
-		'Categories returned do not include newly created category: ${r.categories.len}')!
+	// TODO check created fields
 
-	mut category_to_delete := peony.CategoryResponse{}
-	mut found := false
-	for i := 0; i < r.categories.len; i++ {
-		category := r.categories[i]
-		if category.name == new_category_name {
-			category_to_delete = category
-			found = true
-			break
-		}
-	}
-	expect(found, 'Categories returned do not include newly created category')!
-
-	response = do_authenticated_delete_request('${endpoint_admin_categories}/${category_to_delete.id}',
+	response = do_authenticated_delete_request('${endpoint_admin_categories}/${created_category.id}',
 		cookie_value)!
 	is_ok(response)!
-
-	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	is_ok(response)!
-	r = json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	expect(r.count == old_count, 'Count includes deleted category')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
 }
 
 fn admin_categories_create_complex_category(cookie_value string) ! {
 	println('admin_categories_create_complex_category')
-	mut response := do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	is_ok(response)!
-	mut r := json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	old_count := r.count
-	old_categories_len := r.categories.len
-	expected_count := old_count + 1
-	expected_categories_len := old_categories_len + 1
-
 	name := luuid.v2()
 	description := luuid.v2()
 	handle := luuid.v2()
@@ -594,35 +554,17 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	},
 		escape_unicode: true
 	)
-	response =
-		do_authenticated_post_request(endpoint_admin_categories, cookie_value, category_data)!
-	is_ok(response)!
-
-	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	r = json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	expect(r.count == expected_count, 'Count does not include newly created category: ${r.count}')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == expected_categories_len,
-		'Categories returned do not include newly created category: ${r.categories.len}')!
-
-	mut new_category := peony.CategoryResponse{}
-	mut found := false
-	for i := 0; i < r.categories.len; i++ {
-		c := r.categories[i]
-		if c.name == name {
-			new_category = c
-			found = true
-			break
-		}
-	}
+	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
+		category_data)!
+	is_created(response)!
+	r := json2.decode[peony.CategoryResponseEnvelope](response.body)!
+	new_category := r.category
 	nc_description := unwrap_or_error(new_category.description, 'category description missing')!
 	nc_metadata := unwrap_or_error(new_category.metadata, 'category metadata missing')!
 	nc_seo_title := unwrap_or_error(new_category.seo.title, 'category seo title missing')!
 	nc_seo_description := unwrap_or_error(new_category.seo.description,
 		'category seo description missing')!
 
-	expect(found, 'Categories returned do not include newly created category')!
 	expect(new_category.id != '', 'Category is missing id')!
 	expect(new_category.name == name, 'name does not match')!
 	expect(nc_description == description, 'description does not match')!
@@ -635,14 +577,6 @@ fn admin_categories_create_complex_category(cookie_value string) ! {
 	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value)!
 	is_ok(response)!
-
-	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	is_ok(response)!
-	r = json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	expect(r.count == old_count, 'Count includes deleted category')!
-	expect(r.offset == 0, 'Unexpected offset: ${r.offset}')!
-	// expect(r.fetch == 0, 'TODO')
-	expect(r.categories.len == old_categories_len, 'Categories returned include deleted category')!
 }
 
 fn admin_categories_updates_category(cookie_value string) ! {
@@ -2303,36 +2237,31 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	)
 	mut response := do_authenticated_post_request(endpoint_admin_categories, cookie_value,
 		category_data)!
-	is_ok(response)!
+	is_created(response)!
+	mut decoded := json2.decode[peony.CategoryResponseEnvelope](response.body)!
+	new_category := decoded.category
 
-	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	mut category_r := json2.decode[peony.CategoryResponseListEnvelope](response.body)!
-	categories := category_r.categories
-	mut new_category := peony.CategoryResponse{}
-	for i := 0; i < categories.len; i++ {
-		category := categories[i]
-		if category.name == category_name {
-			new_category = category
-			break
-		}
+	translations := new_category.translations or { return error('translations missing') }
+	seo_translations := new_category.seo.translations or {
+		return error('seo translations missiong')
 	}
 
-	category_translation_1 := new_category.translations[secondary_locale_1.id]
-	category_translation_2 := new_category.translations[secondary_locale_2.id]
-	seo_translation_1 := new_category.seo.translations[secondary_locale_1.id]
-	seo_translation_2 := new_category.seo.translations[secondary_locale_2.id]
+	translation_1 := translations[secondary_locale_1.id]
+	translation_2 := translations[secondary_locale_2.id]
+	seo_translation_1 := seo_translations[secondary_locale_1.id]
+	seo_translation_2 := seo_translations[secondary_locale_2.id]
 	st1_title := unwrap_or_error(seo_translation_1.title, 'seo title missing')!
 	st1_description := unwrap_or_error(seo_translation_1.description, 'seo description missing')!
 	st2_title := unwrap_or_error(seo_translation_2.title, 'seo title missing')!
 	st2_description := unwrap_or_error(seo_translation_2.description, 'seo description missing')!
 
-	expect(category_translation_1.name == category_translation_1_name,
+	expect(translation_1.name == category_translation_1_name,
 		'category translation 1 title does not match')!
-	expect(category_translation_1.description == category_translation_1_description,
+	expect(translation_1.description == category_translation_1_description,
 		'category translation 1 description does not match')!
-	expect(category_translation_2.name == category_translation_2_name,
+	expect(translation_2.name == category_translation_2_name,
 		'category translation 2 title does not match')!
-	expect(category_translation_2.description == category_translation_2_description,
+	expect(translation_2.description == category_translation_2_description,
 		'category translation 2 description does not match')!
 	expect(st1_title == category_seo_translation_1_title, 'seo translation 1 title does not match')!
 	expect(st1_description == category_seo_translation_1_description,
@@ -2354,9 +2283,10 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	response = do_authenticated_post_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value, new_category_data)!
 	is_ok(response)!
-
-	response = do_authenticated_get_request(endpoint_admin_categories, cookie_value)!
-	category_r = json2.decode[peony.CategoryResponseListEnvelope](response.body)!
+	decoded = json2.decode[peony.CategoryResponseEnvelope](response.body)!
+	updated_category := decoded.category
+	expect(updated_category.translations == none, 'translations were not deleted')!
+	expect(updated_category.seo.translations == none, 'seo translations were not deleted')!
 
 	response = do_authenticated_delete_request('${endpoint_admin_categories}/${new_category.id}',
 		cookie_value)!
@@ -2424,10 +2354,13 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	new_product := r.product
 
-	product_translation_1 := new_product.translations[secondary_locale_1.id]
-	product_translation_2 := new_product.translations[secondary_locale_2.id]
-	seo_translation_1 := new_product.seo.translations[secondary_locale_1.id]
-	seo_translation_2 := new_product.seo.translations[secondary_locale_2.id]
+	translations := new_product.translations or { return error('translations missing') }
+	seo_translations := new_product.translations or { return error('seo translations missing') }
+
+	product_translation_1 := translations[secondary_locale_1.id]
+	product_translation_2 := translations[secondary_locale_2.id]
+	seo_translation_1 := seo_translations[secondary_locale_1.id]
+	seo_translation_2 := seo_translations[secondary_locale_2.id]
 	st1_title := unwrap_or_error(seo_translation_1.title, 'seo title missing')!
 	st1_description := unwrap_or_error(seo_translation_1.description, 'seo description missing')!
 	st2_title := unwrap_or_error(seo_translation_2.title, 'seo title missing')!

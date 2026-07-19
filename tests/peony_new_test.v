@@ -219,7 +219,9 @@ fn user_login() !string {
 	response := do_post_request('/admin/auth', json2.encode(peony.AuthRequest{
 		email:    default_user_email
 		password: default_user_password
-	}, escape_unicode: true))!
+	},
+		escape_unicode: true
+	))!
 	return extract_cookie_from_set_cookie(response)
 }
 
