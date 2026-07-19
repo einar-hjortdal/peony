@@ -8,7 +8,7 @@ import internal.conduit
 import internal.common
 
 // TODO cache for store endpoints:
-// store items in redis after retrieving from db
+// store items in redict after retrieving from db
 // intercept conduit calls to get cached items instead if they exist, otherwise cache them
 // when data is modified, invalidate cache
 

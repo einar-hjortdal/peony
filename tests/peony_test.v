@@ -2140,14 +2140,15 @@ fn admin_products_handles_product_images(cookie_value string) ! {
 		}
 
 		// verify all requested translations were created
-		if requested_image_translations := requested_image.translations {
-			expect(new_image.translations.len == requested_image_translations.len,
-				'image ${i} translations differ in number')!
-			for j := 0; j < secondary_locales.len; j++ {
-				locale := secondary_locales[j]
-				expect(locale.id in new_image.translations,
-					'secondary locale not found in image ${i} translations')!
-			}
+		translations := unwrap_or_error(new_image.translations, 'translations missing')!
+		request_translations := unwrap_or_error(requested_image.translations,
+			'translations missing from request')!
+		expect(translations.len == request_translations.len,
+			'image ${i} translations differ in number')!
+		for j := 0; j < secondary_locales.len; j++ {
+			locale := secondary_locales[j]
+			expect(locale.id in translations,
+				'secondary locale not found in image ${i} translations')!
 		}
 	}
 
@@ -2241,10 +2242,8 @@ fn admin_handles_category_translations(cookie_value string) ! {
 	mut decoded := json2.decode[peony.CategoryResponseEnvelope](response.body)!
 	new_category := decoded.category
 
-	translations := new_category.translations or { return error('translations missing') }
-	seo_translations := new_category.seo.translations or {
-		return error('seo translations missiong')
-	}
+	translations := unwrap_or_error(new_category.translations, 'translations missing')!
+	seo_translations := unwrap_or_error(new_category.seo.translations, 'seo translations missiong')!
 
 	translation_1 := translations[secondary_locale_1.id]
 	translation_2 := translations[secondary_locale_2.id]
@@ -2354,8 +2353,8 @@ fn admin_handles_product_translations(cookie_value string) ! {
 	r := json2.decode[peony.ProductResponseEnvelope](response.body)!
 	new_product := r.product
 
-	translations := new_product.translations or { return error('translations missing') }
-	seo_translations := new_product.translations or { return error('seo translations missing') }
+	translations := unwrap_or_error(new_product.translations, 'translations missing')!
+	seo_translations := unwrap_or_error(new_product.translations, 'seo translations missing')!
 
 	product_translation_1 := translations[secondary_locale_1.id]
 	product_translation_2 := translations[secondary_locale_2.id]

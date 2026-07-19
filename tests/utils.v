@@ -1,6 +1,6 @@
 module tests
 
 fn unwrap_or_error[T](v ?T, msg string) !T {
-	res := v or { return msg }
+	res := v or { return error(msg) }
 	return res
 }
