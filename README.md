@@ -40,7 +40,7 @@ peony is a commerce backend. It consists of an API and a worker. The API and wor
 
 Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
 
-[freeNGINX](https://freenginx.org/en/) is used as a TLS termination proxy to secure communication with API consumers, including the admin and store frontends, as well as providers that communicate with Peony using webhooks.
+[freeNGINX](https://freenginx.org/en/) is used as a TLS termination proxy to secure communication with API consumers, including the admin and store frontends, as well as providers that communicate with peony using webhooks.
 
 ### Environment variables
 

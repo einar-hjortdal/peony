@@ -10,15 +10,15 @@ import internal.conduit
 import providers
 
 // Providers are services used by peony.
-// BlobProvider stores and serves files sich as product images, videos, etc.
-// EmailProvider allows peony to send transactional emails, security emails, etc..
+// BlobProvider stores and serves files such as product images, videos, etc.
+// NotificationProvider allows peony to send email, sms...
 // PaymentProvider enable peony to receive payments from customers, issue refunds, etc.
 // FulfillmentProvider enable peony to schedule shipments of products, book returns, etc.
 pub struct Providers {
 pub mut:
 	blob &providers.BlobProvider
 	// tax &providers.TaxProvider
-	// email &providers.EmailProvider
+	// notification []&providers.NotificationProvider
 	// payment []&providers.PaymentProvider
 	// fulfillment []&providers.FulfillmentProvider
 }

@@ -88,7 +88,7 @@
 
 - [x] Blobly
 
-#### Email
+#### Notification
 
 - [ ] SMTP
 
