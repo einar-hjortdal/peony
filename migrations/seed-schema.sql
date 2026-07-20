@@ -530,6 +530,56 @@ CREATE TABLE seo (
 CREATE UNIQUE INDEX "06a5c8bb-ce00-12a1-f800-9eaf7b601d14" ON seo (product_id) WHERE product_id IS NOT NULL;
 CREATE UNIQUE INDEX "06a5c8bb-ce00-130e-c000-48ebee484951" ON seo (category_id) WHERE category_id IS NOT NULL;
 
+CREATE TABLE notification_provider (
+  id BINARY(16) NOT NULL,
+  name VARCHAR(63) NOT NULL,
+  is_installed BOOLEAN DEFAULT true NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id)
+);
+
+CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON notification_provider (name);
+
+CREATE TABLE notification_channel (
+  id BINARY(16) NOT NULL,
+  name VARCHAR(63) NOT NULL,
+  provider_id BINARY(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id),
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (provider_id) REFERENCES provider (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON notification_channel (name);
+
+CREATE TABLE notification (
+  id BINARY(16) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  provider_id BINARY(16) NOT NULL,
+  channel_id BINARY(16) NOT NULL,
+  idempotency_key BINARY(16),
+  "to" text NOT NULL,
+  "from" text,
+  -- template text,
+  -- data jsonb,
+  -- trigger_type text,
+  -- resource_id text,
+  -- resource_type text,
+  -- receiver_id text,
+  -- original_notification_id text,
+  -- external_id text,
+  status VARCHAR(7) DEFAULT 'pending' NOT NULL,
+  metadata BLOB SUB_TYPE TEXT,
+  CONSTRAINT "REPLACE_WITH_LUUID" CHECK (status IN ('pending', 'success', 'failure')),
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (provider_id) REFERENCES notification_provider (id) ON DELETE CASCADE,
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (channel_id) REFERENCES notification_channel (id) ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON notification (idempotency_key);
+
 CREATE TABLE image_translations (
   image_id BINARY(16) NOT NULL,
   locale_id BINARY(16) NOT NULL,

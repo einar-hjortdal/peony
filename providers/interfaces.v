@@ -2,6 +2,8 @@ module providers
 
 import net.http
 
+// WIP
+
 pub struct BlobFileData {
 pub:
 	id  string
@@ -15,8 +17,7 @@ pub interface BlobProvider {
 
 pub struct NotificationResult {
 pub:
-	error ?IError
-	id    ?string
+	id ?string
 }
 
 // content: The content of the attachment, encoded as a binary string.
@@ -59,12 +60,23 @@ pub:
 	content       ?NotificationContent
 }
 
-// TODO: one notification provider should be able to handle 1 or more channels.
-// TODO: each notification channel should only be handled by 0 or 1 NotificationProvider.
-// TODO: at some point these providers have to be referenced in the db.
-// TODO: keep records of each notification in db.
+// TODO: at application startup, check provider names exist in db. If they don't exist generate id and add an entry.
+// TODO: instead of keeping array in app, keep a map? (parse providers struct)
+// TODO: Code-driven configuration: no API endpoints to configure which event uses which channel.
+//   ask for default channel for:
+//     - password reset
+//     - customer create/update/delete
+//     - shipment create
+//     - delivery create
+//     - invite create/accept/delete/send
+//     - order create/update/cancel/complete
+//     - return request/receive
+//     - exchange create/receive
+
 // name: returns the name of the provider. Must be unique: each name is mapped to an id.
+// channel: returns the name of the channel used by the provider to send notifications. A channel can only be served by one provider.
 pub interface NotificationProvider {
 	name() string
+	channel() string
 	send(notification NotificationData) !NotificationResult
 }
