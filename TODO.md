@@ -22,11 +22,11 @@
 - [ ] Page
 - [ ] Topics
 
-## Commerce features
-
 ### Low-priority
 
 - [ ] Comment
+
+## Commerce features
 
 ### Implemented
 
@@ -67,7 +67,6 @@
 
 ### Low-priority
 
-- [ ] AuthProvider
 - [ ] Sub-divisions of country
 
 ### Not planned
@@ -78,9 +77,10 @@
 ## Provider interfaces
 
 - [x] BlobProvider
-- [ ] NotificationProvider
+- [x] NotificationProvider
 - [ ] PaymentProvider
 - [ ] FulfillmentProvider
+- [ ] AuthProvider
 
 ### Provider implementations
 
@@ -99,6 +99,8 @@
 #### Fulfillment
 
 - [ ] Manual
+
+#### Auth
 
 ## Changes
 

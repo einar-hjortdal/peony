@@ -36,10 +36,6 @@ pub fn (c SMTPClient) name() string {
 	return c.name
 }
 
-pub fn (c SMTPClient) channels_supported() []string {
-	return ['email']
-}
-
 pub fn (c SMTPClient) channel() string {
 	return 'email'
 }

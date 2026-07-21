@@ -1,13 +1,12 @@
 # peony
 
-A content management system and shoping cart API.
+Commerce
 
 ## Goals
 
 peony is a headless ecommerce software designed to satisfy publishers, merchants and service providers.
 
-peony aims to be multi-language, multi-channel, multi-currency, multi-warehouse, and support physical, 
-virtual products and services.
+peony aims to be multi-language, multi-channel, multi-currency, multi-warehouse, and support physical, virtual products and services, B2C and B2B.
 
 ## Get started
 
@@ -15,8 +14,7 @@ Clone the [starter](https://github.com/einar-hjortdal/peony-starter) and customi
 
 ## Architecture
 
-This graph represents how peony works on a single-server deployment. This setup may scale horizontally 
-by deploying each box on its own independent server.
+This graph represents how peony works on a single-server deployment. This setup may scale horizontally by deploying each box on its own independent server.
 
 ```
  ┌────────────────┐                       ┌───────────────┐                

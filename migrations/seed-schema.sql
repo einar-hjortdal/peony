@@ -40,8 +40,10 @@ CREATE TABLE peony_user (
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "06a5c8bb-cdf3-1959-c400-e378e6f0bc5a" PRIMARY KEY (id),
   CONSTRAINT "06a5c8bb-cdf3-19c9-6000-5acef04c3792" FOREIGN KEY (password_details_id) REFERENCES password_details (id),
-  CONSTRAINT "06a5c8bb-cdf3-1a39-7000-a0dd6c7e2506" CHECK (role IN (
-    'admin', 'member', 'developer', 'author', 'contributor')
+  CONSTRAINT "06a5c8bb-cdf3-1a39-7000-a0dd6c7e2506" CHECK (
+    role IN (
+      'admin', 'member', 'developer', 'author', 'contributor'
+    )
   ),
   CONSTRAINT "06a5c8bb-cdf3-1ba6-9000-e28579a483de" FOREIGN KEY (image_id) REFERENCES image (id) ON DELETE SET NULL
 );
@@ -102,8 +104,10 @@ CREATE TABLE tax_rate (
   name VARCHAR(63) NOT NULL,
   type VARCHAR(12) DEFAULT 'additive' NOT NULL,
   CONSTRAINT "06a5c8bb-cdf5-1228-f000-14f1e5fab1c9" PRIMARY KEY (id),
-  CONSTRAINT "06a5c8bb-cdf5-12ab-7c00-e261425daac5" CHECK (type IN (
-    'additive', 'substitutive', 'compounding')
+  CONSTRAINT "06a5c8bb-cdf5-12ab-7c00-e261425daac5" CHECK (
+    type IN (
+      'additive', 'substitutive', 'compounding'
+    )
   )
 );
 
@@ -530,6 +534,20 @@ CREATE TABLE seo (
 CREATE UNIQUE INDEX "06a5c8bb-ce00-12a1-f800-9eaf7b601d14" ON seo (product_id) WHERE product_id IS NOT NULL;
 CREATE UNIQUE INDEX "06a5c8bb-ce00-130e-c000-48ebee484951" ON seo (category_id) WHERE category_id IS NOT NULL;
 
+CREATE TABLE password_reset_token (
+  id BINARY(16) NOT NULL,
+  user_id BINARY(16),
+  customer_id BINARY(16),
+  -- token_hash ? NOT NULL,
+  expires_at TIMESTAMP NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  deleted_at TIMESTAMP,
+  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id),
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE
+);
+
 CREATE TABLE notification_provider (
   id BINARY(16) NOT NULL,
   name VARCHAR(63) NOT NULL,
@@ -560,25 +578,30 @@ CREATE TABLE notification (
   deleted_at TIMESTAMP,
   provider_id BINARY(16) NOT NULL,
   channel_id BINARY(16) NOT NULL,
-  idempotency_key BINARY(16),
-  "to" text NOT NULL,
-  "from" text,
-  -- template text,
-  -- data jsonb,
-  -- trigger_type text,
-  -- resource_id text,
-  -- resource_type text,
-  -- receiver_id text,
-  -- original_notification_id text,
-  -- external_id text,
+  "to" BLOB SUB_TYPE TEXT NOT NULL,
+  "from" BLOB SUB_TYPE TEXT,
+  template BLOB SUB_TYPE TEXT, -- external
+  payload BLOB SUB_TYPE TEXT,
+  source_event VARCHAR(16),
+  -- password_reset_token_id BINARY(16),
+  -- order_id BINARY(16),
+  -- shipment_id BINARY(16),
+  user_id BINARY(16), -- recipient
+  customer_id BINARY(16), -- recipient
   status VARCHAR(7) DEFAULT 'pending' NOT NULL,
-  metadata BLOB SUB_TYPE TEXT,
+  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id),
+  CONSTRAINT "REPLACE_WITH_LUUID" CHECK (
+    source_event IN (
+      'password_reset',
+      'customer_created', 'customer_updated', 'customer_deleted',
+    )
+  ),
   CONSTRAINT "REPLACE_WITH_LUUID" CHECK (status IN ('pending', 'success', 'failure')),
   CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (provider_id) REFERENCES notification_provider (id) ON DELETE CASCADE,
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (channel_id) REFERENCES notification_channel (id) ON DELETE CASCADE
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (channel_id) REFERENCES notification_channel (id) ON DELETE CASCADE,
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE
 );
-
-CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON notification (idempotency_key);
 
 CREATE TABLE image_translations (
   image_id BINARY(16) NOT NULL,

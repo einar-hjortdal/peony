@@ -2,8 +2,6 @@ module providers
 
 import net.http
 
-// WIP
-
 pub struct BlobFileData {
 pub:
 	id  string
@@ -14,6 +12,8 @@ pub interface BlobProvider {
 	create(http.FileData) !BlobFileData
 	delete(string) !
 }
+
+// WIP
 
 pub struct NotificationResult {
 pub:
@@ -53,7 +53,7 @@ pub:
 	to            string
 	from          ?string
 	attachments   ?[]NotificationAttachment
-	channel       string
+	channel       string // TODO do I want/need channel on both NotificationData and NotificationProvider?
 	template_name string
 	data          ?string
 	provider_data ?string
@@ -63,7 +63,7 @@ pub:
 // TODO: at application startup, check provider names exist in db. If they don't exist generate id and add an entry.
 // TODO: instead of keeping array in app, keep a map? (parse providers struct)
 // TODO: Code-driven configuration: no API endpoints to configure which event uses which channel.
-//   ask for default channel for:
+//   no default channel but provide example in starter. Events that accept handlers:
 //     - password reset
 //     - customer create/update/delete
 //     - shipment create
@@ -72,6 +72,7 @@ pub:
 //     - order create/update/cancel/complete
 //     - return request/receive
 //     - exchange create/receive
+// Functions should be defined and stored in the App, higher order functions call these callbacks?
 
 // name: returns the name of the provider. Must be unique: each name is mapped to an id.
 // channel: returns the name of the channel used by the provider to send notifications. A channel can only be served by one provider.

@@ -96,3 +96,18 @@ pub fn (mut app App) admin_auth_del(mut ctx Context) veb.Result {
 	ctx.user_session.to_prune = true
 	return ctx.handle_deleted()
 }
+
+// creates a password reset token for a user.
+// Prevent email enumeration by always returning created (unless other errors occur).
+@['/admin/auth/password_reset'; post]
+pub fn (mut app App) user_password_reset(mut ctx Context) veb.Result {
+	// TODO implement
+	// decode email from body
+	// create token, overwrite old one if one exists and not expired/deleted already for this user
+	// trigger event that may send notification, token should be accessible by callback.
+	// notification record has to be created in db:
+	// 1. if a callback is defined, create record then process
+	// 2. at completion update status to success/failure
+	// use 2 transactions for now, eventually delegate to worker queue, send response on token creation and update db with worker.
+	return ctx.handle_created('') // always return created to prevent email enumeration
+}
