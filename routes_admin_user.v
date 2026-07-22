@@ -38,7 +38,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	password_hash := hash_password(p.password) or {
 		return ctx.handle_error(errors.internal('Failed hash password', err.msg()))
 	}
-	password_parameters_encoded, password_parameters_hash := password_hash.parameters.encode() or {
+	password_parameters_encoded, password_parameters_hash := password_hash.encode_parameters() or {
 		return ctx.handle_error(errors.internal('Failed to encode password_parameters', err.msg()))
 	}
 
@@ -47,8 +47,9 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 			hash: password_parameters_hash
 		}) or {
 			password_parameters_id := app.gen_id()
-			conduit.password_details_create(mut tx, password_parameters_id, argon2id_name,
-				password_parameters_encoded, password_parameters_hash)!
+			conduit.password_details_create(mut tx, password_parameters_id,
+				password_hash.function_name(), password_parameters_encoded,
+				password_parameters_hash)!
 			conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 				hash: password_parameters_hash
 			})!

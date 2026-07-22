@@ -355,7 +355,8 @@ CREATE TABLE customer (
   phone VARCHAR(63), -- E.164
   is_registered BOOLEAN DEFAULT false NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
-  CONSTRAINT "06a5c8bb-cdfc-1039-6000-7ed6859313df" PRIMARY KEY (id)
+  CONSTRAINT "06a5c8bb-cdfc-1039-6000-7ed6859313df" PRIMARY KEY (id),
+  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (password_details_id) REFERENCES password_details (id)
 );
 
 CREATE UNIQUE INDEX "06a5c8bb-cdfc-1152-3800-4ceda38110fb" ON customer (email);
@@ -538,7 +539,9 @@ CREATE TABLE password_reset_token (
   id BINARY(16) NOT NULL,
   user_id BINARY(16),
   customer_id BINARY(16),
-  -- token_hash ? NOT NULL,
+  password_hash BLOB SUB_TYPE BINARY NOT NULL,
+  password_salt BLOB SUB_TYPE BINARY NOT NULL,
+  password_details_id BINARY(16) NOT NULL,
   expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,

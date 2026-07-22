@@ -27,6 +27,16 @@ fn hygienise_handle(handle string) ! {
 	}
 }
 
+pub struct PasswordResetTokenCreateRequest {
+pub:
+	email string
+}
+
+pub struct PasswordResetTokenConsumeRequest {
+pub:
+	password string
+}
+
 pub struct AuthRequest {
 pub:
 	email    string

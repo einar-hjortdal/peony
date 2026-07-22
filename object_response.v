@@ -24,6 +24,10 @@ fn format_array_id(aid []common.ID) []string {
 	return res
 }
 
+pub struct TokenCreatedResponse {
+	message string
+}
+
 pub struct DeletedResponse {}
 
 pub struct PeonyErrorResponse {

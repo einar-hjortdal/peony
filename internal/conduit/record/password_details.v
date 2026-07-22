@@ -16,24 +16,24 @@ pub fn (p PasswordDetails) id() common.ID {
 	return p.id
 }
 
+// a password_details row can be identified by its id or the hash of function name and its parameters
 pub struct PasswordDetailsGetParams {
 pub:
-	hash []u8 // TODO is this optional?
+	hash ?[]u8
 	id   ?common.ID
 }
 
 pub fn password_details_get(mut tx firebird.ClientTransaction, p PasswordDetailsGetParams) !PasswordDetails {
-	if p.hash.len == 0 && p.id == none {
+	if p.hash == none && p.id == none {
 		return error('could not get password_details: received neither hash nor id')
 	}
 
 	mut query := 'SELECT id, function_name, parameters, hash, created_at FROM password_details'
 	mut params := []firebird.Value{len: 0, cap: 1, init: firebird.Null{}}
 
-	// TODO handle both provided?
-	if p.hash.len != 0 {
+	if hash := p.hash {
 		query = appendln(query, 'WHERE hash = ?')
-		params << p.hash
+		params << hash
 	}
 
 	if id := p.id {

@@ -3,6 +3,7 @@ module peony
 import crypto.argon2
 import crypto.blake2b
 import crypto.rand
+import encoding.base64
 import json2
 import internal.errors
 
@@ -26,6 +27,12 @@ const argon2id_salt_length = 16
 
 // When retrieving a password, retrieve the params from the database.
 // When inserting a new password, use the defined consts for parameters. These params may already be stored in the database: first verify if they exist and what their id is. If they already are set, use the existing id otherwise create a new record and then use that id.
+
+interface PasswordHash {
+	function_name() string
+	verify_password(password string) !
+	encode_parameters() !(string, []u8)
+}
 
 struct Argon2idParameters {
 	version i32
@@ -55,6 +62,10 @@ fn hash_password(password string) !Argon2idHash {
 	}
 }
 
+fn (h Argon2idHash) function_name() string {
+	return argon2id_name
+}
+
 fn (h Argon2idHash) verify_password(password string) ! {
 	version := h.parameters.version
 	if version != argon2id_version {
@@ -69,9 +80,9 @@ fn (h Argon2idHash) verify_password(password string) ! {
 	}
 }
 
-// returns encoded parameters together with the unique hash
-fn (p Argon2idParameters) encode() !(string, []u8) {
-	encoded := json2.encode(p, escape_unicode: true)
+// returns json-encoded parameters together with the unique hash
+fn (h Argon2idHash) encode_parameters() !(string, []u8) {
+	encoded := json2.encode(h.parameters, escape_unicode: true)
 	hash := blake2b.sum256(encoded.bytes())
 	return encoded, hash
 }
@@ -81,4 +92,33 @@ fn decode_argon2id_parameters(s string) !Argon2idParameters {
 		return errors.internal('Failed to decode Argon2idParameters', err.msg())
 	}
 	return res
+}
+
+fn verify_password(password string, password_hash []u8, password_salt []u8, function_name string, parameters_json string) ! {
+	match function_name {
+		argon2id_name {
+			parameters := decode_argon2id_parameters(parameters_json)!
+
+			argon2id_hash := Argon2idHash{
+				hash:       password_hash
+				salt:       password_salt
+				parameters: parameters
+			}
+
+			argon2id_hash.verify_password(password) or { return errors.login() }
+		}
+		else {
+			return errors.internal('Unsupported password hashing algorithm',
+				'decoded function name: `${function_name}`')
+		}
+	}
+}
+
+fn new_password_reset_token() !string {
+	b := rand.bytes(16)!
+	return base64.url_encode(b)
+}
+
+fn decode_password_reset_token(s string) []u8 {
+	return base64.url_decode(s)
 }

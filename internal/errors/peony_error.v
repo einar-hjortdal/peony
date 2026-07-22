@@ -14,15 +14,15 @@ pub:
 }
 
 // implement IError
-fn (e PeonyError) msg() string {
+pub fn (e PeonyError) msg() string {
 	return e.message
 }
 
-fn (e PeonyError) code() int {
+pub fn (e PeonyError) code() int {
 	return i32(e.status_code)
 }
 
-fn new_peony_error(message string, details string, code http.Status) PeonyError {
+pub fn new_peony_error(message string, details string, code http.Status) PeonyError {
 	return PeonyError{
 		message:     message
 		details:     details

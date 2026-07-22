@@ -271,6 +271,12 @@ fn (mut ctx Context) handle_deleted() veb.Result {
 	return ctx.json(DeletedResponse{})
 }
 
+fn (mut ctx Context) handle_password_reset() veb.Result {
+	return ctx.handle_created(TokenCreatedResponse{
+		message: 'If an account exists for that email, password reset token has been created' // prevent email enumeration
+	})
+}
+
 fn (ctx Context) get_api_key() !conduit.APIKey {
 	api_key := ctx.api_key or {
 		return errors.internal('API Key missing from request context', 'ctx.api_key == none')

@@ -24,6 +24,10 @@ pub type InventoryLevel = record.InventoryLevel
 pub type Locale = record.Locale
 pub type LocaleRetrieveParams = record.LocaleRetrieveParams
 pub type VariantMoneyAmount = record.VariantMoneyAmount
+
+pub type PasswordResetToken = record.PasswordResetToken
+pub type PasswordResetTokenCreateParams = record.PasswordResetTokenCreateParams
+
 pub type PasswordDetails = record.PasswordDetails
 pub type PasswordDetailsGetParams = record.PasswordDetailsGetParams
 
