@@ -100,7 +100,7 @@ fn firebird_insert_default_user(
 	user_id common.ID) ! {
 	log.debug('insert_default_user')
 	password_hash := hash_password(password)!
-	parameters_encoded, parameters_hash := password_hash.parameters.encode()!
+	parameters_encoded, parameters_hash := password_hash.encode_parameters()!
 	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
 		password_details_id.bytes(), function_name, parameters_encoded, parameters_hash)!
 
@@ -215,14 +215,14 @@ fn firebird_rollback_schema(mut fbclient firebird.Client) {
 }
 
 fn (mut app App) add_data(mut tx firebird.ClientTransaction) ! {
-	user_id := app.gen_id()
-	password_parameters_id := app.gen_id()
-	stock_location_id := app.gen_id()
-	region_id := app.gen_id()
-	sales_channel_id := app.gen_id()
-	api_key_id := app.gen_id()
-	store_id := app.gen_id()
-	migration_id := app.gen_id()
+	user_id := common.new_id(mut app.luuid_generator)
+	password_parameters_id := common.new_id(mut app.luuid_generator)
+	stock_location_id := common.new_id(mut app.luuid_generator)
+	region_id := common.new_id(mut app.luuid_generator)
+	sales_channel_id := common.new_id(mut app.luuid_generator)
+	api_key_id := common.new_id(mut app.luuid_generator)
+	store_id := common.new_id(mut app.luuid_generator)
+	migration_id := common.new_id(mut app.luuid_generator)
 
 	firebird_insert_country_codes(mut tx)!
 	firebird_insert_currency_data(mut tx)!

@@ -34,7 +34,7 @@ pub fn (mut app App) api_keys_list(mut ctx Context) veb.Result {
 // create api key
 @['/admin/api-keys'; post]
 pub fn (mut app App) api_keys_create(mut ctx Context) veb.Result {
-	api_key_id := app.gen_id()
+	api_key_id := common.new_id(mut app.luuid_generator)
 	p := hygienise_api_key_create_request(ctx.req.data, api_key_id) or {
 		return ctx.handle_error(err)
 	}

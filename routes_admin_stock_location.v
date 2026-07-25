@@ -41,7 +41,7 @@ pub fn (mut app App) stock_location_get(mut ctx Context, stock_location_id strin
 // creates a stock location
 @['/admin/stock-locations'; post]
 pub fn (mut app App) stock_location_create(mut ctx Context) veb.Result {
-	stock_location_id := app.gen_id()
+	stock_location_id := common.new_id(mut app.luuid_generator)
 	p := hygienise_stock_location_create_request(ctx.req.data, stock_location_id) or {
 		return ctx.handle_error(err)
 	}

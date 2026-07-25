@@ -26,7 +26,8 @@ pub type LocaleRetrieveParams = record.LocaleRetrieveParams
 pub type VariantMoneyAmount = record.VariantMoneyAmount
 
 pub type PasswordResetToken = record.PasswordResetToken
-pub type PasswordResetTokenCreateParams = record.PasswordResetTokenCreateParams
+pub type PasswordResetTokenUser = record.PasswordResetTokenUser
+pub type PasswordResetTokenCustomer = record.PasswordResetTokenCustomer
 
 pub type PasswordDetails = record.PasswordDetails
 pub type PasswordDetailsGetParams = record.PasswordDetailsGetParams

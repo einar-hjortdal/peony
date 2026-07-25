@@ -38,7 +38,7 @@ pub fn (mut app App) admin_sales_channels_id_get(mut ctx Context, sales_channel_
 // creates a sales channel
 @['/admin/sales-channels'; post]
 pub fn (mut app App) admin_sales_channels_post(mut ctx Context) veb.Result {
-	sales_channel_id := app.gen_id()
+	sales_channel_id := common.new_id(mut app.luuid_generator)
 	p := hygienise_sales_channel_create_request(ctx.req.data, sales_channel_id) or {
 		return ctx.handle_error(err)
 	}

@@ -32,7 +32,7 @@ pub fn (mut app App) category_create(mut ctx Context) veb.Result {
 			err.msg()))
 	}
 
-	category_id := app.gen_id()
+	category_id := common.new_id(mut app.luuid_generator)
 	p := decoded.hygienise(category_id) or { return ctx.handle_error(err) }
 
 	category := app.with_commit(fn [mut app, p, category_id] (mut tx firebird.ClientTransaction) !conduit.Category {

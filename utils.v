@@ -170,10 +170,6 @@ fn ids_from_array_string(ids_string []string) ![]common.ID {
 	return ids
 }
 
-fn (mut app App) gen_id() common.ID {
-	return common.new_id(mut app.luuid_generator)
-}
-
 // removes locale_id if default, otherwise makes sure it is a valid locale
 fn (mut app App) get_locale_context(m map[string]string) !LocaleContext {
 	p := hygienise_locale_context_query_params(m)!

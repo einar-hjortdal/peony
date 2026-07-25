@@ -26,7 +26,7 @@ pub fn (mut app App) admin_region_list(mut ctx Context) veb.Result {
 // creates a region
 @['/admin/regions/'; post]
 pub fn (mut app App) admin_regions_post(mut ctx Context) veb.Result {
-	region_id := app.gen_id()
+	region_id := common.new_id(mut app.luuid_generator)
 	p := hygienise_region_create_request(ctx.req.data, region_id) or {
 		return ctx.handle_error(err)
 	}

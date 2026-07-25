@@ -34,7 +34,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 
 	p.hygienise() or { return ctx.handle_error(err) }
 
-	user_id := app.gen_id()
+	user_id := common.new_id(mut app.luuid_generator)
 	password_hash := hash_password(p.password) or {
 		return ctx.handle_error(errors.internal('Failed hash password', err.msg()))
 	}
@@ -46,7 +46,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			hash: password_parameters_hash
 		}) or {
-			password_parameters_id := app.gen_id()
+			password_parameters_id := common.new_id(mut app.luuid_generator)
 			conduit.password_details_create(mut tx, password_parameters_id,
 				password_hash.function_name(), password_parameters_encoded,
 				password_parameters_hash)!

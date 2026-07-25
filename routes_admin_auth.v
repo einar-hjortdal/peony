@@ -113,11 +113,11 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 			return errors.internal('Failed to encode password_parameters', err.msg())
 		}
 
-		// TODO would be better to put this logic in a new conduit function, it will be used 3 times, maybe more.
+		// TODO would be better to put this logic in a new utility function, it will be used 3 times, maybe more.
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
 			hash: password_parameters_hash
 		}) or {
-			password_parameters_id := app.gen_id()
+			password_parameters_id := common.new_id(mut app.luuid_generator)
 			conduit.password_details_create(mut tx, password_parameters_id,
 				password_hash.function_name(), password_parameters_encoded,
 				password_parameters_hash)!
@@ -126,17 +126,8 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 			})!
 		}
 
-		// TODO get password_reset_token if any valid and delete, else create.
-		// conduit.password_reset_token_admin_get(mut tx, user_id)!
-		// if exists delete, then continue
-
-		conduit.password_reset_token_create(mut tx, conduit.PasswordResetTokenCreateParams{
-			id:                  token_id
-			user_id:             user.id
-			password_hash:       password_hash.hash
-			password_salt:       password_hash.salt
-			password_details_id: password_details.id
-		})!
+		conduit.password_reset_token_create_admin(mut tx, token_id, user.id, password_hash.hash,
+			password_hash.salt, password_details.id)!
 
 		// trigger event that may send notification, token should be accessible by callback.
 		// notification record has to be created in db if a callback is defined
@@ -170,7 +161,7 @@ pub fn (mut app App) user_password_reset_token_consume(mut ctx Context, password
 
 	user := app.with_commit(fn [app, request] (mut tx firebird.ClientTransaction) !conduit.User {
 		// check token is valid:
-		// 1. password_reset_token row exist and is not expired/deleted
+		// 1. password_reset_token row exist and is not expired/deleted: need to get token without token id or user id
 		// 2. get password_details using password_details_id
 		// 3. validate token hash using password_details, hash and salt
 		// 4. update password on user

@@ -3,6 +3,10 @@ module record
 import einar_hjortdal.firebird
 import internal.common
 
+pub struct NotFound {
+	Error
+}
+
 fn ids_bytes(ids []common.ID) [][]u8 {
 	mut res := [][]u8{len: ids.len}
 	for i := 0; i < ids.len; i++ {
