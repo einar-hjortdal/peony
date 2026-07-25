@@ -81,6 +81,21 @@ pub fn user_create(mut tx firebird.ClientTransaction, p UserCreateParams) ! {
 		...params)!
 }
 
+pub fn user_password_update(
+	mut tx firebird.ClientTransaction,
+	id common.ID,
+	password_hash []u8,
+	password_salt []u8,
+	password_details_id common.ID) ! {
+	tx.execute('UPDATE peony_user SET 
+		password_hash = ?,
+		password_salt = ?,
+		password_details_id = ?,
+		UPDATED_AT = CURRENT_TIMESTAMP
+		WHERE id = ?',
+		password_hash, password_salt, password_details_id.bytes(), id.bytes())!
+}
+
 pub struct UserListParams {
 pub:
 	ids          ?[]common.ID

@@ -38,9 +38,7 @@ pub fn (mut app App) admin_users_post(mut ctx Context) veb.Result {
 	password_hash := hash_password(p.password) or {
 		return ctx.handle_error(errors.internal('Failed hash password', err.msg()))
 	}
-	password_parameters_encoded, password_parameters_hash := password_hash.encode_parameters() or {
-		return ctx.handle_error(errors.internal('Failed to encode password_parameters', err.msg()))
-	}
+	password_parameters_encoded, password_parameters_hash := password_hash.encode_parameters()
 
 	user := app.with_commit(fn [mut app, p, user_id, password_hash, password_parameters_encoded, password_parameters_hash] (mut tx firebird.ClientTransaction) !conduit.User {
 		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{

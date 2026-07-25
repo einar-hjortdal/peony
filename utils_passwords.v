@@ -6,6 +6,7 @@ import crypto.rand
 import encoding.base64
 import json2
 import internal.errors
+import crypto.internal.subtle // https://github.com/vlang/v/issues/27936
 
 const argon2id_name = 'argon2id'
 const argon2id_version = i32(argon2.version)
@@ -14,24 +15,16 @@ const argon2id_memory = 1 << 16
 const argon2id_threads = 4
 const argon2id_key_length = 64
 const argon2id_salt_length = 16
+const password_reset_token_size = 32
+const blake2b_hash_size = 32
 
-// Storing password hashes in the database
-// Many projects use the PHC string format (https://github.com/P-H-C/phc-string-format) to store password hashes. For this application, it isn't obvious that storing the full PHC token per user is necessary:
-//   - Algorithm name, version, and parameters are unlikely to change often and would be duplicated across many rows.
-//   - Portability is not important for this application.
-// An alternative is to store the raw binary values and reference shared parameters:
-//   - password_hash      BINARY(64)   // 64 bytes raw derived key
-//   - password_salt      BINARY(16)   // 16 bytes per-user salt
-//   - password_params_id BINARY(16)   // 16 bytes referencing params table
-// That layout is about 96 bytes per user, plus a single params row (~80 bytes) stored once. Amortized across any realistic user base, the shared params cost is negligible, so this approach can save ~124 bytes per user compared to storing the full PHC string. It is slightly more complex though.
-
-// When retrieving a password, retrieve the params from the database.
-// When inserting a new password, use the defined consts for parameters. These params may already be stored in the database: first verify if they exist and what their id is. If they already are set, use the existing id otherwise create a new record and then use that id.
+// When retrieving a password, retrieve the params from the database too.
+// When inserting a new password, use the defined consts for parameters. The combination of these params may already be stored in the database: first verify if they exist and what the id is. If they already are set, use the existing id otherwise create a new record and then use that id.
 
 interface PasswordHash {
 	function_name() string
 	verify_password(password string) !
-	encode_parameters() !(string, []u8)
+	encode_parameters() (string, []u8)
 }
 
 struct Argon2idParameters {
@@ -47,7 +40,7 @@ struct Argon2idHash {
 	parameters Argon2idParameters
 }
 
-fn hash_password(password string) !Argon2idHash {
+fn hash_password(password string) !Argon2idHash { // TODO check when errors could happen, remove return if possible
 	salt := rand.bytes(argon2id_salt_length)!
 	return Argon2idHash{
 		salt:       salt
@@ -81,7 +74,7 @@ fn (h Argon2idHash) verify_password(password string) ! {
 }
 
 // returns json-encoded parameters together with the unique hash
-fn (h Argon2idHash) encode_parameters() !(string, []u8) {
+fn (h Argon2idHash) encode_parameters() (string, []u8) {
 	encoded := json2.encode(h.parameters, escape_unicode: true)
 	hash := blake2b.sum256(encoded.bytes())
 	return encoded, hash
@@ -114,11 +107,30 @@ fn verify_password(password string, password_hash []u8, password_salt []u8, func
 	}
 }
 
-fn new_password_reset_token() !string {
-	b := rand.bytes(16)!
-	return base64.url_encode(b)
+fn hash_password_reset_token(secret string, token []u8) ![]u8 {
+	digest := blake2b.new_digest(blake2b_hash_size, secret.bytes())!
+	digest.write(token)!
+	hash := digest.checksum()
+	return hash
 }
 
-fn decode_password_reset_token(s string) []u8 {
-	return base64.url_decode(s)
+// returns url-encoded token and hash
+fn new_password_reset_token(secret string) !(string, []u8) {
+	token := rand.bytes(password_reset_token_size)!
+	encoded := base64.url_encode(token)
+	hash := hash_password_reset_token(secret, token)!
+	return encoded, hash
+}
+
+// verifies if the provided url-encoded token matches the stored hash
+fn verify_password_reset_token(secret string, stored_hash []u8, encoded string) ! {
+	if stored_hash.len != blake2b_hash_size {
+		return error('stored hash has unexpected size')
+	}
+
+	token := base64.url_decode(encoded)
+	hash := hash_password_reset_token(secret, token)!
+	if subtle.constant_time_compare(hash, stored_hash) != 1 {
+		return error('no match')
+	}
 }

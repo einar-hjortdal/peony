@@ -16,6 +16,7 @@ pub:
 	default_user_email     string
 	default_user_password  string
 	session_secret         string
+	token_secret           string
 	firebird_url           string
 	redict_url             string
 	debug                  bool
@@ -50,6 +51,14 @@ fn (c Config) get_session_secret() !string {
 		return error('session_secret is required')
 	}
 	return c.session_secret
+}
+
+// TODO reject simple secrets
+fn (c Config) get_token_secret() !string {
+	if c.token_secret == '' {
+		return error('session_secret is required')
+	}
+	return c.token_secret
 }
 
 fn (c Config) get_firebird_url() !string {
@@ -108,6 +117,7 @@ fn (c Config) verify() !Config {
 		default_user_email:     c.get_default_user_email()!
 		default_user_password:  c.get_default_user_password()!
 		session_secret:         c.get_session_secret()!
+		token_secret:           c.get_token_secret()!
 		firebird_url:           c.get_firebird_url()!
 		redict_url:             c.get_redict_url()!
 		debug:                  c.debug

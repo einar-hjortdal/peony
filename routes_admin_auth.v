@@ -97,41 +97,20 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 		return ctx.handle_error(errors.bad_request('invalid email', err.msg()))
 	}
 
-	data := app.with_commit(fn [mut app, email] (mut tx firebird.ClientTransaction) !string {
+	app.with_commit(fn [mut app, email] (mut tx firebird.ClientTransaction) !common.Empty {
 		user := conduit.user_get_by_email(mut tx, email)!
-
 		token_id := common.new_id(mut app.luuid_generator)
-		token := new_password_reset_token() or {
+		encoded, hash := new_password_reset_token(app.config.token_secret) or {
 			return errors.internal('Failed to generate token', err.msg())
 		}
 
-		password_hash := hash_password(token) or {
-			return errors.internal('Failed to hash password', err.msg())
-		}
-
-		password_parameters_encoded, password_parameters_hash := password_hash.encode_parameters() or {
-			return errors.internal('Failed to encode password_parameters', err.msg())
-		}
-
-		// TODO would be better to put this logic in a new utility function, it will be used 3 times, maybe more.
-		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
-			hash: password_parameters_hash
-		}) or {
-			password_parameters_id := common.new_id(mut app.luuid_generator)
-			conduit.password_details_create(mut tx, password_parameters_id,
-				password_hash.function_name(), password_parameters_encoded,
-				password_parameters_hash)!
-			conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
-				hash: password_parameters_hash
-			})!
-		}
-
-		conduit.password_reset_token_create_admin(mut tx, token_id, user.id, password_hash.hash,
-			password_hash.salt, password_details.id)!
+		conduit.password_reset_token_create_admin(mut tx, token_id, user.id, hash)!
 
 		// trigger event that may send notification, token should be accessible by callback.
 		// notification record has to be created in db if a callback is defined
-		return token
+		println(encoded)
+
+		return common.Empty{}
 	}) or {
 		if err.code() == 404 {
 			return ctx.handle_password_reset()
@@ -145,11 +124,18 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 }
 
 // Resets a password using a password reset token
-@['/admin/auth/password_reset/:password_reset_token'; post]
-pub fn (mut app App) user_password_reset_token_consume(mut ctx Context, password_reset_token string) veb.Result {
+@['/admin/auth/password_reset/:encoded_token/:user_id'; post]
+pub fn (mut app App) user_password_reset_token_consume(
+	mut ctx Context,
+	encoded_token string,
+	user_id string) veb.Result {
 	request := json2.decode[PasswordResetTokenConsumeRequest](ctx.req.data) or {
 		return ctx.handle_error(errors.bad_request('Could not decode PasswordResetTokenConsumeRequest',
 			err.msg()))
+	}
+
+	parsed_user_id := common.id_from_string(user_id) or {
+		return ctx.handle_error(errors.bad_request(errors.id_invalid, 'user_id'))
 	}
 
 	password := request.password.trim_space()
@@ -157,18 +143,33 @@ pub fn (mut app App) user_password_reset_token_consume(mut ctx Context, password
 		return ctx.handle_error(errors.bad_request(error_field_empty, 'password'))
 	}
 
-	decoded := decode_password_reset_token(password_reset_token)
+	user := app.with_commit(fn [mut app, parsed_user_id, encoded_token, password] (mut tx firebird.ClientTransaction) !conduit.User {
+		token := conduit.password_reset_token_user_get(mut tx, parsed_user_id)!
+		verify_password_reset_token(app.config.token_secret, token.hash, encoded_token) or {
+			return errors.bad_request('', '')
+		}
+		conduit.password_reset_token_delete_by_user(mut tx, parsed_user_id)!
 
-	user := app.with_commit(fn [app, request] (mut tx firebird.ClientTransaction) !conduit.User {
-		// check token is valid:
-		// 1. password_reset_token row exist and is not expired/deleted: need to get token without token id or user id
-		// 2. get password_details using password_details_id
-		// 3. validate token hash using password_details, hash and salt
-		// 4. update password on user
-		// 5. retrieve user
+		password_hash := hash_password(password) or {
+			return errors.internal('Failed to hash', err.msg())
+		}
+		parameters_encoded, parameters_hash := password_hash.encode_parameters()
+		password_details := conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
+			hash: parameters_hash
+		}) or {
+			password_parameters_id := common.new_id(mut app.luuid_generator)
+			conduit.password_details_create(mut tx, password_parameters_id,
+				password_hash.function_name(), parameters_encoded, parameters_hash)!
+			conduit.password_details_get(mut tx, conduit.PasswordDetailsGetParams{
+				hash: parameters_hash
+			})!
+		}
+		conduit.user_password_update(mut tx, parsed_user_id, password_hash.hash,
+			password_hash.salt, password_details.id)!
+		return conduit.user_get_by_id(mut tx, parsed_user_id)
 	}) or { return ctx.handle_error(err) }
 
 	return ctx.handle_ok(UserResponseEnvelope{
-		user: format_user_response(data.user)
+		user: format_user_response(user)
 	})
 }

@@ -72,3 +72,14 @@ pub fn user_get_by_email(mut tx firebird.ClientTransaction, email string) !User 
 
 	return users[0]
 }
+
+pub fn user_password_update(
+	mut tx firebird.ClientTransaction,
+	id common.ID,
+	password_hash []u8,
+	password_salt []u8,
+	password_details_id common.ID) ! {
+	record.user_password_update(mut tx, id, password_hash, password_salt, password_details_id) or {
+		return errors.internal('Failed to update user password', err.msg())
+	}
+}

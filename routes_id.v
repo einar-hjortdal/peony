@@ -1,6 +1,7 @@
 module peony
 
 import veb
+import internal.common
 
 // returns a new [lexical_uuid](https://github.com/einar-hjortdal/lexical_uuid)
 @['/admin/id'; get]

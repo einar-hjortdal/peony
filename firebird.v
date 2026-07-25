@@ -100,7 +100,7 @@ fn firebird_insert_default_user(
 	user_id common.ID) ! {
 	log.debug('insert_default_user')
 	password_hash := hash_password(password)!
-	parameters_encoded, parameters_hash := password_hash.encode_parameters()!
+	parameters_encoded, parameters_hash := password_hash.encode_parameters()
 	tx.execute('INSERT INTO password_details (id, function_name, parameters, hash) VALUES (?, ?, ?, ?)',
 		password_details_id.bytes(), function_name, parameters_encoded, parameters_hash)!
 
