@@ -108,6 +108,7 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 
 		// trigger event that may send notification, token should be accessible by callback.
 		// notification record has to be created in db if a callback is defined
+		// notification should contain both encoded token and user id, necessary for password reset endpoint
 		println(encoded)
 
 		return common.Empty{}

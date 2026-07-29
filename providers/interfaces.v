@@ -1,6 +1,9 @@
 module providers
 
 import net.http
+import internal.common
+
+pub interface ProviderConfig {}
 
 pub struct BlobFileData {
 pub:
@@ -53,7 +56,7 @@ pub:
 	to            string
 	from          ?string
 	attachments   ?[]NotificationAttachment
-	channel       string // TODO do I want/need channel on both NotificationData and NotificationProvider?
+	channel       string
 	template_name string
 	data          ?string
 	provider_data ?string
@@ -74,10 +77,53 @@ pub:
 //     - exchange create/receive
 // Functions should be defined and stored in the App, higher order functions call these callbacks?
 
-// name: returns the name of the provider. Must be unique: each name is mapped to an id.
-// channel: returns the name of the channel used by the provider to send notifications. A channel can only be served by one provider.
 pub interface NotificationProvider {
-	name() string
-	channel() string
+mut:
 	send(notification NotificationData) !NotificationResult
+}
+
+// name:the name of the provider. Must be unique: each name is mapped to an id.
+// channels: the name of the channels used by the provider to send notifications. A notification channel can only be served by one provider.
+// factory: the factory function used to create a NotificationProvider.
+pub struct NotificationProviderConfig {
+pub:
+	name     string
+	channels []string
+	factory  fn () !NotificationProvider @[required]
+}
+
+fn (c NotificationProviderConfig) verify_config() ! {
+	if c.name.trim_space() == '' {
+		return common.config_error('name is required')
+	}
+
+	if c.channels.len == 0 {
+		return common.config_error('at least one channel name is required')
+	}
+
+	for _, channel in c.channels {
+		if channel.trim_space() == '' {
+			return common.config_error('channel is an empty string')
+		}
+	}
+}
+
+struct NotificationProviderEntry {
+	instance ?NotificationProvider
+	config   NotificationProviderConfig
+}
+
+fn new_notification_provider_registry(configs []NotificationProviderConfig) !map[string]NotificationProviderEntry {
+	mut res := map[string]NotificationProviderEntry{}
+	for _, config in configs {
+		config.verify_config()!
+
+		channels := config.channels
+		for _, channel in channels {
+			res[channel] = NotificationProviderEntry{
+				config: config
+			}
+		}
+	}
+	return res
 }

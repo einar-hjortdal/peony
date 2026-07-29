@@ -3,10 +3,10 @@ module peony
 import crypto.argon2
 import crypto.blake2b
 import crypto.rand
+import crypto.subtle
 import encoding.base64
 import json2
 import internal.errors
-import crypto.internal.subtle // https://github.com/vlang/v/issues/27936
 
 const argon2id_name = 'argon2id'
 const argon2id_version = i32(argon2.version)
@@ -19,7 +19,7 @@ const password_reset_token_size = 32
 const blake2b_hash_size = 32
 
 // When retrieving a password, retrieve the params from the database too.
-// When inserting a new password, use the defined consts for parameters. The combination of these params may already be stored in the database: first verify if they exist and what the id is. If they already are set, use the existing id otherwise create a new record and then use that id.
+// When inserting a new password, also insert these parameters in the password_details table. To prevent duplicates in that table, we encode and hash the parameters and index the hash.
 
 interface PasswordHash {
 	function_name() string
@@ -40,7 +40,7 @@ struct Argon2idHash {
 	parameters Argon2idParameters
 }
 
-fn hash_password(password string) !Argon2idHash { // TODO check when errors could happen, remove return if possible
+fn hash_password(password string) !Argon2idHash {
 	salt := rand.bytes(argon2id_salt_length)!
 	return Argon2idHash{
 		salt:       salt
@@ -107,6 +107,7 @@ fn verify_password(password string, password_hash []u8, password_salt []u8, func
 	}
 }
 
+// We generate 32 cryptographically secure random bytes, URL-safe base64-encode them to send over the network to the user, and store only a fast keyed hash of the raw bytes. Verification is a constant-time compare of the recomputed hash. This is appropriate for high-entropy tokens and avoids the cost of computationally expensive password hashes
 fn hash_password_reset_token(secret string, token []u8) ![]u8 {
 	digest := blake2b.new_digest(blake2b_hash_size, secret.bytes())!
 	digest.write(token)!

@@ -9,6 +9,12 @@ import einar_hjortdal.sessions
 import internal.conduit
 import providers
 
+pub struct ProvidersConfig {
+pub:
+	blob         fn () &providers.BlobProvider @[required]
+	notification []providers.NotificationProviderConfig
+}
+
 // Providers are services used by peony.
 // BlobProvider stores and serves files such as product images, videos, etc.
 // NotificationProvider allows peony to send email, sms...
