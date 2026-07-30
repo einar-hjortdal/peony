@@ -356,7 +356,7 @@ CREATE TABLE customer (
   is_registered BOOLEAN DEFAULT false NOT NULL,
   metadata BLOB SUB_TYPE TEXT,
   CONSTRAINT "06a5c8bb-cdfc-1039-6000-7ed6859313df" PRIMARY KEY (id),
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (password_details_id) REFERENCES password_details (id)
+  CONSTRAINT "06a6b098-55c1-1bc2-5c00-cfea5ad25327" FOREIGN KEY (password_details_id) REFERENCES password_details (id)
 );
 
 CREATE UNIQUE INDEX "06a5c8bb-cdfc-1152-3800-4ceda38110fb" ON customer (email);
@@ -543,13 +543,13 @@ CREATE TABLE password_reset_token (
   expires_at TIMESTAMP NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   deleted_at TIMESTAMP,
-  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id),
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE,
+  CONSTRAINT "06a6b098-55c5-1b0b-4c00-575a05794012" PRIMARY KEY (id),
+  CONSTRAINT "06a6b098-55c5-1b61-8c00-cc94ece8a9e1" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
+  CONSTRAINT "06a6b098-55c5-1bc0-8000-63caea86a098" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE,
 );
 
-CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON password_reset_token (user_id) WHERE deleted_at IS NOT NULL;
-CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON password_reset_token (customer_id) WHERE deleted_at IS NOT NULL;
+CREATE UNIQUE INDEX "06a6b098-55c5-1cbd-d800-22c139bf9760" ON password_reset_token (user_id) WHERE deleted_at IS NOT NULL;
+CREATE UNIQUE INDEX "06a6b098-55c5-1d14-7400-eff4319c87ca" ON password_reset_token (customer_id) WHERE deleted_at IS NOT NULL;
 
 CREATE TABLE notification_provider (
   id BINARY(16) NOT NULL,
@@ -557,10 +557,10 @@ CREATE TABLE notification_provider (
   is_installed BOOLEAN DEFAULT true NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id)
+  CONSTRAINT "06a6b098-55c5-1fbe-8800-9b821514dca0" PRIMARY KEY (id)
 );
 
-CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON notification_provider (name);
+CREATE UNIQUE INDEX "06a6b098-55c6-10bc-a800-c16f76e04562" ON notification_provider (name);
 
 CREATE TABLE notification_channel (
   id BINARY(16) NOT NULL,
@@ -568,11 +568,11 @@ CREATE TABLE notification_channel (
   provider_id BINARY(16),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id),
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (provider_id) REFERENCES provider (id) ON DELETE CASCADE
+  CONSTRAINT "06a6b098-55c6-135d-b000-b7a532164cce" PRIMARY KEY (id),
+  CONSTRAINT "06a6b098-55c6-13b0-6000-52e6bb7f47a0" FOREIGN KEY (provider_id) REFERENCES provider (id) ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX "REPLACE_WITH_LUUID" ON notification_channel (name);
+CREATE UNIQUE INDEX "06a6b098-55c6-14bb-b000-fb614505e79a" ON notification_channel (name);
 
 CREATE TABLE notification (
   id BINARY(16) NOT NULL,
@@ -592,18 +592,18 @@ CREATE TABLE notification (
   user_id BINARY(16), -- recipient
   customer_id BINARY(16), -- recipient
   status VARCHAR(7) DEFAULT 'pending' NOT NULL,
-  CONSTRAINT "REPLACE_WITH_LUUID" PRIMARY KEY (id),
-  CONSTRAINT "REPLACE_WITH_LUUID" CHECK (
+  CONSTRAINT "06a6b098-55c6-1b38-4400-fcc8271b8f36" PRIMARY KEY (id),
+  CONSTRAINT "06a6b098-55c6-1b8d-a000-19d6b43c30fa" CHECK (
     source_event IN (
       'password_reset',
       'customer_created', 'customer_updated', 'customer_deleted',
     )
   ),
-  CONSTRAINT "REPLACE_WITH_LUUID" CHECK (status IN ('pending', 'success', 'failure')),
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (provider_id) REFERENCES notification_provider (id) ON DELETE CASCADE,
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (channel_id) REFERENCES notification_channel (id) ON DELETE CASCADE,
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
-  CONSTRAINT "REPLACE_WITH_LUUID" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE
+  CONSTRAINT "06a6b098-55c6-1d72-a400-7b5e35577f84" CHECK (status IN ('pending', 'success', 'failure')),
+  CONSTRAINT "06a6b098-55c6-1dc9-8c00-0280ec409dca" FOREIGN KEY (provider_id) REFERENCES notification_provider (id) ON DELETE CASCADE,
+  CONSTRAINT "06a6b098-55c6-1e25-b400-c1e01ddbe736" FOREIGN KEY (channel_id) REFERENCES notification_channel (id) ON DELETE CASCADE,
+  CONSTRAINT "06a6b098-55c6-1e83-7800-5a73f3f5ea0a" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
+  CONSTRAINT "06a6b098-55c6-1ee3-dc00-eb941b9e5f3f" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE
 );
 
 CREATE TABLE image_translations (

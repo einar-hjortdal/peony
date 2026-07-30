@@ -9,36 +9,27 @@ import einar_hjortdal.sessions
 import internal.conduit
 import providers
 
-pub struct ProvidersConfig {
-pub:
-	blob         fn () &providers.BlobProvider @[required]
-	notification []providers.NotificationProviderConfig
-}
-
 // Providers are services used by peony.
 // BlobProvider stores and serves files such as product images, videos, etc.
 // NotificationProvider allows peony to send email, sms...
-// PaymentProvider enable peony to receive payments from customers, issue refunds, etc.
-// FulfillmentProvider enable peony to schedule shipments of products, book returns, etc.
-pub struct Providers {
-pub mut:
-	blob &providers.BlobProvider
-	// tax &providers.TaxProvider
-	// notification []&providers.NotificationProvider
-	// payment []&providers.PaymentProvider
-	// fulfillment []&providers.FulfillmentProvider
+// PaymentProvider enables peony to receive payments, issue refunds, etc.
+// FulfillmentProvider enables peony to schedule shipments, book returns, etc.
+pub struct ProvidersConfig {
+pub:
+	blob_factory fn () !&providers.BlobProvider @[required]
+	notification []providers.NotificationProviderConfig
 }
 
 @[heap]
 pub struct App {
 	veb.Middleware[Context]
-	config    Config
-	providers &Providers
+	config Config
 mut:
 	luuid_generator &luuid.Generator
 	firebird        &firebird.Client
 	redict          &redict.Client
 	session_store   &sessions.Store
+	providers       &Providers
 }
 
 pub struct Context {
@@ -53,7 +44,7 @@ mut:
 
 // returns the initialized peony App, you can register your custom veb middleware on it.
 // An error is returned if config is invalid or if cannot establish a connection to firebird/redict.
-pub fn new_peony_app(config Config, p &Providers) !&App {
+pub fn new_peony_app(config Config, p ProvidersConfig) !&App {
 	c := config.verify()!
 
 	if c.debug {
@@ -78,17 +69,18 @@ pub fn new_peony_app(config Config, p &Providers) !&App {
 		url: c.redict_url
 	}
 
+	luuid_generator := luuid.new_generator()
 	firebird_client := firebird.new_client(firebird.ClientConfig{ url: c.firebird_url })!
 	redict_client := redict.new_client(ro)!
 	session_store := sessions.new_redict_store_cookie_from_redict_client(rso, co, redict_client)
 
 	mut app := &App{
 		config:          c
-		providers:       p
-		luuid_generator: luuid.new_generator()
+		luuid_generator: luuid_generator
 		firebird:        firebird_client
 		redict:          redict_client
 		session_store:   session_store
+		// providers:       // struct with providers configuration
 	}
 
 	app.use(handler: app.middleware_debug)
@@ -105,5 +97,6 @@ pub fn new_peony_app(config Config, p &Providers) !&App {
 // An error is returned if the initialization fails.
 pub fn (mut app App) run() ! {
 	app.prepare_db()!
+	app.init_providers(p)! // add installed provider data to database
 	veb.run[App, Context](mut app, app.config.port)
 }

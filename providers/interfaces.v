@@ -1,9 +1,6 @@
 module providers
 
 import net.http
-import internal.common
-
-pub interface ProviderConfig {}
 
 pub struct BlobFileData {
 pub:
@@ -63,20 +60,6 @@ pub:
 	content       ?NotificationContent
 }
 
-// TODO: at application startup, check provider names exist in db. If they don't exist generate id and add an entry.
-// TODO: instead of keeping array in app, keep a map? (parse providers struct)
-// TODO: Code-driven configuration: no API endpoints to configure which event uses which channel.
-//   no default channel but provide example in starter. Events that accept handlers:
-//     - password reset
-//     - customer create/update/delete
-//     - shipment create
-//     - delivery create
-//     - invite create/accept/delete/send
-//     - order create/update/cancel/complete
-//     - return request/receive
-//     - exchange create/receive
-// Functions should be defined and stored in the App, higher order functions call these callbacks?
-
 pub interface NotificationProvider {
 mut:
 	send(notification NotificationData) !NotificationResult
@@ -89,41 +72,5 @@ pub struct NotificationProviderConfig {
 pub:
 	name     string
 	channels []string
-	factory  fn () !NotificationProvider @[required]
-}
-
-fn (c NotificationProviderConfig) verify_config() ! {
-	if c.name.trim_space() == '' {
-		return common.config_error('name is required')
-	}
-
-	if c.channels.len == 0 {
-		return common.config_error('at least one channel name is required')
-	}
-
-	for _, channel in c.channels {
-		if channel.trim_space() == '' {
-			return common.config_error('channel is an empty string')
-		}
-	}
-}
-
-struct NotificationProviderEntry {
-	instance ?NotificationProvider
-	config   NotificationProviderConfig
-}
-
-fn new_notification_provider_registry(configs []NotificationProviderConfig) !map[string]NotificationProviderEntry {
-	mut res := map[string]NotificationProviderEntry{}
-	for _, config in configs {
-		config.verify_config()!
-
-		channels := config.channels
-		for _, channel in channels {
-			res[channel] = NotificationProviderEntry{
-				config: config
-			}
-		}
-	}
-	return res
+	factory  fn () !&NotificationProvider @[required]
 }

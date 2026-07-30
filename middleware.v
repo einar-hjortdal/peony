@@ -21,11 +21,14 @@ fn (mut app App) middleware_load_user_session(mut ctx Context) bool {
 	ctx.user_session = app.session_store.new(ctx.req, session_name)
 
 	ctx.user_session_values = json2.decode[UserSessionValues](ctx.user_session.values) or {
-		// [/admin/auth; post] must accept unauthorized request to allow logins
-		if ctx.req.url == '/admin/auth' && ctx.req.method == http.Method.post {
+		// @[/admin/auth; post] logins
+		// @['/admin/auth/password_reset'; post] password reset
+		// @['/admin/auth/password_reset/:encoded_token/:user_id'; post] password reset
+		// TODO check if can use something other than url check
+		if (ctx.req.url == '/admin/auth' || ctx.req.url.starts_with('/admin/auth/password_reset'))
+			&& ctx.req.method == http.Method.post {
 			return true
 		}
-
 		return ctx.middleware_handle_error(errors.unauthorized('Invalid session', err.msg()))
 	}
 

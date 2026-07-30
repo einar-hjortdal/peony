@@ -106,9 +106,7 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 
 		conduit.password_reset_token_create_admin(mut tx, token_id, user.id, hash)!
 
-		// trigger event that may send notification, token should be accessible by callback.
-		// notification record has to be created in db if a callback is defined
-		// notification should contain both encoded token and user id, necessary for password reset endpoint
+		// trigger event that may send notification, attach encoded token, user id
 		println(encoded)
 
 		return common.Empty{}
@@ -119,8 +117,6 @@ pub fn (mut app App) user_password_reset_token_create(mut ctx Context) veb.Resul
 		return ctx.handle_error(err)
 	}
 
-	// for now, use 2 transactions. When worker mode is ready, delegate rest of work to worker.
-	// at completion update notification status to success/failure
 	return ctx.handle_password_reset()
 }
 
