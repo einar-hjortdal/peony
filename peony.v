@@ -7,18 +7,6 @@ import einar_hjortdal.luuid
 import einar_hjortdal.redict
 import einar_hjortdal.sessions
 import internal.conduit
-import providers
-
-// Providers are services used by peony.
-// BlobProvider stores and serves files such as product images, videos, etc.
-// NotificationProvider allows peony to send email, sms...
-// PaymentProvider enables peony to receive payments, issue refunds, etc.
-// FulfillmentProvider enables peony to schedule shipments, book returns, etc.
-pub struct ProvidersConfig {
-pub:
-	blob_factory fn () !&providers.BlobProvider @[required]
-	notification []providers.NotificationProviderConfig
-}
 
 @[heap]
 pub struct App {
@@ -80,7 +68,7 @@ pub fn new_peony_app(config Config, p ProvidersConfig) !&App {
 		firebird:        firebird_client
 		redict:          redict_client
 		session_store:   session_store
-		// providers:       // struct with providers configuration
+		providers:       p.get_providers()!
 	}
 
 	app.use(handler: app.middleware_debug)
@@ -97,6 +85,6 @@ pub fn new_peony_app(config Config, p ProvidersConfig) !&App {
 // An error is returned if the initialization fails.
 pub fn (mut app App) run() ! {
 	app.prepare_db()!
-	app.init_providers(p)! // add installed provider data to database
+	app.init_providers()! // add installed provider data to database
 	veb.run[App, Context](mut app, app.config.port)
 }

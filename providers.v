@@ -2,15 +2,24 @@ module peony
 
 import providers
 import einar_hjortdal.firebird
+import einar_hjortdal.luuid
 import internal.common
 
-struct Providers {
+// Providers are services used by peony.
+// BlobProvider stores and serves files such as product images, videos, etc.
+// NotificationProvider allows peony to send email, sms...
+// PaymentProvider enables peony to receive payments, issue refunds, etc.
+// FulfillmentProvider enables peony to schedule shipments, book returns, etc.
+pub struct ProvidersConfig {
+pub:
+	blob_factory ?fn () !&providers.BlobProvider
+	notification ?[]providers.NotificationProviderConfig
+}
+
+struct BlobProviderEntry {
+	factory fn () !&providers.BlobProvider @[required]
 mut:
-	blob         ?&providers.BlobProvider
-	notification ?NotificationProviderRegistry
-	// tax &providers.TaxProvider
-	// payment []&providers.PaymentProvider
-	// fulfillment []&providers.FulfillmentProvider
+	instance ?&providers.BlobProvider
 }
 
 struct NotificationProviderRegistryEntry {
@@ -20,9 +29,19 @@ mut:
 	instance ?&providers.NotificationProvider
 }
 
+// maps channels to providers
 type NotificationProviderRegistry = map[string]NotificationProviderRegistryEntry
 
-fn verify_notification_provider_config(c providers.NotificationProviderConfig) ! {
+struct Providers {
+mut:
+	blob         ?BlobProviderEntry
+	notification ?NotificationProviderRegistry
+	// tax &providers.TaxProvider
+	// payment []&providers.PaymentProvider
+	// fulfillment []&providers.FulfillmentProvider
+}
+
+fn validate_notification_provider_config(c providers.NotificationProviderConfig) ! {
 	if c.name.trim_space() == '' {
 		return common.config_error('name is required')
 	}
@@ -38,17 +57,24 @@ fn verify_notification_provider_config(c providers.NotificationProviderConfig) !
 	}
 }
 
-// used at app startup
-fn new_notification_provider_registry(
-	mut tx firebird.ClientTransaction,
-	configs []providers.NotificationProviderConfig) !NotificationProviderRegistry {
+fn (p ProvidersConfig) get_blob_provider_entry() ?BlobProviderEntry {
+	blob_factory := p.blob_factory or { return none }
+	return BlobProviderEntry{
+		factory: blob_factory
+	}
+}
+
+fn (p ProvidersConfig) validate_notification() ! {
+	configs := p.notification or { return }
+	for _, config in configs {
+		validate_notification_provider_config(config)!
+	}
+}
+
+fn (p ProvidersConfig) get_notification_provider_registry() ?NotificationProviderRegistry {
+	configs := p.notification or { return none }
 	mut res := NotificationProviderRegistry{}
 	for _, config in configs {
-		verify_notification_provider_config(config)!
-
-		// TODO lookup database: get id, set is_installed, update updated_at if needed...
-		// merge than select?
-
 		channels := config.channels
 		for _, channel in channels {
 			res[channel] = NotificationProviderRegistryEntry{
@@ -59,9 +85,12 @@ fn new_notification_provider_registry(
 	return res
 }
 
-// returns a reference to a providers struct
-fn get_providers(p ProvidersConfig) !&Providers {
-	return &Providers{}
+fn (p ProvidersConfig) get_providers() !&Providers {
+	p.validate_notification()!
+	return &Providers{
+		blob:         p.get_blob_provider_entry()
+		notification: p.get_notification_provider_registry()
+	}
 }
 
 fn (r NotificationProviderRegistry) send(notification providers.NotificationData) !providers.NotificationResult {
@@ -75,9 +104,22 @@ fn (r NotificationProviderRegistry) send(notification providers.NotificationData
 	return instance.send(notification)!
 }
 
-fn (mut app App) init_providers(p ProvidersConfig) ! {
-	app.providers.blob = p.blob_factory()!
+// vendure does not actually persist any provider record in the database, do we really need to?
+// if we persist maybe we should update the database manually like a migration, otherwise if a deployment updates the database it could break all other deployed instances
+// once again I think I have made a mistake by using medusajs as model.
+fn (r NotificationProviderRegistry) init(
+	mut tx firebird.ClientTransaction,
+	mut gen luuid.Generator) ! {
+	for channel_name, provider in r {
+		provider_name := provider.config.name
+		// TODO lookup database: get id, set is_installed, update updated_at if needed...
+		// merge than select?
+	}
+	return res
+}
 
+fn (mut app App) init_providers() ! {
+	app.with_commit()
 	app.providers.notification = new_notification_provider_registry(mut tx, p.notification)!
 }
 

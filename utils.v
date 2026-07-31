@@ -78,17 +78,21 @@ fn role_is_valid(role string) ! {
 	}
 }
 
+fn (mut app App) base_start_transaction() !&firebird.ClientTransaction {
+	return app.firebird.start_transaction(firebird.isolation_level_read_commited)!
+}
+
 fn (mut app App) start_transaction() !&firebird.ClientTransaction {
-	tx := app.firebird.start_transaction(firebird.isolation_level_read_commited) or {
+	tx := app.base_start_transaction() or {
 		return errors.internal('Failed to start transaction', err.msg())
 	}
 	return tx
 }
 
-fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
+fn (mut app App) base_attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
 	finalise fn (mut tx firebird.ClientTransaction) !) !T {
 	for i := 0; i < transaction_attempts; i++ {
-		mut tx := app.start_transaction() or {
+		mut tx := app.base_start_transaction() or {
 			if i == transaction_attempts - 1 {
 				return err
 			}
@@ -111,13 +115,31 @@ fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransactio
 		return res
 	}
 
-	return errors.internal('Could not complete operation',
-		'Transaction failed ${transaction_attempts} times.')
+	return error('Transaction failed ${transaction_attempts} times.')
+}
+
+fn (mut app App) attempt_transaction[T](ops fn (mut tx firebird.ClientTransaction) !T,
+	finalise fn (mut tx firebird.ClientTransaction) !) !T {
+	res := app.base_attempt_transaction(ops, finalise) or {
+		return errors.internal('Could not complete transaction', err.msg())
+	}
+}
+
+fn (mut app App) base_with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
+	return app.attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
+		tx.rollback()!
+	})
 }
 
 fn (mut app App) with_rollback[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
 	return app.attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
 		tx.rollback() or { return errors.internal('Failed to rollback transaction', err.msg()) }
+	})
+}
+
+fn (mut app App) base_with_commit[T](ops fn (mut tx firebird.ClientTransaction) !T) !T {
+	return app.attempt_transaction(ops, fn (mut tx firebird.ClientTransaction) ! {
+		tx.commit()!
 	})
 }
 
