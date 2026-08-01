@@ -7,6 +7,15 @@ import einar_hjortdal.luuid
 import einar_hjortdal.redict
 import einar_hjortdal.sessions
 import internal.conduit
+import internal.common
+
+// pub const start_mode_api = 'api'
+// pub const start_mode_worker = 'worker'
+// pub const start_mode_combined = 'combined'
+// pub const start_mode_default = start_mode_combined
+pub const start_install_providers_default = false
+pub const start_seed_default = false
+pub const start_listen_default = true
 
 @[heap]
 pub struct App {
@@ -81,10 +90,43 @@ pub fn new_peony_app(config Config, p ProvidersConfig) !&App {
 	return app
 }
 
-// starts peony
-// An error is returned if the initialization fails.
-pub fn (mut app App) run() ! {
-	app.prepare_db()!
-	app.init_providers()! // add installed provider data to database
-	veb.run[App, Context](mut app, app.config.port)
+// StartParams defines how the application behaves:
+// install_providers if true then check databse records of providers. Defaults to false.
+// mode sets whether the application behaves strictly as api, worker or as the combination of the two. Defaults to 'combined'.
+// seed if true then seed database. Defaults to false.
+// listen if true then listens to web requests, otherwise exits immediately. Defaults to true.
+pub struct StartParams {
+pub:
+	install_providers ?bool
+	// mode              ?string
+	seed   ?bool
+	listen ?bool
+}
+
+fn (p StartParams) validate() ! {
+	// if mode := p.mode {
+	// 	match mode {
+	// 		start_mode_api, start_mode_worker, start_mode_combined {}
+	// 		else { return error('invalid mode `${mode}`') }
+	// 	}
+	// }
+}
+
+pub fn (mut app App) run(params ?StartParams) ! {
+	p := params or { StartParams{} }
+	p.validate()!
+
+	if common.bool_or(p.seed, start_seed_default) {
+		app.prepare_db()!
+	}
+
+	if common.bool_or(p.install_providers, start_install_providers_default) {
+		app.init_providers()!
+	}
+
+	if common.bool_or(p.listen, start_listen_default) {
+		// _ := common.unwrap_option_or(p.mode, start_mode_default)
+		// TODO handle mode (implement worker mode)
+		veb.run[App, Context](mut app, app.config.port)
+	}
 }

@@ -115,9 +115,8 @@
 - [x] Move cors handling to starter
 - [x] Return and accept translations as a map rather than an array
 - [x] Return and accept variant prices as a map rather than an array
-- [ ] Database setup and migrations should be triggered manually, not by startup
+- [x] Database setup and migrations should be triggered manually, not by startup
 - [ ] Accept slugify options in config
-- [ ] Create record.NotFound error or return PeonyError from record
 
 ## Internals
 

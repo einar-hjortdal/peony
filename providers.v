@@ -104,23 +104,27 @@ fn (r NotificationProviderRegistry) send(notification providers.NotificationData
 	return instance.send(notification)!
 }
 
-// vendure does not actually persist any provider record in the database, do we really need to?
-// if we persist maybe we should update the database manually like a migration, otherwise if a deployment updates the database it could break all other deployed instances
-// once again I think I have made a mistake by using medusajs as model.
-fn (r NotificationProviderRegistry) init(
+fn (mut r NotificationProviderRegistry) init(
 	mut tx firebird.ClientTransaction,
 	mut gen luuid.Generator) ! {
 	for channel_name, provider in r {
 		provider_name := provider.config.name
 		// TODO lookup database: get id, set is_installed, update updated_at if needed...
 		// merge than select?
+		tx.execute('')! // suppress
+		println(channel_name) // suppress
+		println(provider_name) // suppress
+		common.new_id(mut gen) // suppress
 	}
-	return res
 }
 
 fn (mut app App) init_providers() ! {
-	app.with_commit()
-	app.providers.notification = new_notification_provider_registry(mut tx, p.notification)!
+	_ := app.with_commit(fn [mut app] (mut tx firebird.ClientTransaction) !common.Empty {
+		if mut notification := app.providers.notification {
+			notification.init(mut tx, mut app.luuid_generator)!
+		}
+		return common.Empty{}
+	})!
 }
 
 // TODO
