@@ -586,7 +586,7 @@ CREATE TABLE notification (
   template BLOB SUB_TYPE TEXT, -- external
   payload BLOB SUB_TYPE TEXT,
   source_event VARCHAR(16),
-  -- password_reset_token_id BINARY(16),
+  password_reset_token_id BINARY(16),
   -- order_id BINARY(16),
   -- shipment_id BINARY(16),
   user_id BINARY(16), -- recipient
@@ -602,6 +602,7 @@ CREATE TABLE notification (
   CONSTRAINT "06a6b098-55c6-1d72-a400-7b5e35577f84" CHECK (status IN ('pending', 'success', 'failure')),
   CONSTRAINT "06a6b098-55c6-1dc9-8c00-0280ec409dca" FOREIGN KEY (provider_id) REFERENCES notification_provider (id) ON DELETE CASCADE,
   CONSTRAINT "06a6b098-55c6-1e25-b400-c1e01ddbe736" FOREIGN KEY (channel_id) REFERENCES notification_channel (id) ON DELETE CASCADE,
+  CONSTRAINT "06a6dbcb-0b0f-1412-6800-7f9edaec7c92" FOREIGN KEY (password_reset_token_id) REFERENCES password_reset_token (id) ON DELETE CASCADE,
   CONSTRAINT "06a6b098-55c6-1e83-7800-5a73f3f5ea0a" FOREIGN KEY (user_id) REFERENCES peony_user (id) ON DELETE CASCADE,
   CONSTRAINT "06a6b098-55c6-1ee3-dc00-eb941b9e5f3f" FOREIGN KEY (customer_id) REFERENCES customer (id) ON DELETE CASCADE
 );

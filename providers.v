@@ -41,22 +41,6 @@ mut:
 	// fulfillment []&providers.FulfillmentProvider
 }
 
-fn validate_notification_provider_config(c providers.NotificationProviderConfig) ! {
-	if c.name.trim_space() == '' {
-		return common.config_error('name is required')
-	}
-
-	if c.channels.len == 0 {
-		return common.config_error('at least one channel name is required')
-	}
-
-	for _, channel in c.channels {
-		if channel.trim_space() == '' {
-			return common.config_error('channel is an empty string')
-		}
-	}
-}
-
 fn (p ProvidersConfig) get_blob_provider_entry() ?BlobProviderEntry {
 	blob_factory := p.blob_factory or { return none }
 	return BlobProviderEntry{
@@ -67,7 +51,19 @@ fn (p ProvidersConfig) get_blob_provider_entry() ?BlobProviderEntry {
 fn (p ProvidersConfig) validate_notification() ! {
 	configs := p.notification or { return }
 	for _, config in configs {
-		validate_notification_provider_config(config)!
+		if config.name.trim_space() == '' {
+			return common.config_error('notification provider name cannot be an empty string')
+		}
+
+		if config.channels.len == 0 {
+			return common.config_error('at least one notification channel name is required')
+		}
+
+		for _, channel in config.channels {
+			if channel.trim_space() == '' {
+				return common.config_error('notification channel name cannot be an empty string')
+			}
+		}
 	}
 }
 
@@ -107,15 +103,18 @@ fn (r NotificationProviderRegistry) send(notification providers.NotificationData
 fn (mut r NotificationProviderRegistry) init(
 	mut tx firebird.ClientTransaction,
 	mut gen luuid.Generator) ! {
+	// build array of notification_provider to merge
+	// build map of notification_channel to merge
+	// design details:
+	// TODO
 	for channel_name, provider in r {
 		provider_name := provider.config.name
 		// TODO lookup database: get id, set is_installed, update updated_at if needed...
-		// merge than select?
-		tx.execute('')! // suppress
 		println(channel_name) // suppress
 		println(provider_name) // suppress
 		common.new_id(mut gen) // suppress
 	}
+	tx.execute('')! // suppress
 }
 
 fn (mut app App) init_providers() ! {
