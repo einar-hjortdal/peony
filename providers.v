@@ -105,8 +105,6 @@ fn (mut r NotificationProviderRegistry) init(
 	mut gen luuid.Generator) ! {
 	// build array of notification_provider to merge
 	// build map of notification_channel to merge
-	// design details:
-	// TODO
 	for channel_name, provider in r {
 		provider_name := provider.config.name
 		// TODO lookup database: get id, set is_installed, update updated_at if needed...
@@ -117,6 +115,15 @@ fn (mut r NotificationProviderRegistry) init(
 	tx.execute('')! // suppress
 }
 
+// scan notification providers in app.providers.notification:
+// for each provider there should be a row in the notification_provider table, with an id.
+// Check if a provider already has a row. a provider's name is unique like an id.
+// If a provider has a row, mark is_installed true.
+// All providers that have rows but aren't in app.providers.notification should be marked with is_installed false.
+// Each updated row should get an updated_at update.
+// Then check notification_channel table using the same strategy.
+// In addition, we have to map each installed notification_channel to one notification_provider.
+// If a notification channel does not appear in app.providers.notification, mark its provider_id null.
 fn (mut app App) init_providers() ! {
 	_ := app.with_commit(fn [mut app] (mut tx firebird.ClientTransaction) !common.Empty {
 		if mut notification := app.providers.notification {
