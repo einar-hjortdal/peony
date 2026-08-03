@@ -14,7 +14,7 @@ Clone the [starter](https://github.com/einar-hjortdal/peony-starter) and customi
 
 ## Architecture
 
-This graph represents how peony works on a single-server deployment. This setup may scale horizontally by deploying each box on its own independent server.
+This graph represents how peony works on a single-server deployment. 
 
 ```
  ┌────────────────┐                       ┌───────────────┐                
@@ -37,6 +37,8 @@ This graph represents how peony works on a single-server deployment. This setup 
 peony is a commerce backend. Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
 
 [freeNGINX](https://freenginx.org/en/) is used as a TLS termination proxy to secure communication with API consumers, including the admin and store frontends, as well as providers that communicate with peony using webhooks.
+
+To scale horizontally, deploy multiple peony instances on separate servers, and use freeNGINX to balance the load.
 
 ### Environment variables
 
