@@ -18,25 +18,23 @@ This graph represents how peony works on a single-server deployment. This setup 
 
 ```
  ┌────────────────┐                       ┌───────────────┐                
- │                │                       │     peony     │                
+ │                │                       │               │                
  │ Admin frontend ◄────────┐              │               │  ┌────────┐    
- │                │    ┌───▼──────────┐   │  ┌─────────┐  │  │        │    
- └────────────────┘    │              │   │  │         │  ◄──► Redict │    
-                       │  freeNGINX   ◄───►  │   API   │  │  │        │    
- ┌────────────────┐    │              │   │  │         │  │  └────────┘    
- │                │    └───▲────▲─────┘   │  └─────────┘  │  ┌──────────┐  
+ │                │    ┌───▼──────────┐   │               │  │        │    
+ └────────────────┘    │              │   │               ◄──► Redict │    
+                       │  freeNGINX   ◄───►               │  │        │    
+ ┌────────────────┐    │              │   │               │  └────────┘    
+ │                │    └───▲────▲─────┘   │     peony     │  ┌──────────┐  
  │ Store frontend ◄────────┘    │         │               │  │          │  
- │                │             │         │  ┌──────────┐ ◄──► Firebird │  
- └────────────────┘       ┌─────▼─────┐   │  │          │ │  │          │  
-                          │           │   │  │  worker  │ │  └──────────┘  
-                          │ providers ◄───►  │          │ │                
-                          │           │   │  └──────────┘ │                
+ │                │             │         │               ◄──► Firebird │  
+ └────────────────┘       ┌─────▼─────┐   │               │  │          │  
+                          │           │   │               │  └──────────┘  
+                          │ providers ◄───►               │                
+                          │           │   │               │                
                           └───────────┘   └───────────────┘                
 ```
 
-peony is a commerce backend. It consists of an API and a worker. The API and worker portions may be combined (for example, in a single-server deployment) or separated (for example, in a horizontally scaled system).
-
-Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
+peony is a commerce backend. Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
 
 [freeNGINX](https://freenginx.org/en/) is used as a TLS termination proxy to secure communication with API consumers, including the admin and store frontends, as well as providers that communicate with peony using webhooks.
 

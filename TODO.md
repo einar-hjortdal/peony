@@ -104,7 +104,6 @@
 
 ## Changes
 
-- [ ] Worker mode
 - [ ] Search layer
 - [ ] Separate sales from price_list
 - [x] Limit returned list items to 250 in all requests
