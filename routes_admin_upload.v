@@ -32,14 +32,18 @@ pub fn (mut app App) admin_uploads_post(mut ctx Context) veb.Result {
 			'At least one file is required, files must be submitted in the `${uploads_field_name}` field'))
 	}
 
+	mut blob_provider_instance := app.get_blob_provider_instance() or {
+		return ctx.handle_error(err)
+	}
+
 	files := ctx.files[uploads_field_name]
 	mut files_data := []providers.BlobFileData{len: files.len}
 	for i := 0; i < files.len; i++ {
 		f := files[i]
-		file_data := app.providers.blob.create(f) or {
+		file_data := blob_provider_instance.create(f) or {
 			mut fail_deletion := false
 			for k := 0; k < i; k++ {
-				app.providers.blob.delete(f.filename) or { fail_deletion = true }
+				blob_provider_instance.delete(f.filename) or { fail_deletion = true }
 			}
 
 			if fail_deletion {
@@ -73,7 +77,11 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 		data:         ctx.req.data
 	}
 
-	file_data := app.providers.blob.create(f) or {
+	mut blob_provider_instance := app.get_blob_provider_instance() or {
+		return ctx.handle_error(err)
+	}
+
+	file_data := blob_provider_instance.create(f) or {
 		return ctx.handle_error(errors.internal('Failed to upload file', err.msg()))
 	}
 
@@ -85,7 +93,11 @@ pub fn (mut app App) admin_uploads_name_post(mut ctx Context, filename string) v
 // delete files from the file provider
 @['/admin/uploads/:id'; delete]
 pub fn (mut app App) admin_uploads_id_delete(mut ctx Context, id string) veb.Result {
-	app.providers.blob.delete(id) or {
+	mut blob_provider_instance := app.get_blob_provider_instance() or {
+		return ctx.handle_error(err)
+	}
+
+	blob_provider_instance.delete(id) or {
 		return ctx.handle_error(errors.internal('Failed to delete file', err.msg()))
 	}
 

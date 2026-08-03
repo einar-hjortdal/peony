@@ -4,7 +4,7 @@ Commerce
 
 ## Goals
 
-peony is a headless ecommerce software designed to satisfy publishers, merchants and service providers.
+peony is a headless ecommerce backend designed to satisfy publishers, merchants and service providers.
 
 peony aims to be multi-language, multi-channel, multi-currency, multi-warehouse, and support physical, virtual products and services, B2C and B2B.
 
@@ -34,7 +34,7 @@ This graph represents how peony works on a single-server deployment.
                           └───────────┘   └───────────────┘                
 ```
 
-peony is a commerce backend. Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
+Data is persisted on a [Firebird](https://firebirdsql.org/) database, and [Redict](https://redict.io/) is used for cache, job queues and events. Other core components (called providers) are swappable: implement the provider interface to replace a provider.
 
 [freeNGINX](https://freenginx.org/en/) is used as a TLS termination proxy to secure communication with API consumers, including the admin and store frontends, as well as providers that communicate with peony using webhooks.
 

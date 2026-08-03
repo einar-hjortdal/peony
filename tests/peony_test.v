@@ -62,6 +62,10 @@ fn (bp BlobProviderDummy) delete(id string) ! {
 	}
 }
 
+fn provider_blob_factory() !&providers.BlobProvider {
+	return new_provider_blob_dummy()
+}
+
 fn container_firebird_clean() {
 	result := os.execute('docker stop ${firebird_container_name}')
 	if result.exit_code != 0 {
@@ -138,8 +142,8 @@ fn app_routine(ch chan bool) {
 		session_secret:        session_secret
 	}
 
-	mut app := peony.new_peony_app(config, peony.Providers{
-		blob: new_provider_blob_dummy()
+	mut app := peony.new_peony_app(config, peony.ProvidersConfig{
+		blob_factory: provider_blob_factory
 	}) or { panic(err) }
 	go app.run()
 	_ := <-ch

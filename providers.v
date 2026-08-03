@@ -4,6 +4,7 @@ import providers
 import einar_hjortdal.firebird
 import einar_hjortdal.luuid
 import internal.common
+import internal.errors
 
 // Providers are services used by peony.
 // BlobProvider stores and serves files such as product images, videos, etc.
@@ -34,16 +35,16 @@ type NotificationProviderRegistry = map[string]NotificationProviderRegistryEntry
 
 struct Providers {
 mut:
-	blob         ?BlobProviderEntry
+	blob         ?&BlobProviderEntry
 	notification ?NotificationProviderRegistry
 	// tax &providers.TaxProvider
 	// payment []&providers.PaymentProvider
 	// fulfillment []&providers.FulfillmentProvider
 }
 
-fn (p ProvidersConfig) get_blob_provider_entry() ?BlobProviderEntry {
+fn (p ProvidersConfig) get_blob_provider_entry() ?&BlobProviderEntry {
 	blob_factory := p.blob_factory or { return none }
-	return BlobProviderEntry{
+	return &BlobProviderEntry{
 		factory: blob_factory
 	}
 }
@@ -125,7 +126,7 @@ fn (mut r NotificationProviderRegistry) init(
 // In addition, we have to map each installed notification_channel to one notification_provider.
 // If a notification channel does not appear in app.providers.notification, mark its provider_id null.
 fn (mut app App) init_providers() ! {
-	_ := app.with_commit(fn [mut app] (mut tx firebird.ClientTransaction) !common.Empty {
+	app.with_commit(fn [mut app] (mut tx firebird.ClientTransaction) !common.Empty {
 		if mut notification := app.providers.notification {
 			notification.init(mut tx, mut app.luuid_generator)!
 		}
@@ -144,3 +145,18 @@ fn (mut app App) init_providers() ! {
 //     - return request/receive
 //     - exchange create/receive
 // TODO job queue with redict streams
+
+fn (mut app App) get_blob_provider_instance() !&providers.BlobProvider {
+	mut entry := app.providers.blob or {
+		return errors.internal('No blob provider is installed', 'app.providers.blob is none')
+	}
+
+	instance := entry.instance or {
+		new_instance := entry.factory() or {
+			return errors.internal('Failed to get new blob provider instance', err.msg())
+		}
+		return new_instance
+	}
+
+	return instance
+}
