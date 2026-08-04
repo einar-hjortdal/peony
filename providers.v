@@ -5,6 +5,7 @@ import einar_hjortdal.firebird
 import einar_hjortdal.luuid
 import internal.common
 import internal.errors
+import internal.conduit.record
 
 // Providers are services used by peony.
 // BlobProvider stores and serves files such as product images, videos, etc.
@@ -25,8 +26,8 @@ mut:
 
 struct NotificationProviderRegistryEntry {
 	config providers.NotificationProviderConfig
-	id     common.ID
 mut:
+	id       common.ID
 	instance ?&providers.NotificationProvider
 }
 
@@ -104,31 +105,106 @@ fn (r NotificationProviderRegistry) send(notification providers.NotificationData
 fn (mut r NotificationProviderRegistry) init(
 	mut tx firebird.ClientTransaction,
 	mut gen luuid.Generator) ! {
-	// build array of notification_provider to merge
-	// build map of notification_channel to merge
-	for channel_name, provider in r {
-		provider_name := provider.config.name
-		// TODO lookup database: get id, set is_installed, update updated_at if needed...
-		println(channel_name) // suppress
-		println(provider_name) // suppress
-		common.new_id(mut gen) // suppress
+	existing_providers := record.notification_provider_retrieve(mut tx)!
+	existing_channels := record.notification_channel_retrieve(mut tx)!
+
+	mut existing_provider_map := map[string]record.NotificationProvider{}
+	for p in existing_providers {
+		existing_provider_map[p.name] = p
 	}
-	tx.execute('')! // suppress
+
+	mut existing_channel_map := map[string]record.NotificationChannel{}
+	for c in existing_channels {
+		existing_channel_map[c.name] = c
+	}
+
+	// deduplicate
+	mut provider_name_to_channel := map[string]string{}
+	for channel_name, entry in r {
+		provider_name_to_channel[entry.config.name] = channel_name
+	}
+
+	// process providers
+	// initialize array with capacity r.len (at most one provider per channel, at most one channel per entry)
+	mut to_create_providers := []record.NotificationProviderCreateParams{len: 0, cap: r.len}
+	mut to_install := []common.ID{len: 0, cap: r.len}
+	mut to_uninstall := []common.ID{len: 0, cap: existing_providers.len}
+	mut provider_name_to_id := map[string]common.ID{}
+
+	for provider_name, _ in provider_name_to_channel {
+		if existing := existing_provider_map[provider_name] {
+			provider_name_to_id[provider_name] = existing.id
+			if !existing.is_installed {
+				to_install << existing.id
+			}
+		} else {
+			new_id := common.new_id(mut gen)
+			provider_name_to_id[provider_name] = new_id
+			to_create_providers << record.NotificationProviderCreateParams{
+				id:           new_id
+				name:         provider_name
+				is_installed: true
+			}
+		}
+	}
+
+	for existing in existing_providers {
+		if existing.name !in provider_name_to_channel && existing.is_installed {
+			to_uninstall << existing.id
+		}
+	}
+
+	if to_create_providers.len > 0 {
+		record.notification_provider_create(mut tx, to_create_providers)!
+	}
+
+	if to_install.len > 0 {
+		record.notification_provider_install(mut tx, to_install)!
+	}
+
+	if to_uninstall.len > 0 {
+		record.notification_provider_uninstall(mut tx, to_uninstall)!
+	}
+
+	// process channels
+	mut to_create_channels := []record.NotificationChannelCreateParams{len: 0, cap: r.len}
+	mut to_update_channels := []record.NotificationChannelUpdateParams{len: 0, cap: r.len}
+
+	for channel_name, mut entry in r {
+		provider_id := provider_name_to_id[entry.config.name]
+		if existing := existing_channel_map[channel_name] {
+			to_update_channels << record.NotificationChannelUpdateParams{
+				id:          existing.id
+				provider_id: provider_id
+			}
+			entry.id = existing.id
+		} else {
+			new_id := common.new_id(mut gen)
+			to_create_channels << record.NotificationChannelCreateParams{
+				id:          new_id
+				name:        channel_name
+				provider_id: provider_id
+			}
+			entry.id = new_id
+		}
+	}
+
+	if to_create_channels.len > 0 {
+		record.notification_channel_create(mut tx, to_create_channels)!
+	}
+	if to_update_channels.len > 0 {
+		record.notification_channel_update(mut tx, to_update_channels)!
+	}
+
+	record.notification_channel_disable_unserved(mut tx)!
 }
 
-// scan notification providers in app.providers.notification:
-// for each provider there should be a row in the notification_provider table, with an id.
-// Check if a provider already has a row. a provider's name is unique like an id.
-// If a provider has a row, mark is_installed true.
-// All providers that have rows but aren't in app.providers.notification should be marked with is_installed false.
-// Each updated row should get an updated_at update.
-// Then check notification_channel table using the same strategy.
-// In addition, we have to map each installed notification_channel to one notification_provider.
-// If a notification channel does not appear in app.providers.notification, mark its provider_id null.
 fn (mut app App) init_providers() ! {
 	app.with_commit(fn [mut app] (mut tx firebird.ClientTransaction) !common.Empty {
 		if mut notification := app.providers.notification {
 			notification.init(mut tx, mut app.luuid_generator)!
+		} else {
+			record.notification_provider_uninstall_all(mut tx)!
 		}
 		return common.Empty{}
 	})!
@@ -155,6 +231,7 @@ fn (mut app App) get_blob_provider_instance() !&providers.BlobProvider {
 		new_instance := entry.factory() or {
 			return errors.internal('Failed to get new blob provider instance', err.msg())
 		}
+		entry.instance = new_instance
 		return new_instance
 	}
 
