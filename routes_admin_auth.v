@@ -64,7 +64,7 @@ pub fn (mut app App) user_login(mut ctx Context) veb.Result {
 
 	verify_password(password, data.user.password_hash, data.user.password_salt,
 		data.password_details.function_name, data.password_details.parameters) or {
-		return ctx.handle_error(err)
+		return ctx.handle_error(errors.login())
 	}
 
 	ctx.user_session_values = UserSessionValues{

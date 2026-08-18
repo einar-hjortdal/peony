@@ -99,7 +99,7 @@ pub fn (img Image) id() common.ID {
 
 pub fn image_retrieve(mut tx firebird.ClientTransaction, image_ids []common.ID) !Image {
 	data := tx.execute('SELECT id, url, alt FROM image WHERE id IN (${get_placeholders(image_ids)})',
-		ids_bytes(image_ids))!
+		...ids_bytes(image_ids))!
 
 	rows := data.rows()
 	if rows.len == 0 {

@@ -24,6 +24,14 @@ fn format_array_id(aid []common.ID) []string {
 	return res
 }
 
+// TODO embed this
+pub struct ListResponse {
+pub:
+	count  i64
+	offset i32
+	fetch  i32
+}
+
 pub struct TokenCreatedResponse {
 	message string
 }
@@ -1098,6 +1106,7 @@ pub:
 }
 
 pub struct ProductResponseStoreEnvelope {
+pub:
 	product ProductResponseStore
 }
 
@@ -1177,6 +1186,7 @@ fn format_product_response_store(p conduit.Product, pctx PriceContext, sales_cha
 }
 
 pub struct ProductResponseStoreListEnvelope {
+pub:
 	products []ProductResponseStore
 	count    i64
 	offset   i32
@@ -1192,19 +1202,23 @@ fn format_product_response_store_list(p []conduit.Product, pctx PriceContext, sa
 }
 
 pub struct UploadsUploadResponseEnvelope {
+pub:
 	uploads []providers.BlobFileData
 }
 
 pub struct UploadsUploadOneResponseEnvelope {
+pub:
 	upload providers.BlobFileData
 }
 
 pub struct UploadsDeleteResponse {
+pub:
 	id      string
 	deleted bool
 }
 
 pub struct StockLocationResponse {
+pub:
 	id         string
 	created_at time.Time  @[json: 'createdAt']
 	updated_at time.Time  @[json: 'updatedAt']
@@ -1213,6 +1227,7 @@ pub struct StockLocationResponse {
 }
 
 pub struct StockLocationResponseListEnvelope {
+pub:
 	stock_locations []StockLocationResponse @[json: 'stockLocations']
 	count           i64
 	offset          i32
@@ -1220,6 +1235,7 @@ pub struct StockLocationResponseListEnvelope {
 }
 
 pub struct StockLocationResponseEnvelope {
+pub:
 	stock_location StockLocationResponse @[json: 'stockLocation']
 }
 

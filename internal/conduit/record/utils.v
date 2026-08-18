@@ -77,3 +77,12 @@ fn get_where_conditions(c []string) string {
 fn get_merge_source(s []string) string {
 	return s.join('\nUNION ALL\n')
 }
+
+// TODO use
+fn get_count(mut tx firebird.ClientTransaction, query string, params []firebird.Value) !i64 {
+	data := tx.execute(query, ...params)!
+	rows := data.rows()
+	values := rows[0].values() // always returns one row, however TODO check
+	count, _ := values[0].get_i64()! // should always return one column, however DODO check
+	return count
+}

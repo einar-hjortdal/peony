@@ -5,7 +5,7 @@ import net.http
 import providers
 import internal.errors
 
-const uploads_field_name = 'files'
+pub const uploads_field_name = 'files'
 
 // retrieve a file from the file provider
 // @['/admin/uploads/:id'; get]
